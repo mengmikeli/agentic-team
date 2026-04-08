@@ -26,15 +26,18 @@ Infer what you can from the repo before asking. If there's a README, package.jso
 
 ### Step 2: Scaffold
 
-Create `.team/` directory with:
+Create project files:
 
 ```
+README.md               — project overview (if missing or bare)
 .team/
-├── PROJECT.md      — filled in from discovery answers
-├── AGENTS.md       — initial roles (can be refined via agent-init)
-├── SPRINTS.md      — empty table, ready for first sprint
-└── sprints/        — empty directory
+├── PROJECT.md          — filled in from discovery answers
+├── AGENTS.md           — initial roles (can be refined via agent-init)
+├── SPRINTS.md          — empty table, ready for first sprint
+└── sprints/            — empty directory
 ```
+
+**README.md** — generate if missing. Should answer: what is this, who is it for, how to use it. Keep it concise. If a README already exists and is adequate, leave it alone.
 
 **PROJECT.md** — fill in all fields from discovery. Don't leave placeholders.
 
