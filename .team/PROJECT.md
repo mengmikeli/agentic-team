@@ -1,22 +1,22 @@
 # agentic-team — Project Config
 
 ## What
-Portable playbook + templates + OpenClaw plugin for running AI agent teams on software projects.
+Portable playbook + templates + workflow skills for running self-managing AI agent teams on software projects.
 
 ## Stack
-Markdown (v1) → TypeScript OpenClaw plugin (v2)
+Markdown + SKILL.md (AgentSkills format)
 
 ## Repo
-~/clawd/projects/agentic-team (local, GitHub TBD)
+[mengmikeli/agentic-team](https://github.com/mengmikeli/agentic-team)
 
 ## Current Version
-v0 — scaffolding
+v0.1 — foundations
 
 ## Active Sprint
-v1-foundations — charter, playbook, templates
+v1-foundations — charter, playbook, templates, skills
 
 ## Deliverables
 - CHARTER.md — methodology (when to do what)
 - PLAYBOOK.md — platform recipes (OpenClaw + Discord + GitHub)
-- Templates — PROJECT.md, AGENTS.md, SPEC.md, PLAN.md, RETRO.md
-- Case study: ear-trainer restructure
+- templates/ — PROJECT.md, AGENTS.md, SPEC.md, PLAN.md, SPRINTS.md, RETRO.md
+- skills/ — workflow skills (sprint-lifecycle, more to come)

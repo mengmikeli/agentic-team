@@ -1,13 +1,14 @@
 # Sprint: v1-foundations
 
 ## Goal
-Draft the core documents that define the agentic team workflow: charter, playbook, and templates. Validate by applying to ear-trainer as case study.
+Ship the core framework: charter, playbook, templates, and workflow skills. Validate by dogfooding — this project uses its own framework to manage itself.
 
 ## Scope
 - CHARTER.md — roles, execution models, workflow phases, quality gates, principles
 - PLAYBOOK.md — OpenClaw + Discord + GitHub operational recipes
-- Templates — PROJECT.md, AGENTS.md, SPEC.md, PLAN.md, RETRO.md
-- Ear-trainer restructure — move scattered docs into .team/ using templates
+- Templates — PROJECT.md, AGENTS.md, SPEC.md, PLAN.md, SPRINTS.md, RETRO.md
+- Skills — sprint-lifecycle (init/close/status/update)
+- Dogfood validation — this project's .team/ uses its own templates
 
 ## Out of scope
 - OpenClaw plugin code (v2)
@@ -15,8 +16,9 @@ Draft the core documents that define the agentic team workflow: charter, playboo
 - Publishing to ClawHub (after validation)
 
 ## Done when
-- Charter reviewed and approved by Mike
-- Playbook reviewed and approved by Mike
-- Templates exist and are self-explanatory
-- Ear-trainer .team/ restructured using templates
-- Mike confirms it captures the v4 sprint learnings
+- [ ] Charter reviewed and approved by Mike
+- [ ] Playbook reviewed and approved by Mike
+- [ ] Templates exist and are self-explanatory
+- [ ] sprint-lifecycle skill integrated and documented
+- [ ] This project's .team/ uses its own templates (dogfood)
+- [ ] Mike confirms it captures real sprint learnings (S5-S7 drift, lifecycle gaps)
