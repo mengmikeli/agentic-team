@@ -263,7 +263,33 @@ function planTasks(description, spec) {
 }
 
 function buildTaskBrief(task, featureName, gateCmd, cwd, failureContext, brainstormOutput) {
+  // Determine mode: Build (first pass), Fix (after FAIL), Polish (after ITERATE)
+  let mode = "Build";
+  let modeInstruction = "";
+  if (failureContext) {
+    if (failureContext.includes("Review FAIL") || failureContext.includes("ITERATE")) {
+      mode = failureContext.includes("ITERATE") ? "Polish" : "Fix";
+    } else {
+      mode = "Fix";
+    }
+  }
+
+  if (mode === "Build") {
+    modeInstruction = `### Mode: Build (first pass)
+You are building from scratch. Implement the task fully and verify it works.`;
+  } else if (mode === "Fix") {
+    modeInstruction = `### Mode: Fix (after FAIL — things are broken)
+Read the failure context below carefully. Fix broken functionality and critical issues.
+Things are broken — make them work. The failure output tells you what failed.`;
+  } else {
+    modeInstruction = `### Mode: Polish (after ITERATE — push toward excellence)
+All criteria pass but quality isn't excellent yet. Focus on the lowest-quality areas and push them toward 4+.
+This is about refinement, not fixing breakage.`;
+  }
+
   let brief = `You are implementing a task for feature "${featureName}".
+
+${modeInstruction}
 
 ## Task
 ${task.title}
@@ -281,6 +307,43 @@ After your changes, this command must pass:
 \`\`\`
 ${gateCmd}
 \`\`\`
+
+## Handshake Output (REQUIRED)
+You MUST write a handshake.json file when done. This is the contract that proves your work.
+Write it to: .team/features/${featureName}/tasks/${task.id}/handshake.json
+
+\`\`\`json
+{
+  "taskId": "${task.id}",
+  "nodeType": "build",
+  "runId": "run_${task.attempts || 1}",
+  "status": "completed",
+  "verdict": null,
+  "summary": "<what you built, 2-3 sentences>",
+  "timestamp": "<ISO8601>",
+  "artifacts": [
+    { "type": "code", "path": "<each file you created or modified>" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
+\`\`\`
+
+The artifacts list must include every file you created or modified.
+
+## Verification Requirement
+Before claiming you're done:
+1. Run the quality gate command above
+2. Paste the actual output (not what you expect)
+3. If tests exist, run them and paste results
+
+## Anti-Rationalization
+
+| You're tempted to say | Reality | Do this instead |
+|---|---|---|
+| "Should work now" | You didn't run it | Run the actual command and paste the output |
+| "Minor change, no test needed" | Minor changes cause regressions | Run the existing test suite, paste results |
+| "Code looks correct by inspection" | Inspection misses runtime behavior | Execute the code path end-to-end |
+| "I'll skip the handshake" | The harness will reject your work | Write the handshake.json — it's mandatory |
 `;
 
   if (brainstormOutput) {
@@ -293,11 +356,11 @@ ${brainstormOutput}
   if (failureContext) {
     brief += `
 ## Previous Attempt Failed
-The quality gate failed on the previous attempt. Here's the output:
+${mode === "Fix" ? "The quality gate or review failed. Here's the context:" : "The reviewer wants polish improvements:"}
 \`\`\`
-${failureContext.slice(0, 2000)}
+${failureContext.slice(0, 3000)}
 \`\`\`
-Fix the issues and try again.
+Fix the issues and try again. Do NOT repeat the same mistakes.
 `;
   }
 
