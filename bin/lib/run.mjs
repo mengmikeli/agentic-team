@@ -227,6 +227,39 @@ Fix the issues and try again.
 
 export async function cmdRun(args) {
   const description = args.filter(a => !a.startsWith("-")).join(" ");
+  const continuous = !description; // no args = continuous roadmap mode
+
+  if (continuous) {
+    let stopping = false;
+    process.on("SIGINT", () => {
+      if (stopping) process.exit(1);
+      stopping = true;
+      console.log(`\n${c.yellow}Stopping after current feature completes... (Ctrl+C again to force quit)${c.reset}`);
+    });
+
+    let completedFeatures = 0;
+    while (!stopping) {
+      const result = await _runSingleFeature(args, null);
+      if (result === "exhausted") {
+        console.log(`\n${c.green}${c.bold}All roadmap items completed! ${completedFeatures} feature(s) delivered.${c.reset}`);
+        break;
+      }
+      completedFeatures++;
+      if (stopping) break;
+      console.log(`\n${c.cyan}${"─".repeat(50)}${c.reset}`);
+      console.log(`${c.cyan}Completed ${completedFeatures} feature(s). Picking next from roadmap...${c.reset}`);
+      console.log(`${c.cyan}${"─".repeat(50)}${c.reset}\n`);
+    }
+    if (stopping) {
+      console.log(`\n${c.yellow}Stopped after ${completedFeatures} feature(s).${c.reset}`);
+    }
+  } else {
+    await _runSingleFeature(args, description);
+  }
+}
+
+async function _runSingleFeature(args, description) {
+  if (!description) description = args.filter(a => !a.startsWith("-")).join(" ") || null;
   const cwd = process.cwd();
   const teamDir = join(cwd, ".team");
   const maxRetries = parseInt(getFlag(args, "retries") || "3", 10);
@@ -270,7 +303,7 @@ export async function cmdRun(args) {
     const items = [...roadmapSection[1].matchAll(/^\d+\.\s*\*\*(.+?)\*\*\s*[-—]\s*(.+)$/gm)];
     if (items.length === 0) {
       console.log(`${c.yellow}Roadmap is empty. Nothing to run.${c.reset}`);
-      process.exit(0);
+      return "exhausted";
     }
 
     // Check which features already exist
@@ -288,7 +321,7 @@ export async function cmdRun(args) {
 
     if (!featureName) {
       console.log(`${c.green}All roadmap items completed!${c.reset}`);
-      process.exit(0);
+      return "exhausted";
     }
   }
 
@@ -512,6 +545,7 @@ export async function cmdRun(args) {
 
   if (blocked > 0) {
     console.log(`${c.yellow}Blocked tasks need attention. Review and run again or fix manually.${c.reset}`);
-    process.exit(1);
+    return "blocked";
   }
+  return "done";
 }
