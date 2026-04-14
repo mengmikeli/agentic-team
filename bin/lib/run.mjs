@@ -10,6 +10,7 @@ import {
   c, getFlag, readState, writeState, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS,
 } from "./util.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue } from "./github.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -355,6 +356,30 @@ export async function cmdRun(args) {
     return;
   }
 
+  // ── Create GitHub issues ──
+
+  const useGitHub = ghAvailable();
+  if (useGitHub) {
+    console.log(`${c.dim}Creating GitHub issues...${c.reset}`);
+    for (const task of tasks) {
+      const issueNum = createIssue(
+        `[${featureName}] ${task.title}`,
+        `Auto-created by \`agt run\` for feature **${featureName}**.\n\nTask: ${task.title}`,
+      );
+      if (issueNum) {
+        task.issueNumber = issueNum;
+        console.log(`  ${c.green}✓${c.reset} #${issueNum}: ${task.title}`);
+      }
+    }
+    // Persist issue numbers to state
+    const ghState = readState(featureDir);
+    if (ghState) {
+      ghState.tasks = tasks;
+      writeState(featureDir, ghState);
+    }
+    console.log();
+  }
+
   // ── Execute tasks ──
 
   let completed = 0;
@@ -396,6 +421,7 @@ export async function cmdRun(args) {
           "--dir", featureDir, "--reason", "skipped by user");
         blocked++;
         console.log(`  ${c.yellow}⊘ Skipped${c.reset}\n`);
+        if (task.issueNumber) commentIssue(task.issueNumber, "Task skipped by user.");
         break;
       }
 
@@ -420,6 +446,7 @@ export async function cmdRun(args) {
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
         completed++;
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
+        if (task.issueNumber) closeIssue(task.issueNumber, "Task completed — gate passed.");
         break;
       } else {
         console.log(`  ${c.red}✗ Gate FAIL${c.reset} (exit ${gateResult.exitCode})`);
@@ -433,6 +460,7 @@ export async function cmdRun(args) {
             `✗ Task ${i + 1}/${tasks.length}: ${task.title} — failed after ${maxRetries} attempts`);
           blocked++;
           console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+          if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
         }
       }
     }
