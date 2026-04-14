@@ -284,3 +284,34 @@ describe("at-harness", () => {
     });
   });
 });
+
+// ── GitHub integration tests ──────────────────────────────────────
+
+import { ghAvailable, createIssue, closeIssue, commentIssue } from "../bin/lib/github.mjs";
+
+describe("github integration", () => {
+  it("ghAvailable returns a boolean", () => {
+    const result = ghAvailable();
+    assert.equal(typeof result, "boolean");
+  });
+
+  it("createIssue returns null for empty title", () => {
+    assert.equal(createIssue("", "body"), null);
+    assert.equal(createIssue(null, "body"), null);
+  });
+
+  it("closeIssue returns false for null number", () => {
+    assert.equal(closeIssue(null, "comment"), false);
+    assert.equal(closeIssue(undefined, "comment"), false);
+  });
+
+  it("commentIssue returns false for null number", () => {
+    assert.equal(commentIssue(null, "body"), false);
+    assert.equal(commentIssue(undefined, "body"), false);
+  });
+
+  it("commentIssue returns false for empty body", () => {
+    assert.equal(commentIssue(1, ""), false);
+    assert.equal(commentIssue(1, null), false);
+  });
+});

@@ -10,7 +10,7 @@ import {
   c, getFlag, readState, writeState, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS,
 } from "./util.mjs";
-import { notify, parseNotifyConfig } from "./notify.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue } from "./github.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -72,61 +72,6 @@ function runGateInline(cmd, featureDir, taskId) {
   }
 
   return { ok: true, verdict, exitCode, stdout: stdout.slice(0, 1024), stderr: stderr.slice(0, 1024) };
-}
-
-// ── GitHub Issues integration ────────────────────────────────────
-
-function hasGhCli() {
-  try {
-    execSync(process.platform === "win32" ? "where gh" : "which gh", {
-      encoding: "utf8", stdio: "pipe",
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function hasGitHubRemote(cwd) {
-  try {
-    const remote = execSync("git remote get-url origin", {
-      cwd, encoding: "utf8", stdio: "pipe",
-    }).trim();
-    return remote.includes("github.com");
-  } catch {
-    return false;
-  }
-}
-
-function ghCreateIssue(title, body, cwd) {
-  try {
-    const result = execSync(
-      `gh issue create --title ${JSON.stringify(title)} --body ${JSON.stringify(body)}`,
-      { cwd, encoding: "utf8", stdio: "pipe", timeout: 30000 }
-    );
-    // gh returns the issue URL, extract number from it
-    const match = result.trim().match(/(\d+)\s*$/);
-    return match ? parseInt(match[1], 10) : null;
-  } catch {
-    return null;
-  }
-}
-
-function ghCloseIssue(number, cwd) {
-  try {
-    execSync(`gh issue close ${number}`, {
-      cwd, encoding: "utf8", stdio: "pipe", timeout: 15000,
-    });
-  } catch { /* best-effort */ }
-}
-
-function ghCommentIssue(number, comment, cwd) {
-  try {
-    execSync(
-      `gh issue comment ${number} --body ${JSON.stringify(comment)}`,
-      { cwd, encoding: "utf8", stdio: "pipe", timeout: 15000 }
-    );
-  } catch { /* best-effort */ }
 }
 
 // ── Agent dispatch ──────────────────────────────────────────────
@@ -243,45 +188,6 @@ function planTasks(description, spec) {
   }];
 }
 
-// ── Agent-based review ──────────────────────────────────────────
-
-function loadRoleTemplate(cwd) {
-  // Try roles/architect.md as default review role
-  const rolesDir = join(cwd, "roles");
-  const defaultRole = join(rolesDir, "architect.md");
-  if (existsSync(defaultRole)) {
-    return { name: "architect", content: readFileSync(defaultRole, "utf8") };
-  }
-  // Fallback: try any .md in roles/
-  if (existsSync(rolesDir)) {
-    try {
-      const entries = execSync(`ls "${rolesDir}"`, {
-        encoding: "utf8", stdio: "pipe",
-      }).trim().split("\n").filter(f => f.endsWith(".md"));
-      if (entries.length > 0) {
-        const filePath = join(rolesDir, entries[0]);
-        const content = readFileSync(filePath, "utf8");
-        const name = entries[0].replace(/\.md$/, "");
-        return { name, content };
-      }
-    } catch {}
-  }
-  return null;
-}
-
-function buildReviewBrief(taskTitle, roleTemplate) {
-  const roleName = roleTemplate ? roleTemplate.name : "reviewer";
-  const roleContext = roleTemplate ? `\n## Role Context\n${roleTemplate.content}\n` : "";
-  return `You are reviewing code changes as a ${roleName}.\n${roleContext}\n## Review Task\nReview the changes made for task '${taskTitle}'. Check for:\n- Code quality and correctness\n- Proper error handling\n- Test coverage\n- Security concerns\n- Architectural fit\n\nReport any issues as a numbered list. If no issues found, say APPROVED.`;
-}
-
-function dispatchReview(agent, taskTitle, cwd) {
-  const role = loadRoleTemplate(cwd);
-  const brief = buildReviewBrief(taskTitle, role);
-  console.log(`  ${c.cyan}⟳ Review step (${role?.name || "default"})...${c.reset}`);
-  return dispatchToAgent(agent, brief, cwd);
-}
-
 function buildTaskBrief(task, featureName, gateCmd, cwd, failureContext) {
   let brief = `You are implementing a task for feature "${featureName}".
 
@@ -321,45 +227,10 @@ Fix the issues and try again.
 
 export async function cmdRun(args) {
   const description = args.filter(a => !a.startsWith("-")).join(" ");
-  const continuous = !description; // no args = continuous roadmap mode
-
-  if (continuous) {
-    // Handle SIGINT gracefully in continuous mode
-    let stopping = false;
-    process.on("SIGINT", () => {
-      if (stopping) process.exit(1); // double Ctrl+C = force quit
-      stopping = true;
-      console.log(`\n${c.yellow}Stopping after current feature completes... (Ctrl+C again to force quit)${c.reset}`);
-    });
-
-    let completedFeatures = 0;
-    while (!stopping) {
-      const result = await runSingleFeature(args, null);
-      if (result === "exhausted") {
-        console.log(`\n${c.green}${c.bold}All roadmap items completed! ${completedFeatures} feature(s) delivered.${c.reset}`);
-        break;
-      }
-      completedFeatures++;
-      if (stopping) break;
-      console.log(`\n${c.cyan}${"─".repeat(50)}${c.reset}`);
-      console.log(`${c.cyan}Completed ${completedFeatures} feature(s). Picking next from roadmap...${c.reset}`);
-      console.log(`${c.cyan}${"─".repeat(50)}${c.reset}\n`);
-    }
-    if (stopping) {
-      console.log(`\n${c.yellow}Stopped after ${completedFeatures} feature(s).${c.reset}`);
-    }
-  } else {
-    await runSingleFeature(args, description);
-  }
-}
-
-async function runSingleFeature(args, description) {
-  if (!description) description = args.filter(a => !a.startsWith("-")).join(" ") || null;
   const cwd = process.cwd();
   const teamDir = join(cwd, ".team");
   const maxRetries = parseInt(getFlag(args, "retries") || "3", 10);
   const dryRun = args.includes("--dry-run");
-  const enableReview = args.includes("--review");
 
   if (!existsSync(teamDir)) {
     console.log(`${c.red}No .team/ directory found.${c.reset} Run ${c.bold}agt init${c.reset} first.`);
@@ -417,7 +288,7 @@ async function runSingleFeature(args, description) {
 
     if (!featureName) {
       console.log(`${c.green}All roadmap items completed!${c.reset}`);
-      return "exhausted";
+      process.exit(0);
     }
   }
 
@@ -432,7 +303,6 @@ async function runSingleFeature(args, description) {
   console.log(`${c.bold}Gate:${c.reset}     ${c.dim}${gateCmd}${c.reset}`);
   console.log(`${c.bold}Agent:${c.reset}    ${agent ? c.green + agent + c.reset : c.yellow + "manual (no claude/codex found)" + c.reset}`);
   console.log(`${c.bold}Retries:${c.reset}  ${maxRetries} per task`);
-  if (enableReview) console.log(`${c.bold}Review:${c.reset}   ${c.cyan}enabled${c.reset}`);
   if (dryRun) console.log(`${c.yellow}${c.bold}DRY RUN${c.reset} — no changes will be made\n`);
   console.log();
 
@@ -475,12 +345,8 @@ async function runSingleFeature(args, description) {
     writeState(featureDir, state);
   }
 
-  // ── Notification channels ──
-
-  const notifyChannels = parseNotifyConfig(cwd);
-
   // Notify start
-  notify(notifyChannels, "feature-started",
+  harness("notify", "--event", "feature-started", "--msg",
     `▶ Feature: ${featureName} (${tasks.length} tasks planned)`);
 
   if (dryRun) {
@@ -490,16 +356,19 @@ async function runSingleFeature(args, description) {
     return;
   }
 
-  // ── GitHub Issues setup ──
+  // ── Create GitHub issues ──
 
-  const useGitHub = hasGhCli() && hasGitHubRemote(cwd);
+  const useGitHub = ghAvailable();
   if (useGitHub) {
-    console.log(`${c.green}✓${c.reset} GitHub Issues integration active\n`);
+    console.log(`${c.dim}Creating GitHub issues...${c.reset}`);
     for (const task of tasks) {
-      const issueNum = ghCreateIssue(`Task: ${task.title}`, task.title, cwd);
+      const issueNum = createIssue(
+        `[${featureName}] ${task.title}`,
+        `Auto-created by \`agt run\` for feature **${featureName}**.\n\nTask: ${task.title}`,
+      );
       if (issueNum) {
-        task.ghIssue = issueNum;
-        console.log(`  ${c.dim}Created issue #${issueNum} for: ${task.title}${c.reset}`);
+        task.issueNumber = issueNum;
+        console.log(`  ${c.green}✓${c.reset} #${issueNum}: ${task.title}`);
       }
     }
     // Persist issue numbers to state
@@ -524,7 +393,7 @@ async function runSingleFeature(args, description) {
 
     // Transition to in-progress
     harness("transition", "--task", task.id, "--status", "in-progress", "--dir", featureDir);
-    notify(notifyChannels, "task-started", `▶ Task ${i + 1}/${tasks.length}: ${task.title}`);
+    harness("notify", "--event", "task-started", "--msg", `▶ Task ${i + 1}/${tasks.length}: ${task.title}`);
 
     let passed = false;
     let lastFailure = null;
@@ -552,6 +421,7 @@ async function runSingleFeature(args, description) {
           "--dir", featureDir, "--reason", "skipped by user");
         blocked++;
         console.log(`  ${c.yellow}⊘ Skipped${c.reset}\n`);
+        if (task.issueNumber) commentIssue(task.issueNumber, "Task skipped by user.");
         break;
       }
 
@@ -572,36 +442,11 @@ async function runSingleFeature(args, description) {
           }
         } catch { /* no changes to commit, or git not available */ }
 
-        // Agent-based review (optional)
-        if (enableReview && agent) {
-          const reviewResult = dispatchReview(agent, task.title, cwd);
-          if (reviewResult.ok && reviewResult.output) {
-            const isApproved = /\bAPPROVED\b/i.test(reviewResult.output);
-            if (!isApproved) {
-              console.log(`  ${c.yellow}⟳ Review found issues, retrying...${c.reset}`);
-              lastFailure = `Review feedback:\n${reviewResult.output.slice(0, 2000)}`;
-              if (attempt < maxRetries) continue;
-              // Fall through to blocked if out of retries
-              harness("transition", "--task", task.id, "--status", "blocked",
-                "--dir", featureDir, "--reason", "Review rejected after retries");
-              notify(notifyChannels, "task-blocked",
-                `✗ Task ${i + 1}/${tasks.length}: ${task.title} — review rejected`);
-              if (useGitHub && task.ghIssue) {
-                ghCommentIssue(task.ghIssue, `⚠️ Review rejected:\n${reviewResult.output.slice(0, 1500)}`, cwd);
-              }
-              blocked++;
-              console.log(`  ${c.red}✗ Review rejected after ${maxRetries} attempts${c.reset}\n`);
-              break;
-            }
-            console.log(`  ${c.green}✓ Review APPROVED${c.reset}`);
-          }
-        }
-
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
-        notify(notifyChannels, "task-passed", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
-        if (useGitHub && task.ghIssue) ghCloseIssue(task.ghIssue, cwd);
+        harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
         completed++;
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
+        if (task.issueNumber) closeIssue(task.issueNumber, "Task completed — gate passed.");
         break;
       } else {
         console.log(`  ${c.red}✗ Gate FAIL${c.reset} (exit ${gateResult.exitCode})`);
@@ -611,13 +456,11 @@ async function runSingleFeature(args, description) {
         if (attempt === maxRetries) {
           harness("transition", "--task", task.id, "--status", "blocked",
             "--dir", featureDir, "--reason", `Failed after ${maxRetries} attempts`);
-          notify(notifyChannels, "task-blocked",
+          harness("notify", "--event", "task-blocked", "--msg",
             `✗ Task ${i + 1}/${tasks.length}: ${task.title} — failed after ${maxRetries} attempts`);
-          if (useGitHub && task.ghIssue) {
-            ghCommentIssue(task.ghIssue, `❌ Blocked: Failed after ${maxRetries} attempts\n\n\`\`\`\n${lastFailure?.slice(0, 1500) || "unknown"}\n\`\`\``, cwd);
-          }
           blocked++;
           console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+          if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
         }
       }
     }
@@ -625,7 +468,7 @@ async function runSingleFeature(args, description) {
     // Check for oscillation (simple: 3+ consecutive failures across tasks)
     if (blocked >= 3) {
       console.log(`${c.red}${c.bold}⚠ 3 consecutive blocks — possible systemic issue. Stopping.${c.reset}\n`);
-      notify(notifyChannels, "anomaly",
+      harness("notify", "--event", "anomaly", "--msg",
         `⚠ 3 consecutive blocks in ${featureName} — stopping execution`);
       break;
     }
@@ -634,7 +477,7 @@ async function runSingleFeature(args, description) {
     if (i === Math.floor(tasks.length / 2) - 1 && tasks.length > 2) {
       const msg = `Progress: ${completed}/${tasks.length} done, ${blocked} blocked.`;
       console.log(`${c.cyan}${msg}${c.reset}`);
-      notify(notifyChannels, "progress", msg);
+      harness("notify", "--event", "progress", "--msg", msg);
     }
   }
 
@@ -664,12 +507,11 @@ async function runSingleFeature(args, description) {
   console.log(`  ${c.dim}Duration: ${durationStr}${c.reset}`);
   console.log(`${"═".repeat(50)}\n`);
 
-  notify(notifyChannels, "feature-complete",
+  harness("notify", "--event", "feature-complete", "--msg",
     `Feature complete: ${featureName} — ${completed}/${tasks.length} done, ${blocked} blocked, ${durationStr}`);
 
   if (blocked > 0) {
     console.log(`${c.yellow}Blocked tasks need attention. Review and run again or fix manually.${c.reset}`);
-    return "blocked";
+    process.exit(1);
   }
-  return "done";
 }
