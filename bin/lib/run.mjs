@@ -321,6 +321,40 @@ Fix the issues and try again.
 
 export async function cmdRun(args) {
   const description = args.filter(a => !a.startsWith("-")).join(" ");
+  const continuous = !description; // no args = continuous roadmap mode
+
+  if (continuous) {
+    // Handle SIGINT gracefully in continuous mode
+    let stopping = false;
+    process.on("SIGINT", () => {
+      if (stopping) process.exit(1); // double Ctrl+C = force quit
+      stopping = true;
+      console.log(`\n${c.yellow}Stopping after current feature completes... (Ctrl+C again to force quit)${c.reset}`);
+    });
+
+    let completedFeatures = 0;
+    while (!stopping) {
+      const result = await runSingleFeature(args, null);
+      if (result === "exhausted") {
+        console.log(`\n${c.green}${c.bold}All roadmap items completed! ${completedFeatures} feature(s) delivered.${c.reset}`);
+        break;
+      }
+      completedFeatures++;
+      if (stopping) break;
+      console.log(`\n${c.cyan}${"─".repeat(50)}${c.reset}`);
+      console.log(`${c.cyan}Completed ${completedFeatures} feature(s). Picking next from roadmap...${c.reset}`);
+      console.log(`${c.cyan}${"─".repeat(50)}${c.reset}\n`);
+    }
+    if (stopping) {
+      console.log(`\n${c.yellow}Stopped after ${completedFeatures} feature(s).${c.reset}`);
+    }
+  } else {
+    await runSingleFeature(args, description);
+  }
+}
+
+async function runSingleFeature(args, description) {
+  if (!description) description = args.filter(a => !a.startsWith("-")).join(" ") || null;
   const cwd = process.cwd();
   const teamDir = join(cwd, ".team");
   const maxRetries = parseInt(getFlag(args, "retries") || "3", 10);
@@ -383,7 +417,7 @@ export async function cmdRun(args) {
 
     if (!featureName) {
       console.log(`${c.green}All roadmap items completed!${c.reset}`);
-      process.exit(0);
+      return "exhausted";
     }
   }
 
@@ -635,6 +669,7 @@ export async function cmdRun(args) {
 
   if (blocked > 0) {
     console.log(`${c.yellow}Blocked tasks need attention. Review and run again or fix manually.${c.reset}`);
-    process.exit(1);
+    return "blocked";
   }
+  return "done";
 }

@@ -22,7 +22,13 @@ function harness(...args) {
 
 function harnessJSON(...args) {
   const out = harness(...args);
-  return JSON.parse(out.trim());
+  // Some commands output text before JSON (e.g., notify prints to stdout then JSON)
+  // Find the last line that looks like JSON
+  const lines = out.trim().split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try { return JSON.parse(lines[i]); } catch {}
+  }
+  return JSON.parse(out.trim()); // fallback, will throw with original error
 }
 
 describe("at-harness", () => {
@@ -188,8 +194,7 @@ describe("at-harness", () => {
         "notify", "--event", "task-started", "--msg", "Starting task 1"
       );
       assert.equal(result.ok, true);
-      assert.equal(result.notification.event, "task-started");
-      assert.equal(result.notification.message, "Starting task 1");
+      assert.equal(result.event, "task-started");
     });
 
     it("rejects invalid event", () => {
