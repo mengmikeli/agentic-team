@@ -73,6 +73,61 @@ function runGateInline(cmd, featureDir, taskId) {
   return { ok: true, verdict, exitCode, stdout: stdout.slice(0, 1024), stderr: stderr.slice(0, 1024) };
 }
 
+// ── GitHub Issues integration ────────────────────────────────────
+
+function hasGhCli() {
+  try {
+    execSync(process.platform === "win32" ? "where gh" : "which gh", {
+      encoding: "utf8", stdio: "pipe",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function hasGitHubRemote(cwd) {
+  try {
+    const remote = execSync("git remote get-url origin", {
+      cwd, encoding: "utf8", stdio: "pipe",
+    }).trim();
+    return remote.includes("github.com");
+  } catch {
+    return false;
+  }
+}
+
+function ghCreateIssue(title, body, cwd) {
+  try {
+    const result = execSync(
+      `gh issue create --title ${JSON.stringify(title)} --body ${JSON.stringify(body)}`,
+      { cwd, encoding: "utf8", stdio: "pipe", timeout: 30000 }
+    );
+    // gh returns the issue URL, extract number from it
+    const match = result.trim().match(/(\d+)\s*$/);
+    return match ? parseInt(match[1], 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+function ghCloseIssue(number, cwd) {
+  try {
+    execSync(`gh issue close ${number}`, {
+      cwd, encoding: "utf8", stdio: "pipe", timeout: 15000,
+    });
+  } catch { /* best-effort */ }
+}
+
+function ghCommentIssue(number, comment, cwd) {
+  try {
+    execSync(
+      `gh issue comment ${number} --body ${JSON.stringify(comment)}`,
+      { cwd, encoding: "utf8", stdio: "pipe", timeout: 15000 }
+    );
+  } catch { /* best-effort */ }
+}
+
 // ── Agent dispatch ──────────────────────────────────────────────
 
 function findAgent() {
@@ -355,6 +410,27 @@ export async function cmdRun(args) {
     return;
   }
 
+  // ── GitHub Issues setup ──
+
+  const useGitHub = hasGhCli() && hasGitHubRemote(cwd);
+  if (useGitHub) {
+    console.log(`${c.green}✓${c.reset} GitHub Issues integration active\n`);
+    for (const task of tasks) {
+      const issueNum = ghCreateIssue(`Task: ${task.title}`, task.title, cwd);
+      if (issueNum) {
+        task.ghIssue = issueNum;
+        console.log(`  ${c.dim}Created issue #${issueNum} for: ${task.title}${c.reset}`);
+      }
+    }
+    // Persist issue numbers to state
+    const ghState = readState(featureDir);
+    if (ghState) {
+      ghState.tasks = tasks;
+      writeState(featureDir, ghState);
+    }
+    console.log();
+  }
+
   // ── Execute tasks ──
 
   let completed = 0;
@@ -418,6 +494,7 @@ export async function cmdRun(args) {
 
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
+        if (useGitHub && task.ghIssue) ghCloseIssue(task.ghIssue, cwd);
         completed++;
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
         break;
@@ -431,6 +508,9 @@ export async function cmdRun(args) {
             "--dir", featureDir, "--reason", `Failed after ${maxRetries} attempts`);
           harness("notify", "--event", "task-blocked", "--msg",
             `✗ Task ${i + 1}/${tasks.length}: ${task.title} — failed after ${maxRetries} attempts`);
+          if (useGitHub && task.ghIssue) {
+            ghCommentIssue(task.ghIssue, `❌ Blocked: Failed after ${maxRetries} attempts\n\n\`\`\`\n${lastFailure?.slice(0, 1500) || "unknown"}\n\`\`\``, cwd);
+          }
           blocked++;
           console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
         }
