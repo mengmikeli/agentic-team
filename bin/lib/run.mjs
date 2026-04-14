@@ -11,6 +11,7 @@ import {
   WRITER_SIG, ALLOWED_TRANSITIONS,
 } from "./util.mjs";
 import { ghAvailable, createIssue, closeIssue, commentIssue } from "./github.mjs";
+import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief } from "./flows.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -188,7 +189,7 @@ function planTasks(description, spec) {
   }];
 }
 
-function buildTaskBrief(task, featureName, gateCmd, cwd, failureContext) {
+function buildTaskBrief(task, featureName, gateCmd, cwd, failureContext, brainstormOutput) {
   let brief = `You are implementing a task for feature "${featureName}".
 
 ## Task
@@ -208,6 +209,13 @@ After your changes, this command must pass:
 ${gateCmd}
 \`\`\`
 `;
+
+  if (brainstormOutput) {
+    brief += `
+## Implementation Plan (from brainstorm)
+${brainstormOutput}
+`;
+  }
 
   if (failureContext) {
     brief += `
@@ -264,6 +272,7 @@ async function _runSingleFeature(args, description) {
   const teamDir = join(cwd, ".team");
   const maxRetries = parseInt(getFlag(args, "retries") || "3", 10);
   const dryRun = args.includes("--dry-run");
+  const flowOverride = getFlag(args, "flow");
 
   if (!existsSync(teamDir)) {
     console.log(`${c.red}No .team/ directory found.${c.reset} Run ${c.bold}agt init${c.reset} first.`);
@@ -374,6 +383,11 @@ async function _runSingleFeature(args, description) {
   const tasks = planTasks(featureDescription, spec);
   console.log(`${c.green}✓${c.reset} Planned ${tasks.length} task(s)\n`);
 
+  // ── Select execution flow ──
+
+  const flow = (flowOverride && FLOWS[flowOverride]) || selectFlow(featureDescription, tasks);
+  console.log(`${c.bold}Flow:${c.reset}     ${flow.label}\n`);
+
   // Write tasks to state
   const state = readState(featureDir);
   if (state) {
@@ -423,6 +437,19 @@ async function _runSingleFeature(args, description) {
   let blocked = 0;
   const startTime = Date.now();
 
+  // ── Brainstorm phase (full-stack flow only) ──
+
+  let brainstormOutput = null;
+  if (agent && flow.phases.includes("brainstorm")) {
+    console.log(`${c.cyan}▶ Brainstorming...${c.reset}`);
+    const brainstormBrief = buildBrainstormBrief(featureName, featureDescription, cwd);
+    const brainstormResult = dispatchToAgent(agent, brainstormBrief, cwd);
+    if (brainstormResult.ok && brainstormResult.output) {
+      brainstormOutput = brainstormResult.output.slice(0, 3000);
+      console.log(`  ${c.green}✓ Brainstorm complete${c.reset}\n`);
+    }
+  }
+
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i];
 
@@ -443,7 +470,7 @@ async function _runSingleFeature(args, description) {
       }
 
       // Build task brief
-      const brief = buildTaskBrief(task, featureName, gateCmd, cwd, lastFailure);
+      const brief = buildTaskBrief(task, featureName, gateCmd, cwd, lastFailure, brainstormOutput);
 
       // Dispatch
       let result;
@@ -478,6 +505,28 @@ async function _runSingleFeature(args, description) {
             console.log(`  ${c.green}✓ Committed${c.reset}`);
           }
         } catch { /* no changes to commit, or git not available */ }
+
+        // ── Review phases ──
+
+        if (agent && flow.phases.includes("review")) {
+          console.log(`  ${c.cyan}▶ Review...${c.reset}`);
+          const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, null);
+          const reviewResult = dispatchToAgent(agent, reviewBrief, cwd);
+          if (reviewResult.output) {
+            console.log(`  ${c.dim}Review: ${reviewResult.output.slice(0, 500)}${c.reset}`);
+          }
+        }
+
+        if (agent && flow.phases.includes("multi-review")) {
+          for (const role of ["architect", "security", "pm"]) {
+            console.log(`  ${c.cyan}▶ [${role}] review...${c.reset}`);
+            const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, role);
+            const reviewResult = dispatchToAgent(agent, reviewBrief, cwd);
+            if (reviewResult.output) {
+              console.log(`  ${c.dim}[${role}] ${reviewResult.output.slice(0, 300)}${c.reset}`);
+            }
+          }
+        }
 
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
