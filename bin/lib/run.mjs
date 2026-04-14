@@ -656,6 +656,14 @@ async function _runSingleFeature(args, description) {
 
       if (attempt > 1) {
         console.log(`  ${c.yellow}Retry ${attempt}/${maxRetries}${c.reset}`);
+        // Include previous eval.md in failure context for Fix/Polish mode
+        const prevEvalPath = join(taskDir, "eval.md");
+        if (existsSync(prevEvalPath)) {
+          try {
+            const prevEval = readFileSync(prevEvalPath, "utf8");
+            lastFailure = (lastFailure || "") + "\n\n## Previous Review (eval.md)\n" + prevEval.slice(0, 2000);
+          } catch {}
+        }
       }
 
       // Build task brief
@@ -676,6 +684,22 @@ async function _runSingleFeature(args, description) {
         console.log(`  ${c.yellow}⊘ Skipped${c.reset}\n`);
         if (task.issueNumber) commentIssue(task.issueNumber, "Task skipped by user.");
         break;
+      }
+
+      // Validate builder's handshake if it wrote one
+      const builderHandshakePath = join(taskDir, "handshake.json");
+      if (existsSync(builderHandshakePath)) {
+        try {
+          const builderHS = JSON.parse(readFileSync(builderHandshakePath, "utf8"));
+          const hsValidation = validateHandshake(builderHS, { basePath: taskDir });
+          if (hsValidation.valid) {
+            console.log(`  ${c.green}✓ Builder handshake valid${c.reset}`);
+          } else {
+            console.log(`  ${c.yellow}⚠ Builder handshake issues: ${hsValidation.errors.slice(0, 3).join("; ")}${c.reset}`);
+          }
+        } catch {
+          console.log(`  ${c.dim}Builder handshake not parseable — continuing${c.reset}`);
+        }
       }
 
       // Run quality gate — inline to avoid Windows subprocess issues
@@ -705,6 +729,11 @@ async function _runSingleFeature(args, description) {
           const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, null) + "\n\n" + contextBrief;
           const reviewResult = dispatchToAgent(agent, reviewBrief, cwd);
           if (reviewResult.output) {
+            // Save review output as eval.md in task artifacts
+            const evalPath = join(taskDir, "eval.md");
+            writeFileSync(evalPath, reviewResult.output);
+            console.log(`  ${c.green}✓ eval.md written${c.reset}`);
+
             const findings = parseFindings(reviewResult.output);
             const synth = computeVerdict(findings);
             console.log(`  ${c.dim}Review verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
@@ -730,6 +759,8 @@ async function _runSingleFeature(args, description) {
             agent, PARALLEL_REVIEW_ROLES, featureName, task.title, gateResult.stdout, cwd,
           );
           const merged = mergeReviewFindings(roleFindings);
+          // Save merged review as eval.md
+          writeFileSync(join(taskDir, "eval.md"), merged);
           console.log(`  ${c.dim}${merged.slice(0, 1000)}${c.reset}`);
           const allText = roleFindings.map(f => f.output || "").join("\n");
           const findings = parseFindings(allText);
