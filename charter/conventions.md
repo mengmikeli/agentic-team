@@ -131,3 +131,45 @@ Known issues: {anything deferred}
 - Branch and worktree
 - Channel for updates
 - Handoff expectations
+
+## Document Lifecycle
+
+Documents follow a simple lifecycle tied to sprint directories — no separate wip/archive folders needed.
+
+### Sprint documents (SPEC.md, PLAN.md, STATE.json, RETRO.md)
+
+- **Active:** Live in `.team/sprints/{id}/` while the sprint is active
+- **Done:** Stay in place when the sprint closes. The sprint dir IS the lifecycle container. SPRINTS.md links to the sprint dir for reference.
+- **No archival step.** Sprint status (active/done in SPRINTS.md) IS the lifecycle state. Don't move files to an archive directory.
+
+### Persistent reference documents
+
+- Design docs, RFCs, or references that span multiple sprints go in `.team/refs/`
+- These are not tied to a sprint lifecycle — they persist as long as they're relevant
+- Example: architecture decisions, API contracts, integration guides
+
+### Project-level documents (PRODUCT.md, PROJECT.md, AGENTS.md, SPRINTS.md)
+
+- Always live at `.team/` root
+- Updated incrementally by ops skills (project-ops, sprint-ops, agent-ops)
+- Never archived — they evolve in place
+
+### Summary
+
+```
+.team/
+├── PRODUCT.md              # Persistent, evolves in place
+├── PROJECT.md              # Persistent, evolves in place
+├── AGENTS.md               # Persistent, evolves in place
+├── SPRINTS.md              # Persistent, links to sprint dirs
+├── refs/                   # Persistent references (multi-sprint)
+│   └── architecture.md
+└── sprints/
+    ├── s1-mvp/             # Done sprint — files stay in place
+    │   ├── SPEC.md
+    │   └── RETRO.md
+    └── s2-polish/          # Active sprint
+        ├── SPEC.md
+        ├── PLAN.md
+        └── STATE.json
+```
