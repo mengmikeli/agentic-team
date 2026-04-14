@@ -139,7 +139,7 @@ switch (command) {
     console.log("  version                  Show version");
     console.log();
     console.log("Harness (enforcement layer):");
-    console.log("  Use 'at-harness' for init, gate, transition, notify, finalize, metrics");
+    console.log("  Use 'agt-harness' for init, gate, transition, notify, finalize, metrics");
     break;
 }
 

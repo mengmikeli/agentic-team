@@ -11,83 +11,83 @@ npm install -g @mengmikeli/agentic-team
 ```
 Human: "Build X"
      ↓
-  at init → scaffold project
+  agt init → scaffold project
      ↓
-  at run → autonomous loop
+  agt run → autonomous loop
      │
      ├─ brainstorm → SPEC.md
      ├─ plan tasks
      ├─ dispatch subagents
-     ├─ at-harness gate (quality checks)
-     ├─ at-harness transition (state management)
-     ├─ at-harness notify (progress updates)
-     └─ at-harness finalize (validate chain)
+     ├─ agt-harness gate (quality checks)
+     ├─ agt-harness transition (state management)
+     ├─ agt-harness notify (progress updates)
+     └─ agt-harness finalize (validate chain)
      ↓
   Human reviews PR
 ```
 
 Two binaries:
 - **`at`** — CLI for humans: init projects, check status, view boards
-- **`at-harness`** — enforcement layer for agents: tamper-detected state, quality gates, validated transitions
+- **`agt-harness`** — enforcement layer for agents: tamper-detected state, quality gates, validated transitions
 
 ## Quick start
 
 ```bash
 # Set up a new project
-at init
+agt init
 
 # Check project status
-at status
+agt status
 
 # View task board
-at board
+agt board
 
 # See token usage + git stats
-at metrics
+agt metrics
 
 # Start the web dashboard
-at dashboard
+agt dashboard
 ```
 
 ## CLI Commands
 
-### `at init`
+### `agt init`
 Interactive setup wizard. Creates `.team/` with PRODUCT.md, PROJECT.md, AGENTS.md.
 
-### `at status`
+### `agt status`
 Cross-project dashboard in terminal — features, task counts, gate pass rates.
 
-### `at board [feature]`
+### `agt board [feature]`
 Kanban-style task board. Shows tasks grouped by status: pending → in-progress → passed → blocked.
 
-### `at metrics`
+### `agt metrics`
 Token usage from [pew](https://github.com/mengmikeli/pew) data, git log stats, feature metrics. Includes a contribution-graph style heatmap.
 
-### `at run [description]`
+### `agt run [description]`
 Autonomous execution loop *(phase 2 — currently prints the execution plan)*.
 
-### `at stop [feature]`
-Pause active features. Run `at run` to resume.
+### `agt stop [feature]`
+Pause active features. Run `agt run` to resume.
 
-### `at log [feature]`
+### `agt log [feature]`
 Execution history — transitions, gate results, timing.
 
-### `at dashboard [port]`
+### `agt dashboard [port]`
 Serves the web dashboard at `http://localhost:3847` (default port). Shows overview cards, feature timeline, task board, and metrics.
 
 ## Harness Commands
 
 The enforcement layer. Agent calls these; output is JSON; state is tamper-detected.
 
-### `at-harness init --feature <name>`
+### `agt-harness init --feature <name>`
 Create feature state in `.team/features/{name}/STATE.json`.
 
-### `at-harness gate --cmd <command> --dir <path> [--task <id>]`
+### `agt-harness gate --cmd <command> --dir <path> [--task <id>]`
 Run a quality gate. Execute the command, capture exit code + output, write verdict.
 - Exit 0 → PASS, non-zero → FAIL
 - Writes nonce signature — can't be faked by agent editing STATE.json
 
-### `at-harness transition --task <id> --status <status> --dir <path>`
+### `agt-harness transition --task <id> --status <status> --dir <path>`
 Validated state transition with safety guards:
 - Checks allowed transitions (pending → in-progress → passed/failed)
 - Enforces cycle limits (max 3 retries per task)
@@ -95,16 +95,16 @@ Validated state transition with safety guards:
 - Idempotency guard (dedup within 5s window)
 - File locking for concurrent safety
 
-### `at-harness notify --event <type> --msg <message> [--channel <target>]`
+### `agt-harness notify --event <type> --msg <message> [--channel <target>]`
 Dispatch progress events. Events: `feature-started`, `task-started`, `task-passed`, `task-failed`, `task-blocked`, `progress`, `anomaly`, `feature-complete`.
 
-### `at-harness finalize --dir <path> [--strict]`
+### `agt-harness finalize --dir <path> [--strict]`
 Validate the entire execution chain before marking a feature complete:
 - All tasks must be passed or skipped
 - No unapproved state edits (nonce check)
 - `--strict`: every passed task must have a gate result
 
-### `at-harness metrics --dir <path>`
+### `agt-harness metrics --dir <path>`
 Compute feature metrics from STATE.json + git log. Returns JSON.
 
 ## Web Dashboard
@@ -125,16 +125,16 @@ Reads `.team/` data via `/api/` when served, falls back to demo data when opened
 agentic-team/
 ├── bin/
 │   ├── at.mjs              ← CLI entry point
-│   ├── at-harness.mjs      ← harness entry point
+│   ├── agt-harness.mjs      ← harness entry point
 │   └── lib/
 │       ├── util.mjs         ← nonce, file lock, atomic write, ANSI
-│       ├── init.mjs         ← at init (interactive)
-│       ├── run.mjs          ← at run (phase 2 stub)
-│       ├── status.mjs       ← at status (terminal dashboard)
-│       ├── board.mjs        ← at board (task board)
-│       ├── metrics.mjs      ← at metrics (pew + git)
-│       ├── stop.mjs         ← at stop (pause features)
-│       ├── log.mjs          ← at log (history viewer)
+│       ├── init.mjs         ← agt init (interactive)
+│       ├── run.mjs          ← agt run (phase 2 stub)
+│       ├── status.mjs       ← agt status (terminal dashboard)
+│       ├── board.mjs        ← agt board (task board)
+│       ├── metrics.mjs      ← agt metrics (pew + git)
+│       ├── stop.mjs         ← agt stop (pause features)
+│       ├── log.mjs          ← agt log (history viewer)
 │       ├── gate.mjs         ← harness gate (quality checks)
 │       ├── transition.mjs   ← harness transitions (state machine)
 │       ├── finalize.mjs     ← harness finalize (chain validation)
@@ -178,7 +178,7 @@ Gates are shell commands executed by the harness. The agent can't fake results:
 
 ```bash
 # Run tests as a gate
-at-harness gate --cmd "npm test" --dir .team/features/auth --task setup-db
+agt-harness gate --cmd "npm test" --dir .team/features/auth --task setup-db
 
 # Output (JSON):
 # { "ok": true, "verdict": "PASS", "exitCode": 0, ... }

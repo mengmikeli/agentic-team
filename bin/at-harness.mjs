@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// at-harness — Enforcement layer for autonomous agent teams
+// agt-harness — Enforcement layer for autonomous agent teams
 // All output is JSON to stdout. Errors to stderr.
 
 import { cmdHarnessInit } from "./lib/harness-init.mjs";
@@ -21,7 +21,7 @@ switch (command) {
   case "finalize":   cmdFinalize(args);       break;
   case "metrics":    cmdHarnessMetrics(args);  break;
   default:
-    console.log("at-harness — Enforcement layer for autonomous agent teams");
+    console.log("agt-harness — Enforcement layer for autonomous agent teams");
     console.log();
     console.log("Commands:");
     console.log("  init       --feature <name> [--dir <path>]          Create feature state");
