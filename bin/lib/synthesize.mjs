@@ -1,0 +1,120 @@
+// agt-harness synthesize — parse structured review output, compute verdict mechanically
+// Usage (via agt-harness):
+//   agt-harness synthesize [--input <file>]        — parse and compute verdict
+//   agt-harness synthesize verify [--input <file>] — validate review format only
+//
+// Structured review format (each finding on its own line):
+//   🔴 file:line — fix suggestion   (critical — any red = FAIL)
+//   🟡 file:line — fix suggestion   (warning  — PASS but goes to backlog)
+//   🔵 file:line — fix suggestion   (suggestion — PASS, no backlog)
+
+import { readFileSync } from "fs";
+
+/**
+ * Parse review text for severity-tagged findings.
+ * A finding is any line containing 🔴, 🟡, or 🔵.
+ */
+export function parseFindings(text) {
+  const findings = [];
+  for (const line of (text || "").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (trimmed.includes("🔴")) {
+      findings.push({ severity: "critical", text: trimmed });
+    } else if (trimmed.includes("🟡")) {
+      findings.push({ severity: "warning", text: trimmed });
+    } else if (trimmed.includes("🔵")) {
+      findings.push({ severity: "suggestion", text: trimmed });
+    }
+  }
+  return findings;
+}
+
+/**
+ * Compute verdict from parsed findings.
+ * - Any critical (🔴) → FAIL
+ * - Only warnings (🟡) → PASS, backlog=true
+ * - No findings or only suggestions (🔵) → PASS, backlog=false
+ */
+export function computeVerdict(findings) {
+  const critical   = findings.filter(f => f.severity === "critical").length;
+  const warning    = findings.filter(f => f.severity === "warning").length;
+  const suggestion = findings.filter(f => f.severity === "suggestion").length;
+
+  const verdict = critical > 0 ? "FAIL" : "PASS";
+  const backlog = critical === 0 && warning > 0;
+
+  return { verdict, backlog, critical, warning, suggestion };
+}
+
+/**
+ * Validate that review text has proper structured format.
+ * Each finding must have: severity emoji + file:line reference + fix suggestion.
+ */
+export function verifyFormat(text) {
+  const findings = parseFindings(text);
+  const errors = [];
+
+  const fileLinePattern = /\S+:\d+/; // e.g. foo.mjs:42
+
+  for (const f of findings) {
+    if (!fileLinePattern.test(f.text)) {
+      errors.push(`Missing file:line reference: ${f.text.slice(0, 80)}`);
+    }
+    // Fix suggestion: content after emoji and file:line must be non-trivial
+    const withoutEmoji = f.text.replace(/🔴|🟡|🔵/, "").trim();
+    const withoutFileRef = withoutEmoji.replace(/\S+:\d+/, "").replace(/^[\s—–-]+/, "").trim();
+    if (withoutFileRef.length < 10) {
+      errors.push(`Missing fix suggestion: ${f.text.slice(0, 80)}`);
+    }
+  }
+
+  return {
+    ok: true,
+    valid: errors.length === 0,
+    findings: findings.length,
+    errors,
+  };
+}
+
+export function cmdSynthesize(args) {
+  const isVerify = args[0] === "verify";
+  const restArgs = isVerify ? args.slice(1) : args;
+
+  // Read input from --input file or stdin
+  let text = "";
+  const inputIdx = restArgs.indexOf("--input");
+  if (inputIdx !== -1 && restArgs[inputIdx + 1]) {
+    try {
+      text = readFileSync(restArgs[inputIdx + 1], "utf8");
+    } catch (err) {
+      console.log(JSON.stringify({ ok: false, error: `Cannot read file: ${err.message}` }));
+      process.exitCode = 1;
+      return;
+    }
+  } else {
+    try {
+      text = readFileSync(0, "utf8"); // fd 0 = stdin
+    } catch {
+      text = "";
+    }
+  }
+
+  if (isVerify) {
+    console.log(JSON.stringify(verifyFormat(text)));
+    return;
+  }
+
+  const findings = parseFindings(text);
+  const { verdict, backlog, critical, warning, suggestion } = computeVerdict(findings);
+
+  console.log(JSON.stringify({
+    ok: true,
+    verdict,
+    backlog,
+    critical,
+    warning,
+    suggestion,
+    findings: findings.map(f => ({ severity: f.severity, text: f.text })),
+  }));
+}

@@ -12,6 +12,7 @@ import {
 } from "./util.mjs";
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
+import { parseFindings, computeVerdict } from "./synthesize.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -557,17 +558,41 @@ async function _runSingleFeature(args, description) {
           const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, null);
           const reviewResult = dispatchToAgent(agent, reviewBrief, cwd);
           if (reviewResult.output) {
-            console.log(`  ${c.dim}Review: ${reviewResult.output.slice(0, 500)}${c.reset}`);
+            const findings = parseFindings(reviewResult.output);
+            const synth = computeVerdict(findings);
+            console.log(`  ${c.dim}Review verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
+            if (synth.critical > 0) {
+              console.log(`  ${c.red}✗ Review FAIL — ${synth.critical} critical finding(s)${c.reset}`);
+              findings.filter(f => f.severity === "critical").forEach(f =>
+                console.log(`    ${c.red}${f.text}${c.reset}`)
+              );
+            }
+            if (synth.backlog) {
+              findings.filter(f => f.severity === "warning").forEach(f =>
+                console.log(`    ${c.yellow}${f.text}${c.reset}`)
+              );
+            }
           }
         }
 
         if (agent && flow.phases.includes("multi-review")) {
           console.log(`  ${c.cyan}▶ Parallel review (${PARALLEL_REVIEW_ROLES.join(", ")})...${c.reset}`);
-          const findings = await runParallelReviews(
+          const roleFindings = await runParallelReviews(
             agent, PARALLEL_REVIEW_ROLES, featureName, task.title, gateResult.stdout, cwd,
           );
-          const merged = mergeReviewFindings(findings);
+          const merged = mergeReviewFindings(roleFindings);
           console.log(`  ${c.dim}${merged.slice(0, 1000)}${c.reset}`);
+          // Synthesize across all reviewer outputs
+          const allText = roleFindings.map(f => f.output || "").join("\n");
+          const findings = parseFindings(allText);
+          const synth = computeVerdict(findings);
+          console.log(`  ${c.dim}Synthesized verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
+          if (synth.critical > 0) {
+            console.log(`  ${c.red}✗ Review FAIL — ${synth.critical} critical finding(s)${c.reset}`);
+            findings.filter(f => f.severity === "critical").forEach(f =>
+              console.log(`    ${c.red}${f.text}${c.reset}`)
+            );
+          }
         }
 
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);

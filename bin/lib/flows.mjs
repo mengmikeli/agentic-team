@@ -80,7 +80,21 @@ ${(gateOutput || "Gate passed").slice(0, 1000)}
 ## Review Focus
 ${getRoleFocus(role)}
 
-Provide concise feedback. If there are blocking issues, describe them clearly. Otherwise, confirm the implementation looks good.`;
+## Required Output Format
+Each finding MUST be on its own line using this exact format:
+  <emoji> <file>:<line> — <fix suggestion>
+
+Severity emoji:
+  🔴 = critical (blocks merge — any red = FAIL)
+  🟡 = warning  (must go to backlog — yellow = PASS but flagged)
+  🔵 = suggestion (optional improvement — no backlog impact)
+
+Examples:
+  🔴 bin/lib/run.mjs:42 — Missing input validation; add sanitize() before use
+  🟡 bin/lib/util.mjs:15 — Error not caught; wrap in try/catch
+  🔵 bin/lib/flows.mjs:7 — Consider extracting constant to module scope
+
+If there are no findings, write exactly: No findings.`;
 }
 
 function getRoleFocus(role) {

@@ -9,6 +9,7 @@ import { cmdTransition } from "./lib/transition.mjs";
 import { cmdNotify } from "./lib/notify.mjs";
 import { cmdFinalize } from "./lib/finalize.mjs";
 import { cmdHarnessMetrics } from "./lib/harness-metrics.mjs";
+import { cmdSynthesize } from "./lib/synthesize.mjs";
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -20,6 +21,7 @@ switch (command) {
   case "notify":     cmdNotify(args);         break;
   case "finalize":   cmdFinalize(args);       break;
   case "metrics":    cmdHarnessMetrics(args);  break;
+  case "synthesize": cmdSynthesize(args);     break;
   default:
     console.log("agt-harness — Enforcement layer for autonomous agent teams");
     console.log();
@@ -33,6 +35,7 @@ switch (command) {
     console.log("                                                      Dispatch progress notification");
     console.log("  finalize   --dir <path> [--strict]                  Validate chain, mark complete");
     console.log("  metrics    --dir <path>                             Compute feature metrics");
+    console.log("  synthesize [verify] [--input <file>]               Parse review output, compute verdict");
     console.log();
     console.log("All output is JSON to stdout. Errors go to stderr.");
     console.log("State is tamper-detected via nonce signatures.");
