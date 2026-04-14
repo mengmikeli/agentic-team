@@ -23,9 +23,10 @@
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "pending",
+      "status": "in-progress",
       "attempts": 0,
-      "issueNumber": 15
+      "issueNumber": 15,
+      "lastTransition": "2026-04-14T10:56:17.553Z"
     }
   ],
   "gates": [
@@ -39,7 +40,7 @@
       "taskId": "task-1"
     }
   ],
-  "transitionCount": 1,
+  "transitionCount": 2,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -47,10 +48,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-14T10:49:59.763Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-14T10:56:17.553Z"
     }
   ],
   "createdAt": "2026-04-14T10:49:54.524Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-14T10:53:54.739Z",
-  "_write_nonce": "11b40017267c66b7"
+  "_last_modified": "2026-04-14T10:56:17.553Z",
+  "_write_nonce": "4ea3e5ea9b665a06"
 }
