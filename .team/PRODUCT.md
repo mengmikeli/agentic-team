@@ -24,7 +24,8 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 - **Human project management** — Jira, Linear, etc. Designed for human teams. Agents need something that speaks their language (markdown specs, mechanical gates, self-contained briefs).
 
 ## Roadmap
-1. **v1.0 — Foundations** — 11 skills covering all four layers (product/project/agent/sprint) + orchestrate + brainstorm. Charter. Self-dogfooded.
-2. **v1.1 — Playbook revision** — Update PLAYBOOK.md for current framework. Platform recipes for OpenClaw + Discord + GitHub.
-3. **v1.2 — ClawHub packaging** — Package skills for discovery and installation via ClawHub.
-4. **v2.0 — OpenClaw plugin** — Native plugin that auto-loads skills and provides UI for sprint tracking.
+1. **v1.0 — Foundations** — ✅ Done. 11 skills, CLI, harness, dashboard.
+2. **v2.0 — CLI product** — ✅ Done. agt run, agt-harness, GitHub Issues, daemon, notifications, continuous mode.
+3. **Flow templates** — Add flow selection to agt run. Light review (gate only), build-verify (build + gate + review), full-stack (brainstorm + build + multi-role review + gate). Orchestrate picks the right flow based on task complexity.
+4. **Parallel reviewers** — Dispatch 2-5 role-specific reviewers simultaneously after build. Security + architect + devil's advocate all review in parallel. Merge findings before gate verdict.
+5. **Backlog enforcement** — Track every warning in .team/features/{name}/backlog.md. Gate cannot pass until warnings are documented. Unfixed warnings carry forward to next feature.
