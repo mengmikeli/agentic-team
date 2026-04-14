@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "feature": "add-a-github-actions-ci-workflow-that-runs-npm-tes",
+  "status": "active",
+  "tasks": [],
+  "gates": [],
+  "transitionCount": 0,
+  "transitionHistory": [],
+  "createdAt": "2026-04-14T09:47:09.770Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-14T09:47:09.771Z",
+  "_write_nonce": "7cdd42d794a780a9"
+}
