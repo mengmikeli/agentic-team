@@ -56,12 +56,52 @@ export function commentIssue(number, body) {
   return runGh("issue", "comment", String(number), "--body", body) !== null;
 }
 
-/** Add an issue to a GitHub Project board. Returns true on success. */
+/** Add an issue to a GitHub Project board. Returns the item ID on success. */
 export function addToProject(issueNumber, projectNumber) {
+  if (!issueNumber || !projectNumber) return null;
+  const repoUrl = runGh("repo", "view", "--json", "url", "--jq", ".url");
+  if (!repoUrl) return null;
+  const issueUrl = `${repoUrl}/issues/${issueNumber}`;
+  const output = runGh("project", "item-add", String(projectNumber), "--owner", "@me", "--url", issueUrl);
+  return output || null;
+}
+
+/** Move an issue to a status column on the project board. */
+export function setProjectItemStatus(issueNumber, projectNumber, status) {
   if (!issueNumber || !projectNumber) return false;
-  // Get the repo URL for the issue
+  // Get the item ID for this issue
   const repoUrl = runGh("repo", "view", "--json", "url", "--jq", ".url");
   if (!repoUrl) return false;
   const issueUrl = `${repoUrl}/issues/${issueNumber}`;
-  return runGh("project", "item-add", String(projectNumber), "--owner", "@me", "--url", issueUrl) !== null;
+  
+  // Get project ID and items to find this issue's item ID
+  const itemsJson = runGh("project", "item-list", String(projectNumber), "--owner", "@me", "--format", "json");
+  if (!itemsJson) return false;
+  
+  try {
+    const data = JSON.parse(itemsJson);
+    const item = data.items?.find(i => i.content?.url === issueUrl || i.content?.number === issueNumber);
+    if (!item) return false;
+    
+    // Read field/option IDs from PROJECT.md or use defaults
+    // Default GitHub Project status field + option IDs
+    const statusFieldId = "PVTSSF_lAHOAEUwvc4BUkmdzhBr2dQ";
+    const statusOptions = { "todo": "f75ad846", "in-progress": "47fc9ee4", "done": "98236657" };
+    const optionId = statusOptions[status];
+    if (!optionId) return false;
+    
+    // Get project node ID
+    const projectJson = runGh("project", "view", String(projectNumber), "--owner", "@me", "--format", "json");
+    if (!projectJson) return false;
+    const project = JSON.parse(projectJson);
+    
+    return runGh("project", "item-edit",
+      "--project-id", project.id,
+      "--id", item.id,
+      "--field-id", statusFieldId,
+      "--single-select-option-id", optionId
+    ) !== null;
+  } catch {
+    return false;
+  }
 }

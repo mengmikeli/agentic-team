@@ -10,7 +10,7 @@ import {
   c, getFlag, readState, writeState, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS,
 } from "./util.mjs";
-import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject } from "./github.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -440,7 +440,14 @@ async function _runSingleFeature(args, description) {
   // ── Create GitHub issues ──
 
   const useGitHub = ghAvailable();
+  let projectNum = null;
   if (useGitHub) {
+    // Extract project number from PROJECT.md
+    try {
+      const projMd = readFileSync(join(teamDir, "PROJECT.md"), "utf8");
+      const m = projMd.match(/projects\/(\d+)/);
+      if (m) projectNum = parseInt(m[1]);
+    } catch {}
     console.log(`${c.dim}Creating GitHub issues...${c.reset}`);
     for (const task of tasks) {
       const issueNum = createIssue(
@@ -493,6 +500,7 @@ async function _runSingleFeature(args, description) {
 
     // Transition to in-progress
     harness("transition", "--task", task.id, "--status", "in-progress", "--dir", featureDir);
+    if (useGitHub && task.issueNumber && projectNum) setProjectItemStatus(task.issueNumber, projectNum, "in-progress");
     harness("notify", "--event", "task-started", "--msg", `▶ Task ${i + 1}/${tasks.length}: ${task.title}`);
 
     let passed = false;
@@ -566,7 +574,7 @@ async function _runSingleFeature(args, description) {
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
         completed++;
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
-        if (task.issueNumber) closeIssue(task.issueNumber, "Task completed — gate passed.");
+        if (task.issueNumber) { closeIssue(task.issueNumber, "Task completed — gate passed."); if (projectNum) setProjectItemStatus(task.issueNumber, projectNum, "done"); }
         break;
       } else {
         console.log(`  ${c.red}✗ Gate FAIL${c.reset} (exit ${gateResult.exitCode})`);
