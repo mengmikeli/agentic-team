@@ -34,8 +34,11 @@ README.md               — project overview (if missing or bare)
 ├── PROJECT.md          — filled in from discovery answers
 ├── AGENTS.md           — initial roles (can be refined via agent-init)
 ├── SPRINTS.md          — empty table, ready for first sprint
+├── gate.sh             — quality gate script (from templates/gate.sh)
 └── sprints/            — empty directory
 ```
+
+**gate.sh** — copy from `templates/gate.sh` and customize for the project's toolchain. Make it executable (`chmod +x`). This is the mechanical quality gate that orchestrate runs after every task. Note it in PROJECT.md under `## Quality Gate`.
 
 **README.md** — generate if missing. Should answer: what is this, who is it for, how to use it. Keep it concise. If a README already exists and is adequate, leave it alone.
 

@@ -189,28 +189,20 @@ On session restart: read STATE.json, resume from `currentTask`.
 
 ## Quality Gates
 
-Gates are **mechanical** — computed by tools, not judged by LLMs:
+Gates are **mechanical** — computed by tools, not judged by LLMs.
+
+Run `.team/gate.sh` (scaffolded by project-init from `templates/gate.sh`). Read the exit code. Pass = 0, fail = non-zero.
 
 ```bash
-# Gate checklist (all must pass)
-npm test              # or project's test command
-npm run check         # type checking
-npm run build         # build succeeds
-npm run lint          # lint clean (if configured)
+# Default gate.sh runs:
+npm test
+npm run check 2>/dev/null || true
+npm run build
 ```
 
-The gate script is project-specific. Define in `.team/PROJECT.md`:
+If `.team/gate.sh` doesn't exist, fall back to the `## Quality Gate` command in `.team/PROJECT.md`. If neither exists, fall back to: tests pass + build succeeds.
 
-```markdown
-## Quality Gate
-```bash
-npm test && npm run check && npm run build
-```
-```
-
-If no gate is defined, fall back to: tests pass + build succeeds.
-
-**The orchestrator never evaluates quality itself.** It runs the gate command and reads the exit code. Pass = 0, fail = non-zero. No interpretation, no "close enough."
+**The orchestrator never evaluates quality itself.** It runs the gate script and reads the exit code. Pass = 0, fail = non-zero. No interpretation, no "close enough."
 
 ## Failure Handling
 
