@@ -306,9 +306,13 @@ async function _runSingleFeature(args, description) {
       return "exhausted";
     }
 
-    // Check which features already exist
+    // Check which features already exist or are marked done in roadmap
     const featuresDir = join(teamDir, "features");
     for (const item of items) {
+      const fullText = item[2];
+      // Skip items marked as done in the roadmap text
+      if (/✅\s*done/i.test(fullText)) continue;
+
       const name = item[1].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const featureDir = join(featuresDir, name);
       const state = readState(featureDir);
