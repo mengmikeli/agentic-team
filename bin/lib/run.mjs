@@ -14,6 +14,7 @@ import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setPr
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
+import { buildContextBrief } from "./context.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -667,7 +668,8 @@ async function _runSingleFeature(args, description) {
 
         if (agent && flow.phases.includes("review")) {
           console.log(`  ${c.cyan}▶ Review...${c.reset}`);
-          const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, null);
+          const contextBrief = buildContextBrief(featureDir, cwd);
+          const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, null) + "\n\n" + contextBrief;
           const reviewResult = dispatchToAgent(agent, reviewBrief, cwd);
           if (reviewResult.output) {
             const findings = parseFindings(reviewResult.output);
