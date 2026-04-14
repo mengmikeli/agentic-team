@@ -553,6 +553,8 @@ async function _runSingleFeature(args, description) {
 
         // ── Review phases ──
 
+        let reviewFailed = false;
+
         if (agent && flow.phases.includes("review")) {
           console.log(`  ${c.cyan}▶ Review...${c.reset}`);
           const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, null);
@@ -562,10 +564,12 @@ async function _runSingleFeature(args, description) {
             const synth = computeVerdict(findings);
             console.log(`  ${c.dim}Review verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
             if (synth.critical > 0) {
+              reviewFailed = true;
               console.log(`  ${c.red}✗ Review FAIL — ${synth.critical} critical finding(s)${c.reset}`);
               findings.filter(f => f.severity === "critical").forEach(f =>
                 console.log(`    ${c.red}${f.text}${c.reset}`)
               );
+              lastFailure = `Review FAIL: ${synth.critical} critical finding(s)\n` + findings.filter(f => f.severity === "critical").map(f => f.text).join("\n");
             }
             if (synth.backlog) {
               findings.filter(f => f.severity === "warning").forEach(f =>
@@ -582,17 +586,30 @@ async function _runSingleFeature(args, description) {
           );
           const merged = mergeReviewFindings(roleFindings);
           console.log(`  ${c.dim}${merged.slice(0, 1000)}${c.reset}`);
-          // Synthesize across all reviewer outputs
           const allText = roleFindings.map(f => f.output || "").join("\n");
           const findings = parseFindings(allText);
           const synth = computeVerdict(findings);
           console.log(`  ${c.dim}Synthesized verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
           if (synth.critical > 0) {
+            reviewFailed = true;
             console.log(`  ${c.red}✗ Review FAIL — ${synth.critical} critical finding(s)${c.reset}`);
             findings.filter(f => f.severity === "critical").forEach(f =>
               console.log(`    ${c.red}${f.text}${c.reset}`)
             );
+            lastFailure = `Review FAIL: ${synth.critical} critical finding(s)\n` + findings.filter(f => f.severity === "critical").map(f => f.text).join("\n");
           }
+        }
+
+        // If review found critical issues, treat as failure — retry the task
+        if (reviewFailed) {
+          console.log(`  ${c.red}✗ Review blocked task — will retry${c.reset}\n`);
+          if (attempt === maxRetries) {
+            harness("transition", "--task", task.id, "--status", "blocked",
+              "--dir", featureDir, "--reason", `Review FAIL after ${maxRetries} attempts`);
+            blocked++;
+            console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+          }
+          continue; // retry the task with review feedback
         }
 
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
