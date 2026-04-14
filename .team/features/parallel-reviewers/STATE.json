@@ -6,10 +6,19 @@
     {
       "id": "task-1",
       "title": "Parallel reviewers — Dispatch 2-5 role-specific reviewers simultaneously after build. Security + architect + devil's advocate all review in parallel. Merge findings before gate verdict.",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 14,
-      "lastTransition": "2026-04-14T10:49:59.763Z"
+      "lastTransition": "2026-04-14T10:49:59.763Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-14T10:53:54.739Z",
+        "taskId": "task-1"
+      }
     },
     {
       "id": "task-2",
@@ -19,7 +28,17 @@
       "issueNumber": 15
     }
   ],
-  "gates": [],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-14T10:53:54.739Z",
+      "taskId": "task-1"
+    }
+  ],
   "transitionCount": 1,
   "transitionHistory": [
     {
@@ -32,6 +51,6 @@
   ],
   "createdAt": "2026-04-14T10:49:54.524Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-14T10:49:59.763Z",
-  "_write_nonce": "cf14640b7b1767ee"
+  "_last_modified": "2026-04-14T10:53:54.739Z",
+  "_write_nonce": "11b40017267c66b7"
 }
