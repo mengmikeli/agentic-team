@@ -1,50 +1,70 @@
 # Quality
 
-## Before refactoring: snapshot first
+## Mechanical Gates
 
-Write tests that capture current behavior before changing code. These tests are the safety net. If the refactor changes behavior, the tests catch it.
+Quality gates are **mechanical** — computed by tools, not judged by agents. The orchestrator runs the gate command and reads the exit code. Pass = 0, fail = non-zero. No interpretation.
 
-## Machine gates
+### For code projects
 
-Every commit must pass:
-- Type check / lint
-- Test suite
-- Build
-- Route smoke test (Playwright) — every route renders content
+Every task completion must pass the project's gate:
 
-No exceptions. Machine gates are a hard stop — broken builds block all work.
+```bash
+# Defined in .team/PROJECT.md under "Quality Gate"
+npm test && npm run check && npm run build
+```
 
-**Note:** Machine gates and QA findings operate at different levels. Machine gates are binary (pass/fail, no negotiation). QA findings are risk-triaged (P0 blocks ship, P1/P2 may not). A green build with a QA-found UX bug is normal. A broken build is never acceptable.
+If no gate is defined, fall back to: tests pass + build succeeds.
 
-## QA agent
+### For non-code projects (markdown, skills, docs)
 
-QA runs after implementation, before merge. QA tests against a preview deploy, not local dev. QA uses the standard report format (see `charter/roles.md`). QA reports are structured — per-item pass/fail with evidence.
+Quality checks are structural:
+- Valid YAML frontmatter (skills)
+- Consistent structure with existing files
+- No broken cross-references
+- Files exist where referenced
 
-QA cannot verify audio, touch, or subjective feel — those are human gates.
+### Gate characteristics
 
-## Human testing
+- **Binary.** Pass or fail. No "close enough."
+- **Automated.** Run by orchestrate after each task. No manual step.
+- **Non-negotiable.** A failing gate blocks task completion. The task gets retried or marked blocked.
+- **Project-specific.** Each project defines its own gate command in PROJECT.md.
 
-The operator tests on real devices. This catches:
-- iOS audio quirks
-- Bluetooth behavior
-- Touch interaction feel
-- Visual polish on actual screens
-- Platform-specific bugs that headless browsers can't reproduce
-
-## Rapid fix cycle
-
-During QA, the coordinator fixes small issues directly (no subagent dispatch). The cycle is: operator reports bug → coordinator fixes → pushes → preview redeploys → operator verifies. Target: 2-5 minutes per fix.
-
-## Definition of done
+## Definition of Done
 
 A single canonical checklist for every sprint:
 
-- [ ] Code complete — all planned tasks implemented
-- [ ] Tests pass — full suite, no skips
-- [ ] Build passes — clean, no new warnings
-- [ ] Spec updated — if implementation deviated, spec reflects reality
-- [ ] QA pass — structured report with PASS verdict
-- [ ] Operator approval — explicit signoff if user-facing
-- [ ] Deploy verified — staging and production confirmed working
-- [ ] Release tagged — version bump + release notes
-- [ ] Retro written — what worked, what didn't, what to change
+- [ ] All tasks attempted (completed or explicitly blocked with reason)
+- [ ] Mechanical gates pass on all completed tasks
+- [ ] Spec updated if implementation deviated from plan
+- [ ] Completion report generated with metrics
+- [ ] Operator reviews and approves deliverable
+
+## Metrics
+
+Captured at sprint close. Metrics make execution model decisions data-driven.
+
+| Metric | Source | Why |
+|--------|--------|-----|
+| Commits | `git log --oneline` | Volume of work |
+| PRs merged | `gh pr list --state merged` | Deliverable count |
+| Duration | Start → close dates | Calendar time |
+| Tasks completed vs blocked | STATE.json | Execution effectiveness |
+| Execution model | SPEC.md | Model selection data |
+
+### Using metrics
+
+- **Execution model selection** — compare cost/speed across sprints with different models
+- **Anomaly detection** — if a sprint burns 3x usual effort, investigate
+- **Budget planning** — after a few sprints, you know roughly what a sprint costs
+
+Metrics are descriptive, not punitive. Track to learn, not to blame.
+
+## No Separate QA Phase
+
+Previous iterations had a dedicated QA agent and QA phase. This is replaced by:
+
+1. **Mechanical gates** — automated checks after each task (during orchestrate)
+2. **Operator review** — human verifies the final deliverable
+
+This eliminates the bottleneck of a QA agent judging work quality (subjective, slow, unreliable) in favor of computed checks (objective, fast, deterministic).

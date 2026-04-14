@@ -2,71 +2,59 @@
 
 ## Operator (human)
 
-The person who owns the project. Makes product decisions, approves designs, tests on real devices, and has final say on shipping.
+The person who owns the product. Defines direction, approves specs, verifies deliverables.
+
+The operator is present at two points:
+- **Initialization** — approves the spec during brainstorming
+- **Completion** — reviews the deliverable when orchestrate finishes
+
+The operator is **outside the loop** during execution. No mid-loop escalation. No asking for subtask approval. The autonomous loop runs to completion, then presents results.
 
 The operator is the only one who:
-- Approves scope and design direction
-- Tests on physical devices (audio, touch, platform quirks)
+- Approves scope and design direction (during brainstorm)
+- Verifies deliverables on real devices
 - Authorizes production deploys
 - Can override any process decision
 
 ## Coordinator (main agent)
 
-The agent who runs the team. Drives brainstorming, writes specs, creates plans, dispatches work, and holds everyone accountable.
+The agent who runs the team. Drives brainstorming, invokes orchestrate, maintains tracking, pushes status proactively.
 
 **Autonomous decisions** (coordinator makes these without asking):
 - Task ordering and dispatch timing
 - Branch naming and channel management
 - Choosing subagent vs direct edit for small fixes
-- QA checklist content
-- Status update frequency
-- **Maintaining `.team/SPRINTS.md`** — update phase status after each phase completes, mark sprints done when shipped
+- Quality gate configuration
+- Status update content and frequency
+- Maintaining `.team/SPRINTS.md` and `.team/PROJECT.md`
+- Retry/block/skip decisions during orchestrate execution
 
-**Escalate to operator** (coordinator must ask first):
-- Scope changes or feature cuts
-- Deadline risk or timeline slips
-- Architecture choices with future lock-in
-- Production-risking shortcuts
-- Repeated QA failure (3+ cycles without resolution)
-- Irreversible data model or API changes
+**Coordinator does NOT escalate mid-loop.** If a task fails 3 times, it gets marked blocked and skipped. The completion report documents what's blocked and why. The operator decides next steps after the sprint finishes.
 
-**Scaling note:** On a small team, the coordinator does everything — brainstorming, specs, plans, dispatch, review, fixes. This works up to ~30 tasks per sprint. Beyond that, consider delegating: a lead implementer who handles code reviews, or a QA coordinator who manages the test pipeline. The coordinator stays focused on architecture and operator communication.
+**Scaling note:** On a small team, the coordinator does everything — brainstorming, dispatch, review, fixes. This works up to ~20 tasks per sprint. Beyond that, consider delegating sub-coordination to lead agents.
 
-## Implementers (team agents or subagents)
+## Implementers (subagents)
 
-Agents who write code. Two flavors:
+Ephemeral workers dispatched per task by orchestrate. Each gets a self-contained brief with:
+- Task description (what to build)
+- File paths (what to touch)
+- Context (what to read first)
+- Success criteria (how to know it's done)
+- Boundaries (what NOT to do)
 
-**Team agents** — persistent, with identity and specialization. Own branches. Good for creative and exploratory work. Coordinate through Discord channels.
+Subagents execute, report status, and disappear. They have no persistence, no identity, and no memory across tasks. Bad output gets discarded, not debugged.
 
-**Subagents** — ephemeral, disposable. Fresh context per task. Receive exact instructions, execute, report, and disappear. Good for mechanical and sequential work.
+## No Separate QA Role
 
-## QA (test agent)
+Quality is enforced by **mechanical gates** — computed by tools, not judged by agents:
 
-Automated quality verification. Runs headless browser tests, takes screenshots, compares against production, reports structured results.
-
-QA cannot verify: audio output, real device behavior, subjective feel. That's the operator's job.
-
-**Standard QA report format:**
+```bash
+# Example gate (project-specific, defined in PROJECT.md)
+npm test && npm run check && npm run build
 ```
-## QA Report — {PR/Sprint}
-Preview: {URL}
-Tested on: {browser/device}
 
-### Functional ({content area})
-- [ ] {check}: PASS / FAIL {evidence}
+Gate checks run automatically after each task in the orchestrate loop. Pass = exit code 0. Fail = non-zero. No interpretation, no "close enough."
 
-### State
-- [ ] Fresh install: PASS / FAIL
-- [ ] Settings persist: PASS / FAIL
-- [ ] Data migration: PASS / FAIL
+For non-code projects (markdown, skills): valid YAML frontmatter, consistent structure, no broken cross-references.
 
-### Visual
-- [ ] No regressions from production: PASS / FAIL
-- [ ] Desktop responsive: PASS / FAIL
-
-### Not testable (needs real device)
-- [ ] {item}: reason
-
-### Verdict: PASS / FAIL
-{summary}
-```
+The operator performs final verification on the completed deliverable — not per-task QA.

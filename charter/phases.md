@@ -1,102 +1,79 @@
 # Workflow Phases
 
-Every nontrivial piece of work goes through these phases. Small fixes skip to Phase 4.
+The full workflow from idea to shipped deliverable. Orchestrate absorbs the middle phases into an autonomous loop.
 
-## Phase 1: Brainstorm
+## Phase 1: Brainstorm → Approved Spec
 
-The coordinator and operator design the solution together.
+The coordinator and operator design the solution together using the **brainstorm** skill.
 
 **Rules:**
 - One question at a time — don't overwhelm
-- Multiple choice when possible
-- Explore 2-3 approaches before committing
-- Present design in sections, get approval per section
-- Write the approved design as a spec
+- Load product context (PRODUCT.md) before exploring approaches
+- Propose 2-3 approaches with trade-offs, recommend one
+- Get approval per section, not one giant reveal
+- Scope check: if too big for one sprint, decompose first
 
 **Exit criteria:**
-- All design decisions resolved (no open questions)
-- Operator has approved the approach
-- Spec document written and saved
+- Design approved by operator
+- SPEC.md written with goal, scope, out-of-scope, done-when criteria
 
-**Output:** `.team/sprints/{name}/SPEC.md`
+**Output:** `.team/sprints/{id}/SPEC.md`
 
-## Phase 2: Plan
+## Phase 2: Sprint Init → Tracking
 
-The coordinator turns the spec into an implementation plan.
+**sprint-init** creates the sprint infrastructure from the approved spec.
 
-**Rules:**
-- Bite-sized tasks (2-10 minutes each)
-- Exact file paths, code examples, commands
-- TDD: test first, then implement
-- Clear success criteria per task
-- Sequential ordering respects dependencies
+**Actions:**
+- Create sprint directory
+- Write SPEC.md (or use existing from brainstorm)
+- Update SPRINTS.md — add active sprint row
+- Update PROJECT.md — set active sprint
 
-**Exit criteria:**
-- Every task has file paths, success criteria, and test approach
-- Tasks are ordered (dependencies respected)
-- Execution model chosen and noted
-- Operator has reviewed the plan if it involves scope risk or architecture changes (otherwise coordinator owns it)
+**Output:** Sprint directory + tracking updated
 
-**Output:** `.team/sprints/{name}/PLAN.md`
+## Phase 3: Orchestrate → Autonomous Execution
 
-## Phase 3: Execute
+**orchestrate** takes over. The human is outside the loop from here until completion.
 
-Work gets done according to the chosen execution model.
+The orchestrate loop:
 
-**Rules:**
-- Snapshot current behavior (tests) before refactoring
-- All tests pass at every commit
-- Build succeeds at every commit
-- Progress posted to team channel
-- Blockers raised immediately, not at the end
+```
+PLAN   → Break spec into ordered tasks, create issues
+           ↓
+EXECUTE → For each task:
+           ├─ Dispatch subagent with self-contained brief
+           ├─ Wait for completion
+           ├─ Run mechanical quality gate
+           └─ Route: pass → next | fail → retry (max 3) | exhausted → block + skip
+           ↓
+VERIFY  → Integration check on combined work
+           ↓
+FINISH  → PR + sprint-ops close + completion report
+```
 
-**Exit criteria:**
-- All tasks in the plan are complete
-- Machine gates pass (type check, tests, build)
-- Intended scope is fully implemented
-- No known regressions
+**No separate QA phase.** Quality gates run mechanically after each task. The operator verifies the final deliverable.
 
-## Phase 4: QA
+**No mid-loop escalation.** Failed tasks get retried with tighter briefs, then blocked and skipped. The loop always terminates.
 
-Verification before shipping.
+**Proactive communication throughout:**
+- Task started/completed/blocked → real-time notification
+- Phase transitions → summary
+- Anomalies → alert
+- Sprint complete → full completion report
 
-**Machine gate (automated, required):**
-- Type check passes
-- Tests pass
-- Build succeeds
-- No new console errors
+## Phase 4: Human Review
 
-**QA gate (agent, required):**
-- Headless browser verification against preview deploy
-- Structured report using standard QA format (see `charter/roles.md`)
-- PASS / FAIL per checklist item with evidence
+The operator reviews the completed deliverable:
+- PR review
+- Real device testing (if applicable)
+- Accept → merge, tag, ship
+- Not complete → new sprint for remaining work
 
-**Human gate (operator, required for ship):**
-- Real device testing
-- Design/UX approval
-- Audio, touch, platform-specific behavior
-- Final ship decision
+## Exit Criteria Summary
 
-**Exit criteria:**
-- Machine gate: all green
-- QA gate: PASS verdict with structured report
-- Human gate: operator explicitly approves
-
-## Phase 5: Ship
-
-Merge, deploy, release.
-
-**Steps:**
-1. Merge to main (squash)
-2. Deploy to staging → verify
-3. Deploy to production → verify
-4. Tag release with notes
-5. Close sprint channel
-6. Write retro
-
-**Exit criteria:**
-- Production URL verified
-- Release tagged on GitHub
-- Sprint channel closed
-- SPRINTS.md updated (sprint marked ✅ Done, active sprint cleared or set to next)
-- Retro written (`.team/sprints/{name}/RETRO.md`)
+| Phase | Gate | Who |
+|-------|------|-----|
+| Brainstorm | Spec approved | Operator |
+| Sprint Init | Tracking set up | Coordinator (automatic) |
+| Orchestrate | All tasks attempted, gates run | Coordinator (autonomous) |
+| Human Review | Deliverable accepted | Operator |

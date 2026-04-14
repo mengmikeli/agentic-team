@@ -1,44 +1,51 @@
 # Failure Handling
 
-## Subagent produces bad output
+Failures are **contained**, not escalated. The loop always terminates.
 
-**First failure:** Tighten the brief — add more context, explicit constraints, code examples.
-**Second failure:** Reduce task size — break it into smaller, more mechanical pieces.
-**Third failure:** Coordinator edits directly or switches to a more capable model.
+## Task Failure (during orchestrate)
 
-Never debug a subagent's bad output. Discard and re-approach.
+| Attempt | Action |
+|---------|--------|
+| 1 | Dispatch with original brief |
+| 2 | Tighten brief — include failure output, narrow scope, add hints |
+| 3 | Reduce to minimum viable change |
+| 4+ | Mark **blocked**, record reason, skip to next task |
 
-## Tests are flaky
+**Never stall.** A blocked task doesn't block the sprint. Other tasks continue. The completion report lists what's blocked and why. The operator decides whether to accept or fix in a follow-up sprint.
 
-Stop and fix before continuing. Flaky tests erode trust in the safety net. If a test is intermittent, either fix the root cause or delete the test and replace it with a reliable one.
+**Never escalate mid-loop.** The coordinator does not pause execution to ask the operator for guidance. The loop runs to completion or exhaustion, then presents results.
 
-## QA blocks release
+## Consecutive Failures
 
-Triage by severity:
-- **P0 (broken):** Fix before merge. No exceptions.
-- **P1 (annoying):** Fix before merge if < 30 min. Otherwise file issue, ship with known issue.
-- **P2 (polish):** File issue, ship. Fix in next sprint.
+If 3+ tasks fail consecutively, orchestrate sends an anomaly alert:
+- `"3 consecutive failures — possible spec gap or environment issue."`
+- Continue attempting remaining tasks
+- Include pattern analysis in completion report
 
-If QA blocks release 3+ times on the same sprint, escalate to operator — the spec or implementation approach may need rethinking.
+## Flaky Quality Gates
 
-## Operator goes offline mid-sprint
+If a gate passes intermittently:
+- Retry once to distinguish flaky from genuinely broken
+- If still inconsistent, mark the task as blocked with "flaky gate" reason
+- Don't loop forever trying to get a clean run
 
-**Bounded autonomy rules:**
-- Continue mechanical work (implementation tasks with clear specs)
-- Continue QA (run the checklist, file results)
-- Pause on: design decisions, scope changes, production deploys
-- Post status update summarizing what was done and what's waiting
-- Resume when operator returns
+## Sprint Stalls
 
-## PR conflicts
+If no progress for an extended period:
+- Orchestrate detects stall via timeout (configurable per task, default 30 min)
+- Mark current task blocked
+- Move to next task
+- Report stall in completion report
 
-Coordinator resolves conflicts, not the implementer agents. The coordinator has the broadest context and knows merge order. If conflicts are frequent, it's a signal that work should be more sequential (subagent swarm) or that shared foundations need to ship first.
+## Operator Goes Offline
 
-## Sprint stalls
+Not relevant during orchestrate execution — the operator is already outside the loop by design. Orchestrate runs autonomously regardless of operator presence.
 
-Default thresholds (adjust per team):
-- No progress for ~2 hours on an active sprint → coordinator pings the owning agent
-- No response in ~1 hour → mark as stalled
-- Stalled ~4+ hours → reassign, reduce scope, or escalate to operator
+For brainstorm phase (where operator is needed): pause and wait. Don't make design decisions without the operator.
 
-These are starting points. Tighten for time-sensitive work, loosen for exploratory sprints.
+## Post-Sprint Failures
+
+After orchestrate finishes and the operator reviews:
+- **Blocked tasks need fixing** → new sprint targeting specific gaps
+- **Deliverable needs changes** → new sprint or direct edit
+- **Framework itself broke** → fix the skill, commit, apply to next sprint

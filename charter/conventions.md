@@ -15,6 +15,7 @@
 ├── projects/
 │   └── {project}/                  # Project repo
 │       ├── .team/
+│       │   ├── PRODUCT.md          # Product vision, users, metrics
 │       │   ├── PROJECT.md          # Project config
 │       │   ├── AGENTS.md           # Agent roles for this project
 │       │   ├── SPRINTS.md          # Sprint history — active + done
@@ -22,6 +23,7 @@
 │       │       └── {sprint}/
 │       │           ├── SPEC.md     # Sprint spec
 │       │           ├── PLAN.md     # Implementation plan
+│       │           ├── STATE.json  # Orchestrate execution state
 │       │           └── RETRO.md    # Retrospective
 │       └── src/                    # Project source
 ```
@@ -34,11 +36,13 @@
 | charter/*.md | Agent | No (workspace) | Full reference — loaded on demand |
 | PLAYBOOK.md | Agent | No (workspace) | Platform recipes |
 | SOUL.md, USER.md, MEMORY.md | Agent | No | Identity and memory (private) |
+| .team/PRODUCT.md | Product | Yes | Vision, users, success metrics |
 | .team/PROJECT.md | Project | Yes | Stack, deploy, channels |
 | .team/AGENTS.md | Project | Yes | Who does what |
 | .team/SPRINTS.md | Project | Yes | Sprint history — active + done |
 | .team/sprints/*/SPEC.md | Sprint | Yes | What + why |
 | .team/sprints/*/PLAN.md | Sprint | Yes | How, task by task |
+| .team/sprints/*/STATE.json | Sprint | Yes | Orchestrate execution state |
 | .team/sprints/*/RETRO.md | Sprint | Yes | What we learned |
 
 ## Git conventions
