@@ -8,6 +8,7 @@ import {
   getFlag, resolveDir, lockFile,
   readState, writeState, WRITER_SIG,
 } from "./util.mjs";
+import { extractWarnings, findNewWarnings, documentWarnings } from "./backlog.mjs";
 
 export function cmdGate(args) {
   const cmd = getFlag(args, "cmd");
@@ -76,6 +77,14 @@ export function cmdGate(args) {
       }
 
       const verdict = exitCode === 0 ? "PASS" : "FAIL";
+
+      // Backlog enforcement: extract warnings and document any new ones.
+      const allWarnings = extractWarnings(stdout + "\n" + stderr);
+      const newWarnings = findNewWarnings(allWarnings, dir);
+      if (newWarnings.length > 0) {
+        documentWarnings(dir, newWarnings, "gate");
+      }
+
       const gateResult = {
         command: cmd,
         exitCode,
@@ -84,6 +93,8 @@ export function cmdGate(args) {
         stderr: stderr.slice(0, 4096),
         timestamp: new Date().toISOString(),
         taskId: taskId || null,
+        warnings: allWarnings.length,
+        newWarnings: newWarnings.length,
       };
 
       if (!freshState.gates) freshState.gates = [];
@@ -110,6 +121,8 @@ export function cmdGate(args) {
         taskId: taskId || null,
         stdout: stdout.slice(0, 1024),
         stderr: stderr.slice(0, 1024),
+        warnings: allWarnings.length,
+        newWarnings: newWarnings.length,
       }));
     } finally {
       lock.release();

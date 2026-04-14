@@ -285,6 +285,187 @@ describe("at-harness", () => {
   });
 });
 
+// ── Backlog enforcement tests ──────────────────────────────────────
+
+import {
+  extractWarnings, readBacklog, findNewWarnings,
+  documentWarnings, carryForward,
+} from "../bin/lib/backlog.mjs";
+import { mkdtempSync } from "fs";
+import { tmpdir } from "os";
+
+describe("backlog", () => {
+  describe("extractWarnings", () => {
+    it("returns empty array for empty input", () => {
+      assert.deepEqual(extractWarnings(""), []);
+      assert.deepEqual(extractWarnings(null), []);
+    });
+
+    it("extracts lines containing 'warning'", () => {
+      const text = "ok\nwarning: deprecated\nerror: crash";
+      const result = extractWarnings(text);
+      assert.ok(result.includes("warning: deprecated"));
+      assert.equal(result.length, 1);
+    });
+
+    it("extracts lines containing 'warn'", () => {
+      const text = "some warn message\nall good";
+      const result = extractWarnings(text);
+      assert.ok(result.includes("some warn message"));
+    });
+
+    it("deduplicates identical warning lines", () => {
+      const text = "warning: foo\nwarning: foo\nwarning: bar";
+      const result = extractWarnings(text);
+      assert.equal(result.filter(l => l === "warning: foo").length, 1);
+    });
+
+    it("ignores lines over 500 chars", () => {
+      const long = "warning: " + "x".repeat(500);
+      const result = extractWarnings(long);
+      assert.equal(result.length, 0);
+    });
+  });
+
+  describe("readBacklog", () => {
+    it("returns empty lists when backlog.md does not exist", () => {
+      const dir = mkdtempSync(join(tmpdir(), "backlog-test-"));
+      const result = readBacklog(dir);
+      assert.deepEqual(result.documented, []);
+      assert.deepEqual(result.unresolved, []);
+    });
+
+    it("parses unchecked items as unresolved and documented", () => {
+      const dir = mkdtempSync(join(tmpdir(), "backlog-test-"));
+      writeFileSync(join(dir, "backlog.md"), "# Backlog\n\n- [ ] warn: foo\n- [x] warn: bar\n");
+      const result = readBacklog(dir);
+      assert.ok(result.documented.includes("warn: foo"));
+      assert.ok(result.documented.includes("warn: bar"));
+      assert.ok(result.unresolved.includes("warn: foo"));
+      assert.equal(result.unresolved.length, 1);
+    });
+  });
+
+  describe("documentWarnings", () => {
+    it("creates backlog.md if absent", () => {
+      const dir = mkdtempSync(join(tmpdir(), "backlog-test-"));
+      documentWarnings(dir, ["warning: foo"], "gate");
+      assert.ok(existsSync(join(dir, "backlog.md")));
+      const content = readFileSync(join(dir, "backlog.md"), "utf8");
+      assert.ok(content.includes("warning: foo"));
+      assert.ok(content.includes("[gate]"));
+    });
+
+    it("appends to existing backlog.md", () => {
+      const dir = mkdtempSync(join(tmpdir(), "backlog-test-"));
+      documentWarnings(dir, ["warn: first"], "gate");
+      documentWarnings(dir, ["warn: second"], "gate");
+      const content = readFileSync(join(dir, "backlog.md"), "utf8");
+      assert.ok(content.includes("warn: first"));
+      assert.ok(content.includes("warn: second"));
+    });
+
+    it("does nothing when warnings list is empty", () => {
+      const dir = mkdtempSync(join(tmpdir(), "backlog-test-"));
+      documentWarnings(dir, [], "gate");
+      assert.ok(!existsSync(join(dir, "backlog.md")));
+    });
+  });
+
+  describe("findNewWarnings", () => {
+    it("returns all warnings when backlog is empty", () => {
+      const dir = mkdtempSync(join(tmpdir(), "backlog-test-"));
+      const result = findNewWarnings(["warn: a", "warn: b"], dir);
+      assert.equal(result.length, 2);
+    });
+
+    it("excludes warnings already in backlog", () => {
+      const dir = mkdtempSync(join(tmpdir(), "backlog-test-"));
+      documentWarnings(dir, ["warn: a"], "gate");
+      const result = findNewWarnings(["warn: a", "warn: b"], dir);
+      assert.ok(!result.includes("warn: a"));
+      assert.ok(result.includes("warn: b"));
+    });
+  });
+
+  describe("carryForward", () => {
+    it("copies unresolved warnings to new feature dir", () => {
+      const fromDir = mkdtempSync(join(tmpdir(), "backlog-from-"));
+      const toDir = mkdtempSync(join(tmpdir(), "backlog-to-"));
+      writeFileSync(join(fromDir, "backlog.md"), "# Backlog\n\n- [ ] warn: old issue\n- [x] warn: fixed\n");
+      const count = carryForward(fromDir, toDir);
+      assert.equal(count, 1);
+      const content = readFileSync(join(toDir, "backlog.md"), "utf8");
+      assert.ok(content.includes("warn: old issue"));
+      assert.ok(!content.includes("warn: fixed"));
+    });
+
+    it("returns 0 when no unresolved warnings", () => {
+      const fromDir = mkdtempSync(join(tmpdir(), "backlog-from-"));
+      const toDir = mkdtempSync(join(tmpdir(), "backlog-to-"));
+      writeFileSync(join(fromDir, "backlog.md"), "# Backlog\n\n- [x] warn: all fixed\n");
+      const count = carryForward(fromDir, toDir);
+      assert.equal(count, 0);
+    });
+  });
+
+  describe("gate integration", () => {
+    it("gate documents warnings in backlog.md", () => {
+      const featureDir = join(testDir, "features", "backlog-gate-test");
+      mkdirSync(featureDir, { recursive: true });
+      const state = {
+        version: "2.0",
+        feature: "backlog-gate-test",
+        status: "active",
+        tasks: [],
+        gates: [],
+        transitionCount: 0,
+        transitionHistory: [],
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "abcd1234abcd1234",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      // Run gate with a command that emits a warning line
+      const result = harnessJSON(
+        "gate", "--cmd", "echo 'warning: deprecated api'",
+        "--dir", join("features", "backlog-gate-test")
+      );
+      assert.equal(result.ok, true);
+      assert.equal(result.verdict, "PASS");
+      assert.ok(typeof result.warnings === "number");
+      assert.ok(typeof result.newWarnings === "number");
+
+      // backlog.md should now exist with the warning documented
+      const backlogPath = join(featureDir, "backlog.md");
+      assert.ok(existsSync(backlogPath), "backlog.md should be created");
+      const content = readFileSync(backlogPath, "utf8");
+      assert.ok(content.includes("warning: deprecated api"));
+    });
+
+    it("init --prev carries warnings forward", () => {
+      // Create a prev feature with an unresolved warning
+      const prevDir = join(testDir, "features", "prev-feature");
+      mkdirSync(prevDir, { recursive: true });
+      writeFileSync(join(prevDir, "backlog.md"), "# Backlog\n\n- [ ] warn: old issue\n");
+
+      // Init new feature with --prev (pass feature name; dir is "." resolved to testDir)
+      const result = harnessJSON(
+        "init", "--feature", "next-feature", "--dir", ".",
+        "--prev", "prev-feature"
+      );
+      assert.equal(result.created, true);
+      assert.equal(result.carriedWarnings, 1);
+
+      const newBacklog = join(testDir, "features", "next-feature", "backlog.md");
+      assert.ok(existsSync(newBacklog));
+      const content = readFileSync(newBacklog, "utf8");
+      assert.ok(content.includes("warn: old issue"));
+    });
+  });
+});
+
 // ── GitHub integration tests ──────────────────────────────────────
 
 import { ghAvailable, createIssue, closeIssue, commentIssue } from "../bin/lib/github.mjs";
