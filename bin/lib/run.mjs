@@ -35,12 +35,12 @@ function harness(...args) {
 function findAgent() {
   // Try Claude Code first
   try {
-    execSync("which claude 2>/dev/null || where claude 2>nul", { encoding: "utf8", stdio: "pipe" });
+    execSync(process.platform === "win32" ? "where claude" : "which claude", { encoding: "utf8", stdio: "pipe" });
     return "claude";
   } catch {}
   // Try codex
   try {
-    execSync("which codex 2>/dev/null || where codex 2>nul", { encoding: "utf8", stdio: "pipe" });
+    execSync(process.platform === "win32" ? "where codex" : "which codex", { encoding: "utf8", stdio: "pipe" });
     return "codex";
   } catch {}
   return null;
