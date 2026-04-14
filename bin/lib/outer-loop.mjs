@@ -169,13 +169,13 @@ Do NOT modify any code files. Only update PRODUCT.md.`;
 export function parsePriorityOutput(output) {
   if (!output) return null;
 
-  const priorityMatch = output.match(/^PRIORITY:\s*(.+)$/m);
+  const priorityMatch = output.match(/^PRIORITY:[^\S\n]*(.+)$/m);
   if (!priorityMatch) return null;
 
   const name = priorityMatch[1].trim();
   if (!name) return null;
 
-  const reasoningMatch = output.match(/^REASONING:\s*(.+)$/m);
+  const reasoningMatch = output.match(/^REASONING:[^\S\n]*(.+)$/m);
   const reasoning = reasoningMatch ? reasoningMatch[1].trim() : "";
 
   return { name, reasoning };
