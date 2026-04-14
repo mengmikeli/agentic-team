@@ -1,0 +1,37 @@
+{
+  "version": "2.0",
+  "feature": "backlog-enforcement",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Backlog enforcement — Track every warning in .team/features/{name}/backlog.md. Gate cannot pass until warnings are documented. Unfixed warnings carry forward to next feature.",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 16,
+      "lastTransition": "2026-04-14T10:58:47.836Z"
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 17
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-14T10:58:47.836Z"
+    }
+  ],
+  "createdAt": "2026-04-14T10:58:39.113Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-14T10:58:47.836Z",
+  "_write_nonce": "ee124035613f5949"
+}

@@ -1,0 +1,60 @@
+{
+  "version": "2.0",
+  "feature": "implement-backlog-enforcement-track-warnings-in-ba",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "implement backlog enforcement — track warnings in backlog.md, gate blocks until warnings documented, warnings carry forward",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 18,
+      "lastTransition": "2026-04-14T11:05:18.980Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-14T11:06:39.579Z",
+        "taskId": "task-1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 19
+    }
+  ],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-14T11:06:39.579Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-14T11:05:18.980Z"
+    }
+  ],
+  "createdAt": "2026-04-14T11:05:04.219Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-14T11:06:39.579Z",
+  "_write_nonce": "cb8ac07dfcd4cab5"
+}

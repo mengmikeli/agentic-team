@@ -1,0 +1,13 @@
+{
+  "version": "2.0",
+  "feature": "next-feature",
+  "status": "active",
+  "tasks": [],
+  "gates": [],
+  "transitionCount": 0,
+  "transitionHistory": [],
+  "createdAt": "2026-04-14T11:06:38.225Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-14T11:06:38.226Z",
+  "_write_nonce": "6afffd8847f3b629"
+}
