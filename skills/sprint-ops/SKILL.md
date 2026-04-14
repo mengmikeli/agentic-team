@@ -120,6 +120,26 @@ Add to SPEC.md at close:
 - **Session logs available?** Count agent sessions from OpenClaw session history
 - **Neither?** Just use git metrics (commits, PRs, duration) — still valuable
 
+### pew Integration
+
+Concrete path for token tracking via [pew](https://github.com/nickthecook/pew):
+
+```
+If ~/.config/pew/cursors.json exists:
+  Run: pew status --json (or parse ~/.config/pew/queue.jsonl)
+  Extract: total tokens (input + output + cache + reasoning) for sprint date range
+  Filter: only include entries between sprint start and close dates
+  Include in sprint close metrics:
+    "Token usage: {N} total ({input} input, {output} output, {cache} cache, {reasoning} reasoning) — via pew"
+  Add to SPRINTS.md metrics columns and SPEC.md ## Metrics section
+
+If pew not installed or ~/.config/pew/cursors.json missing:
+  Note: "Token usage: not tracked (install pew for token metrics)"
+  Continue with git-only metrics — never block sprint close on missing token data
+```
+
+This makes token cost a first-class metric alongside commits and PRs, enabling data-driven execution model decisions across sprints.
+
 ## Rules
 
 - **Fix, don't flag.** If tracking is wrong, correct it now.
