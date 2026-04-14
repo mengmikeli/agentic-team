@@ -85,9 +85,25 @@ Provide concise feedback. If there are blocking issues, describe them clearly. O
 
 function getRoleFocus(role) {
   switch (role) {
-    case "architect": return "Code structure, design patterns, modularity, and long-term maintainability.";
-    case "security":  return "Security vulnerabilities, input validation, error handling, and safe defaults.";
-    case "pm":        return "Whether the implementation matches the intended requirements and delivers user value.";
-    default:          return "Overall code quality, correctness, and adherence to project conventions.";
+    case "architect":        return "Code structure, design patterns, modularity, and long-term maintainability.";
+    case "security":         return "Security vulnerabilities, input validation, error handling, and safe defaults.";
+    case "pm":               return "Whether the implementation matches the intended requirements and delivers user value.";
+    case "devil's-advocate": return "Challenge assumptions, identify edge cases, surface hidden risks, and find what could go wrong.";
+    default:                 return "Overall code quality, correctness, and adherence to project conventions.";
   }
+}
+
+// Roles dispatched in parallel for the multi-review phase
+export const PARALLEL_REVIEW_ROLES = ["security", "architect", "devil's-advocate"];
+
+/**
+ * Merge findings from parallel reviewers into a single markdown report.
+ * @param {Array<{role: string, ok: boolean, output: string}>} findings
+ * @returns {string}
+ */
+export function mergeReviewFindings(findings) {
+  const parts = findings.map(f =>
+    `### [${f.role}]\n${(f.output || "No output").slice(0, 500)}`
+  );
+  return `## Parallel Review Findings\n\n${parts.join("\n\n")}`;
 }

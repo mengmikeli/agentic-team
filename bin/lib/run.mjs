@@ -1,7 +1,7 @@
 // agt run — autonomous execution loop
 // Dispatches agents, runs quality gates, manages state via harness.
 
-import { execSync, spawnSync, execFileSync } from "child_process";
+import { execSync, spawnSync, execFileSync, spawn } from "child_process";
 import { existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
 import { join, resolve, dirname } from "path";
 import { createInterface } from "readline";
@@ -10,8 +10,8 @@ import {
   c, getFlag, readState, writeState, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS,
 } from "./util.mjs";
-import { ghAvailable, createIssue, closeIssue, commentIssue } from "./github.mjs";
-import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief } from "./flows.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject } from "./github.mjs";
+import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -124,8 +124,38 @@ function dispatchToAgent(agent, brief, cwd) {
   return { ok: false, output: "", error: "no agent available" };
 }
 
-function dispatchManual(brief) {
-  console.log(`\n  ${c.yellow}No coding agent found (claude/codex).${c.reset}`);
+// ── Async agent dispatch for parallel use ────────────────────────
+
+function dispatchToAgentAsync(agent, brief, cwd) {
+  return new Promise((resolve) => {
+    if (agent !== "claude") {
+      resolve({ ok: false, output: "", error: "async dispatch only supports claude" });
+      return;
+    }
+    let stdout = "";
+    let stderr = "";
+    const child = spawn("claude", ["--print", "--permission-mode", "bypassPermissions", brief], {
+      cwd,
+      stdio: ["pipe", "pipe", "pipe"],
+      env: { ...process.env },
+    });
+    child.stdout?.on("data", d => { stdout += d; });
+    child.stderr?.on("data", d => { stderr += d; });
+    child.on("close", code => resolve({ ok: code === 0, output: stdout, error: stderr }));
+    child.on("error", err => resolve({ ok: false, output: "", error: err.message }));
+  });
+}
+
+function runParallelReviews(agent, roles, featureName, taskTitle, gateOutput, cwd) {
+  const promises = roles.map(role => {
+    const brief = buildReviewBrief(featureName, taskTitle, gateOutput, cwd, role);
+    return dispatchToAgentAsync(agent, brief, cwd)
+      .then(result => ({ role, ok: result.ok, output: result.output || "" }));
+  });
+  return Promise.all(promises);
+}
+
+function dispatchManual(brief) {  console.log(`\n  ${c.yellow}No coding agent found (claude/codex).${c.reset}`);
   console.log(`  ${c.bold}Task brief:${c.reset}\n`);
   console.log(`  ${c.dim}${brief.slice(0, 3000)}${c.reset}\n`);
   console.log(`  ${c.yellow}Complete this task manually, then press Enter to run the gate.${c.reset}`);
@@ -419,6 +449,12 @@ async function _runSingleFeature(args, description) {
       );
       if (issueNum) {
         task.issueNumber = issueNum;
+        // Add to project board if configured
+        try {
+          const projectMd = readFileSync(join(teamDir, "PROJECT.md"), "utf8");
+          const projMatch = projectMd.match(/projects\/(\d+)/);
+          if (projMatch) addToProject(issueNum, parseInt(projMatch[1]));
+        } catch {}
         console.log(`  ${c.green}✓${c.reset} #${issueNum}: ${task.title}`);
       }
     }
@@ -518,14 +554,12 @@ async function _runSingleFeature(args, description) {
         }
 
         if (agent && flow.phases.includes("multi-review")) {
-          for (const role of ["architect", "security", "pm"]) {
-            console.log(`  ${c.cyan}▶ [${role}] review...${c.reset}`);
-            const reviewBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, role);
-            const reviewResult = dispatchToAgent(agent, reviewBrief, cwd);
-            if (reviewResult.output) {
-              console.log(`  ${c.dim}[${role}] ${reviewResult.output.slice(0, 300)}${c.reset}`);
-            }
-          }
+          console.log(`  ${c.cyan}▶ Parallel review (${PARALLEL_REVIEW_ROLES.join(", ")})...${c.reset}`);
+          const findings = await runParallelReviews(
+            agent, PARALLEL_REVIEW_ROLES, featureName, task.title, gateResult.stdout, cwd,
+          );
+          const merged = mergeReviewFindings(findings);
+          console.log(`  ${c.dim}${merged.slice(0, 1000)}${c.reset}`);
         }
 
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);

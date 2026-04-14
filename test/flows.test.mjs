@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief } from "../bin/lib/flows.mjs";
+import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "../bin/lib/flows.mjs";
 
 describe("FLOWS", () => {
   it("defines light-review with gate only", () => {
@@ -153,5 +153,61 @@ describe("buildReviewBrief", () => {
   it("handles null gate output", () => {
     const brief = buildReviewBrief("feat", "task", null, "/cwd", null);
     assert.ok(brief.includes("Gate passed"));
+  });
+});
+
+describe("PARALLEL_REVIEW_ROLES", () => {
+  it("is an array with 2-5 roles", () => {
+    assert.ok(Array.isArray(PARALLEL_REVIEW_ROLES));
+    assert.ok(PARALLEL_REVIEW_ROLES.length >= 2 && PARALLEL_REVIEW_ROLES.length <= 5);
+  });
+
+  it("includes security and architect", () => {
+    assert.ok(PARALLEL_REVIEW_ROLES.includes("security"));
+    assert.ok(PARALLEL_REVIEW_ROLES.includes("architect"));
+  });
+
+  it("includes devil's-advocate", () => {
+    assert.ok(PARALLEL_REVIEW_ROLES.includes("devil's-advocate"));
+  });
+});
+
+describe("mergeReviewFindings", () => {
+  it("combines findings from multiple roles into a single report", () => {
+    const findings = [
+      { role: "security", ok: true, output: "No issues found." },
+      { role: "architect", ok: true, output: "Structure looks good." },
+      { role: "devil's-advocate", ok: true, output: "Consider edge case X." },
+    ];
+    const merged = mergeReviewFindings(findings);
+    assert.ok(merged.includes("security"));
+    assert.ok(merged.includes("architect"));
+    assert.ok(merged.includes("devil's-advocate"));
+    assert.ok(merged.includes("No issues found."));
+    assert.ok(merged.includes("Structure looks good."));
+    assert.ok(merged.includes("Consider edge case X."));
+  });
+
+  it("handles empty output gracefully", () => {
+    const findings = [
+      { role: "security", ok: false, output: "" },
+    ];
+    const merged = mergeReviewFindings(findings);
+    assert.ok(merged.includes("security"));
+    assert.ok(merged.includes("No output"));
+  });
+
+  it("returns a string with a heading", () => {
+    const findings = [{ role: "architect", ok: true, output: "Looks good." }];
+    const merged = mergeReviewFindings(findings);
+    assert.ok(typeof merged === "string");
+    assert.ok(merged.length > 0);
+  });
+});
+
+describe("buildReviewBrief — devil's-advocate role", () => {
+  it("includes devil's-advocate focus on risks and edge cases", () => {
+    const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "devil's-advocate");
+    assert.ok(brief.toLowerCase().includes("risk") || brief.toLowerCase().includes("edge case") || brief.toLowerCase().includes("wrong"));
   });
 });
