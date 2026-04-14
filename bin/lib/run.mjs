@@ -16,6 +16,7 @@ import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
+import { outerLoop } from "./outer-loop.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -122,7 +123,9 @@ function runGateInline(cmd, featureDir, taskId) {
 
 // ── Agent dispatch ──────────────────────────────────────────────
 
-function findAgent() {
+// ── Agent dispatch (exported for outer loop) ───────────────────
+
+export function findAgent() {
   // Try Claude Code first
   try {
     execSync(process.platform === "win32" ? "where claude" : "which claude", { encoding: "utf8", stdio: "pipe" });
@@ -136,7 +139,7 @@ function findAgent() {
   return null;
 }
 
-function dispatchToAgent(agent, brief, cwd) {
+export function dispatchToAgent(agent, brief, cwd) {
   console.log(`  ${c.dim}Dispatching to ${agent}...${c.reset}`);
 
   try {
@@ -402,29 +405,11 @@ export async function cmdRun(args) {
   const continuous = !description; // no args = continuous roadmap mode
 
   if (continuous) {
-    let stopping = false;
-    process.on("SIGINT", () => {
-      if (stopping) process.exit(1);
-      stopping = true;
-      console.log(`\n${c.yellow}Stopping after current feature completes... (Ctrl+C again to force quit)${c.reset}`);
+    await outerLoop(args, {
+      findAgent,
+      dispatchToAgent,
+      runSingleFeature: _runSingleFeature,
     });
-
-    let completedFeatures = 0;
-    while (!stopping) {
-      const result = await _runSingleFeature(args, null);
-      if (result === "exhausted") {
-        console.log(`\n${c.green}${c.bold}All roadmap items completed! ${completedFeatures} feature(s) delivered.${c.reset}`);
-        break;
-      }
-      completedFeatures++;
-      if (stopping) break;
-      console.log(`\n${c.cyan}${"─".repeat(50)}${c.reset}`);
-      console.log(`${c.cyan}Completed ${completedFeatures} feature(s). Picking next from roadmap...${c.reset}`);
-      console.log(`${c.cyan}${"─".repeat(50)}${c.reset}\n`);
-    }
-    if (stopping) {
-      console.log(`\n${c.yellow}Stopped after ${completedFeatures} feature(s).${c.reset}`);
-    }
   } else {
     await _runSingleFeature(args, description);
   }
