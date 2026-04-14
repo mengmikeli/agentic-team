@@ -405,6 +405,17 @@ export async function cmdRun(args) {
 
       if (gateResult.verdict === "PASS") {
         passed = true;
+
+        // Auto-commit after gate pass
+        try {
+          execSync("git add -A", { cwd, shell: true, stdio: "pipe" });
+          const hasChanges = execSync("git diff --cached --stat", { cwd, encoding: "utf8", shell: true, stdio: "pipe" }).trim();
+          if (hasChanges) {
+            execSync(`git commit -m "feat: ${task.title.replace(/"/g, '\\"').slice(0, 72)}"`, { cwd, shell: true, stdio: "pipe" });
+            console.log(`  ${c.green}✓ Committed${c.reset}`);
+          }
+        } catch { /* no changes to commit, or git not available */ }
+
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
         completed++;
@@ -445,6 +456,17 @@ export async function cmdRun(args) {
   // ── Finalize ──
 
   const finalizeResult = harness("finalize", "--dir", featureDir);
+
+  // Auto-push if there are commits to push
+  try {
+    const ahead = execSync("git rev-list --count @{u}..HEAD", { cwd, encoding: "utf8", shell: true, stdio: "pipe" }).trim();
+    if (parseInt(ahead) > 0) {
+      console.log(`${c.dim}Pushing ${ahead} commit(s)...${c.reset}`);
+      execSync("git push", { cwd, shell: true, stdio: "pipe" });
+      console.log(`${c.green}✓ Pushed${c.reset}`);
+    }
+  } catch { /* no upstream or push failed — not fatal */ }
+
   const duration = Math.round((Date.now() - startTime) / 1000);
   const durationStr = duration > 60 ? `${Math.floor(duration / 60)}m ${duration % 60}s` : `${duration}s`;
 
