@@ -10,6 +10,7 @@ import { cmdBoard } from "./lib/board.mjs";
 import { cmdMetrics } from "./lib/metrics.mjs";
 import { cmdStop } from "./lib/stop.mjs";
 import { cmdLog } from "./lib/log.mjs";
+import { daemonStart, daemonStop, daemonStatus } from "./lib/daemon.mjs";
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -17,11 +18,31 @@ const args = process.argv.slice(3);
 async function main() {
 switch (command) {
   case "init":    cmdInit(args);    break;
-  case "run":     await cmdRun(args);     break;
-  case "status":  cmdStatus(args);  break;
+  case "run":
+    if (args.includes("--daemon")) {
+      daemonStart(args, process.cwd());
+    } else {
+      await cmdRun(args);
+    }
+    break;
+  case "status": {
+    const ds = daemonStatus(process.cwd());
+    if (ds.running) {
+      const { c } = await import("./lib/util.mjs");
+      console.log(`\n${c.green}⚡ Daemon running${c.reset} (PID ${ds.pid}, started ${ds.startedAt})`);
+    }
+    cmdStatus(args);
+    break;
+  }
   case "board":   cmdBoard(args);   break;
   case "metrics": cmdMetrics(args); break;
-  case "stop":    cmdStop(args);    break;
+  case "stop":
+    if (args.includes("--daemon") || args.length === 0) {
+      daemonStop(process.cwd());
+      if (args.includes("--daemon")) break;
+    }
+    cmdStop(args);
+    break;
   case "log":     cmdLog(args);     break;
 
   case "dashboard": {
@@ -131,10 +152,13 @@ switch (command) {
     console.log("Commands:");
     console.log("  init                     Set up a new project");
     console.log("  run [description]        Start autonomous loop (phase 2)");
-    console.log("  status                   Cross-project dashboard");
+    console.log("  run --daemon             Run in background");
+    console.log("  run --review             Enable agent-based review step");
+    console.log("  status                   Cross-project dashboard + daemon status");
     console.log("  board [feature]          Task board view");
     console.log("  metrics                  Token usage and cost stats");
     console.log("  stop [feature]           Pause execution");
+    console.log("  stop --daemon            Stop background daemon");
     console.log("  log [feature]            Execution history");
     console.log("  dashboard [port]         Web dashboard (default: 3847)");
     console.log("  version                  Show version");
