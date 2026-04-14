@@ -26,7 +26,16 @@
       "status": "passed",
       "attempts": 0,
       "issueNumber": 13,
-      "lastTransition": "2026-04-14T10:38:16.185Z"
+      "lastTransition": "2026-04-14T10:38:16.185Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-14T10:43:27.392Z",
+        "taskId": "task-2"
+      }
     }
   ],
   "gates": [
@@ -38,6 +47,15 @@
       "stderr": "",
       "timestamp": "2026-04-14T10:38:33.634Z",
       "taskId": "task-1"
+    },
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-14T10:43:27.392Z",
+      "taskId": "task-2"
     }
   ],
   "transitionCount": 4,
@@ -73,8 +91,8 @@
   ],
   "createdAt": "2026-04-14T10:34:38.941Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-14T10:38:33.634Z",
-  "_write_nonce": "a172468ab825268d",
+  "_last_modified": "2026-04-14T10:43:27.392Z",
+  "_write_nonce": "5daad58ecfe3823a",
   "completedAt": "2026-04-14T10:38:18.939Z",
   "summary": {
     "tasks": 2,
