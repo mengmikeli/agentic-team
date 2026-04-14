@@ -74,8 +74,19 @@ ${cwd}
 
 ## Gate Output
 \`\`\`
-${(gateOutput || "Gate passed").slice(0, 1000)}
+${(gateOutput || "Gate passed").slice(0, 2000)}
 \`\`\`
+
+## Your Approach
+
+1. **Read the builder's handshake** at \`.team/features/${featureName}/tasks/*/handshake.json\`
+   - What did the builder claim to build?
+   - What artifacts did they list?
+2. **Verify claims against evidence**
+   - Do the artifact files actually exist?
+   - Read \`tasks/*/artifacts/test-output.txt\` — does the test output match the claimed status?
+   - Check the code: does it actually implement what was claimed?
+3. **Write structured findings** using the format below
 
 ## Review Focus
 ${getRoleFocus(role)}
@@ -94,7 +105,28 @@ Examples:
   🟡 bin/lib/util.mjs:15 — Error not caught; wrap in try/catch
   🔵 bin/lib/flows.mjs:7 — Consider extracting constant to module scope
 
-If there are no findings, write exactly: No findings.`;
+If there are no findings, write exactly: No findings.
+
+## Write Evaluation
+Write your detailed evaluation to: \`.team/features/${featureName}/tasks/*/eval.md\`
+
+The eval.md must include:
+- Overall verdict (PASS, ITERATE, or FAIL)
+- Per-criterion results with evidence
+- Specific, actionable feedback
+
+## Anti-Rationalization
+
+| You're tempted to say | Reality | Do this instead |
+|---|---|---|
+| "Code looks correct" | You didn't run it — you're guessing | Cite the specific logic path that proves correctness |
+| "No major issues found" | You probably only checked the happy path | List edge cases you checked, or admit you didn't |
+| "Reviewed all files" | Did you? | List only files you actually opened and read |
+| "Should work now" / "Looks fixed" | You didn't re-test after the fix | Run the actual verification command and paste the output |
+| "I'll rubber-stamp it" | That defeats the entire system | If you can't reproduce it, it FAILS |
+
+## Calibration
+A criterion PASSES only when you have direct evidence it works. If you cannot reproduce the expected behavior, it FAILS. If something barely works but would frustrate a real user, that's a FAIL.`;
 }
 
 function getRoleFocus(role) {
