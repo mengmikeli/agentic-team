@@ -13,6 +13,7 @@ import {
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
+import { validateHandshake, createHandshake } from "./handshake.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -68,12 +69,53 @@ function runGateInline(cmd, featureDir, taskId) {
 
   const verdict = exitCode === 0 ? "PASS" : "FAIL";
 
+  // Write evidence artifacts to task directory
+  if (taskId) {
+    const taskDir = join(featureDir, "tasks", taskId);
+    const artifactsDir = join(taskDir, "artifacts");
+    mkdirSync(artifactsDir, { recursive: true });
+
+    if (stdout) {
+      writeFileSync(join(artifactsDir, "test-output.txt"), stdout);
+    }
+    if (stderr) {
+      writeFileSync(join(artifactsDir, "gate-stderr.txt"), stderr);
+    }
+
+    // Write gate handshake
+    const artifacts = [];
+    if (stdout) artifacts.push({ type: "test-result", path: "artifacts/test-output.txt" });
+    if (stderr) artifacts.push({ type: "cli-output", path: "artifacts/gate-stderr.txt" });
+    if (artifacts.length === 0) {
+      writeFileSync(join(artifactsDir, "gate-result.txt"), `exit code: ${exitCode}\n`);
+      artifacts.push({ type: "cli-output", path: "artifacts/gate-result.txt" });
+    }
+
+    const gateHandshake = createHandshake({
+      taskId,
+      nodeType: "gate",
+      status: exitCode === 0 ? "completed" : "failed",
+      verdict,
+      summary: `Gate command: ${cmd} — exit code ${exitCode}`,
+      artifacts,
+      findings: { critical: exitCode === 0 ? 0 : 1, warning: 0, suggestion: 0 },
+    });
+
+    writeFileSync(join(taskDir, "handshake.json"), JSON.stringify(gateHandshake, null, 2) + "\n");
+
+    // Validate the gate handshake
+    const validation = validateHandshake(gateHandshake, { basePath: taskDir });
+    if (!validation.valid) {
+      console.log(`  ${c.yellow}Gate handshake validation warnings: ${validation.errors.join("; ")}${c.reset}`);
+    }
+  }
+
   // Also update state via harness for tamper-detection
   if (verdict === "PASS") {
     harness("gate", "--cmd", "echo gate-recorded", "--dir", featureDir, "--task", taskId);
   }
 
-  return { ok: true, verdict, exitCode, stdout: stdout.slice(0, 1024), stderr: stderr.slice(0, 1024) };
+  return { ok: true, verdict, exitCode, stdout: stdout.slice(0, 4096), stderr: stderr.slice(0, 4096) };
 }
 
 // ── Agent dispatch ──────────────────────────────────────────────
@@ -498,6 +540,11 @@ async function _runSingleFeature(args, description) {
     const task = tasks[i];
 
     console.log(`${c.bold}▶ Task ${i + 1}/${tasks.length}:${c.reset} ${task.title}`);
+
+    // Create task directory structure before dispatch
+    const taskDir = join(featureDir, "tasks", task.id);
+    const artifactsDir = join(taskDir, "artifacts");
+    mkdirSync(artifactsDir, { recursive: true });
 
     // Transition to in-progress
     harness("transition", "--task", task.id, "--status", "in-progress", "--dir", featureDir);

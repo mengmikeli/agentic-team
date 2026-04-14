@@ -1,14 +1,16 @@
 // at-harness gate — run quality checks, write verdict to STATE.json
 // Execute a shell command, capture exit code + output, write tamper-detected verdict.
+// Now also writes evidence artifacts and gate handshake.json to task artifact dirs.
 
 import { execSync } from "child_process";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import {
   getFlag, resolveDir, lockFile,
   readState, writeState, WRITER_SIG,
 } from "./util.mjs";
 import { extractWarnings, findNewWarnings, documentWarnings } from "./backlog.mjs";
+import { createHandshake } from "./handshake.mjs";
 
 export function cmdGate(args) {
   const cmd = getFlag(args, "cmd");
@@ -83,6 +85,46 @@ export function cmdGate(args) {
       const newWarnings = findNewWarnings(allWarnings, dir);
       if (newWarnings.length > 0) {
         documentWarnings(dir, newWarnings, "gate");
+      }
+
+      // ── Write evidence artifacts to task directory ──
+      if (taskId) {
+        const artifactsDir = join(dir, "tasks", taskId, "artifacts");
+        mkdirSync(artifactsDir, { recursive: true });
+
+        // Capture stdout as test-output.txt
+        if (stdout) {
+          writeFileSync(join(artifactsDir, "test-output.txt"), stdout);
+        }
+
+        // Capture stderr as gate-stderr.txt
+        if (stderr) {
+          writeFileSync(join(artifactsDir, "gate-stderr.txt"), stderr);
+        }
+
+        // Write gate's own handshake.json
+        const artifacts = [];
+        if (stdout) artifacts.push({ type: "test-result", path: "artifacts/test-output.txt" });
+        if (stderr) artifacts.push({ type: "cli-output", path: "artifacts/gate-stderr.txt" });
+        // At minimum, always include a cli-output artifact
+        if (artifacts.length === 0) {
+          writeFileSync(join(artifactsDir, "gate-result.txt"), `exit code: ${exitCode}\n`);
+          artifacts.push({ type: "cli-output", path: "artifacts/gate-result.txt" });
+        }
+
+        const gateHandshake = createHandshake({
+          taskId,
+          nodeType: "gate",
+          runId: `run_${(freshState.gates || []).length + 1}`,
+          status: exitCode === 0 ? "completed" : "failed",
+          verdict,
+          summary: `Gate command: ${cmd} — exit code ${exitCode}`,
+          artifacts,
+          findings: { critical: exitCode === 0 ? 0 : 1, warning: newWarnings.length, suggestion: 0 },
+        });
+
+        const taskDir = join(dir, "tasks", taskId);
+        writeFileSync(join(taskDir, "handshake.json"), JSON.stringify(gateHandshake, null, 2) + "\n");
       }
 
       const gateResult = {
