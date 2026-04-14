@@ -84,6 +84,50 @@ approved spec (SPEC.md)
   → Notify human: "Sprint complete. Review."
 ```
 
+## Oscillation Detection
+
+Track the last N task results. If a pattern of the same tasks cycling through failures is detected (e.g., Task A fails → Task B fails → Task A fails again — same tasks re-entering the retry queue), terminate the loop with an oscillation report.
+
+**Detection threshold:** 2 cycles of the same fail pattern (configurable in SPEC.md via `oscillationThreshold`).
+
+**On detection:**
+1. Stop the execution loop immediately
+2. Write oscillation details to STATE.json: `"terminatedBy": "oscillation"`, `"oscillationPattern": [taskIds...]`
+3. Notify: `"⚠ Oscillation detected: tasks {ids} cycling. Terminating. Review spec for dependency conflicts."`
+4. Produce a completion report with the oscillation as the termination reason
+
+## Session Resumption
+
+On startup, check for an existing sprint in progress:
+
+1. Read `.team/sprints/{id}/STATE.json` for the active sprint (identified from SPRINTS.md)
+2. If found and `status` ≠ `"complete"`:
+   - Announce: `"Resuming sprint {id} — {done}/{total} tasks, last completed: {lastDoneTask}."`
+   - Resume from the next pending task (first task where status is neither `"done"` nor `"blocked"`)
+   - Do NOT re-run completed tasks
+3. If not found or status is `"complete"`, start fresh from SPEC.md
+
+This makes orchestrate durable across context compaction, session crashes, and agent recycling.
+
+## Tick Budget
+
+`maxTotalAttempts` limits the total number of task attempts across the entire sprint (default: **30**). This is the sum of all attempts across all tasks — not per-task.
+
+**Tracking:** `metrics.totalAttempts` in STATE.json is incremented on every dispatch.
+
+**On budget exceeded:**
+1. Stop the execution loop
+2. Write to STATE.json: `"terminatedBy": "tickBudget"`, `"maxTotalAttempts": N`
+3. Notify: `"⚠ Tick budget exhausted ({N}/{max} attempts). {done}/{total} tasks completed. Terminating."`
+4. Produce a completion report with budget exhaustion as the termination reason
+
+**Configuration:** Override in SPEC.md:
+```markdown
+## Limits
+- Max total attempts: 50
+- Oscillation threshold: 3
+```
+
 ## State Management
 
 Sprint execution state persists in `.team/sprints/{id}/STATE.json`:
@@ -217,12 +261,7 @@ If `.team/gate.sh` doesn't exist, fall back to the `## Quality Gate` command in 
 
 ## Resumption
 
-If the orchestrator session restarts mid-sprint:
-
-1. Read STATE.json
-2. Find current task (first non-done, non-blocked)
-3. Resume execution from that task
-4. Announce: `"Resuming sprint {id} — {N}/{total} tasks remaining."`
+See **Session Resumption** section above for the full protocol. In short: on startup, check STATE.json for the active sprint. If found and not complete, resume from the next pending task. Announce what's being resumed.
 
 STATE.json is written after every task transition. It's the durable contract.
 
@@ -230,7 +269,9 @@ STATE.json is written after every task transition. It's the durable contract.
 
 | Limit | Default | Purpose |
 |-------|---------|---------|
-| Max retries per task | 3 | Prevent infinite loops |
+| Max retries per task | 3 | Prevent infinite loops on a single task |
+| Max total attempts | 30 | Prevent runaway sprints (sum across all tasks) |
+| Oscillation threshold | 2 cycles | Detect tasks cycling through failures |
 | Max tasks per sprint | 20 | Scope control |
 | Task timeout | 30 min | Detect stalls |
 | Token budget | None (configurable) | Cost control |
