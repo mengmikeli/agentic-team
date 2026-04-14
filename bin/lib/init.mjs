@@ -5,6 +5,7 @@ import { createInterface } from "readline";
 import { existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { atomicWriteSync, c } from "./util.mjs";
+import { ghAvailable, createProjectBoard, getProjectFieldIds } from "./github.mjs";
 
 export function cmdInit(args) {
   const dir = args[0] || ".";
@@ -27,6 +28,9 @@ export function cmdInit(args) {
     const stack = await ask(`${c.cyan}Tech stack (e.g., Node.js, Python): ${c.reset}`) || "Node.js";
     const repo = await ask(`${c.cyan}GitHub repo (owner/name): ${c.reset}`) || "";
     const gateCmd = await ask(`${c.cyan}Quality gate command (e.g., npm test): ${c.reset}`) || "npm test";
+    const wantBoard = repo
+      ? (await ask(`${c.cyan}Create a GitHub Project board? (yes/no): ${c.reset}`))
+      : "no";
 
     // Agent layer
     console.log(`\n${c.bold}── Team ──${c.reset}`);
@@ -38,6 +42,19 @@ export function cmdInit(args) {
     // Scaffold .team/
     const teamDir = join(dir, ".team");
     mkdirSync(join(teamDir, "features"), { recursive: true });
+
+    // Create GitHub Project board if requested
+    let trackingSection = "";
+    if (wantBoard.trim().toLowerCase().startsWith("y") && ghAvailable()) {
+      const board = createProjectBoard(`${name} Board`);
+      if (board) {
+        const fieldIds = getProjectFieldIds(board.number);
+        if (fieldIds) {
+          trackingSection = `\n## Tracking\n- Project URL: ${board.url}\n- Status Field ID: ${fieldIds.statusFieldId}\n- Todo Option ID: ${fieldIds.todoId}\n- In Progress Option ID: ${fieldIds.inProgressId}\n- Done Option ID: ${fieldIds.doneId}\n`;
+          console.log(`${c.green}✓ GitHub Project board created${c.reset} — ${board.url}`);
+        }
+      }
+    }
 
     // PRODUCT.md
     const productMd = `# ${name} — Product
@@ -76,7 +93,7 @@ Channel: ${notifyChannel}
 
 ## Model
 ${model}
-`;
+${trackingSection}`;
     atomicWriteSync(join(teamDir, "PROJECT.md"), projectMd);
 
     // AGENTS.md

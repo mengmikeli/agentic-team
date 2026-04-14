@@ -468,7 +468,7 @@ describe("backlog", () => {
 
 // ── GitHub integration tests ──────────────────────────────────────
 
-import { ghAvailable, createIssue, closeIssue, commentIssue } from "../bin/lib/github.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue, readTrackingConfig } from "../bin/lib/github.mjs";
 
 describe("github integration", () => {
   it("ghAvailable returns a boolean", () => {
@@ -494,5 +494,37 @@ describe("github integration", () => {
   it("commentIssue returns false for empty body", () => {
     assert.equal(commentIssue(1, ""), false);
     assert.equal(commentIssue(1, null), false);
+  });
+});
+
+describe("readTrackingConfig", () => {
+  it("returns null for nonexistent path", () => {
+    assert.equal(readTrackingConfig("/nonexistent/path/PROJECT.md"), null);
+  });
+
+  it("returns null when tracking fields are missing", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tracking-test-"));
+    writeFileSync(join(dir, "PROJECT.md"), "# Project\n\n## Stack\nNode.js\n");
+    assert.equal(readTrackingConfig(join(dir, "PROJECT.md")), null);
+  });
+
+  it("parses complete tracking section", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tracking-test-"));
+    const md = [
+      "# Project",
+      "",
+      "## Tracking",
+      "- Status Field ID: PVTSSF_abc123",
+      "- Todo Option ID: todo123",
+      "- In Progress Option ID: inprog456",
+      "- Done Option ID: done789",
+    ].join("\n");
+    writeFileSync(join(dir, "PROJECT.md"), md);
+    const result = readTrackingConfig(join(dir, "PROJECT.md"));
+    assert.ok(result !== null);
+    assert.equal(result.statusFieldId, "PVTSSF_abc123");
+    assert.equal(result.statusOptions.todo, "todo123");
+    assert.equal(result.statusOptions["in-progress"], "inprog456");
+    assert.equal(result.statusOptions.done, "done789");
   });
 });

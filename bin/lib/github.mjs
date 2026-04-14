@@ -2,6 +2,8 @@
 // Gracefully degrades when gh is not available or not authenticated.
 
 import { spawnSync } from "child_process";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 function runGh(...args) {
   try {
@@ -30,6 +32,56 @@ export function ghAvailable() {
     return result.status === 0;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Read project board field IDs from the ## Tracking section of PROJECT.md.
+ * Accepts an explicit path (for testing); defaults to .team/PROJECT.md in cwd.
+ * Returns { statusFieldId, statusOptions } or null if not configured.
+ */
+export function readTrackingConfig(projectMdPath) {
+  try {
+    const mdPath = projectMdPath ?? join(process.cwd(), ".team", "PROJECT.md");
+    const text = readFileSync(mdPath, "utf8");
+    const fieldId = text.match(/Status Field ID:\s*(\S+)/)?.[1] ?? null;
+    const todoId = text.match(/Todo Option ID:\s*(\S+)/)?.[1] ?? null;
+    const inProgressId = text.match(/In Progress Option ID:\s*(\S+)/)?.[1] ?? null;
+    const doneId = text.match(/Done Option ID:\s*(\S+)/)?.[1] ?? null;
+    if (!fieldId || !todoId || !inProgressId || !doneId) return null;
+    return {
+      statusFieldId: fieldId,
+      statusOptions: { "todo": todoId, "in-progress": inProgressId, "done": doneId },
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Create a GitHub Project board. Returns { url, number } or null on failure. */
+export function createProjectBoard(title) {
+  const output = runGh("project", "create", "--owner", "@me", "--title", title);
+  if (!output) return null;
+  const match = output.match(/projects\/(\d+)/);
+  if (!match) return null;
+  return { url: output.trim(), number: parseInt(match[1]) };
+}
+
+/** Get the Status field IDs for a GitHub Project board. Returns tracking config or null. */
+export function getProjectFieldIds(projectNumber) {
+  const json = runGh("project", "field-list", String(projectNumber), "--owner", "@me", "--format", "json");
+  if (!json) return null;
+  try {
+    const data = JSON.parse(json);
+    const statusField = data.fields?.find(f => f.name === "Status" && f.options);
+    if (!statusField) return null;
+    const todo = statusField.options?.find(o => o.name.toLowerCase() === "todo")?.id ?? null;
+    const inProgress = statusField.options?.find(o => o.name.toLowerCase() === "in progress")?.id ?? null;
+    const done = statusField.options?.find(o => o.name.toLowerCase() === "done")?.id ?? null;
+    if (!statusField.id || !todo || !inProgress || !done) return null;
+    return { statusFieldId: statusField.id, todoId: todo, inProgressId: inProgress, doneId: done };
+  } catch {
+    return null;
   }
 }
 
@@ -83,11 +135,10 @@ export function setProjectItemStatus(issueNumber, projectNumber, status) {
     const item = data.items?.find(i => i.content?.url === issueUrl || i.content?.number === issueNumber);
     if (!item) return false;
     
-    // Read field/option IDs from PROJECT.md or use defaults
-    // Default GitHub Project status field + option IDs
-    const statusFieldId = "PVTSSF_lAHOAEUwvc4BUkmdzhBr2dQ";
-    const statusOptions = { "todo": "f75ad846", "in-progress": "47fc9ee4", "done": "98236657" };
-    const optionId = statusOptions[status];
+    // Read field/option IDs from PROJECT.md Tracking section
+    const tracking = readTrackingConfig();
+    if (!tracking) return false;
+    const optionId = tracking.statusOptions[status];
     if (!optionId) return false;
     
     // Get project node ID
@@ -98,7 +149,7 @@ export function setProjectItemStatus(issueNumber, projectNumber, status) {
     return runGh("project", "item-edit",
       "--project-id", project.id,
       "--id", item.id,
-      "--field-id", statusFieldId,
+      "--field-id", tracking.statusFieldId,
       "--single-select-option-id", optionId
     ) !== null;
   } catch {
