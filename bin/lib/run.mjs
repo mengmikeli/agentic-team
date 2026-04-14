@@ -15,6 +15,7 @@ import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REV
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
+import { selectTier, formatTierBaseline } from "./tiers.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -263,7 +264,7 @@ function planTasks(description, spec) {
   }];
 }
 
-function buildTaskBrief(task, featureName, gateCmd, cwd, failureContext, brainstormOutput) {
+function buildTaskBrief(task, featureName, gateCmd, cwd, failureContext, brainstormOutput, tier) {
   // Determine mode: Build (first pass), Fix (after FAIL), Polish (after ITERATE)
   let mode = "Build";
   let modeInstruction = "";
@@ -365,6 +366,11 @@ Fix the issues and try again. Do NOT repeat the same mistakes.
 `;
   }
 
+  // Inject tier baseline
+  if (tier && tier.baseline && tier.baseline.length > 0) {
+    brief += "\n" + formatTierBaseline(tier) + "\n";
+  }
+
   return brief;
 }
 
@@ -410,6 +416,7 @@ async function _runSingleFeature(args, description) {
   const maxRetries = parseInt(getFlag(args, "retries") || "3", 10);
   const dryRun = args.includes("--dry-run");
   const flowOverride = getFlag(args, "flow");
+  const tierOverride = getFlag(args, "tier");
 
   if (!existsSync(teamDir)) {
     console.log(`${c.red}No .team/ directory found.${c.reset} Run ${c.bold}agt init${c.reset} first.`);
@@ -523,7 +530,9 @@ async function _runSingleFeature(args, description) {
   // ── Select execution flow ──
 
   const flow = (flowOverride && FLOWS[flowOverride]) || selectFlow(featureDescription, tasks);
-  console.log(`${c.bold}Flow:${c.reset}     ${flow.label}\n`);
+  const tier = selectTier(tierOverride, featureDescription);
+  console.log(`${c.bold}Flow:${c.reset}     ${flow.label}`);
+  console.log(`${c.bold}Tier:${c.reset}     🎯 ${tier.label}\n`);
 
   // Write tasks to state
   const state = readState(featureDir);
@@ -626,7 +635,7 @@ async function _runSingleFeature(args, description) {
       }
 
       // Build task brief
-      const brief = buildTaskBrief(task, featureName, gateCmd, cwd, lastFailure, brainstormOutput);
+      const brief = buildTaskBrief(task, featureName, gateCmd, cwd, lastFailure, brainstormOutput, tier);
 
       // Dispatch
       let result;
