@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "implement-backlog-enforcement-track-warnings-in-ba",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-14T11:05:04.219Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-14T11:07:29.322Z",
-  "_write_nonce": "870fc7a6279c7b69"
+  "_last_modified": "2026-04-14T11:07:39.383Z",
+  "_write_nonce": "a4b4723230e8e5b0",
+  "completedAt": "2026-04-14T11:07:39.383Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "3m"
+  }
 }

@@ -1,0 +1,60 @@
+{
+  "version": "2.0",
+  "feature": "agt-init-should-create-a-github-project-board-retr",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "agt init should create a GitHub Project board, retrieve board column IDs (status field + Todo/In Progress/Done option IDs), and store them in PROJECT.md under Tracking section. Remove hardcoded field IDs from github.mjs — read them from PROJECT.md dynamically at runtime.",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 20,
+      "lastTransition": "2026-04-14T11:08:31.582Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-14T11:13:57.970Z",
+        "taskId": "task-1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 21
+    }
+  ],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-14T11:13:57.970Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-14T11:08:31.582Z"
+    }
+  ],
+  "createdAt": "2026-04-14T11:08:13.313Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-14T11:13:57.970Z",
+  "_write_nonce": "5237b80640a089b6"
+}
