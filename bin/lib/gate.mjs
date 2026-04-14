@@ -48,14 +48,24 @@ export function cmdGate(args) {
       cwd: process.cwd(),
       encoding: "utf8",
       timeout: 120000, // 2 min max
+      shell: true, // required for Windows (npm, npx, etc. need shell)
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env, AT_FEATURE: state.feature || "", AT_TASK: taskId || "" },
     });
     stdout = result;
   } catch (err) {
-    exitCode = err.status || 1;
+    // err.status is null/undefined on timeout or signal kill
+    if (err.signal) {
+      exitCode = 1;
+      stderr = `Process killed by signal: ${err.signal}`;
+    } else if (err.status != null) {
+      exitCode = err.status;
+    } else {
+      exitCode = 1;
+      stderr = err.message || "Unknown error";
+    }
     stdout = err.stdout || "";
-    stderr = err.stderr || "";
+    stderr = stderr || err.stderr || "";
   } finally {
     // Write verdict to STATE.json
     try {
