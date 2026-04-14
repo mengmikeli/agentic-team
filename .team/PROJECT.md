@@ -1,7 +1,7 @@
 # agentic-team — Project Config
 
 ## What
-Framework for running self-managing AI agent teams on software projects. Four layers — product (why/what), project (where), agent (who), sprint (when/how) — with interactive skills that guide setup and ongoing maintenance. Builds its own implementation workflow (brainstorm → plan → execute → verify → finish) rather than depending on external skill sets.
+Framework for running self-managing AI agent teams on software projects. Four layers — product (why/what), project (where), agent (who), sprint (when/how) — with an autonomous execution engine that drives sprints from approved spec to deliverable without human intervention.
 
 ## Stack
 Markdown + SKILL.md (AgentSkills format)
@@ -15,29 +15,34 @@ v0.1
 ## Active Sprint
 v1-foundations
 
-## Skills (7 built, 7 planned)
+## Skills (8 built, 3 planned)
 
 ### Built ✅
 | Skill | Layer | Purpose |
 |-------|-------|---------|
 | project-init | Project | Scaffold .team/ + README via interactive wizard |
-| project-ops | Project | Maintain PROJECT.md, detect drift |
+| project-ops | Project | Maintain PROJECT.md, detect drift, metrics |
 | agent-init | Agent | Set up team roles via interactive wizard |
-| agent-ops | Agent | Adjust roles, retro input |
+| agent-ops | Agent | Adjust roles, efficiency review, retro input |
 | sprint-init | Sprint | Start sprint with tracking |
-| sprint-ops | Sprint | Close, update, pause, status |
-| audit | Cross-cutting | Cross-layer health check |
+| sprint-ops | Sprint | Close (with metrics), update, pause, status |
+| orchestrate | Execution | Autonomous loop: plan → dispatch → gate → finish |
+| audit | Cross-cutting | Cross-layer health check + cost anomalies |
 
 ### Planned
 | Skill | Layer | Purpose |
 |-------|-------|---------|
 | product-init | Product | Vision, users, goals, success metrics |
 | product-ops | Product | Roadmap, prioritize backlog, validate outcomes |
-| brainstorm | Implementation | Explore idea → approved spec |
-| plan | Implementation | Spec → ordered tasks with agent assignments |
-| execute | Implementation | Dispatch tasks, track progress |
-| verify | Implementation | Verify work before claiming done |
-| finish | Implementation | Merge, tag, sprint-ops close |
+| brainstorm | Implementation | Explore idea → approved spec (pre-orchestrate) |
+
+### Absorbed into orchestrate
+| Original | Now handled by |
+|----------|---------------|
+| plan | orchestrate (planning phase) |
+| execute | orchestrate (dispatch loop) |
+| verify | orchestrate (mechanical gates) |
+| finish | orchestrate (completion phase) |
 
 ## Other Deliverables
 - CHARTER.md — methodology (compact overview + charter/ detailed reference)
