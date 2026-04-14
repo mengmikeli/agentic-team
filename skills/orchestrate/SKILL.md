@@ -287,6 +287,10 @@ Override in SPEC.md:
 ## Integration
 
 **Invoked by:** sprint-init (after spec approved) or human ("go build it")
-**Invokes:** plan (internal), verify gates (mechanical), finish, sprint-ops close
-**Updates:** STATE.json, GitHub board, SPRINTS.md (via sprint-ops)
+**Invokes:** plan (internal), verify gates (mechanical), track (at every state transition), finish, sprint-ops close
+**Updates:** STATE.json, GitHub board (via track), SPRINTS.md (via sprint-ops)
 **Notifies:** Channel (Discord/chat) with real-time + phase + anomaly updates
+
+### Track Integration
+
+After every state transition (pending → in-progress, in-progress → done/blocked), invoke the **track** skill to update external tracking (GitHub Issues + Project board, or TRACKER.md fallback). This keeps the human's view of progress in sync with execution reality.
