@@ -10,6 +10,7 @@ import {
   c, getFlag, readState, writeState, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS,
 } from "./util.mjs";
+import { notify, parseNotifyConfig } from "./notify.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
@@ -440,8 +441,12 @@ export async function cmdRun(args) {
     writeState(featureDir, state);
   }
 
+  // ── Notification channels ──
+
+  const notifyChannels = parseNotifyConfig(cwd);
+
   // Notify start
-  harness("notify", "--event", "feature-started", "--msg",
+  notify(notifyChannels, "feature-started",
     `▶ Feature: ${featureName} (${tasks.length} tasks planned)`);
 
   if (dryRun) {
@@ -485,7 +490,7 @@ export async function cmdRun(args) {
 
     // Transition to in-progress
     harness("transition", "--task", task.id, "--status", "in-progress", "--dir", featureDir);
-    harness("notify", "--event", "task-started", "--msg", `▶ Task ${i + 1}/${tasks.length}: ${task.title}`);
+    notify(notifyChannels, "task-started", `▶ Task ${i + 1}/${tasks.length}: ${task.title}`);
 
     let passed = false;
     let lastFailure = null;
@@ -545,7 +550,7 @@ export async function cmdRun(args) {
               // Fall through to blocked if out of retries
               harness("transition", "--task", task.id, "--status", "blocked",
                 "--dir", featureDir, "--reason", "Review rejected after retries");
-              harness("notify", "--event", "task-blocked", "--msg",
+              notify(notifyChannels, "task-blocked",
                 `✗ Task ${i + 1}/${tasks.length}: ${task.title} — review rejected`);
               if (useGitHub && task.ghIssue) {
                 ghCommentIssue(task.ghIssue, `⚠️ Review rejected:\n${reviewResult.output.slice(0, 1500)}`, cwd);
@@ -559,7 +564,7 @@ export async function cmdRun(args) {
         }
 
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
-        harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
+        notify(notifyChannels, "task-passed", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
         if (useGitHub && task.ghIssue) ghCloseIssue(task.ghIssue, cwd);
         completed++;
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
@@ -572,7 +577,7 @@ export async function cmdRun(args) {
         if (attempt === maxRetries) {
           harness("transition", "--task", task.id, "--status", "blocked",
             "--dir", featureDir, "--reason", `Failed after ${maxRetries} attempts`);
-          harness("notify", "--event", "task-blocked", "--msg",
+          notify(notifyChannels, "task-blocked",
             `✗ Task ${i + 1}/${tasks.length}: ${task.title} — failed after ${maxRetries} attempts`);
           if (useGitHub && task.ghIssue) {
             ghCommentIssue(task.ghIssue, `❌ Blocked: Failed after ${maxRetries} attempts\n\n\`\`\`\n${lastFailure?.slice(0, 1500) || "unknown"}\n\`\`\``, cwd);
@@ -586,7 +591,7 @@ export async function cmdRun(args) {
     // Check for oscillation (simple: 3+ consecutive failures across tasks)
     if (blocked >= 3) {
       console.log(`${c.red}${c.bold}⚠ 3 consecutive blocks — possible systemic issue. Stopping.${c.reset}\n`);
-      harness("notify", "--event", "anomaly", "--msg",
+      notify(notifyChannels, "anomaly",
         `⚠ 3 consecutive blocks in ${featureName} — stopping execution`);
       break;
     }
@@ -595,7 +600,7 @@ export async function cmdRun(args) {
     if (i === Math.floor(tasks.length / 2) - 1 && tasks.length > 2) {
       const msg = `Progress: ${completed}/${tasks.length} done, ${blocked} blocked.`;
       console.log(`${c.cyan}${msg}${c.reset}`);
-      harness("notify", "--event", "progress", "--msg", msg);
+      notify(notifyChannels, "progress", msg);
     }
   }
 
@@ -625,7 +630,7 @@ export async function cmdRun(args) {
   console.log(`  ${c.dim}Duration: ${durationStr}${c.reset}`);
   console.log(`${"═".repeat(50)}\n`);
 
-  harness("notify", "--event", "feature-complete", "--msg",
+  notify(notifyChannels, "feature-complete",
     `Feature complete: ${featureName} — ${completed}/${tasks.length} done, ${blocked} blocked, ${durationStr}`);
 
   if (blocked > 0) {
