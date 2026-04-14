@@ -72,3 +72,17 @@ If persistent agents with Discord presence:
 - **Recommend, don't prescribe.** Present options with trade-offs.
 - **Include limitations.** "QA can test headless Chrome but not iOS Safari" prevents false confidence.
 - **Sprint workflow rules are mandatory.** Every AGENTS.md gets them.
+
+## Role Templates
+
+For teams that want specialist review during the orchestrate review phase, offer role templates from `roles/`:
+
+| Template | Focus | File |
+|----------|-------|------|
+| PM | Requirements, user value, scope | `roles/pm.md` |
+| Architect | System design, boundaries, deps | `roles/architect.md` |
+| Security | Threats, auth, input validation | `roles/security.md` |
+| Devil's Advocate | Challenge assumptions, edge cases | `roles/devil-advocate.md` |
+| Tester | Coverage gaps, regression risks | `roles/tester.md` |
+
+These are dispatched by orchestrate during the review phase — the role template is included in the reviewer agent's brief to focus its evaluation. Not every project needs specialist review; mechanical gates are sufficient for most tasks.

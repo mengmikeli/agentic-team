@@ -262,6 +262,17 @@ The agent that produced the work **MUST NOT** evaluate it. This is a structural 
 
 **Orchestrate's role:** The dispatcher only reads exit codes (from gates) and verdicts (from reviewers). It never judges quality directly. It routes: pass → done, fail → retry/block.
 
+### Specialist Review Dispatch
+
+When dispatching agent-based review (beyond mechanical gates), optionally include a role template to focus the reviewer:
+
+1. Select a role template from `roles/{role}.md` based on the task type (e.g., `security` for auth changes, `architect` for new modules)
+2. Load the template content and include it in the reviewer's brief
+3. The reviewer evaluates the work through that role's lens and returns a verdict
+4. Orchestrate reads the verdict — it does not interpret or override it
+
+Role templates are optional. Most tasks only need mechanical gates. Use specialist review for high-risk or design-critical work.
+
 ## Failure Handling
 
 | Attempt | Action |
