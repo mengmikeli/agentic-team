@@ -1,117 +1,216 @@
 # agentic-team
 
-A framework for self-managing AI agent teams. Takes a project from "build X" to shipped deliverable — with the human only present to approve the spec and verify the result. Everything in between is autonomous.
+CLI + harness + dashboard for autonomous AI agent teams. The human defines direction, agents execute, a harness enforces quality, and a dashboard shows everything.
 
-Built for [OpenClaw](https://openclaw.ai) + Discord + GitHub. Framework-agnostic for the code being built.
+```
+npm install -g @mengmikeli/agentic-team
+```
 
 ## How it works
 
 ```
 Human: "Build X"
      ↓
-  brainstorm → approved SPEC.md
+  at init → scaffold project
      ↓
-  sprint-init → sprint directory + tracking
-     ↓
-  orchestrate → autonomous execution
+  at run → autonomous loop
      │
-     ├─ Plan tasks from spec
-     ├─ Dispatch subagents per task
-     ├─ Run mechanical quality gates
-     ├─ Handle failures (retry → block → skip)
-     └─ Finish: PR + metrics + completion report
+     ├─ brainstorm → SPEC.md
+     ├─ plan tasks
+     ├─ dispatch subagents
+     ├─ at-harness gate (quality checks)
+     ├─ at-harness transition (state management)
+     ├─ at-harness notify (progress updates)
+     └─ at-harness finalize (validate chain)
      ↓
-  Human: reviews deliverable
+  Human reviews PR
 ```
 
-The human defines direction and verifies results. The agents handle everything between — planning, implementation, quality checks, failure recovery, progress reporting.
+Two binaries:
+- **`at`** — CLI for humans: init projects, check status, view boards
+- **`at-harness`** — enforcement layer for agents: tamper-detected state, quality gates, validated transitions
 
-## Four-layer model
+## Quick start
 
-| Layer | Question | Key File | Init | Ops |
-|-------|----------|----------|------|-----|
-| **Product** | Why? For whom? | PRODUCT.md | product-init | product-ops |
-| **Project** | Where? What stack? | PROJECT.md | project-init | project-ops |
-| **Agent** | Who does the work? | AGENTS.md | agent-init | agent-ops |
-| **Sprint** | What now? How? | SPEC.md | sprint-init | sprint-ops |
+```bash
+# Set up a new project
+at init
 
-Each layer has an **init** skill (one-time setup wizard) and an **ops** skill (ongoing maintenance). Two additional skills complete the workflow:
+# Check project status
+at status
 
-- **brainstorm** — explores ideas, asks clarifying questions, produces an approved spec
-- **orchestrate** — autonomous execution engine that drives sprints to completion
+# View task board
+at board
 
-## Skills
+# See token usage + git stats
+at metrics
 
-11 skills covering the full lifecycle:
-
-| Skill | Layer | What it does |
-|-------|-------|-------------|
-| **product-init** | Product | Define vision, users, success metrics → PRODUCT.md |
-| **product-ops** | Product | Prioritize backlog, validate outcomes, maintain vision |
-| **project-init** | Project | Scaffold `.team/` directory via interactive wizard |
-| **project-ops** | Project | Detect config drift, reconcile against reality |
-| **agent-init** | Agent | Set up team roles and structure |
-| **agent-ops** | Agent | Adjust roles, review effectiveness |
-| **sprint-init** | Sprint | Start sprint with spec, tracking, execution model |
-| **sprint-ops** | Sprint | Close with metrics, update tracking, reconcile |
-| **brainstorm** | Workflow | Idea → clarifying questions → approaches → approved spec |
-| **orchestrate** | Execution | Autonomous loop: plan → dispatch → gate → finish |
-| **audit** | Cross-cutting | Cross-layer health check, cost anomalies |
-
-## Key concepts
-
-**Human outside the loop.** During execution, the orchestrate loop runs autonomously. No mid-loop escalation. No asking for subtask approval. Failures are contained: retry → block → skip → continue.
-
-**Mechanical quality gates.** Quality is enforced by exit codes, not LLM judgment. `npm test && npm run check && npm run build` — pass or fail, no interpretation.
-
-**Proactive communication.** The coordinator pushes status — task started, completed, blocked, anomalies detected. If you have to ask "how's it going?", the process failed.
-
-**Spec before code.** Every piece of work starts with brainstorming and an approved spec. No implementation without design approval.
-
-## Project structure
-
-```
-.team/                      — project tracking (committed)
-├── PRODUCT.md              — product vision, users, metrics
-├── PROJECT.md              — stack, deploy, channels
-├── AGENTS.md               — who does what
-├── SPRINTS.md              — sprint history
-└── sprints/{name}/
-    ├── SPEC.md             — what + why
-    ├── PLAN.md             — how, task by task
-    ├── STATE.json          — orchestrate execution state
-    └── RETRO.md            — what we learned
-
-charter/                    — detailed methodology reference
-skills/                     — workflow skills (AgentSkills format)
-templates/                  — reference templates for .team/ files
-CHARTER.md                  — compact charter (always loaded)
-PLAYBOOK.md                 — platform operational recipes
+# Start the web dashboard
+at dashboard
 ```
 
-## Getting started
+## CLI Commands
 
-1. **Install skills** — copy the `skills/` directory into your agent's skill path
-2. **`product-init`** — define your product (vision, users, success metrics)
-3. **`project-init`** — scaffold `.team/` with project config
-4. **`agent-init`** — set up team roles
-5. **`brainstorm`** — explore your first piece of work, produce a spec
-6. **`sprint-init`** — create a sprint from the approved spec
-7. **`orchestrate`** — let the autonomous loop execute
+### `at init`
+Interactive setup wizard. Creates `.team/` with PRODUCT.md, PROJECT.md, AGENTS.md.
 
-After the first cycle, use the **ops** skills (product-ops, project-ops, agent-ops, sprint-ops) to maintain tracking and evolve the product.
+### `at status`
+Cross-project dashboard in terminal — features, task counts, gate pass rates.
+
+### `at board [feature]`
+Kanban-style task board. Shows tasks grouped by status: pending → in-progress → passed → blocked.
+
+### `at metrics`
+Token usage from [pew](https://github.com/mengmikeli/pew) data, git log stats, feature metrics. Includes a contribution-graph style heatmap.
+
+### `at run [description]`
+Autonomous execution loop *(phase 2 — currently prints the execution plan)*.
+
+### `at stop [feature]`
+Pause active features. Run `at run` to resume.
+
+### `at log [feature]`
+Execution history — transitions, gate results, timing.
+
+### `at dashboard [port]`
+Serves the web dashboard at `http://localhost:3847` (default port). Shows overview cards, feature timeline, task board, and metrics.
+
+## Harness Commands
+
+The enforcement layer. Agent calls these; output is JSON; state is tamper-detected.
+
+### `at-harness init --feature <name>`
+Create feature state in `.team/features/{name}/STATE.json`.
+
+### `at-harness gate --cmd <command> --dir <path> [--task <id>]`
+Run a quality gate. Execute the command, capture exit code + output, write verdict.
+- Exit 0 → PASS, non-zero → FAIL
+- Writes nonce signature — can't be faked by agent editing STATE.json
+
+### `at-harness transition --task <id> --status <status> --dir <path>`
+Validated state transition with safety guards:
+- Checks allowed transitions (pending → in-progress → passed/failed)
+- Enforces cycle limits (max 3 retries per task)
+- Detects oscillation (A→B→A→B pattern)
+- Idempotency guard (dedup within 5s window)
+- File locking for concurrent safety
+
+### `at-harness notify --event <type> --msg <message> [--channel <target>]`
+Dispatch progress events. Events: `feature-started`, `task-started`, `task-passed`, `task-failed`, `task-blocked`, `progress`, `anomaly`, `feature-complete`.
+
+### `at-harness finalize --dir <path> [--strict]`
+Validate the entire execution chain before marking a feature complete:
+- All tasks must be passed or skipped
+- No unapproved state edits (nonce check)
+- `--strict`: every passed task must have a gate result
+
+### `at-harness metrics --dir <path>`
+Compute feature metrics from STATE.json + git log. Returns JSON.
+
+## Web Dashboard
+
+Static HTML/JS — no build step, no framework.
+
+**Pages:**
+- **Overview** — project cards, feature list with progress bars
+- **Timeline** — chronological feature history with outcomes
+- **Board** — kanban task board for active feature
+- **Metrics** — completion rates, gate pass rates, activity heatmap
+
+Reads `.team/` data via `/api/` when served, falls back to demo data when opened locally.
+
+## Architecture
+
+```
+agentic-team/
+├── bin/
+│   ├── at.mjs              ← CLI entry point
+│   ├── at-harness.mjs      ← harness entry point
+│   └── lib/
+│       ├── util.mjs         ← nonce, file lock, atomic write, ANSI
+│       ├── init.mjs         ← at init (interactive)
+│       ├── run.mjs          ← at run (phase 2 stub)
+│       ├── status.mjs       ← at status (terminal dashboard)
+│       ├── board.mjs        ← at board (task board)
+│       ├── metrics.mjs      ← at metrics (pew + git)
+│       ├── stop.mjs         ← at stop (pause features)
+│       ├── log.mjs          ← at log (history viewer)
+│       ├── gate.mjs         ← harness gate (quality checks)
+│       ├── transition.mjs   ← harness transitions (state machine)
+│       ├── finalize.mjs     ← harness finalize (chain validation)
+│       ├── notify.mjs       ← harness notifications
+│       ├── harness-init.mjs ← harness init (create STATE.json)
+│       └── harness-metrics.mjs ← harness metrics (JSON)
+├── dashboard/               ← static web dashboard
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+├── skills/                  ← agent playbook (AgentSkills format)
+├── roles/                   ← specialist role templates
+├── templates/               ← .team/ file templates
+├── test/                    ← harness tests (node --test)
+├── CHARTER.md               ← methodology reference
+└── PLAYBOOK.md              ← operational recipes
+```
+
+## State Machine
+
+Task transitions are enforced by the harness:
+
+```
+pending → in-progress → passed
+                      → failed → in-progress (retry, max 3)
+                               → skipped
+                      → blocked → in-progress (retry)
+                                → skipped
+```
+
+Every transition is:
+1. Validated against allowed transitions
+2. Checked for cycle limits
+3. Checked for oscillation
+4. Written with file lock + nonce
+5. Recorded in transition history
+
+## Quality Gates
+
+Gates are shell commands executed by the harness. The agent can't fake results:
+
+```bash
+# Run tests as a gate
+at-harness gate --cmd "npm test" --dir .team/features/auth --task setup-db
+
+# Output (JSON):
+# { "ok": true, "verdict": "PASS", "exitCode": 0, ... }
+```
+
+The verdict is written directly to STATE.json with a nonce signature. If the agent manually edits STATE.json, the harness detects the tamper and refuses further operations.
+
+## Testing
+
+```bash
+npm test
+# Runs 17 tests covering init, transition, gate, notify, finalize, metrics, tamper detection
+```
+
+## Project Structure (managed by at)
+
+```
+.team/
+├── PRODUCT.md          ← vision, users, goals
+├── PROJECT.md          ← stack, deploy, gate command
+├── AGENTS.md           ← team roles
+├── HISTORY.md          ← shipped features log
+└── features/
+    └── {name}/
+        ├── SPEC.md     ← what + why
+        └── STATE.json  ← harness-managed state
+```
 
 ## Self-dogfooding
 
-This repo uses its own framework. The `.team/` directory is managed by these skills. The CHARTER.md was written following the brainstorm → spec → execute workflow. Even this README was produced by running the full chain: brainstorm → sprint-init → orchestrate.
+This repo uses its own `.team/` directory. The v2 product spec lives at `.team/features/v2-product/SPEC.md`.
 
-## Charter
+## License
 
-The full methodology lives in `CHARTER.md` (compact, always loaded) and `charter/` (detailed reference). Key documents:
-
-- `charter/roles.md` — operator, coordinator, implementers
-- `charter/phases.md` — brainstorm → sprint-init → orchestrate → review
-- `charter/quality.md` — mechanical gates, metrics, definition of done
-- `charter/failure.md` — retry → block → skip, no escalation
-- `charter/models.md` — subagent swarm, multi-agent team, hybrid, direct edit
-- `charter/conventions.md` — file structure, git conventions, handoff templates
+MIT
