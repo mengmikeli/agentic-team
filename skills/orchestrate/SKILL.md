@@ -309,6 +309,41 @@ Override in SPEC.md:
 - Token budget: 500K
 ```
 
+## Notification Protocol
+
+Concrete events, triggers, and message formats for proactive communication.
+
+### Events
+
+| Event | Trigger | Message Format |
+|-------|---------|----------------|
+| Sprint started | orchestrate begins execution | `"▶ Sprint {id}: {N} tasks planned. Starting execution."` |
+| Task started | dispatch to agent | `"▶ Task {n}/{total}: {title}"` |
+| Task passed | gate returns exit 0 | `"✓ Task {n}/{total}: {title}"` |
+| Task blocked | max retries exhausted | `"✗ Task {n}/{total}: {title} — {reason}"` |
+| Midpoint | 50% of tasks attempted | `"Progress: {done}/{total} done, {blocked} blocked."` |
+| Anomaly | 3 consecutive failures OR tick budget at 80% | `"⚠ {description}"` |
+| Sprint complete | all tasks attempted | Full completion report (see Completion Report section) |
+
+### Delivery Mechanism
+
+Use the channel's message tool (Discord, Telegram, etc.) if available. The notification target is configured in `.team/PROJECT.md` under `## Notifications`:
+
+```markdown
+## Notifications
+- Channel: discord
+- Target: #{channel-id-or-name}
+```
+
+If no notification config exists, write to stdout/log. Never block execution on notification delivery failures — log the failure and continue.
+
+### Notification Rules
+
+- **Every state transition gets a notification.** No silent transitions.
+- **Anomaly alerts are immediate.** Don't batch them with phase summaries.
+- **Don't spam.** Retries 1 are silent (only the initial dispatch is announced). Notify on retry 2+.
+- **Completion report is always delivered** regardless of success/failure ratio.
+
 ## Integration
 
 **Invoked by:** sprint-init (after spec approved) or human ("go build it")
