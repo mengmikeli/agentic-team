@@ -248,6 +248,20 @@ If `.team/gate.sh` doesn't exist, fall back to the `## Quality Gate` command in 
 
 **The orchestrator never evaluates quality itself.** It runs the gate script and reads the exit code. Pass = 0, fail = non-zero. No interpretation, no "close enough."
 
+### Role Separation: Builder ≠ Evaluator
+
+The agent that produced the work **MUST NOT** evaluate it. This is a structural constraint, not a suggestion.
+
+**Mechanical gates (default):** Orchestrate dispatches the builder agent, waits for completion, then runs `.team/gate.sh`. The gate is a script — no agent judgment involved. This is the simplest and most reliable form of role separation.
+
+**Agent review (optional, for design/architecture review):** If the project uses agent-based review in addition to mechanical gates:
+- The reviewer **must be a different session/agent** than the builder
+- Orchestrate tracks builder session IDs in STATE.json (`task.builderSessionId`)
+- When dispatching a reviewer, orchestrate excludes the builder's session ID
+- Optionally load a role template from `roles/{role}.md` to focus the review (e.g., security review, architecture review)
+
+**Orchestrate's role:** The dispatcher only reads exit codes (from gates) and verdicts (from reviewers). It never judges quality directly. It routes: pass → done, fail → retry/block.
+
 ## Failure Handling
 
 | Attempt | Action |

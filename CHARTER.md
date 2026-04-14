@@ -151,3 +151,4 @@ Metrics are descriptive, not punitive. Track to learn, not to blame.
 8. **Right model for the work** — swarm for sequential, team for parallel
 9. **Scope is sacred** — define in/out at brainstorm, enforce during execution
 10. **Operator owns product, coordinator owns process** — clear boundary, no overlap
+11. **Builder ≠ evaluator** — the agent that writes the code never judges its quality
