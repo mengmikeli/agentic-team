@@ -374,6 +374,27 @@ Fix the issues and try again. Do NOT repeat the same mistakes.
   return brief;
 }
 
+// ── Progress log helpers ────────────────────────────────────────
+
+function initProgressLog(featureDir, featureName, tasks, tier) {
+  const progressPath = join(featureDir, "progress.md");
+  const taskList = tasks.map((t, i) => `${i + 1}. ${t.title}`).join("\n");
+  const content = `# Progress: ${featureName}\n\n**Started:** ${new Date().toISOString()}\n**Tier:** ${tier?.name || "functional"}\n**Tasks:** ${tasks.length}\n\n## Plan\n${taskList}\n\n## Execution Log\n\n`;
+  writeFileSync(progressPath, content);
+}
+
+function appendProgress(featureDir, entry) {
+  const progressPath = join(featureDir, "progress.md");
+  const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const line = `### ${timestamp}\n${entry}\n\n`;
+  try {
+    const existing = existsSync(progressPath) ? readFileSync(progressPath, "utf8") : "";
+    writeFileSync(progressPath, existing + line);
+  } catch {
+    writeFileSync(progressPath, line);
+  }
+}
+
 // ── Main execution loop ─────────────────────────────────────────
 
 export async function cmdRun(args) {
@@ -545,6 +566,9 @@ async function _runSingleFeature(args, description) {
   // Notify start
   harness("notify", "--event", "feature-started", "--msg",
     `▶ Feature: ${featureName} (${tasks.length} tasks planned)`);
+
+  // Initialize progress log
+  initProgressLog(featureDir, featureName, tasks, tier);
 
   if (dryRun) {
     console.log(`${c.dim}Tasks:${c.reset}`);
@@ -724,6 +748,7 @@ async function _runSingleFeature(args, description) {
         // If review found critical issues, treat as failure — retry the task
         if (reviewFailed) {
           console.log(`  ${c.red}✗ Review blocked task — will retry${c.reset}\n`);
+          appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Verdict: 🟡 Review FAIL (attempt ${task.attempts})\n- Will retry with review feedback`);
           if (attempt === maxRetries) {
             harness("transition", "--task", task.id, "--status", "blocked",
               "--dir", featureDir, "--reason", `Review FAIL after ${maxRetries} attempts`);
@@ -737,12 +762,14 @@ async function _runSingleFeature(args, description) {
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
         completed++;
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
+        appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Verdict: ✅ PASS (attempt ${task.attempts})\n- Gate: \`${gateCmd}\` — exit 0`);
         if (task.issueNumber) { closeIssue(task.issueNumber, "Task completed — gate passed."); if (projectNum) setProjectItemStatus(task.issueNumber, projectNum, "done"); }
         break;
       } else {
         console.log(`  ${c.red}✗ Gate FAIL${c.reset} (exit ${gateResult.exitCode})`);
         if (gateResult.stderr) console.log(`  ${c.dim}${gateResult.stderr.slice(0, 500)}${c.reset}`);
         lastFailure = `Exit code: ${gateResult.exitCode}\nstdout: ${gateResult.stdout?.slice(0, 1000) || ""}\nstderr: ${gateResult.stderr?.slice(0, 1000) || ""}`;
+        appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Verdict: ❌ FAIL (attempt ${task.attempts}/${maxRetries})\n- Gate exit code: ${gateResult.exitCode}`);
 
         if (attempt === maxRetries) {
           harness("transition", "--task", task.id, "--status", "blocked",
