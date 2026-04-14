@@ -1,0 +1,20 @@
+{
+  "status": "done",
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Rewrite README.md for v1.0",
+      "status": "done",
+      "agent": "subagent",
+      "attempts": 1
+    }
+  ],
+  "currentTask": null,
+  "metrics": {
+    "startedAt": "2026-04-14T04:58:00Z",
+    "completedAt": "2026-04-14T05:10:00Z",
+    "tasksCompleted": 1,
+    "tasksBlocked": 0,
+    "totalAttempts": 1
+  }
+}
