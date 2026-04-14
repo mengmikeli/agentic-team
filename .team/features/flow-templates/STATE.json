@@ -1,0 +1,69 @@
+{
+  "version": "2.0",
+  "feature": "flow-templates",
+  "status": "completed",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Flow templates — Add flow selection to agt run. Light review (gate only), build-verify (build + gate + review), full-stack (brainstorm + build + multi-role review + gate). Orchestrate picks the right flow based on task complexity.",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 12,
+      "lastTransition": "2026-04-14T10:38:12.543Z"
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 13,
+      "lastTransition": "2026-04-14T10:38:16.185Z"
+    }
+  ],
+  "gates": [],
+  "transitionCount": 4,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-14T10:37:52.281Z"
+    },
+    {
+      "taskId": "task-1",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-14T10:38:12.543Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-14T10:38:16.128Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-14T10:38:16.185Z"
+    }
+  ],
+  "createdAt": "2026-04-14T10:34:38.941Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-14T10:38:18.939Z",
+  "_write_nonce": "19af91a0906a4b36",
+  "completedAt": "2026-04-14T10:38:18.939Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 4,
+    "gates": 0,
+    "duration": "4m"
+  }
+}
