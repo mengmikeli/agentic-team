@@ -242,6 +242,45 @@ function planTasks(description, spec) {
   }];
 }
 
+// ── Agent-based review ──────────────────────────────────────────
+
+function loadRoleTemplate(cwd) {
+  // Try roles/architect.md as default review role
+  const rolesDir = join(cwd, "roles");
+  const defaultRole = join(rolesDir, "architect.md");
+  if (existsSync(defaultRole)) {
+    return { name: "architect", content: readFileSync(defaultRole, "utf8") };
+  }
+  // Fallback: try any .md in roles/
+  if (existsSync(rolesDir)) {
+    try {
+      const entries = execSync(`ls "${rolesDir}"`, {
+        encoding: "utf8", stdio: "pipe",
+      }).trim().split("\n").filter(f => f.endsWith(".md"));
+      if (entries.length > 0) {
+        const filePath = join(rolesDir, entries[0]);
+        const content = readFileSync(filePath, "utf8");
+        const name = entries[0].replace(/\.md$/, "");
+        return { name, content };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function buildReviewBrief(taskTitle, roleTemplate) {
+  const roleName = roleTemplate ? roleTemplate.name : "reviewer";
+  const roleContext = roleTemplate ? `\n## Role Context\n${roleTemplate.content}\n` : "";
+  return `You are reviewing code changes as a ${roleName}.\n${roleContext}\n## Review Task\nReview the changes made for task '${taskTitle}'. Check for:\n- Code quality and correctness\n- Proper error handling\n- Test coverage\n- Security concerns\n- Architectural fit\n\nReport any issues as a numbered list. If no issues found, say APPROVED.`;
+}
+
+function dispatchReview(agent, taskTitle, cwd) {
+  const role = loadRoleTemplate(cwd);
+  const brief = buildReviewBrief(taskTitle, role);
+  console.log(`  ${c.cyan}⟳ Review step (${role?.name || "default"})...${c.reset}`);
+  return dispatchToAgent(agent, brief, cwd);
+}
+
 function buildTaskBrief(task, featureName, gateCmd, cwd, failureContext) {
   let brief = `You are implementing a task for feature "${featureName}".
 
@@ -285,6 +324,7 @@ export async function cmdRun(args) {
   const teamDir = join(cwd, ".team");
   const maxRetries = parseInt(getFlag(args, "retries") || "3", 10);
   const dryRun = args.includes("--dry-run");
+  const enableReview = args.includes("--review");
 
   if (!existsSync(teamDir)) {
     console.log(`${c.red}No .team/ directory found.${c.reset} Run ${c.bold}agt init${c.reset} first.`);
@@ -357,6 +397,7 @@ export async function cmdRun(args) {
   console.log(`${c.bold}Gate:${c.reset}     ${c.dim}${gateCmd}${c.reset}`);
   console.log(`${c.bold}Agent:${c.reset}    ${agent ? c.green + agent + c.reset : c.yellow + "manual (no claude/codex found)" + c.reset}`);
   console.log(`${c.bold}Retries:${c.reset}  ${maxRetries} per task`);
+  if (enableReview) console.log(`${c.bold}Review:${c.reset}   ${c.cyan}enabled${c.reset}`);
   if (dryRun) console.log(`${c.yellow}${c.bold}DRY RUN${c.reset} — no changes will be made\n`);
   console.log();
 
@@ -491,6 +532,31 @@ export async function cmdRun(args) {
             console.log(`  ${c.green}✓ Committed${c.reset}`);
           }
         } catch { /* no changes to commit, or git not available */ }
+
+        // Agent-based review (optional)
+        if (enableReview && agent) {
+          const reviewResult = dispatchReview(agent, task.title, cwd);
+          if (reviewResult.ok && reviewResult.output) {
+            const isApproved = /\bAPPROVED\b/i.test(reviewResult.output);
+            if (!isApproved) {
+              console.log(`  ${c.yellow}⟳ Review found issues, retrying...${c.reset}`);
+              lastFailure = `Review feedback:\n${reviewResult.output.slice(0, 2000)}`;
+              if (attempt < maxRetries) continue;
+              // Fall through to blocked if out of retries
+              harness("transition", "--task", task.id, "--status", "blocked",
+                "--dir", featureDir, "--reason", "Review rejected after retries");
+              harness("notify", "--event", "task-blocked", "--msg",
+                `✗ Task ${i + 1}/${tasks.length}: ${task.title} — review rejected`);
+              if (useGitHub && task.ghIssue) {
+                ghCommentIssue(task.ghIssue, `⚠️ Review rejected:\n${reviewResult.output.slice(0, 1500)}`, cwd);
+              }
+              blocked++;
+              console.log(`  ${c.red}✗ Review rejected after ${maxRetries} attempts${c.reset}\n`);
+              break;
+            }
+            console.log(`  ${c.green}✓ Review APPROVED${c.reset}`);
+          }
+        }
 
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
