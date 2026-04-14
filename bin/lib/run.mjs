@@ -355,7 +355,7 @@ async function _runSingleFeature(args, description) {
   // ── Initialize feature via harness ──
 
   if (!existsSync(featureDir)) {
-    const initResult = harness("init", "--feature", featureName, "--dir", join(teamDir, "features"));
+    const initResult = harness("init", "--feature", featureName, "--dir", teamDir);
     if (!initResult.ok && !initResult.feature) {
       console.log(`${c.red}Failed to init feature:${c.reset} ${JSON.stringify(initResult)}`);
       process.exit(1);
