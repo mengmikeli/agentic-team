@@ -55,3 +55,13 @@ export function commentIssue(number, body) {
   if (!number || !body) return false;
   return runGh("issue", "comment", String(number), "--body", body) !== null;
 }
+
+/** Add an issue to a GitHub Project board. Returns true on success. */
+export function addToProject(issueNumber, projectNumber) {
+  if (!issueNumber || !projectNumber) return false;
+  // Get the repo URL for the issue
+  const repoUrl = runGh("repo", "view", "--json", "url", "--jq", ".url");
+  if (!repoUrl) return false;
+  const issueUrl = `${repoUrl}/issues/${issueNumber}`;
+  return runGh("project", "item-add", String(projectNumber), "--owner", "@me", "--url", issueUrl) !== null;
+}

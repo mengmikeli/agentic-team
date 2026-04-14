@@ -1,0 +1,37 @@
+{
+  "version": "2.0",
+  "feature": "parallel-reviewers",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Parallel reviewers — Dispatch 2-5 role-specific reviewers simultaneously after build. Security + architect + devil's advocate all review in parallel. Merge findings before gate verdict.",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 14,
+      "lastTransition": "2026-04-14T10:49:59.763Z"
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 15
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-14T10:49:59.763Z"
+    }
+  ],
+  "createdAt": "2026-04-14T10:49:54.524Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-14T10:49:59.763Z",
+  "_write_nonce": "cf14640b7b1767ee"
+}
