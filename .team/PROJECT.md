@@ -13,7 +13,11 @@ Markdown + SKILL.md (AgentSkills format)
 v1.0
 
 ## Active Sprint
-None
+s3-hardening
+
+## Tracking
+- GitHub Project: [mengmikeli/projects/1](https://github.com/users/mengmikeli/projects/1)
+- Issues: [mengmikeli/agentic-team/issues](https://github.com/mengmikeli/agentic-team/issues)
 
 ## Skills (11)
 
