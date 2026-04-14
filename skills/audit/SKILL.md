@@ -55,6 +55,8 @@ These checks span multiple layers:
 | SPEC.md all checked but sprint still "Active" | Forgot to close the sprint |
 | Planned sprints with shipped work | The S5/S7 problem — built but not tracked |
 | AGENTS.md roles ≠ who actually committed | Team changed without updating docs |
+| Sprint cost 3x+ previous sprints | Scope creep, agent spinning, or unclear spec |
+| No metrics in closed sprint entries | Missed data for future planning |
 
 ### Step 4: Report
 

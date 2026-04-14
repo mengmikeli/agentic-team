@@ -36,6 +36,7 @@ After a sprint, review agent performance:
 - Did the execution model (swarm vs team) fit the work?
 - Were any agents blocked or underutilized?
 - Should roles change for the next sprint?
+- **Efficiency** — if metrics are available (token usage per PR, sessions per task), compare across agents. Not to punish, but to optimize: wrong model? unclear briefs? scope too large per task?
 
 Feed findings into RETRO.md and adjust AGENTS.md.
 
