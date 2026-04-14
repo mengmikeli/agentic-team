@@ -14,9 +14,10 @@ import { cmdLog } from "./lib/log.mjs";
 const command = process.argv[2];
 const args = process.argv.slice(3);
 
+async function main() {
 switch (command) {
   case "init":    cmdInit(args);    break;
-  case "run":     cmdRun(args);     break;
+  case "run":     await cmdRun(args);     break;
   case "status":  cmdStatus(args);  break;
   case "board":   cmdBoard(args);   break;
   case "metrics": cmdMetrics(args); break;
@@ -142,4 +143,6 @@ switch (command) {
     console.log("  Use 'agt-harness' for init, gate, transition, notify, finalize, metrics");
     break;
 }
+}
+main().catch(err => { console.error(err); process.exit(1); });
 
