@@ -14,6 +14,7 @@ import { cmdReview } from "./lib/review.mjs";
 import { cmdAudit } from "./lib/audit-cmd.mjs";
 import { cmdBrainstorm } from "./lib/brainstorm-cmd.mjs";
 import { daemonStart, daemonStop, daemonStatus } from "./lib/daemon.mjs";
+import { cmdDoctor } from "./lib/doctor.mjs";
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -50,6 +51,7 @@ switch (command) {
   case "review":  await cmdReview(args);  break;
   case "audit":   await cmdAudit(args);   break;
   case "brainstorm": await cmdBrainstorm(args); break;
+  case "doctor":  cmdDoctor(args);  break;
 
   case "dashboard": {
     const port = args.find(a => /^\d+$/.test(a)) || "3847";
@@ -170,6 +172,7 @@ switch (command) {
     console.log("  stop --daemon            Stop background daemon");
     console.log("  log [feature]            Execution history");
     console.log("  dashboard [port]         Web dashboard (default: 3847)");
+    console.log("  doctor                   Health check for setup");
     console.log("  version                  Show version");
     console.log();
     console.log("Harness (enforcement layer):");
