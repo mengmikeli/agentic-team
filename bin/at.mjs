@@ -10,6 +10,9 @@ import { cmdBoard } from "./lib/board.mjs";
 import { cmdMetrics } from "./lib/metrics.mjs";
 import { cmdStop } from "./lib/stop.mjs";
 import { cmdLog } from "./lib/log.mjs";
+import { cmdReview } from "./lib/review.mjs";
+import { cmdAudit } from "./lib/audit-cmd.mjs";
+import { cmdBrainstorm } from "./lib/brainstorm-cmd.mjs";
 import { daemonStart, daemonStop, daemonStatus } from "./lib/daemon.mjs";
 
 const command = process.argv[2];
@@ -44,6 +47,9 @@ switch (command) {
     cmdStop(args);
     break;
   case "log":     cmdLog(args);     break;
+  case "review":  await cmdReview(args);  break;
+  case "audit":   await cmdAudit(args);   break;
+  case "brainstorm": await cmdBrainstorm(args); break;
 
   case "dashboard": {
     const port = args.find(a => /^\d+$/.test(a)) || "3847";
@@ -154,6 +160,9 @@ switch (command) {
     console.log("  run [description]        Start autonomous loop (phase 2)");
     console.log("  run --daemon             Run in background");
     console.log("  run --review             Enable agent-based review step");
+    console.log("  review [path|desc]       Review code changes or files");
+    console.log("  audit                    Cross-project health check");
+    console.log("  brainstorm [idea]        Interactive brainstorm session");
     console.log("  status                   Cross-project dashboard + daemon status");
     console.log("  board [feature]          Task board view");
     console.log("  metrics                  Token usage and cost stats");
