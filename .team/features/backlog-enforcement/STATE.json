@@ -1,26 +1,27 @@
 {
   "version": "2.0",
   "feature": "backlog-enforcement",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
       "title": "Backlog enforcement — Track every warning in .team/features/{name}/backlog.md. Gate cannot pass until warnings are documented. Unfixed warnings carry forward to next feature.",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 16,
-      "lastTransition": "2026-04-14T10:58:47.836Z"
+      "lastTransition": "2026-04-16T02:24:26.654Z"
     },
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "pending",
+      "status": "passed",
       "attempts": 0,
-      "issueNumber": 17
+      "issueNumber": 17,
+      "lastTransition": "2026-04-16T02:24:33.348Z"
     }
   ],
   "gates": [],
-  "transitionCount": 1,
+  "transitionCount": 4,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -28,10 +29,41 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-14T10:58:47.836Z"
+    },
+    {
+      "taskId": "task-1",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-16T02:24:26.654Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-16T02:24:33.290Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-16T02:24:33.348Z"
     }
   ],
   "createdAt": "2026-04-14T10:58:39.113Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-14T10:58:47.836Z",
-  "_write_nonce": "ee124035613f5949"
+  "_last_modified": "2026-04-16T02:24:33.407Z",
+  "_write_nonce": "e4c832c98ba587d8",
+  "completedAt": "2026-04-16T02:24:33.407Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 4,
+    "gates": 0,
+    "duration": "2366m"
+  }
 }

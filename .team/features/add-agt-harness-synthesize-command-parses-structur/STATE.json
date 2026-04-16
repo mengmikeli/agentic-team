@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "add-agt-harness-synthesize-command-parses-structur",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -25,10 +25,10 @@
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 23,
-      "lastTransition": "2026-04-14T11:45:33.186Z"
+      "lastTransition": "2026-04-16T02:24:26.824Z"
     }
   ],
   "gates": [
@@ -44,7 +44,7 @@
       "newWarnings": 0
     }
   ],
-  "transitionCount": 2,
+  "transitionCount": 3,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -59,10 +59,27 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-14T11:45:33.186Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-16T02:24:26.824Z"
     }
   ],
   "createdAt": "2026-04-14T11:36:00.400Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-14T11:45:33.186Z",
-  "_write_nonce": "ccbd26cf07fe4000"
+  "_last_modified": "2026-04-16T02:24:26.883Z",
+  "_write_nonce": "934d4ec9cac4b390",
+  "completedAt": "2026-04-16T02:24:26.883Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 3,
+    "gates": 1,
+    "duration": "2328m"
+  }
 }
