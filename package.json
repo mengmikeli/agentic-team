@@ -1,6 +1,6 @@
 {
   "name": "@mengmikeli/agentic-team",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "CLI + harness for autonomous AI agent teams",
   "type": "module",
   "bin": {
@@ -21,7 +21,13 @@
   "scripts": {
     "test": "node --test test/*.test.mjs"
   },
-  "keywords": ["ai", "agent", "team", "automation", "cli"],
+  "keywords": [
+    "ai",
+    "agent",
+    "team",
+    "automation",
+    "cli"
+  ],
   "author": "Mike Li",
   "license": "MIT",
   "homepage": "https://github.com/mengmikeli/agentic-team",
