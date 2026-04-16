@@ -3,6 +3,8 @@ name: sprint-ops
 description: "Manage active sprints — close completed sprints, update phase progress, check tracking accuracy, capture metrics. Use when: a sprint finishes, a PR merges that completes sprint work, tracking feels stale, or when someone says 'close sprint', 'sprint status', 'update sprint', 'are we on track'. Pairs with finishing-a-development-branch."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Sprint Ops
 
 Ongoing sprint management. Keeps SPRINTS.md and SPEC.md in sync with reality.

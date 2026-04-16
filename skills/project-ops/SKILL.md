@@ -3,6 +3,8 @@ name: project-ops
 description: "Maintain and audit project configuration. Detects drift in PROJECT.md (stale version, wrong sprint, outdated deploy info), reconciles against reality. Use when: project docs feel stale, after a deploy or version bump, when switching back to a project after a break, or when someone says 'project status', 'audit project', 'is PROJECT.md current'."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Project Ops
 
 Ongoing maintenance for project configuration. Keeps PROJECT.md and .team/ structure honest.

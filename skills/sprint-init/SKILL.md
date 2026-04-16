@@ -3,6 +3,8 @@ name: sprint-init
 description: "Start a new sprint. Creates sprint directory, SPEC.md, updates SPRINTS.md and PROJECT.md. Interactive — asks about goal, scope, execution model before scaffolding. Use when: starting new work, kicking off a sprint, or when someone says 'start sprint', 'new sprint', 'init sprint', 'let's build X'. Should be invoked after brainstorming produces a spec."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Sprint Init
 
 Start a new sprint with proper tracking. Called once per sprint, before any implementation work begins.

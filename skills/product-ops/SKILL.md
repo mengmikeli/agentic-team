@@ -3,6 +3,8 @@ name: product-ops
 description: "Maintain product direction — prioritize backlog against goals, validate sprint outcomes against success metrics, update PRODUCT.md as vision evolves. Use when: deciding what to build next, after a sprint closes, product direction feels stale, or when someone says 'product status', 'what should we build next', 'did that sprint matter'."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Product Ops
 
 Ongoing product maintenance. Keeps PRODUCT.md honest and connects sprint work back to product goals.

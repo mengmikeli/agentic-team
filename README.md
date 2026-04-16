@@ -6,6 +6,13 @@ CLI + harness + dashboard for autonomous AI agent teams. The human defines direc
 npm install -g @mengmikeli/agentic-team
 ```
 
+## Prerequisites
+
+- **Node.js ≥18** (required)
+- **gh CLI** — for GitHub integration (`brew install gh`)
+- **claude** or **codex** — coding agent CLI (at least one required)
+- **pew** — optional, for token usage tracking
+
 ## How it works
 
 ```
@@ -47,6 +54,9 @@ agt metrics
 
 # Start the web dashboard
 agt dashboard
+
+# Health check
+agt doctor
 ```
 
 ## CLI Commands
@@ -74,6 +84,9 @@ Execution history — transitions, gate results, timing.
 
 ### `agt dashboard [port]`
 Serves the web dashboard at `http://localhost:3847` (default port). Shows overview cards, feature timeline, task board, and metrics.
+
+### `agt doctor`
+Health check for your setup. Verifies Node.js version, tool availability (gh, claude/codex, pew), `.team/` project structure, quality gate configuration, and GitHub Project board. Color-coded output with pass/warn/fail status.
 
 ## Harness Commands
 

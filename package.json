@@ -1,7 +1,7 @@
 {
   "name": "@mengmikeli/agentic-team",
   "version": "2.0.0",
-  "description": "CLI + harness + dashboard for autonomous AI agent teams",
+  "description": "CLI + harness for autonomous AI agent teams",
   "type": "module",
   "bin": {
     "agt": "./bin/at.mjs",
@@ -13,22 +13,18 @@
     "skills/",
     "roles/",
     "templates/",
+    "README.md",
+    "LICENSE",
     "CHARTER.md",
     "PLAYBOOK.md"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs"
   },
-  "keywords": [
-    "ai",
-    "agents",
-    "team",
-    "harness",
-    "cli",
-    "autonomous"
-  ],
-  "author": "mengmikeli",
+  "keywords": ["ai", "agent", "team", "automation", "cli"],
+  "author": "Mike Li",
   "license": "MIT",
+  "homepage": "https://github.com/mengmikeli/agentic-team",
   "repository": {
     "type": "git",
     "url": "https://github.com/mengmikeli/agentic-team.git"

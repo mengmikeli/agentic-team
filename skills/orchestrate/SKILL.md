@@ -3,6 +3,8 @@ name: orchestrate
 description: "Autonomous execution engine for agent teams. Drives a sprint from approved spec to deliverable without human intervention. Plans tasks, dispatches agents, runs mechanical quality gates, handles failures, updates external tracking (GitHub board), and proactively reports progress. Human involvement is only at initialization (approve spec) and completion (verify deliverable). Use when: a spec is approved and ready for implementation, someone says 'go build it', 'start the sprint', 'execute the plan', or sprint-init has completed."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Orchestrate
 
 The autonomous execution loop. Takes an approved spec and drives it to completion — planning, dispatching, gating, and reporting — without human intervention.

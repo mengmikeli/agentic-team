@@ -3,6 +3,8 @@ name: track
 description: "Manage issue tracking for sprint tasks — create GitHub Issues, move project board cards, and sync state. Bridges orchestrate's STATE.json to external tracking (GitHub Issues + Projects) with a local fallback (TRACKER.md). Use when: orchestrate needs to create/update tracking, someone says 'sync tracking', 'create issues from plan', or drift is suspected between STATE.json and the board."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Track
 
 Issue tracking bridge. Creates issues from plan tasks, moves cards at state transitions, and syncs when things drift.

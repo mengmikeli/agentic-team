@@ -3,6 +3,8 @@ name: product-init
 description: "Define the product vision, users, and success metrics for a project. Interactive wizard that infers from the repo, then asks targeted questions to produce PRODUCT.md. Use when: starting a new product, defining product direction, or when someone says 'define product', 'product vision', 'who are we building for'."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Product Init
 
 One-time interactive setup that produces `.team/PRODUCT.md` — the product layer that answers *why* and *for whom* before projects, agents, and sprints figure out *how*.

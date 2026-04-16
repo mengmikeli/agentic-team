@@ -3,6 +3,8 @@ name: audit
 description: "Cross-layer health check for agentic team projects. Verifies consistency across project config, agent roles, and sprint tracking. Catches drift, stale docs, untracked work, and cross-layer mismatches. Use when: switching back to a project after a break, before starting a new sprint, after a big merge, when something feels off, or when someone says 'audit', 'health check', 'is everything up to date', 'sanity check'."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Audit
 
 Cross-cutting health check that verifies consistency across all three layers: project, agent, and sprint. Finds problems the individual -ops skills miss because they only see their own layer.

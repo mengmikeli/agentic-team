@@ -3,6 +3,8 @@ name: brainstorm
 description: "Explore an idea and produce an approved spec before any implementation begins. Loads product and team context, asks clarifying questions one at a time, proposes approaches with trade-offs, and writes SPEC.md. Use when: starting new work, exploring a feature idea, someone says 'let's build X', 'I have an idea', 'brainstorm', or any creative/planning discussion before code."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Brainstorm
 
 The design phase. Takes a vague idea and turns it into an approved spec through structured exploration. No implementation happens until the spec is approved.

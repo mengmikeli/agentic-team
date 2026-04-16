@@ -3,6 +3,8 @@ name: agent-ops
 description: "Maintain agent roles and team health. Detects role drift, adjusts team structure as projects evolve, reviews agent effectiveness. Use when: team structure needs adjustment, an agent isn't performing, roles have shifted, adding or removing agents, or when someone says 'agent status', 'adjust team', 'who's doing what'."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Agent Ops
 
 Ongoing maintenance for agent roles and team structure.

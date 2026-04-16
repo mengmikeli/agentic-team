@@ -3,6 +3,8 @@ name: agent-init
 description: "Set up agent roles and team structure for a project. Interactive wizard that asks about work style, specialties, and platform needs, then generates AGENTS.md and optionally OpenClaw agent configs. Use when: setting up a new team, adding agents to a project, or when someone says 'set up agents', 'init team', 'who should work on this'."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Agent Init
 
 One-time interactive setup for agent roles. Determines team structure based on the project's needs, not a fixed template.

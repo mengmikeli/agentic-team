@@ -3,6 +3,8 @@ name: project-init
 description: "Set up a new project for agentic team workflow. Interactive wizard that asks about the project (stack, repo, deploy, team) and scaffolds a tailored .team/ directory with PROJECT.md, AGENTS.md, SPRINTS.md. Use when: starting a new project, onboarding an existing project to the agentic-team framework, or when someone says 'set up a project', 'init project', 'onboard this repo'."
 ---
 
+> **Requires:** `@mengmikeli/agentic-team` (`npm install -g @mengmikeli/agentic-team`) for mechanical enforcement via agt-harness.
+
 # Project Init
 
 One-time interactive setup that scaffolds a `.team/` directory tailored to your project. Asks questions instead of handing you blank templates.
