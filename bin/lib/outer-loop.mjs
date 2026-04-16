@@ -342,7 +342,7 @@ export async function outerLoop(args, deps) {
   const productPath = join(teamDir, "PRODUCT.md");
 
   if (!existsSync(productPath)) {
-    console.log(`${c.red}No PRODUCT.md found.${c.reset} Create one with vision, goals, and roadmap.`);
+    console.log(`${c.red}No PRODUCT.md found.${c.reset} Run ${c.bold}agt run${c.reset} (no args) to set one up, or create it manually.`);
     process.exit(1);
   }
 

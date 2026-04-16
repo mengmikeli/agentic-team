@@ -13,6 +13,7 @@ import {
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
+import { cmdInit } from "./init.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
@@ -405,6 +406,10 @@ export async function cmdRun(args) {
   const continuous = !description; // no args = continuous roadmap mode
 
   if (continuous) {
+    // Smart entry: ensure project is ready before starting outer loop
+    const ready = await ensureProjectReady();
+    if (!ready) return;
+
     await outerLoop(args, {
       findAgent,
       dispatchToAgent,
@@ -413,6 +418,151 @@ export async function cmdRun(args) {
   } else {
     await _runSingleFeature(args, description);
   }
+}
+
+// ── Smart entry flow ────────────────────────────────────────────
+
+const PROJECT_MARKERS = [
+  "package.json", "Cargo.toml", "go.mod", "pyproject.toml",
+  "setup.py", "Makefile", "CMakeLists.txt", "pom.xml",
+  "build.gradle", "Gemfile", "mix.exs", "deno.json",
+  ".git", "tsconfig.json", "composer.json",
+];
+
+function hasProjectFiles(dir) {
+  return PROJECT_MARKERS.some(f => existsSync(join(dir, f)));
+}
+
+function askLine(rl, prompt) {
+  return new Promise(resolve => rl.question(prompt, resolve));
+}
+
+async function ensureProjectReady() {
+  let cwd = process.cwd();
+  const teamDir = join(cwd, ".team");
+
+  // Step 1: Check for .team/ directory
+  if (!existsSync(teamDir)) {
+    if (hasProjectFiles(cwd)) {
+      // Looks like a project but not set up
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      const answer = await askLine(rl, `${c.cyan}This looks like a project. Set it up with agt? (y/n): ${c.reset}`);
+      rl.close();
+      if (answer.trim().toLowerCase() !== "y") {
+        return false;
+      }
+      // Run init inline
+      await new Promise(resolve => {
+        cmdInit(["."]);
+        // cmdInit uses its own readline; give it a tick to finish
+        setTimeout(resolve, 100);
+      });
+      // Re-check — cmdInit may have created .team/
+      if (!existsSync(join(cwd, ".team"))) return false;
+    } else {
+      // No project files — ask what to do
+      const rl = createInterface({ input: process.stdin, output: process.stdout });
+      const answer = await askLine(rl, `${c.cyan}Start a new project here or open an existing one? (new/path): ${c.reset}`);
+      rl.close();
+      const trimmed = answer.trim().toLowerCase();
+      if (trimmed === "new") {
+        await new Promise(resolve => {
+          cmdInit(["."]);
+          setTimeout(resolve, 100);
+        });
+        if (!existsSync(join(cwd, ".team"))) return false;
+      } else if (trimmed && trimmed !== "path") {
+        // Treat as a path
+        const target = resolve(cwd, trimmed);
+        if (!existsSync(target)) {
+          console.log(`${c.red}Path not found: ${target}${c.reset}`);
+          return false;
+        }
+        process.chdir(target);
+        return ensureProjectReady(); // Restart check in new dir
+      } else {
+        // They typed "path" literally — ask for the actual path
+        const rl2 = createInterface({ input: process.stdin, output: process.stdout });
+        const pathAnswer = await askLine(rl2, `${c.cyan}Enter project path: ${c.reset}`);
+        rl2.close();
+        const target = resolve(cwd, pathAnswer.trim());
+        if (!existsSync(target)) {
+          console.log(`${c.red}Path not found: ${target}${c.reset}`);
+          return false;
+        }
+        process.chdir(target);
+        return ensureProjectReady();
+      }
+    }
+  }
+
+  // Step 2: Check for PRODUCT.md
+  const productPath = join(process.cwd(), ".team", "PRODUCT.md");
+  if (!existsSync(productPath)) {
+    console.log(`\n${c.yellow}No product definition found. Let's set one up.${c.reset}\n`);
+    await runProductInit(process.cwd());
+    if (!existsSync(productPath)) {
+      console.log(`${c.red}PRODUCT.md was not created. Cannot continue.${c.reset}`);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function runProductInit(cwd) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (q) => askLine(rl, q);
+
+  console.log(`${c.bold}── Product Definition ──${c.reset}\n`);
+
+  const name = await ask(`${c.cyan}Project name: ${c.reset}`) || "my-project";
+  const vision = await ask(`${c.cyan}Vision (what are you building?): ${c.reset}`) || "Build something great";
+  const users = await ask(`${c.cyan}Who is this for?: ${c.reset}`) || "Developers";
+  const goals = await ask(`${c.cyan}Key goals (comma-separated): ${c.reset}`) || "Ship v1";
+
+  console.log(`\n${c.bold}── Roadmap ──${c.reset}`);
+  console.log(`${c.dim}Enter roadmap items one per line. Empty line to finish.${c.reset}\n`);
+
+  const roadmapItems = [];
+  let idx = 1;
+  while (true) {
+    const item = await ask(`${c.cyan}  ${idx}. ${c.reset}`);
+    if (!item.trim()) break;
+    roadmapItems.push(item.trim());
+    idx++;
+  }
+
+  rl.close();
+
+  if (roadmapItems.length === 0) {
+    roadmapItems.push("Initial release");
+  }
+
+  const goalsList = goals.split(",").map((g, i) => `${i + 1}. ${g.trim()}`).join("\n");
+  const roadmapList = roadmapItems.map((item, i) =>
+    `${i + 1}. **${item}** — ${item}`
+  ).join("\n");
+
+  const productMd = `# ${name} — Product
+
+## Vision
+${vision}
+
+## Users
+${users}
+
+## Success Metrics
+${goalsList}
+
+## Roadmap
+${roadmapList}
+`;
+
+  const teamDir = join(cwd, ".team");
+  mkdirSync(teamDir, { recursive: true });
+  writeFileSync(join(teamDir, "PRODUCT.md"), productMd);
+  console.log(`\n${c.green}✓ PRODUCT.md created${c.reset}`);
 }
 
 async function _runSingleFeature(args, description) {
