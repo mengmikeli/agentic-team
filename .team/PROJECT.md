@@ -10,10 +10,10 @@ Markdown + SKILL.md (AgentSkills format)
 [mengmikeli/agentic-team](https://github.com/mengmikeli/agentic-team) (public)
 
 ## Current Version
-v1.0
+v2.1
 
 ## Active Sprint
-s3-hardening
+None
 
 ## Tracking
 - GitHub Project: [mengmikeli/projects/1](https://github.com/users/mengmikeli/projects/1)
