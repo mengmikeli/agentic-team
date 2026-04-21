@@ -16,7 +16,7 @@
         "verdict": "PASS",
         "stdout": "gate-recorded\n",
         "stderr": "",
-        "timestamp": "2026-04-21T14:20:39.065Z",
+        "timestamp": "2026-04-21T14:33:09.763Z",
         "taskId": "task-1",
         "warnings": 0,
         "newWarnings": 0
@@ -41,6 +41,17 @@
       "taskId": "task-1",
       "warnings": 0,
       "newWarnings": 0
+    },
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-21T14:33:09.763Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
     }
   ],
   "transitionCount": 1,
@@ -55,6 +66,6 @@
   ],
   "createdAt": "2026-04-21T14:11:04.656Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T14:20:39.065Z",
-  "_write_nonce": "a897ea62d1da1977"
+  "_last_modified": "2026-04-21T14:33:09.763Z",
+  "_write_nonce": "d53ed966c8d88481"
 }
