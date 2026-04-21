@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync, readdirSync } from "fs";
 import { join } from "path";
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import { c } from "./util.mjs";
 import { computeSprintMetrics } from "./sprint-analytics.mjs";
 
@@ -161,28 +161,30 @@ function showHeatmap(pewDir) {
   console.log(`  ${c.dim}${firstDate}${" ".repeat(Math.max(0, 28 - firstDate.length - lastDate.length))}${lastDate}${c.reset}`);
 }
 
+function gitLines(args, cwd) {
+  const r = spawnSync("git", args, { encoding: "utf8", timeout: 5000, cwd });
+  if (r.status !== 0) return null;
+  return r.stdout || "";
+}
+
 function showGitMetrics(dir) {
   try {
     // Commits last 7 days
-    const weekCommits = execSync(
-      `git -C "${dir}" log --oneline --since="7 days ago" 2>/dev/null | wc -l`,
-      { encoding: "utf8", timeout: 5000 }
-    ).trim();
+    const weekOut = gitLines(["-C", dir, "log", "--oneline", "--since=7 days ago"], undefined);
+    if (weekOut === null) throw new Error("git failed");
+    const weekCommits = weekOut.trim().split("\n").filter(Boolean).length;
 
     // Commits last 30 days
-    const monthCommits = execSync(
-      `git -C "${dir}" log --oneline --since="30 days ago" 2>/dev/null | wc -l`,
-      { encoding: "utf8", timeout: 5000 }
-    ).trim();
+    const monthOut = gitLines(["-C", dir, "log", "--oneline", "--since=30 days ago"], undefined);
+    const monthCommits = monthOut !== null ? monthOut.trim().split("\n").filter(Boolean).length : 0;
 
-    // Lines changed last 7 days
-    const diffStat = execSync(
-      `git -C "${dir}" diff --shortstat HEAD~${Math.min(parseInt(weekCommits) || 1, 100)} 2>/dev/null || echo "0 files"`,
-      { encoding: "utf8", timeout: 5000 }
-    ).trim();
+    // Diff stat vs HEAD~N
+    const n = Math.min(weekCommits || 1, 100);
+    const diffOut = gitLines(["-C", dir, "diff", "--shortstat", `HEAD~${n}`], undefined);
+    const diffStat = diffOut !== null ? diffOut.trim() : "";
 
-    console.log(`  ${c.dim}Last 7 days:${c.reset}  ${c.bold}${weekCommits.trim()}${c.reset} commits`);
-    console.log(`  ${c.dim}Last 30 days:${c.reset} ${c.bold}${monthCommits.trim()}${c.reset} commits`);
+    console.log(`  ${c.dim}Last 7 days:${c.reset}  ${c.bold}${weekCommits}${c.reset} commits`);
+    console.log(`  ${c.dim}Last 30 days:${c.reset} ${c.bold}${monthCommits}${c.reset} commits`);
     if (diffStat) console.log(`  ${c.dim}Diff:${c.reset}         ${diffStat}`);
   } catch {
     console.log(`  ${c.dim}Not a git repository or git not available.${c.reset}`);

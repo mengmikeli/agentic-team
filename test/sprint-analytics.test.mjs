@@ -163,10 +163,11 @@ describe("computeFailureRate", () => {
         { status: "passed" },
         { status: "failed" },
         { status: "failed" },
-        { status: "skipped" },
+        { status: "skipped" }, // excluded from denominator
       ],
     }];
-    assert.ok(Math.abs(computeFailureRate(states) - 0.5) < 0.001);
+    // 2 failed / (1 passed + 2 failed) = 2/3, skipped excluded
+    assert.ok(Math.abs(computeFailureRate(states) - 2 / 3) < 0.001);
   });
 
   it("returns null when no terminal tasks", () => {

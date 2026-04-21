@@ -125,12 +125,12 @@ function percentile(sorted, p) {
   return sorted[Math.max(0, Math.min(idx, sorted.length - 1))];
 }
 
-// Failure rate: failed terminal tasks / all terminal tasks
+// Failure rate: failed / (passed + failed) — excludes skipped tasks
 export function computeFailureRate(states) {
   let failed = 0, terminal = 0;
   for (const state of states) {
     for (const task of state.tasks || []) {
-      if (["passed", "failed", "skipped"].includes(task.status)) {
+      if (task.status === "passed" || task.status === "failed") {
         terminal++;
         if (task.status === "failed") failed++;
       }
@@ -225,6 +225,7 @@ export function computeSprintMetrics(teamDir, sprintNameOverride = null) {
 // Persist analytics to .team/sprints/{sprint.name}/analytics.json
 function persistAnalytics(teamDir, sprint, result) {
   if (!sprint?.name) return;
+  if (/[/\\]/.test(sprint.name)) return; // guard against path traversal
   try {
     const sprintsDir = join(teamDir, "sprints", sprint.name);
     mkdirSync(sprintsDir, { recursive: true });
