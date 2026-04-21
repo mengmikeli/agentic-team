@@ -41,6 +41,12 @@ projectSelect.addEventListener("change", (e) => {
   if (projects[idx]) {
     currentProject = projects[idx];
     selectedFeature = null;
+    features = [];
+    sprints = [];
+    issues = [];
+    backlogItems = [];
+    tokenData = null;
+    localStorage.setItem('agt-dashboard-project', currentProject.name);
     loadProjectData();
   }
 });
@@ -67,8 +73,11 @@ async function loadProjects() {
   } catch {}
 
   if (projects.length > 0) {
-    currentProject = projects[0];
-    updateProjectSelector();
+    // Restore last selected project from localStorage
+    const savedProject = localStorage.getItem('agt-dashboard-project');
+    const savedIdx = savedProject ? projects.findIndex(p => p.name === savedProject) : -1;
+    currentProject = savedIdx >= 0 ? projects[savedIdx] : projects[0];
+    updateProjectSelector(savedIdx >= 0 ? savedIdx : 0);
   } else {
     currentProject = { name: "Current Project", path: ".", rawPath: "." };
     projectSelect.style.display = "none";
@@ -76,9 +85,9 @@ async function loadProjects() {
   await loadProjectData();
 }
 
-function updateProjectSelector() {
+function updateProjectSelector(selectedIdx = 0) {
   projectSelect.innerHTML = projects
-    .map((p, i) => `<option value="${i}">${esc(p.name)}${p.version ? " " + esc(p.version) : ""}</option>`)
+    .map((p, i) => `<option value="${i}" ${i === selectedIdx ? 'selected' : ''}>${esc(p.name)}${p.version ? " " + esc(p.version) : ""}</option>`)
     .join("");
 }
 
@@ -91,7 +100,7 @@ async function loadProjectData() {
       fetch(`/api/sprints?path=${path}`),
       fetch(`/api/issues?path=${path}`).catch(() => null),
       fetch(`/api/backlog?path=${path}`).catch(() => null),
-      fetch("/api/tokens").catch(() => null),
+      fetch(`/api/tokens?path=${path}`).catch(() => null),
     ]);
     if (featRes.ok) features = await featRes.json();
     if (sprintRes.ok) {
