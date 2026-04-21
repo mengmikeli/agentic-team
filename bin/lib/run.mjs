@@ -20,7 +20,7 @@ import { selectTier, formatTierBaseline } from "./tiers.mjs";
 import { outerLoop } from "./outer-loop.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
-const HARNESS = resolve(dirname(__filename), "..", "at-harness.mjs");
+const HARNESS = resolve(dirname(__filename), "..", "agt-harness.mjs");
 
 // ── Harness wrapper ─────────────────────────────────────────────
 

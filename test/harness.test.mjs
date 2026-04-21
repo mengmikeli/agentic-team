@@ -9,7 +9,7 @@ import { join } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const harnessPath = join(__dirname, "..", "bin", "at-harness.mjs");
+const harnessPath = join(__dirname, "..", "bin", "agt-harness.mjs");
 const testDir = join(__dirname, ".test-workspace");
 
 function harness(...args) {

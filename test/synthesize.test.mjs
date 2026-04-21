@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { parseFindings, computeVerdict, verifyFormat } from "../bin/lib/synthesize.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const harnessPath = join(__dirname, "..", "bin", "at-harness.mjs");
+const harnessPath = join(__dirname, "..", "bin", "agt-harness.mjs");
 
 function harnessJSON(...args) {
   const out = execFileSync("node", [harnessPath, ...args], {

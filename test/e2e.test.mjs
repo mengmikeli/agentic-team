@@ -15,7 +15,7 @@ import { parseFindings, computeVerdict, verifyFormat } from "../bin/lib/synthesi
 import { selectFlow, buildReviewBrief, buildBrainstormBrief } from "../bin/lib/flows.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const harnessPath = join(__dirname, "..", "bin", "at-harness.mjs");
+const harnessPath = join(__dirname, "..", "bin", "agt-harness.mjs");
 const testDir = join(__dirname, ".e2e-workspace");
 
 function harness(...args) {

@@ -14,7 +14,7 @@ import { selectTier, formatTierBaseline } from "../bin/lib/tiers.mjs";
 import { parseFindings, computeVerdict } from "../bin/lib/synthesize.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const harnessPath = join(__dirname, "..", "bin", "at-harness.mjs");
+const harnessPath = join(__dirname, "..", "bin", "agt-harness.mjs");
 const testDir = join(__dirname, ".integration-workspace");
 
 function harness(...args) {

@@ -4,8 +4,8 @@
   "description": "CLI + harness for autonomous AI agent teams",
   "type": "module",
   "bin": {
-    "agt": "./bin/at.mjs",
-    "agt-harness": "./bin/at-harness.mjs"
+    "agt": "./bin/agt.mjs",
+    "agt-harness": "./bin/agt-harness.mjs"
   },
   "files": [
     "bin/",

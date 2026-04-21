@@ -11,7 +11,7 @@ import { execFileSync } from "child_process";
 import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
-const atPath = join(__dirname, "..", "bin", "at.mjs");
+const atPath = join(__dirname, "..", "bin", "agt.mjs");
 
 function createTmpDir() {
   const dir = join(tmpdir(), `cli-cmd-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
