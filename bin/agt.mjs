@@ -272,7 +272,18 @@ switch (command) {
           .map(d => {
             const sp = join(featDir, d.name, "STATE.json");
             const state = fs.existsSync(sp) ? JSON.parse(fs.readFileSync(sp, "utf8")) : null;
-            return { name: d.name, state, hasSpec: fs.existsSync(join(featDir, d.name, "SPEC.md")) };
+            return {
+              name: d.name,
+              status: state?.status || "unknown",
+              tasks: state?.tasks || [],
+              gates: state?.gates || [],
+              feature: state?.feature || d.name,
+              createdAt: state?.createdAt || null,
+              completedAt: state?.completedAt || null,
+              hasSpec: fs.existsSync(join(featDir, d.name, "SPEC.md")),
+              hasProgress: fs.existsSync(join(featDir, d.name, "progress.md")),
+              transitionCount: state?.transitionCount || 0,
+            };
           });
       } catch { return []; }
     }

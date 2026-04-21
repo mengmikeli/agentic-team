@@ -181,7 +181,7 @@ function renderStatusHero(active, completed, withState) {
   }
 
   const lastCompleted = completed.length > 0
-    ? completed.sort((a, b) => (b.state.completedAt || "").localeCompare(a.state.completedAt || ""))[0]
+    ? completed.sort((a, b) => (b.completedAt || "").localeCompare(a.completedAt || ""))[0]
     : null;
 
   return `
@@ -189,7 +189,7 @@ function renderStatusHero(active, completed, withState) {
     <div class="hero-card hero-idle">
       <div class="hero-idle-msg">No active feature</div>
       ${lastCompleted
-        ? `<div class="hero-idle-last">Last completed: <strong>${esc(lastCompleted.name)}</strong> ${lastCompleted.state.completedAt ? "— " + relativeTime(lastCompleted.state.completedAt) : ""}</div>`
+        ? `<div class="hero-idle-last">Last completed: <strong>${esc(lastCompleted.name)}</strong> ${lastCompleted.completedAt ? "— " + relativeTime(lastCompleted.completedAt) : ""}</div>`
         : `<div class="hero-idle-last">No features completed yet</div>`}
     </div>
   </div>`;
@@ -325,8 +325,8 @@ function renderBarChart(daily) {
 // ── Section 3: Feature Timeline ──
 function renderTimeline(withState) {
   const sorted = [...withState].sort((a, b) => {
-    const ta = a.state.completedAt || a.state._last_modified || "";
-    const tb = b.state.completedAt || b.state._last_modified || "";
+    const ta = a.completedAt || a._last_modified || "";
+    const tb = b.completedAt || b._last_modified || "";
     return tb.localeCompare(ta);
   });
 
@@ -402,7 +402,7 @@ function renderBoard(withState, activeFeature) {
     (selectedFeature && withState.find((f) => f.name === selectedFeature)) ||
     activeFeature ||
     withState.filter((f) => f.state?.status === "completed")
-      .sort((a, b) => (b.state.completedAt || "").localeCompare(a.state.completedAt || ""))[0] ||
+      .sort((a, b) => (b.completedAt || "").localeCompare(a.completedAt || ""))[0] ||
     withState[0];
 
   if (!boardFeature?.state) {
@@ -416,7 +416,7 @@ function renderBoard(withState, activeFeature) {
     </div>`;
   }
 
-  const tasks = boardFeature.state.tasks || [];
+  const tasks = boardFeature.tasks || [];
   const columns = {
     pending: tasks.filter((t) => t.status === "pending"),
     "in-progress": tasks.filter((t) => t.status === "in-progress"),
@@ -429,7 +429,7 @@ function renderBoard(withState, activeFeature) {
   const featureOptions = withState.length > 1
     ? `<div class="board-feature-selector">
         <select onchange="changeBoardFeature(this.value)">
-          ${withState.map((f) => `<option value="${esc(f.name)}" ${f.name === boardFeature.name ? "selected" : ""}>${esc(f.name)} (${f.state.status})</option>`).join("")}
+          ${withState.map((f) => `<option value="${esc(f.name)}" ${f.name === boardFeature.name ? "selected" : ""}>${esc(f.name)} (${f.status})</option>`).join("")}
         </select>
       </div>`
     : "";
@@ -438,7 +438,7 @@ function renderBoard(withState, activeFeature) {
   <div class="dashboard-section" id="section-board">
     <div class="section-header">Task Board</div>
     <div class="board-header">
-      <div class="board-feature-name">${esc(boardFeature.name)} <span class="badge badge-${boardFeature.state.status}">${boardFeature.state.status}</span></div>
+      <div class="board-feature-name">${esc(boardFeature.name)} <span class="badge badge-${boardFeature.status}">${boardFeature.status}</span></div>
       ${featureOptions}
     </div>
     <div class="board">
@@ -490,7 +490,7 @@ function computeAvgCycleTime(features) {
   );
   if (completed.length === 0) return "—";
   const totalMs = completed.reduce((sum, f) => {
-    return sum + (new Date(f.state.completedAt) - new Date(f.state.createdAt));
+    return sum + (new Date(f.completedAt) - new Date(f.createdAt));
   }, 0);
   const avgMs = totalMs / completed.length;
   return formatDuration(avgMs);
