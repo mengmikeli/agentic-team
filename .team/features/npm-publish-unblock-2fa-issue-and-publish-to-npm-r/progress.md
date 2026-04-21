@@ -10,3 +10,8 @@
 
 ## Execution Log
 
+### 2026-04-21 04:14:21
+**Task 1: npm publish — Unblock 2FA issue and publish to npm registry via GitHub Actions.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
