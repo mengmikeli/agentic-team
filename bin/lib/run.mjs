@@ -329,13 +329,15 @@ Write it to: .team/features/${featureName}/tasks/${task.id}/handshake.json
   "summary": "<what you built, 2-3 sentences>",
   "timestamp": "<ISO8601>",
   "artifacts": [
-    { "type": "code", "path": "<each file you created or modified>" }
+    { "type": "code", "path": "<project-relative path, e.g. src/foo.mjs or bin/lib/bar.mjs>" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
 \`\`\`
 
 The artifacts list must include every file you created or modified.
+**Important**: artifact paths must be relative to the project root (${cwd}), NOT relative to this handshake.json file.
+For example, use \`bin/lib/run.mjs\`, not \`../../../../bin/lib/run.mjs\`.
 
 ## Verification Requirement
 Before claiming you're done:
@@ -823,11 +825,12 @@ async function _runSingleFeature(args, description) {
       }
 
       // Validate builder's handshake if it wrote one
+      // Builder artifact paths are project-relative (relative to cwd), not task-dir-relative
       const builderHandshakePath = join(taskDir, "handshake.json");
       if (existsSync(builderHandshakePath)) {
         try {
           const builderHS = JSON.parse(readFileSync(builderHandshakePath, "utf8"));
-          const hsValidation = validateHandshake(builderHS, { basePath: taskDir });
+          const hsValidation = validateHandshake(builderHS, { basePath: cwd });
           if (hsValidation.valid) {
             console.log(`  ${c.green}✓ Builder handshake valid${c.reset}`);
           } else {

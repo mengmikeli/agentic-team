@@ -260,6 +260,71 @@ describe("validateHandshake", () => {
     const result = validateHandshake(hs); // no basePath
     assert.equal(result.valid, true);
   });
+
+  // ── Artifact path resolution across different working directories ──
+
+  it("resolves project-root-relative paths correctly (builder pattern)", () => {
+    // Simulate: project root at /tmp/proj, task dir at /tmp/proj/.team/features/f/tasks/t
+    // Builder writes artifacts with project-root-relative paths like "bin/lib/run.mjs"
+    // Validation should use project root as basePath, NOT the task dir
+    const projectRoot = mkdtempSync(join(tmpdir(), "hs-proj-"));
+    const taskDir = join(projectRoot, ".team", "features", "my-feature", "tasks", "task-1");
+    mkdirSync(taskDir, { recursive: true });
+
+    // Create a file at project root level
+    mkdirSync(join(projectRoot, "bin", "lib"), { recursive: true });
+    writeFileSync(join(projectRoot, "bin", "lib", "foo.mjs"), "// code");
+
+    const hs = validBuild();
+    // Path is project-relative (as builder agents should write)
+    hs.artifacts = [{ type: "code", path: "bin/lib/foo.mjs" }];
+
+    // Validating with project root as basePath → should PASS
+    const resultWithProjectRoot = validateHandshake(hs, { basePath: projectRoot });
+    assert.equal(resultWithProjectRoot.valid, true, "should be valid when basePath is project root");
+
+    // Validating with task dir as basePath → should FAIL (wrong base)
+    const resultWithTaskDir = validateHandshake(hs, { basePath: taskDir });
+    assert.equal(resultWithTaskDir.valid, false, "should be invalid when basePath is task dir");
+    assert.ok(resultWithTaskDir.errors.some(e => e.includes("file not found")));
+  });
+
+  it("resolves task-dir-relative paths correctly (gate pattern)", () => {
+    // Gate artifacts are written to task/artifacts/ and referenced as "artifacts/test-output.txt"
+    // They should validate with taskDir as basePath
+    const projectRoot = mkdtempSync(join(tmpdir(), "hs-gate-"));
+    const taskDir = join(projectRoot, ".team", "features", "my-feature", "tasks", "task-1");
+    const artifactsDir = join(taskDir, "artifacts");
+    mkdirSync(artifactsDir, { recursive: true });
+
+    writeFileSync(join(artifactsDir, "test-output.txt"), "test passed");
+
+    const hs = validBuild();
+    hs.nodeType = "gate";
+    // Gate uses task-dir-relative path
+    hs.artifacts = [{ type: "test-result", path: "artifacts/test-output.txt" }];
+
+    // Validating with task dir as basePath → should PASS
+    const resultWithTaskDir = validateHandshake(hs, { basePath: taskDir });
+    assert.equal(resultWithTaskDir.valid, true, "gate artifacts should validate against taskDir");
+
+    // Validating with project root as basePath → should FAIL
+    const resultWithProjectRoot = validateHandshake(hs, { basePath: projectRoot });
+    assert.equal(resultWithProjectRoot.valid, false, "gate artifacts should fail against project root");
+  });
+
+  it("accepts absolute paths regardless of basePath", () => {
+    const dir = mkdtempSync(join(tmpdir(), "hs-abs-"));
+    writeFileSync(join(dir, "abs-file.mjs"), "// code");
+    const absPath = join(dir, "abs-file.mjs");
+
+    const hs = validBuild();
+    hs.artifacts = [{ type: "code", path: absPath }];
+
+    // Absolute paths should work regardless of basePath
+    const result = validateHandshake(hs, { basePath: "/some/other/dir" });
+    assert.equal(result.valid, true, "absolute paths should be resolved directly");
+  });
 });
 
 // ── CLI: agt-harness validate ───────────────────────────────────
