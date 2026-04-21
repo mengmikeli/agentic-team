@@ -1,0 +1,60 @@
+{
+  "version": "2.0",
+  "feature": "npm-publish-unblock-2fa-issue-and-publish-to-npm-r",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "npm publish — Unblock 2FA issue and publish to npm registry via GitHub Actions.",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 24,
+      "lastTransition": "2026-04-21T04:10:32.119Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-21T04:14:21.137Z",
+        "taskId": "task-1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 25
+    }
+  ],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-21T04:14:21.137Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-21T04:10:32.119Z"
+    }
+  ],
+  "createdAt": "2026-04-21T04:10:20.483Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-21T04:14:21.137Z",
+  "_write_nonce": "093471f67d45f32b"
+}

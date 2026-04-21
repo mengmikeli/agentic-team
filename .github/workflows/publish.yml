@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
+      # NPM_TOKEN must be an npm Automation token (not a Publish token).
+      # Automation tokens bypass 2FA/OTP requirements in CI environments.
+      # Create one at https://www.npmjs.com/settings/<user>/tokens → "Automation" type.
+      - run: npm ci --ignore-scripts
+      - run: npm test
       - run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
