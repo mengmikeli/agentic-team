@@ -10,3 +10,8 @@
 
 ## Execution Log
 
+### 2026-04-21 04:19:23
+**Task 1: PLAYBOOK.md rewrite — Update for v2 CLI workflow. Current playbook references old multi-agent Discord coordination, not the agt CLI product.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
