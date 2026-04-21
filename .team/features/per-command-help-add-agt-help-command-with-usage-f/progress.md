@@ -10,3 +10,8 @@
 
 ## Execution Log
 
+### 2026-04-21 04:25:45
+**Task 1: Per-command help — Add `agt help <command>` with usage, flags, and examples for each command. Currently `agt` only shows a flat list.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
