@@ -1,0 +1,37 @@
+{
+  "version": "2.0",
+  "feature": "per-command-help-add-agt-help-command-with-usage-f",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Per-command help — Add `agt help <command>` with usage, flags, and examples for each command. Currently `agt` only shows a flat list.",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 28,
+      "lastTransition": "2026-04-21T04:22:20.422Z"
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 29
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-21T04:22:20.422Z"
+    }
+  ],
+  "createdAt": "2026-04-21T04:22:09.232Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-21T04:22:20.422Z",
+  "_write_nonce": "5401f049ccae76fb"
+}

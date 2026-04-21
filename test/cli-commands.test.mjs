@@ -264,7 +264,100 @@ describe("smart entry flow (agt run no args)", () => {
   });
 });
 
-// ── Audit module unit tests ─────────────────────────────────────
+// ── Per-command help tests ────────────────────────────────────────
+
+describe("agt help <command>", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("agt help run shows usage, flags, and examples", () => {
+    const result = runAgt(["help", "run"], tmpDir);
+    assert.ok(result.ok, "help run should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("run"), "should mention run command");
+    assert.ok(result.stdout.includes("--daemon") || result.stdout.includes("--review"), "should list flags");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help init shows usage and examples", () => {
+    const result = runAgt(["help", "init"], tmpDir);
+    assert.ok(result.ok, "help init should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("init"), "should mention init command");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help status shows usage and examples", () => {
+    const result = runAgt(["help", "status"], tmpDir);
+    assert.ok(result.ok, "help status should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("status"), "should mention status command");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help review shows usage and examples", () => {
+    const result = runAgt(["help", "review"], tmpDir);
+    assert.ok(result.ok, "help review should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("review"), "should mention review command");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help audit shows usage and examples", () => {
+    const result = runAgt(["help", "audit"], tmpDir);
+    assert.ok(result.ok, "help audit should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("audit"), "should mention audit command");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help brainstorm shows usage and examples", () => {
+    const result = runAgt(["help", "brainstorm"], tmpDir);
+    assert.ok(result.ok, "help brainstorm should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("brainstorm"), "should mention brainstorm command");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help doctor shows usage and examples", () => {
+    const result = runAgt(["help", "doctor"], tmpDir);
+    assert.ok(result.ok, "help doctor should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("doctor"), "should mention doctor command");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help <unknown> exits non-zero and shows error", () => {
+    const result = runAgt(["help", "nonexistent-command"], tmpDir);
+    assert.ok(!result.ok, "should exit non-zero for unknown command");
+    assert.ok(
+      result.stdout.includes("Unknown") || result.stderr.includes("Unknown"),
+      "should report unknown command"
+    );
+  });
+
+  it("agt help (no subcommand) lists all commands", () => {
+    const result = runAgt(["help"], tmpDir);
+    assert.ok(result.ok, "help should exit 0");
+    assert.ok(result.stdout.includes("init"), "should list init");
+    assert.ok(result.stdout.includes("run"), "should list run");
+    assert.ok(result.stdout.includes("review"), "should list review");
+    assert.ok(result.stdout.includes("audit"), "should list audit");
+    assert.ok(result.stdout.includes("brainstorm"), "should list brainstorm");
+    assert.ok(
+      result.stdout.includes("agt help <command>") || result.stdout.includes("help <command>"),
+      "should hint at per-command help"
+    );
+  });
+});
+
 
 describe("audit-cmd module", () => {
   it("can be imported without errors", async () => {
