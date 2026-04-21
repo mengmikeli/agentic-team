@@ -134,14 +134,22 @@ async function loadProjectData() {
 async function loadTokens() {
   try {
     const res = await fetch('/api/tokens');
-    if (res.ok) tokenData = await res.json();
-  } catch {}
+    if (res.ok) {
+      tokenData = await res.json();
+    } else {
+      tokenData = { error: true, status: res.status };
+    }
+  } catch {
+    tokenData = { error: true };
+  }
 }
 
 // ── Auto-refresh (10s fallback) ──
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(async () => {
+    // Always refresh global token data
+    loadTokens();
     if (!currentProject) return;
     const path = encodeURIComponent(currentProject.path);
     try {
@@ -226,7 +234,7 @@ function renderProjectView() {
 
   app.innerHTML = `
     ${renderStatusHero(active, completed, withState)}
-    ${renderStatCards(completedCount, successRate, avgCycleTime)}
+    ${renderStatCards(completedCount, successRate, avgCycleTime, withState)}
     ${renderBacklog()}
     ${renderTimeline(withState)}
     ${renderBoard(withState, active)}
@@ -282,8 +290,9 @@ function renderStatusHero(active, completed, withState) {
   </div>`;
 }
 
-function renderStatCards(completedCount, successRate, avgCycleTime) {
+function renderStatCards(completedCount, successRate, avgCycleTime, withState) {
   const projectLabel = currentProject?.name || "Project";
+  const totalTasks = (withState || []).reduce((sum, f) => sum + (f.tasks || []).filter(t => !isGateTask(t)).length, 0);
   return `
   <div class="dashboard-section">
     <div class="stat-grid">
@@ -305,6 +314,12 @@ function renderStatCards(completedCount, successRate, avgCycleTime) {
         <div class="stat-card-value">${avgCycleTime}</div>
         <div class="stat-card-sub">per feature</div>
       </div>
+      <div class="stat-card">
+        <div class="stat-card-accent" style="background:var(--yellow)"></div>
+        <div class="stat-card-label">Total Tasks</div>
+        <div class="stat-card-value">${totalTasks}</div>
+        <div class="stat-card-sub">across all features</div>
+      </div>
     </div>
   </div>`;
 }
@@ -313,8 +328,8 @@ function renderStatCards(completedCount, successRate, avgCycleTime) {
 function renderBacklog() {
   if (!backlogItems.length && !issues.length) return '';
   return `
-    <div class="section" id="section-backlog">
-      <h2 class="section-title">Backlog</h2>
+    <div class="dashboard-section" id="section-backlog">
+      <div class="section-header">Backlog</div>
       <div class="backlog-grid">
         ${backlogItems.map(item => `
           <div class="backlog-card">
@@ -336,7 +351,18 @@ function renderBacklog() {
 
 // ── Tokens View (global, all projects/tools) ──
 function renderTokensView() {
-  if (!tokenData || tokenData.available === false) {
+  if (!tokenData || tokenData.error) {
+    return `
+    <div class="dashboard-section" id="section-tokens">
+      <div class="section-header">Token Usage</div>
+      <div class="token-unavailable">
+        <div class="token-unavailable-icon">⚠️</div>
+        <div>Failed to load token data</div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">Check that the server is running</div>
+      </div>
+    </div>`;
+  }
+  if (tokenData.available === false) {
     return `
     <div class="dashboard-section" id="section-tokens">
       <div class="section-header">Token Usage</div>
