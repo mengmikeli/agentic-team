@@ -11,6 +11,7 @@ let currentProject = null;
 let features = [];
 let sprints = [];
 let issues = [];
+let backlogItems = [];
 let tokenData = null;
 let selectedFeature = null;
 let refreshTimer = null;
@@ -78,10 +79,11 @@ async function loadProjectData() {
   if (!currentProject) return;
   const path = encodeURIComponent(currentProject.path);
   try {
-    const [featRes, sprintRes, issueRes, tokenRes] = await Promise.all([
+    const [featRes, sprintRes, issueRes, backlogRes, tokenRes] = await Promise.all([
       fetch(`/api/features?path=${path}`),
       fetch(`/api/sprints?path=${path}`),
       fetch(`/api/issues?path=${path}`).catch(() => null),
+      fetch(`/api/backlog?path=${path}`).catch(() => null),
       fetch("/api/tokens").catch(() => null),
     ]);
     if (featRes.ok) features = await featRes.json();
@@ -90,6 +92,7 @@ async function loadProjectData() {
       sprints = data.sprints || [];
     }
     if (issueRes?.ok) issues = await issueRes.json();
+    if (backlogRes?.ok) backlogItems = await backlogRes.json();
     if (tokenRes?.ok) tokenData = await tokenRes.json();
   } catch {}
   render();
@@ -114,9 +117,9 @@ function startAutoRefresh() {
 
 // ── Render ──
 function render() {
-  const withState = features.filter((f) => f.state);
-  const active = withState.find((f) => ["active", "executing"].includes(f.state?.status));
-  const completed = withState.filter((f) => f.state?.status === "completed");
+  const withState = features.filter((f) => f.status && f.status !== "unknown");
+  const active = withState.find((f) => ["active", "executing"].includes(f.status));
+  const completed = withState.filter((f) => f.status === "completed");
   const totalFeatures = withState.length;
   const completedCount = completed.length;
   const successRate = totalFeatures > 0 ? Math.round((completedCount / totalFeatures) * 100) : 0;
@@ -141,6 +144,7 @@ function render() {
     ${renderStatusHero(active, completed, withState)}
     ${renderStatCards(completedCount, successRate, avgCycleTime, totalTokens)}
     ${renderTokenSection()}
+    ${renderBacklog()}
     ${renderTimeline(withState)}
     ${renderBoard(withState, active)}
   `;
@@ -149,7 +153,7 @@ function render() {
 // ── Section 1: Status Hero ──
 function renderStatusHero(active, completed, withState) {
   if (active) {
-    const s = active.state;
+    const s = active;
     const tasks = s.tasks || [];
     const passed = tasks.filter((t) => t.status === "passed").length;
     const pct = tasks.length > 0 ? Math.round((passed / tasks.length) * 100) : 0;
@@ -228,6 +232,30 @@ function renderStatCards(completedCount, successRate, avgCycleTime, totalTokens)
 }
 
 // ── Section 2: Token Usage ──
+function renderBacklog() {
+  if (!backlogItems.length && !issues.length) return '';
+  return `
+    <div class="section" id="section-backlog">
+      <h2 class="section-title">Backlog</h2>
+      <div class="backlog-grid">
+        ${backlogItems.map(item => `
+          <div class="backlog-card">
+            <div class="backlog-source">${esc(item.source)}</div>
+            <div class="backlog-title">${esc(item.title)}</div>
+            <div class="backlog-desc">${esc(item.description?.slice(0, 150) || '')}</div>
+          </div>
+        `).join('')}
+        ${issues.map(issue => `
+          <div class="backlog-card backlog-issue">
+            <div class="backlog-source">issue #${issue.number}</div>
+            <div class="backlog-title">${esc(issue.title)}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
 function renderTokenSection() {
   if (!tokenData || tokenData.available === false) {
     return `
@@ -346,7 +374,7 @@ function renderTimeline(withState) {
     <div class="section-header">Feature Timeline</div>
     <div class="timeline-scroll">
       ${sorted.map((f) => {
-        const s = f.state;
+        const s = f;
         const tasks = s.tasks || [];
         const passed = tasks.filter((t) => t.status === "passed").length;
         const gates = s.gates || [];
@@ -401,11 +429,11 @@ function renderBoard(withState, activeFeature) {
   const boardFeature =
     (selectedFeature && withState.find((f) => f.name === selectedFeature)) ||
     activeFeature ||
-    withState.filter((f) => f.state?.status === "completed")
+    withState.filter((f) => f.status === "completed")
       .sort((a, b) => (b.completedAt || "").localeCompare(a.completedAt || ""))[0] ||
     withState[0];
 
-  if (!boardFeature?.state) {
+  if (!boardFeature?.status) {
     return `
     <div class="dashboard-section" id="section-board">
       <div class="section-header">Task Board</div>
@@ -486,7 +514,7 @@ function formatTokensShort(n) {
 
 function computeAvgCycleTime(features) {
   const completed = features.filter(
-    (f) => f.state?.status === "completed" && f.state?.createdAt && f.state?.completedAt
+    (f) => f.status === "completed" && f.createdAt && f.completedAt
   );
   if (completed.length === 0) return "—";
   const totalMs = completed.reduce((sum, f) => {

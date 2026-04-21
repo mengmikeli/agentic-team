@@ -422,6 +422,37 @@ switch (command) {
             } catch {}
             return jsonRes(res, []);
           }
+          if (pathname === "/api/backlog") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const backlog = [];
+            // Read backlog from PRODUCT.md roadmap (uncompleted items)
+            const productPath = join(pp, ".team", "PRODUCT.md");
+            if (fs.existsSync(productPath)) {
+              const content = fs.readFileSync(productPath, "utf8");
+              const roadmapMatch = content.match(/## Roadmap\n([\s\S]*?)(?=\n##|$)/);
+              if (roadmapMatch) {
+                for (const m of roadmapMatch[1].matchAll(/^\d+\.\s*\*\*(.+?)\*\*\s*[-—]\s*(.+)$/gm)) {
+                  if (!/✅\s*done/i.test(m[2])) {
+                    backlog.push({ source: "roadmap", title: m[1], description: m[2] });
+                  }
+                }
+              }
+            }
+            // Read backlog from sprints/backlog/ directory
+            const backlogDir = join(pp, ".team", "sprints", "backlog");
+            if (fs.existsSync(backlogDir)) {
+              try {
+                for (const f of fs.readdirSync(backlogDir)) {
+                  if (!f.endsWith(".md")) continue;
+                  const content = fs.readFileSync(join(backlogDir, f), "utf8");
+                  const title = content.match(/^#\s+(.+)/m)?.[1] || f.replace(".md", "");
+                  const desc = content.split("\n").filter(l => l.trim() && !l.startsWith("#")).slice(0, 2).join(" ").slice(0, 200);
+                  backlog.push({ source: "backlog", title, description: desc, file: f });
+                }
+              } catch {}
+            }
+            return jsonRes(res, backlog);
+          }
           if (pathname === "/api/tokens") {
             return jsonRes(res, loadTokenData(fs, join, home));
           }
