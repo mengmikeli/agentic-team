@@ -29,6 +29,6 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 3. **Flow templates** — ✅ Done. Light review, build-verify, full-stack flow selection.
 4. **Parallel reviewers** — ✅ Done. Multi-role dispatch with merged findings.
 5. **Backlog enforcement** — ✅ Done. Warning tracking, gate blocking.
-6. **Per-command help** — Add `agt help <command>` with usage, flags, and examples for each command. Currently `agt` only shows a flat list.
+6. **Per-command help** — ✅ Done. Add `agt help <command>` with usage, flags, and examples for each command. Currently `agt` only shows a flat list.
 7. **PLAYBOOK.md rewrite** — ✅ Done. Update for v2 CLI workflow. Current playbook references old multi-agent Discord coordination, not the agt CLI product.
 8. **npm publish** — ✅ Done. Unblock 2FA issue and publish to npm registry via GitHub Actions.

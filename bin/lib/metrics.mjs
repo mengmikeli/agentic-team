@@ -4,6 +4,7 @@ import { existsSync, readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import { execSync } from "child_process";
 import { c } from "./util.mjs";
+import { computeSprintMetrics } from "./sprint-analytics.mjs";
 
 export function cmdMetrics(args) {
   const dir = args[0] || ".";
@@ -29,6 +30,11 @@ export function cmdMetrics(args) {
   if (existsSync(join(teamDir, "features"))) {
     console.log(`\n${c.bold}  Feature Summary${c.reset}`);
     showFeatureMetrics(teamDir);
+  }
+
+  // Sprint analytics
+  if (existsSync(teamDir)) {
+    showSprintMetrics(teamDir);
   }
 
   console.log();
@@ -202,6 +208,64 @@ function showFeatureMetrics(teamDir) {
     console.log(`  Gate pass rate:  ${c.bold}${totalGates > 0 ? Math.round(totalGatePassed / totalGates * 100) : 0}%${c.reset}`);
   } catch {
     console.log(`  ${c.dim}No feature data.${c.reset}`);
+  }
+}
+
+function showSprintMetrics(teamDir) {
+  try {
+    const m = computeSprintMetrics(teamDir);
+
+    const sprintLabel = m.sprint
+      ? `${m.sprint.name} (${m.sprint.type})`
+      : "all features";
+
+    console.log(`\n${c.bold}  Sprint${c.reset}  ${c.dim}${sprintLabel}${c.reset}`);
+
+    if (m.noData || m.features === 0) {
+      console.log(`  ${c.dim}No feature data for this sprint.${c.reset}`);
+      return;
+    }
+
+    // Cycle time
+    const ct = m.cycleTime;
+    if (ct.samples > 0) {
+      const fmt = (mins) => mins == null ? "—" : mins < 60 ? `${Math.round(mins)}m` : `${(mins / 60).toFixed(1)}h`;
+      console.log(`  Cycle time:      ${c.bold}${fmt(ct.median)}${c.reset} median  ${c.dim}${fmt(ct.p90)} p90${c.reset}  ${c.dim}(${ct.samples} tasks)${c.reset}`);
+    } else {
+      console.log(`  Cycle time:      ${c.dim}—${c.reset}`);
+    }
+
+    // Failure rate
+    const fr = m.failureRate;
+    const frStr = fr == null ? "—" : `${Math.round(fr * 100)}%`;
+    const frColor = fr == null ? c.dim : fr > 0.2 ? c.red : fr > 0.05 ? c.yellow : c.green;
+    console.log(`  Failure rate:    ${frColor}${c.bold}${frStr}${c.reset}`);
+
+    // Gate pass rate
+    const gpr = m.gatePassRate;
+    const gprStr = gpr == null ? "—" : `${Math.round(gpr * 100)}%`;
+    const gprColor = gpr == null ? c.dim : gpr >= 0.9 ? c.green : gpr >= 0.7 ? c.yellow : c.red;
+    console.log(`  Gate pass rate:  ${gprColor}${c.bold}${gprStr}${c.reset}`);
+
+    // Re-plan rate
+    const rr = m.replanRate;
+    const rrStr = rr == null ? "—" : `${Math.round(rr * 100)}%`;
+    console.log(`  Re-plan rate:    ${c.bold}${rrStr}${c.reset}`);
+
+    // Flow usage
+    const fu = m.flowUsage;
+    const fuTotal = Object.values(fu).reduce((s, n) => s + n, 0);
+    if (fuTotal > 0) {
+      const parts = Object.entries(fu)
+        .filter(([, n]) => n > 0)
+        .map(([flow, n]) => `${flow}: ${n}`)
+        .join("  ");
+      console.log(`  Flow templates:  ${c.dim}${parts}${c.reset}`);
+    }
+
+    console.log(`  Features:        ${c.bold}${m.features}${c.reset}`);
+  } catch {
+    console.log(`  ${c.dim}Sprint analytics unavailable.${c.reset}`);
   }
 }
 

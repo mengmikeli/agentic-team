@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "per-command-help-add-agt-help-command-with-usage-f",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-21T04:22:09.232Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T04:27:14.226Z",
-  "_write_nonce": "af6d77c43ec75be7"
+  "_last_modified": "2026-04-21T04:27:19.613Z",
+  "_write_nonce": "65b0f4bd609f8d5e",
+  "completedAt": "2026-04-21T04:27:19.613Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "5m"
+  }
 }

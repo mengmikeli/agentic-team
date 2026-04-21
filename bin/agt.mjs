@@ -92,7 +92,7 @@ switch (command) {
       },
       metrics: {
         usage: "agt metrics",
-        description: "Show token usage and cost statistics for all features in the current project.",
+        description: "Show token usage, cost statistics, and sprint analytics. The Sprint section displays cycle time (median + p90), failure rate, gate pass rate, flow template usage, and re-plan rate for the active or most recently completed sprint.",
         flags: [],
         examples: ["agt metrics"],
       },
