@@ -18,6 +18,7 @@ import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
 import { outerLoop } from "./outer-loop.mjs";
+import { buildReplanBrief, parseReplanOutput, applyReplan } from "./replan.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "agt-harness.mjs");
@@ -918,8 +919,24 @@ async function _runSingleFeature(args, description) {
           if (attempt === maxRetries) {
             harness("transition", "--task", task.id, "--status", "blocked",
               "--dir", featureDir, "--reason", `Review FAIL after ${maxRetries} attempts`);
-            blocked++;
-            console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+            if (!task.replan && agent) {
+              const replanBrief = buildReplanBrief(task, lastFailure, tasks.slice(i + 1), spec, featureName);
+              const replanRaw = dispatchToAgent(agent, replanBrief, cwd);
+              const replanResult = parseReplanOutput(replanRaw.output);
+              if (replanResult && replanResult.verdict !== "abandon") {
+                applyReplan(tasks, task, replanResult);
+                const updState = readState(featureDir);
+                if (updState) { updState.tasks = tasks; writeState(featureDir, updState); }
+                appendProgress(featureDir, `**Re-plan for task ${i + 1}: ${task.title}**\n- Verdict: ${replanResult.verdict}\n- Rationale: ${replanResult.rationale}`);
+                console.log(`  ${c.cyan}↻ Re-plan: ${replanResult.verdict} — ${replanResult.tasks.length} task(s) injected${c.reset}\n`);
+              } else {
+                blocked++;
+                console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+              }
+            } else {
+              blocked++;
+              console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+            }
           }
           continue; // retry the task with review feedback
         }
@@ -942,9 +959,26 @@ async function _runSingleFeature(args, description) {
             "--dir", featureDir, "--reason", `Failed after ${maxRetries} attempts`);
           harness("notify", "--event", "task-blocked", "--msg",
             `✗ Task ${i + 1}/${tasks.length}: ${task.title} — failed after ${maxRetries} attempts`);
-          blocked++;
-          console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
-          if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
+          if (!task.replan && agent) {
+            const replanBrief = buildReplanBrief(task, lastFailure, tasks.slice(i + 1), spec, featureName);
+            const replanRaw = dispatchToAgent(agent, replanBrief, cwd);
+            const replanResult = parseReplanOutput(replanRaw.output);
+            if (replanResult && replanResult.verdict !== "abandon") {
+              applyReplan(tasks, task, replanResult);
+              const updState = readState(featureDir);
+              if (updState) { updState.tasks = tasks; writeState(featureDir, updState); }
+              appendProgress(featureDir, `**Re-plan for task ${i + 1}: ${task.title}**\n- Verdict: ${replanResult.verdict}\n- Rationale: ${replanResult.rationale}`);
+              console.log(`  ${c.cyan}↻ Re-plan: ${replanResult.verdict} — ${replanResult.tasks.length} task(s) injected${c.reset}\n`);
+            } else {
+              blocked++;
+              console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+              if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
+            }
+          } else {
+            blocked++;
+            console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+            if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
+          }
         }
       }
     }

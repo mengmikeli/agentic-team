@@ -38,13 +38,14 @@ export function cmdStatus(args) {
     const tasks = feat.tasks || {};
     const taskStr = `${tasks.passed || 0}/${tasks.total || 0}`;
     const blockedStr = tasks.blocked ? ` ${c.red}(${tasks.blocked} blocked)${c.reset}` : "";
+    const replannedStr = tasks.replanned ? ` ${c.cyan}(${tasks.replanned} re-planned)${c.reset}` : "";
     const gateStr = `${feat.gates?.passed || 0}/${feat.gates?.total || 0}`;
     const updated = feat.lastModified ? relativeTime(feat.lastModified) : "—";
 
     console.log(
       `  ${pad(feat.name, 24)} ` +
       `${statusColor}${pad(feat.status, 12)}${c.reset} ` +
-      `${pad(taskStr, 16)}${blockedStr} ` +
+      `${pad(taskStr, 16)}${blockedStr}${replannedStr} ` +
       `${pad(gateStr, 10)} ` +
       `${c.dim}${pad(updated, 12)}${c.reset}`
     );
@@ -90,6 +91,7 @@ function readFeatures(teamDir) {
             failed: (state.tasks || []).filter(t => t.status === "failed").length,
             blocked: (state.tasks || []).filter(t => t.status === "blocked").length,
             pending: (state.tasks || []).filter(t => t.status === "pending").length,
+            replanned: (state.tasks || []).filter(t => t.replanSource).length,
           },
           gates: {
             total: (state.gates || []).length,
