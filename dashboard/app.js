@@ -61,7 +61,7 @@ window.selectBoardFeature = function (name) {
 };
 
 window.changeBoardFeature = function (name) {
-  selectedFeature = name;
+  selectedFeature = name || null;
   render();
 };
 
@@ -296,7 +296,8 @@ function renderTokenSection() {
     <div class="token-grid">
       <div class="token-summary-card">
         <div class="token-total">${formatTokens(summary.total || 0)}</div>
-        <div class="token-total-label">Total tokens (last 7 days)</div>
+        <div class="token-total-label">All Projects · Last 7 Days</div>
+        <div class="token-data-note">pew tracks by tool, not per project</div>
         <div class="token-breakdown">
           <div class="token-row">
             <span class="token-row-label"><span class="token-row-dot" style="background:var(--accent)"></span> Input</span>
@@ -421,15 +422,18 @@ function renderTimeline(withState) {
 }
 
 // ── Section 4: Task Board ──
-function renderBoard(withState, activeFeature) {
-  const boardFeature =
-    (selectedFeature && withState.find((f) => f.name === selectedFeature)) ||
-    activeFeature ||
-    withState.filter((f) => f.status === "completed")
-      .sort((a, b) => (b.completedAt || "").localeCompare(a.completedAt || ""))[0] ||
-    withState[0];
+function buildFeatureSelector(withState, currentName) {
+  if (withState.length <= 1) return '';
+  return `<div class="board-feature-selector">
+    <select onchange="changeBoardFeature(this.value)">
+      <option value="" ${!currentName ? 'selected' : ''}>Recent Activity</option>
+      ${withState.map((f) => `<option value="${esc(f.name)}" ${f.name === currentName ? 'selected' : ''}>${esc(humanizeName(f.name))} (${f.status})</option>`).join('')}
+    </select>
+  </div>`;
+}
 
-  if (!boardFeature?.status) {
+function renderBoard(withState, activeFeature) {
+  if (!withState.length) {
     return `
     <div class="dashboard-section" id="section-board">
       <div class="section-header">Task Board</div>
@@ -440,6 +444,20 @@ function renderBoard(withState, activeFeature) {
     </div>`;
   }
 
+  const explicitFeature = selectedFeature ? withState.find((f) => f.name === selectedFeature) : null;
+  const boardFeature = explicitFeature || activeFeature;
+
+  // No active feature and no explicit selection → recent activity feed
+  if (!boardFeature) return renderRecentActivity(withState);
+
+  // Completed feature → compact summary (not a wall of Done cards)
+  if (boardFeature.status === 'completed') return renderCompletedSummary(boardFeature, withState);
+
+  // Active/executing feature → full kanban
+  return renderKanban(boardFeature, withState);
+}
+
+function renderKanban(boardFeature, withState) {
   const tasks = (boardFeature.tasks || []).filter((t) => !isGateTask(t));
   const columns = {
     pending: tasks.filter((t) => t.status === "pending"),
@@ -449,14 +467,7 @@ function renderBoard(withState, activeFeature) {
   };
   const icons = { pending: "⏳", "in-progress": "🔄", passed: "✅", blocked: "🚫" };
   const labels = { pending: "Pending", "in-progress": "In Progress", passed: "Done", blocked: "Blocked" };
-
-  const featureOptions = withState.length > 1
-    ? `<div class="board-feature-selector">
-        <select onchange="changeBoardFeature(this.value)">
-          ${withState.map((f) => `<option value="${esc(f.name)}" ${f.name === boardFeature.name ? "selected" : ""}>${esc(humanizeName(f.name))} (${f.status})</option>`).join("")}
-        </select>
-      </div>`
-    : "";
+  const featureOptions = buildFeatureSelector(withState, boardFeature.name);
 
   return `
   <div class="dashboard-section" id="section-board">
@@ -466,13 +477,12 @@ function renderBoard(withState, activeFeature) {
       ${featureOptions}
     </div>
     <div class="board">
-      ${Object.entries(columns).map(([col, items]) => {
-        return `
+      ${Object.entries(columns).map(([col, items]) => `
         <div class="board-column">
           <div class="board-column-header">
             ${icons[col]} ${labels[col]} <span class="board-column-count">${items.length}</span>
           </div>
-          ${items.length === 0 ? '<div class="board-empty">—</div>' : ""}}
+          ${items.length === 0 ? '<div class="board-empty">—</div>' : ''}
           ${items.map((t) => `
             <div class="board-task">
               <div class="board-task-id">${esc(t.id)}</div>
@@ -484,9 +494,107 @@ function renderBoard(withState, activeFeature) {
               </div>
             </div>
           `).join("")}
-        </div>`;
-      }).join("")}
+        </div>`).join("")}
     </div>
+  </div>`;
+}
+
+function renderCompletedSummary(f, withState) {
+  const tasks = (f.tasks || []).filter((t) => !isGateTask(t));
+  const cycleTime = f.createdAt && f.completedAt
+    ? formatDuration(new Date(f.completedAt) - new Date(f.createdAt))
+    : '—';
+  const featureOptions = buildFeatureSelector(withState, f.name);
+
+  return `
+  <div class="dashboard-section" id="section-board">
+    <div class="section-header">Task Board</div>
+    <div class="board-header">
+      <div class="board-feature-name">${esc(humanizeName(f.name))} <span class="badge badge-completed">completed</span></div>
+      ${featureOptions}
+    </div>
+    <div class="completed-summary">
+      <div class="completed-stats">
+        <div class="completed-stat">
+          <div class="completed-stat-value">${tasks.length}</div>
+          <div class="completed-stat-label">Tasks</div>
+        </div>
+        <div class="completed-stat">
+          <div class="completed-stat-value">${cycleTime}</div>
+          <div class="completed-stat-label">Cycle Time</div>
+        </div>
+        ${f.completedAt ? `<div class="completed-stat">
+          <div class="completed-stat-value">${relativeTime(f.completedAt)}</div>
+          <div class="completed-stat-label">Completed</div>
+        </div>` : ''}
+      </div>
+      <div class="completed-task-list">
+        ${tasks.length === 0
+          ? '<div class="board-empty">No tasks recorded</div>'
+          : tasks.map((t) => `
+          <div class="completed-task">
+            <span class="completed-task-check">✓</span>
+            <span class="completed-task-id">${esc(t.id)}</span>
+            ${t.description || t.title
+              ? `<span class="completed-task-desc">${esc(truncate(t.description || t.title, 100))}</span>`
+              : '<span class="completed-task-desc" style="color:var(--text-muted)">—</span>'}
+            <div class="completed-task-meta">
+              ${t.lastGate ? `<span class="gate-badge gate-${t.lastGate.verdict}">${t.lastGate.verdict}</span>` : ''}
+              ${t.duration ? `<span class="board-task-duration">⏱ ${t.duration}</span>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderRecentActivity(withState) {
+  const events = [];
+  for (const f of withState) {
+    const tasks = (f.tasks || []).filter((t) => !isGateTask(t));
+    for (const t of tasks) {
+      if (t.lastTransition) {
+        events.push({ feature: f, task: t, time: t.lastTransition });
+      }
+    }
+  }
+  events.sort((a, b) => b.time.localeCompare(a.time));
+  const recent = events.slice(0, 10);
+
+  const featureOptions = buildFeatureSelector(withState, '');
+  const statusIcons = {
+    passed: '✅', failed: '❌', blocked: '🚫', 'in-progress': '🔄', pending: '⏳', skipped: '⏭️',
+  };
+
+  return `
+  <div class="dashboard-section" id="section-board">
+    <div class="section-header">Task Board</div>
+    <div class="board-header">
+      <div class="board-feature-name board-feature-name--dim">Recent Activity</div>
+      ${featureOptions}
+    </div>
+    ${recent.length === 0
+      ? `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No recent activity</div></div>`
+      : `<div class="activity-feed">
+          ${recent.map((e) => `
+            <div class="activity-item" onclick="selectBoardFeature('${esc(e.feature.name).replace(/'/g, "\\'")}')">
+              <div class="activity-icon">${statusIcons[e.task.status] || '📌'}</div>
+              <div class="activity-body">
+                <div class="activity-task">${esc(truncate(e.task.description || e.task.title, 80))}</div>
+                <div class="activity-meta">
+                  <span class="activity-feature">${esc(humanizeName(e.feature.name))}</span>
+                  <span class="activity-time">${relativeTime(e.time)}</span>
+                  ${e.task.lastGate ? `<span class="gate-badge gate-${e.task.lastGate.verdict}">${e.task.lastGate.verdict}</span>` : ''}
+                </div>
+              </div>
+              <div class="activity-status">
+                <span class="badge badge-task-${e.task.status.replace('-', '')}">${e.task.status}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>`
+    }
   </div>`;
 }
 

@@ -1,0 +1,37 @@
+{
+  "version": "2.0",
+  "feature": "fix-dashboard-1-board-should-show-a-summary-view-w",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Fix dashboard: 1) Board should show a summary view when all tasks are done (completed features show a compact summary instead of empty Kanban columns). 2) Token section needs honest handling — pew tracks by tool not by project, so show 'All Projects' label with a note, or estimate per-project by correlating STATE.json gate timestamps with pew daily data. 3) When no active feature, board should show recent activity instead of a wall of green Done cards.",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 48,
+      "lastTransition": "2026-04-21T09:45:16.743Z"
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 49
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-21T09:45:16.743Z"
+    }
+  ],
+  "createdAt": "2026-04-21T09:45:04.657Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-21T09:45:16.743Z",
+  "_write_nonce": "97c944a7f005613c"
+}

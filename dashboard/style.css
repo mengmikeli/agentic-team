@@ -295,6 +295,13 @@ main {
 .token-total-label {
   font-size: 13px;
   color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.token-data-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
   margin-bottom: 16px;
 }
 
@@ -780,4 +787,164 @@ main {
   font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.4;
+}
+
+/* ── Task status badges (for activity feed) ── */
+.badge-task-pending     { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+.badge-task-inprogress  { background: rgba(210,153,34,0.15); color: var(--yellow); }
+.badge-task-passed      { background: rgba(63,185,80,0.15); color: var(--green); }
+.badge-task-failed      { background: rgba(248,81,73,0.15); color: var(--red); }
+.badge-task-blocked     { background: rgba(248,81,73,0.15); color: var(--red); }
+.badge-task-skipped     { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+
+/* ── Completed feature summary ── */
+.board-feature-name--dim {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.completed-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.completed-stats {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.completed-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.completed-stat-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.completed-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.completed-task {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.completed-task-check {
+  color: var(--green);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.completed-task-id {
+  font-weight: 600;
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: 12px;
+  min-width: 56px;
+}
+
+.completed-task-desc {
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.completed-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Recent Activity feed ── */
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.activity-item:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.activity-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.activity-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-task {
+  font-weight: 500;
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.activity-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.activity-feature {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.activity-time {
+  color: var(--text-muted);
+}
+
+.activity-status {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .completed-stats { gap: 20px; }
+  .completed-task { flex-wrap: wrap; }
+  .activity-item { flex-wrap: wrap; }
+  .activity-status { width: 100%; }
 }

@@ -1,0 +1,14 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Fixed dashboard board with three improvements: (1) completed features now show a compact summary view (cycle time, task count, task list) instead of a wall of green Done Kanban columns; (2) the token section now shows 'All Projects · Last 7 Days' label with a note explaining pew tracks by tool not per project; (3) when no feature is active and none is explicitly selected, the board shows a recent activity feed aggregated from task lastTransition timestamps across all features, with a 'Recent Activity' dropdown option to reset to this view.",
+  "timestamp": "2026-04-21T10:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "dashboard/app.js" },
+    { "type": "code", "path": "dashboard/style.css" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
