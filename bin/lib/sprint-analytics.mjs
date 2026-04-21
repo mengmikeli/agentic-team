@@ -1,6 +1,6 @@
 // Sprint analytics — aggregate execution metrics per sprint from STATE.json files
 
-import { existsSync, readFileSync, readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
 
 const MONTH_MAP = { Jan:1, Feb:2, Mar:3, Apr:4, May:5, Jun:6, Jul:7, Aug:8, Sep:9, Oct:10, Nov:11, Dec:12 };
@@ -179,18 +179,32 @@ export function computeReplanRate(states) {
 }
 
 // Main aggregation function — returns sprint analytics object
-export function computeSprintMetrics(teamDir) {
-  const sprint = findTargetSprint(teamDir);
+// sprintNameOverride: if provided, find that sprint by name instead of active/most-recent
+export function computeSprintMetrics(teamDir, sprintNameOverride = null) {
+  let sprint;
+  if (sprintNameOverride) {
+    const sprintsPath = join(teamDir, "SPRINTS.md");
+    const sprints = parseSprints(sprintsPath);
+    const found = sprints.find(s => s.name === sprintNameOverride);
+    sprint = found ? { ...found, type: found.status } : { name: sprintNameOverride, type: "named", dates: null };
+  } else {
+    sprint = findTargetSprint(teamDir);
+  }
+
   const allStates = loadFeatureStates(teamDir);
   const states = sprint?.dates ? filterByDateRange(allStates, sprint.dates) : allStates;
 
+  const baseResult = { sprint, features: states.length };
+
   if (states.length === 0) {
-    return { sprint, features: 0, noData: true };
+    const noDataResult = { ...baseResult, noData: true };
+    persistAnalytics(teamDir, sprint, noDataResult);
+    return noDataResult;
   }
 
   const cycleTimes = computeCycleTime(states).sort((a, b) => a - b);
 
-  return {
+  const result = {
     sprint,
     features: states.length,
     cycleTime: {
@@ -203,4 +217,20 @@ export function computeSprintMetrics(teamDir) {
     flowUsage: computeFlowUsage(states),
     replanRate: computeReplanRate(states),
   };
+
+  persistAnalytics(teamDir, sprint, result);
+  return result;
+}
+
+// Persist analytics to .team/sprints/{sprint.name}/analytics.json
+function persistAnalytics(teamDir, sprint, result) {
+  if (!sprint?.name) return;
+  try {
+    const sprintsDir = join(teamDir, "sprints", sprint.name);
+    mkdirSync(sprintsDir, { recursive: true });
+    writeFileSync(
+      join(sprintsDir, "analytics.json"),
+      JSON.stringify({ ...result, computedAt: new Date().toISOString() }, null, 2)
+    );
+  } catch { /* non-fatal — display still works without persistence */ }
 }

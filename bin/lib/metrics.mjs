@@ -7,7 +7,14 @@ import { c } from "./util.mjs";
 import { computeSprintMetrics } from "./sprint-analytics.mjs";
 
 export function cmdMetrics(args) {
-  const dir = args[0] || ".";
+  // Parse --sprint <name> flag
+  let sprintName = null;
+  const sprintIdx = args.indexOf("--sprint");
+  if (sprintIdx !== -1) {
+    sprintName = args[sprintIdx + 1] || null;
+  }
+  // dir is the first non-flag, non-sprint-value argument
+  const dir = args.find((a, i) => !a.startsWith("--") && a !== sprintName && (sprintIdx === -1 || i !== sprintIdx + 1)) || ".";
 
   console.log(`\n${c.bold}${c.cyan}📊 Metrics${c.reset}\n`);
 
@@ -34,7 +41,7 @@ export function cmdMetrics(args) {
 
   // Sprint analytics
   if (existsSync(teamDir)) {
-    showSprintMetrics(teamDir);
+    showSprintMetrics(teamDir, sprintName);
   }
 
   console.log();
@@ -211,9 +218,9 @@ function showFeatureMetrics(teamDir) {
   }
 }
 
-function showSprintMetrics(teamDir) {
+function showSprintMetrics(teamDir, sprintName = null) {
   try {
-    const m = computeSprintMetrics(teamDir);
+    const m = computeSprintMetrics(teamDir, sprintName);
 
     const sprintLabel = m.sprint
       ? `${m.sprint.name} (${m.sprint.type})`

@@ -91,10 +91,12 @@ switch (command) {
         examples: ["agt board", "agt board my-feature-slug"],
       },
       metrics: {
-        usage: "agt metrics",
+        usage: "agt metrics [--sprint <name>]",
         description: "Show token usage, cost statistics, and sprint analytics. The Sprint section displays cycle time (median + p90), failure rate, gate pass rate, flow template usage, and re-plan rate for the active or most recently completed sprint.",
-        flags: [],
-        examples: ["agt metrics"],
+        flags: [
+          "--sprint <name>   Show analytics for a specific named sprint",
+        ],
+        examples: ["agt metrics", "agt metrics --sprint s3-hardening"],
       },
       stop: {
         usage: "agt stop [feature] [--daemon]",

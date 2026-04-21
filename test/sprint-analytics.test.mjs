@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync, rmSync } from "fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -304,6 +304,66 @@ describe("computeSprintMetrics integration", () => {
       assert.ok(Math.abs(m.cycleTime.median - 30) < 0.1, "median should be ~30 min");
       assert.equal(m.gatePassRate, 1, "gate pass rate should be 100%");
       assert.equal(m.failureRate, 0, "failure rate should be 0%");
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("persists analytics.json to .team/sprints/{sprint}/", () => {
+    const t0 = "2026-04-14T10:00:00.000Z";
+    const t1 = "2026-04-14T10:30:00.000Z";
+
+    const tmpDir = createTmpTeamDir(
+      `# Sprints\n| Sprint | Status | Version | Dates |\n|--------|--------|---------|-------|\n| s3-hardening | ✅ Done | v2.1 | Apr 14–18 |\n`,
+      `# Project\n## Active Sprint\nNone\n`,
+      {
+        feat1: {
+          createdAt: "2026-04-14T10:00:00Z",
+          tasks: [{ id: "t1", status: "passed", lastGate: { timestamp: t1, verdict: "PASS" } }],
+          gates: [{ verdict: "PASS", taskId: "t1" }],
+          transitionHistory: [{ taskId: "t1", status: "in-progress", timestamp: t0 }],
+        },
+      }
+    );
+
+    try {
+      computeSprintMetrics(tmpDir);
+      const analyticsPath = join(tmpDir, "sprints", "s3-hardening", "analytics.json");
+      assert.ok(existsSync(analyticsPath), "analytics.json should be written");
+      const data = JSON.parse(readFileSync(analyticsPath, "utf8"));
+      assert.ok(data.computedAt, "analytics.json should have computedAt timestamp");
+      assert.equal(data.features, 1, "analytics.json should have feature count");
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("accepts sprintName override to target a specific sprint", () => {
+    const t0 = "2026-04-14T10:00:00.000Z";
+    const t1 = "2026-04-14T10:30:00.000Z";
+
+    const tmpDir = createTmpTeamDir(
+      `# Sprints\n| Sprint | Status | Version | Dates |\n|--------|--------|---------|-------|\n| s3-hardening | ✅ Done | v2.1 | Apr 14–18 |\n| s4-next | 🚀 Active | v2.2 | Apr 21–28 |\n`,
+      `# Project\n## Active Sprint\ns4-next\n`,
+      {
+        feat1: {
+          createdAt: "2026-04-14T10:00:00Z",
+          tasks: [{ id: "t1", status: "passed", lastGate: { timestamp: t1, verdict: "PASS" } }],
+          gates: [{ verdict: "PASS", taskId: "t1" }],
+          transitionHistory: [{ taskId: "t1", status: "in-progress", timestamp: t0 }],
+        },
+      }
+    );
+
+    try {
+      // Without override: active sprint s4-next has no features in Apr 21-28 range
+      const defaultMetrics = computeSprintMetrics(tmpDir);
+      assert.equal(defaultMetrics.sprint?.name, "s4-next", "default should use active sprint");
+
+      // With override: s3-hardening matches feat1 created Apr 14
+      const overrideMetrics = computeSprintMetrics(tmpDir, "s3-hardening");
+      assert.equal(overrideMetrics.sprint?.name, "s3-hardening", "override should use named sprint");
+      assert.equal(overrideMetrics.features, 1, "should find feature in s3-hardening range");
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
     }
