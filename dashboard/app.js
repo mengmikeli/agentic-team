@@ -161,7 +161,7 @@ function render() {
 function renderStatusHero(active, completed, withState) {
   if (active) {
     const s = active;
-    const tasks = s.tasks || [];
+    const tasks = (s.tasks || []).filter((t) => !isGateTask(t));
     const passed = tasks.filter((t) => t.status === "passed").length;
     const pct = tasks.length > 0 ? Math.round((passed / tasks.length) * 100) : 0;
     const duration = s.summary?.duration || computeDuration(s.createdAt);
@@ -431,7 +431,7 @@ function renderBoard(withState, activeFeature) {
     </div>`;
   }
 
-  const tasks = boardFeature.tasks || [];
+  const tasks = (boardFeature.tasks || []).filter((t) => !isGateTask(t));
   const columns = {
     pending: tasks.filter((t) => t.status === "pending"),
     "in-progress": tasks.filter((t) => t.status === "in-progress"),
@@ -458,14 +458,13 @@ function renderBoard(withState, activeFeature) {
     </div>
     <div class="board">
       ${Object.entries(columns).map(([col, items]) => {
-        const realTasks = items.filter((t) => !isGateTask(t));
         return `
         <div class="board-column">
           <div class="board-column-header">
-            ${icons[col]} ${labels[col]} <span class="board-column-count">${realTasks.length}</span>
+            ${icons[col]} ${labels[col]} <span class="board-column-count">${items.length}</span>
           </div>
-          ${realTasks.length === 0 ? '<div class="board-empty">—</div>' : ""}
-          ${realTasks.map((t) => `
+          ${items.length === 0 ? '<div class="board-empty">—</div>' : ""}}
+          ${items.map((t) => `
             <div class="board-task">
               <div class="board-task-id">${esc(t.id)}</div>
               ${t.description || t.title ? `<div class="board-task-desc">${esc(truncate(t.description || t.title, 80))}</div>` : ""}
