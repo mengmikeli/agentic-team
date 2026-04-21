@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "impeccable-design-overhaul-of-the-dashboard-dashbo",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-21T14:45:12.559Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T14:57:23.388Z",
-  "_write_nonce": "5cfa8af2f34354f2"
+  "_last_modified": "2026-04-21T14:59:47.504Z",
+  "_write_nonce": "1d00fcc0297c61fa",
+  "completedAt": "2026-04-21T14:59:47.504Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "15m"
+  }
 }
