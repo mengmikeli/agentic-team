@@ -6,3 +6,5 @@
 {"ts":"2026-04-21T14:13:56.378Z","event":"task-started","msg":"▶ Task 1/2: Complete dashboard redesign and audit. The current IA is broken — global token data is under a per-project filter, which is misleading. Fix the entire information architecture:"}
 {"ts":"2026-04-21T14:45:12.609Z","event":"feature-started","msg":"▶ Feature: impeccable-design-overhaul-of-the-dashboard-dashbo (2 tasks planned)"}
 {"ts":"2026-04-21T14:45:28.235Z","event":"task-started","msg":"▶ Task 1/2: Impeccable design overhaul of the dashboard (dashboard/index.html, dashboard/app.js, dashboard/style.css)."}
+{"ts":"2026-04-21T14:55:45.118Z","event":"task-passed","msg":"✓ Task 1/2: Impeccable design overhaul of the dashboard (dashboard/index.html, dashboard/app.js, dashboard/style.css)."}
+{"ts":"2026-04-21T14:55:54.027Z","event":"task-started","msg":"▶ Task 2/2: Quality gate passes"}

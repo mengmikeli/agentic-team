@@ -25,9 +25,21 @@
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "pending",
+      "status": "passed",
       "attempts": 0,
-      "issueNumber": 57
+      "issueNumber": 57,
+      "lastTransition": "2026-04-21T14:55:50.973Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-21T14:57:23.388Z",
+        "taskId": "task-2",
+        "warnings": 0,
+        "newWarnings": 0
+      }
     }
   ],
   "gates": [
@@ -41,9 +53,20 @@
       "taskId": "task-1",
       "warnings": 0,
       "newWarnings": 0
+    },
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-21T14:57:23.388Z",
+      "taskId": "task-2",
+      "warnings": 0,
+      "newWarnings": 0
     }
   ],
-  "transitionCount": 1,
+  "transitionCount": 2,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -51,10 +74,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-21T14:45:25.205Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-21T14:55:50.973Z"
     }
   ],
   "createdAt": "2026-04-21T14:45:12.559Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T14:53:07.365Z",
-  "_write_nonce": "9a1fa0cfaba1c06b"
+  "_last_modified": "2026-04-21T14:57:23.388Z",
+  "_write_nonce": "5cfa8af2f34354f2"
 }
