@@ -6,10 +6,21 @@
     {
       "id": "task-1",
       "title": "Per-command help — Add `agt help <command>` with usage, flags, and examples for each command. Currently `agt` only shows a flat list.",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 28,
-      "lastTransition": "2026-04-21T04:22:20.422Z"
+      "lastTransition": "2026-04-21T04:22:20.422Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-21T04:25:45.327Z",
+        "taskId": "task-1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
     },
     {
       "id": "task-2",
@@ -19,7 +30,19 @@
       "issueNumber": 29
     }
   ],
-  "gates": [],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-21T04:25:45.327Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
   "transitionCount": 1,
   "transitionHistory": [
     {
@@ -32,6 +55,6 @@
   ],
   "createdAt": "2026-04-21T04:22:09.232Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T04:22:20.422Z",
-  "_write_nonce": "5401f049ccae76fb"
+  "_last_modified": "2026-04-21T04:25:45.327Z",
+  "_write_nonce": "e6f53c0f111894b3"
 }

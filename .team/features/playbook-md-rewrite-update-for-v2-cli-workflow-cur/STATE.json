@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "playbook-md-rewrite-update-for-v2-cli-workflow-cur",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-21T04:16:41.438Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T04:20:28.266Z",
-  "_write_nonce": "0807d4d2c0b79fc9"
+  "_last_modified": "2026-04-21T04:20:33.600Z",
+  "_write_nonce": "265b509ba3195e0f",
+  "completedAt": "2026-04-21T04:20:33.600Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "4m"
+  }
 }
