@@ -80,6 +80,18 @@ export function notify(channels, event, msg) {
   }
 }
 
+// ── Write to shared notify stream for SSE dashboard ─────────────
+
+export function writeNotifyStream(cwd, event, msg) {
+  const streamPath = join(cwd, ".team", ".notify-stream");
+  const ts = new Date().toISOString();
+  const line = JSON.stringify({ ts, event, msg }) + "\n";
+  try {
+    mkdirSync(dirname(streamPath), { recursive: true });
+    appendFileSync(streamPath, line);
+  } catch { /* best-effort */ }
+}
+
 // ── Legacy harness-compatible interface ─────────────────────────
 
 export function cmdNotify(args) {
@@ -101,5 +113,6 @@ export function cmdNotify(args) {
 
   const channels = parseNotifyConfig(process.cwd());
   notify(channels, event, msg);
+  writeNotifyStream(process.cwd(), event, msg);
   console.log(JSON.stringify({ ok: true, event, channels }));
 }

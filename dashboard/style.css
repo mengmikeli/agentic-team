@@ -91,6 +91,15 @@ nav {
   50% { opacity: 0.4; }
 }
 
+.sse-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--cyan);
+  animation: pulse-dot 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
 /* ── Main ── */
 main {
   max-width: 1200px;

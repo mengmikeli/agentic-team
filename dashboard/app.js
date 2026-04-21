@@ -32,6 +32,8 @@ let backlogItems = [];
 let tokenData = null;
 let selectedFeature = null;
 let refreshTimer = null;
+let eventSource = null;
+let sseConnected = false;
 
 
 // ── Project selector ──
@@ -112,10 +114,11 @@ async function loadProjectData() {
     if (tokenRes?.ok) tokenData = await tokenRes.json();
   } catch {}
   render();
+  startSSE();
   startAutoRefresh();
 }
 
-// ── Auto-refresh (10s) — only refreshes features for active section ──
+// ── Auto-refresh (10s fallback) — only refreshes features for active section ──
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(async () => {
@@ -129,6 +132,44 @@ function startAutoRefresh() {
       }
     } catch {}
   }, 10000);
+}
+
+// ── SSE real-time updates ──
+function startSSE() {
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  if (!currentProject) return;
+
+  const path = encodeURIComponent(currentProject.path);
+  eventSource = new EventSource(`/api/events?path=${path}`);
+
+  eventSource.onopen = () => {
+    sseConnected = true;
+    updateSSEIndicator();
+  };
+
+  eventSource.onmessage = async (e) => {
+    try {
+      const ev = JSON.parse(e.data);
+      const refreshEvents = ["task-started", "task-passed", "task-blocked", "feature-complete", "feature-started"];
+      if (refreshEvents.includes(ev.event)) {
+        const path = encodeURIComponent(currentProject.path);
+        try {
+          const res = await fetch(`/api/features?path=${path}`);
+          if (res.ok) { features = await res.json(); render(); }
+        } catch {}
+      }
+    } catch {}
+  };
+
+  eventSource.onerror = () => {
+    sseConnected = false;
+    updateSSEIndicator();
+  };
+}
+
+function updateSSEIndicator() {
+  const dot = document.getElementById("sse-live-dot");
+  if (dot) dot.style.display = sseConnected ? "inline-block" : "none";
 }
 
 // ── Render ──
@@ -155,6 +196,9 @@ function render() {
   } else {
     navStatus.innerHTML = `<span style="color:var(--text-muted)">Idle</span>`;
   }
+  // Show SSE live indicator
+  const liveDot = document.getElementById("sse-live-dot");
+  if (liveDot) liveDot.style.display = sseConnected ? "inline-block" : "none";
 
   app.innerHTML = `
     ${renderStatusHero(active, completed, withState)}

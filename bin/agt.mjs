@@ -456,6 +456,47 @@ switch (command) {
           if (pathname === "/api/tokens") {
             return jsonRes(res, loadTokenData(fs, join, home));
           }
+          if (pathname === "/api/events") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const streamPath = join(pp, ".team", ".notify-stream");
+
+            res.writeHead(200, {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+              "Connection": "keep-alive",
+              "Access-Control-Allow-Origin": "*",
+            });
+            res.write("retry: 3000\n\n");
+            res.write(": connected\n\n");
+
+            let lastSize = fs.existsSync(streamPath) ? fs.statSync(streamPath).size : 0;
+
+            const poll = setInterval(() => {
+              if (!fs.existsSync(streamPath)) return;
+              try {
+                const stat = fs.statSync(streamPath);
+                if (stat.size <= lastSize) return;
+                const buf = Buffer.alloc(stat.size - lastSize);
+                const fd = fs.openSync(streamPath, "r");
+                fs.readSync(fd, buf, 0, buf.length, lastSize);
+                fs.closeSync(fd);
+                lastSize = stat.size;
+                for (const line of buf.toString("utf8").split("\n").filter(Boolean)) {
+                  try { res.write(`data: ${line}\n\n`); } catch {}
+                }
+              } catch {}
+            }, 500);
+
+            const heartbeat = setInterval(() => {
+              try { res.write(": heartbeat\n\n"); } catch {}
+            }, 15000);
+
+            req.on("close", () => {
+              clearInterval(poll);
+              clearInterval(heartbeat);
+            });
+            return;
+          }
           // Fallback: raw .team/ files
           const teamDir = join(process.cwd(), ".team");
           const apiPath = pathname.replace("/api/", "");

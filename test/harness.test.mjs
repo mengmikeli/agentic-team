@@ -204,6 +204,17 @@ describe("at-harness", () => {
       assert.equal(result.ok, false);
       assert.ok(result.error.includes("invalid event"));
     });
+
+    it("writes event to .team/.notify-stream", () => {
+      harnessJSON("notify", "--event", "task-passed", "--msg", "Task done");
+      const streamPath = join(testDir, ".team", ".notify-stream");
+      assert.ok(existsSync(streamPath), ".notify-stream should exist");
+      const lines = readFileSync(streamPath, "utf8").trim().split("\n").filter(Boolean);
+      const last = JSON.parse(lines[lines.length - 1]);
+      assert.equal(last.event, "task-passed");
+      assert.equal(last.msg, "Task done");
+      assert.ok(last.ts, "should have timestamp");
+    });
   });
 
   describe("finalize", () => {
