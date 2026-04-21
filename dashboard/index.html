@@ -4,23 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>⚡ agentic-team</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <nav>
+  <nav aria-label="Dashboard navigation">
     <div class="nav-brand">⚡ agentic-team</div>
-    <div class="tab-bar">
-      <button class="tab-btn tab-active" data-tab="project" onclick="switchTab('project')">Projects</button>
-      <button class="tab-btn" data-tab="tokens" onclick="switchTab('tokens')">Token Usage</button>
+    <div class="tab-bar" role="tablist" aria-label="Dashboard views" id="tab-bar">
+      <button class="tab-btn tab-active" role="tab" aria-selected="true" aria-controls="app" data-tab="project" onclick="switchTab('project')">Projects</button>
+      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="app" data-tab="tokens" onclick="switchTab('tokens')">Token Usage</button>
     </div>
-    <select id="project-select" class="project-select">
+    <select id="project-select" class="project-select" aria-label="Select project">
       <option>Loading…</option>
     </select>
-    <div class="nav-status" id="nav-status"></div>
-    <span id="sse-live-dot" class="sse-live-dot" style="display:none" title="Live updates connected"></span>
+    <div class="nav-status" id="nav-status" aria-live="polite"></div>
+    <span id="sse-live-dot" class="sse-live-dot" style="display:none" title="Live updates connected" aria-label="Live updates connected"></span>
   </nav>
 
-  <main id="app">
+  <main id="app" tabindex="-1">
     <div class="loading">Loading…</div>
   </main>
 

@@ -15,3 +15,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-21 14:38:11
+**Task 1: Complete dashboard redesign and audit. The current IA is broken — global token data is under a per-project filter, which is misleading. Fix the entire information architecture:**
+- Verdict: 🟡 Review FAIL (attempt 2)
+- Will retry with review feedback
+

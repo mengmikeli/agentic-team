@@ -200,7 +200,7 @@ switch (command) {
     const port = args.find(a => /^\d+$/.test(a)) || "3847";
     const { createServer } = await import("http");
     const fs = await import("fs");
-    const { join, extname } = await import("path");
+    const { join, extname, sep } = await import("path");
     const { fileURLToPath } = await import("url");
 
     const __dirname = join(fileURLToPath(import.meta.url), "..");
@@ -222,8 +222,10 @@ switch (command) {
       return p && p.startsWith("~/") ? join(home, p.slice(2)) : p;
     }
 
+    const allowOrigin = `http://localhost:${port}`;
+
     function jsonRes(res, data, code = 200) {
-      res.writeHead(code, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+      res.writeHead(code, { "Content-Type": "application/json", "Access-Control-Allow-Origin": allowOrigin });
       res.end(JSON.stringify(data));
     }
 
@@ -370,11 +372,24 @@ switch (command) {
         }
         const models = [...modelMap.values()].sort((a, b) => b.total - a.total);
 
+        // Source breakdown (by AI tool/client, e.g. claude-code, openclaw)
+        const sourceMap = new Map();
+        for (const r of recent) {
+          const s = r.source || "unknown";
+          if (!sourceMap.has(s)) sourceMap.set(s, { source: s, total: 0, input: 0, output: 0 });
+          const entry = sourceMap.get(s);
+          entry.total += r.total_tokens || 0;
+          entry.input += r.input_tokens || 0;
+          entry.output += r.output_tokens || 0;
+        }
+        const sources = [...sourceMap.values()].sort((a, b) => b.total - a.total);
+
         return {
           available: true,
           summary: { input, cached, output, reasoning, total },
           daily: [...dailyMap.values()],
           models,
+          sources,
         };
       } catch {
         return { available: false };
@@ -465,7 +480,7 @@ switch (command) {
               "Content-Type": "text/event-stream",
               "Cache-Control": "no-cache",
               "Connection": "keep-alive",
-              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Origin": allowOrigin,
             });
             res.write("retry: 3000\n\n");
             res.write(": connected\n\n");
@@ -500,10 +515,11 @@ switch (command) {
           }
           // Fallback: raw .team/ files
           const teamDir = join(process.cwd(), ".team");
-          const apiPath = pathname.replace("/api/", "");
-          const filePath = join(teamDir, apiPath);
+          const rawApiPath = pathname.slice("/api/".length);
+          const filePath = join(teamDir, rawApiPath);
+          if (!filePath.startsWith(teamDir + sep)) return jsonRes(res, { error: "not found" }, 404);
           if (fs.existsSync(filePath)) {
-            res.writeHead(200, { "Content-Type": mimeTypes[extname(filePath)] || "text/plain", "Access-Control-Allow-Origin": "*" });
+            res.writeHead(200, { "Content-Type": mimeTypes[extname(filePath)] || "text/plain", "Access-Control-Allow-Origin": allowOrigin });
             return res.end(fs.readFileSync(filePath, "utf8"));
           }
           return jsonRes(res, { error: "not found" }, 404);

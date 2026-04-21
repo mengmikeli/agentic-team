@@ -39,9 +39,11 @@ let currentTab = 'project'; // 'project' | 'tokens'
 // ── Tab switching ──
 window.switchTab = function(tab) {
   currentTab = tab;
-  // Update tab button active state
+  // Update tab button active state and ARIA
   $$('.tab-btn').forEach(btn => {
-    btn.classList.toggle('tab-active', btn.dataset.tab === tab);
+    const isActive = btn.dataset.tab === tab;
+    btn.classList.toggle('tab-active', isActive);
+    btn.setAttribute('aria-selected', String(isActive));
   });
   // Show project selector only on project tab
   const ps = document.getElementById('project-select');
@@ -296,25 +298,25 @@ function renderStatCards(completedCount, successRate, avgCycleTime, withState) {
   return `
   <div class="dashboard-section">
     <div class="stat-grid">
-      <div class="stat-card">
+      <div class="stat-card" aria-label="Features Shipped: ${completedCount}">
         <div class="stat-card-accent" style="background:var(--accent)"></div>
         <div class="stat-card-label">Features Shipped</div>
         <div class="stat-card-value">${completedCount}</div>
         <div class="stat-card-sub">${esc(projectLabel)}</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" aria-label="Success Rate: ${successRate}%">
         <div class="stat-card-accent" style="background:var(--green)"></div>
         <div class="stat-card-label">Success Rate</div>
         <div class="stat-card-value">${successRate}%</div>
         <div class="stat-card-sub">completed / attempted</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" aria-label="Average Cycle Time: ${avgCycleTime} per feature">
         <div class="stat-card-accent" style="background:var(--purple)"></div>
         <div class="stat-card-label">Avg Cycle Time</div>
         <div class="stat-card-value">${avgCycleTime}</div>
         <div class="stat-card-sub">per feature</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card" aria-label="Total Tasks: ${totalTasks}">
         <div class="stat-card-accent" style="background:var(--yellow)"></div>
         <div class="stat-card-label">Total Tasks</div>
         <div class="stat-card-value">${totalTasks}</div>
@@ -377,6 +379,7 @@ function renderTokensView() {
   const summary = tokenData.summary || {};
   const daily = tokenData.daily || [];
   const models = tokenData.models || [];
+  const sources = tokenData.sources || [];
 
   return `
   <div class="dashboard-section" id="section-tokens">
@@ -417,6 +420,20 @@ function renderTokensView() {
             </div>`;
           }).join("")}
         </div>` : ""}
+        ${sources.length > 0 ? `
+        <div class="model-list">
+          <div style="font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:16px;margin-bottom:8px">By Source</div>
+          ${sources.map((s) => {
+            const maxTokens = Math.max(...sources.map((x) => x.total));
+            const barPct = maxTokens > 0 ? Math.round((s.total / maxTokens) * 100) : 0;
+            return `
+            <div class="model-item">
+              <span class="model-name">${esc(s.source)}</span>
+              <div class="model-bar-wrap"><div class="model-bar" style="width:${barPct}%;background:var(--green)"></div></div>
+              <span class="model-tokens">${formatTokens(s.total)}</span>
+            </div>`;
+          }).join("")}
+        </div>` : ""}
       </div>
       <div class="token-chart-card">
         <div class="token-chart-title">Last 7 Days</div>
@@ -452,7 +469,7 @@ function renderBarChart(daily) {
     `;
   }).join("");
 
-  return `<svg class="token-chart-svg" viewBox="0 0 ${totalWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
+  return `<svg class="token-chart-svg" role="img" aria-label="Token usage over last 7 days" viewBox="0 0 ${totalWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
 }
 
 // ── Section 3: Feature Timeline ──
@@ -488,7 +505,7 @@ function renderTimeline(withState) {
         const isSelected = selectedFeature === f.name;
 
         return `
-        <div class="timeline-card${isSelected ? " selected" : ""}" onclick="selectBoardFeature('${esc(f.name).replace(/'/g, "\\'")}')">
+        <div class="timeline-card${isSelected ? " selected" : ""}" data-select-feature="${esc(f.name)}" style="cursor:pointer" tabindex="0" role="button" aria-pressed="${isSelected}">
           <div class="timeline-border status-${status}"></div>
           <div class="timeline-body">
             <div class="timeline-top">
@@ -665,7 +682,7 @@ function renderRecentActivity(withState) {
       ? `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No recent activity</div></div>`
       : `<div class="activity-feed">
           ${recent.map((e) => `
-            <div class="activity-item" onclick="selectBoardFeature('${esc(e.feature.name).replace(/'/g, "\\'")}')">
+            <div class="activity-item" data-select-feature="${esc(e.feature.name)}" style="cursor:pointer" tabindex="0" role="button">
               <div class="activity-icon">${statusIcons[e.task.status] || '📌'}</div>
               <div class="activity-body">
                 <div class="activity-task">${esc(truncate(e.task.description || e.task.title, 80))}</div>
@@ -749,4 +766,32 @@ function esc(str) {
 }
 
 // ── Init ──
+// Delegated click handler for feature selection (safe alternative to inline onclick)
+document.addEventListener('click', function(e) {
+  const el = e.target.closest('[data-select-feature]');
+  if (el) window.selectBoardFeature(el.dataset.selectFeature);
+});
+
+// Keyboard: Enter/Space to activate clickable divs
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    const el = e.target.closest('[data-select-feature]');
+    if (el) { e.preventDefault(); window.selectBoardFeature(el.dataset.selectFeature); }
+  }
+  // Arrow key navigation for tab bar
+  if (e.target.closest('[role="tab"]')) {
+    const tabs = $$('[role="tab"]');
+    const idx = tabs.indexOf(e.target);
+    if (e.key === 'ArrowRight' && idx < tabs.length - 1) {
+      e.preventDefault();
+      tabs[idx + 1].focus();
+      tabs[idx + 1].click();
+    } else if (e.key === 'ArrowLeft' && idx > 0) {
+      e.preventDefault();
+      tabs[idx - 1].focus();
+      tabs[idx - 1].click();
+    }
+  }
+});
+
 loadProjects();

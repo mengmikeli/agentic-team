@@ -1,20 +1,15 @@
 {
   "taskId": "task-1",
-  "nodeType": "gate",
-  "runId": "run_2",
+  "nodeType": "build",
+  "runId": "run_3",
   "status": "completed",
-  "verdict": "PASS",
-  "summary": "Gate command: echo gate-recorded — exit code 0",
-  "timestamp": "2026-04-21T14:33:09.762Z",
+  "verdict": null,
+  "summary": "Fixed all 6 critical findings from the previous review: restricted CORS from wildcard to localhost-only, patched path traversal in the fallback handler with bounds validation, added source breakdown aggregation and rendering in the tokens view, corrected the stat-grid CSS to 4 columns, and replaced XSS-vulnerable inline onclick handlers with safe data-attribute event delegation.",
+  "timestamp": "2026-04-21T00:00:00Z",
   "artifacts": [
-    {
-      "type": "test-result",
-      "path": "artifacts/test-output.txt"
-    }
+    { "type": "code", "path": "bin/agt.mjs" },
+    { "type": "code", "path": "dashboard/app.js" },
+    { "type": "code", "path": "dashboard/style.css" }
   ],
-  "findings": {
-    "critical": 0,
-    "warning": 0,
-    "suggestion": 0
-  }
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

@@ -1,38 +1,40 @@
 ## Parallel Review Findings
 
 ### [security]
+**Overall verdict: FAIL**
+
+Two critical vulnerabilities require fixes before this ships.
+
 ---
 
-**Verdict: PASS** (no critical security issues introduced by this commit)
+**Findings:**
 
----
+🔴 `bin/agt.mjs:503` — Path traversal in fallback handler: `pathname.replace("/api/", "")` replaces only the first occurrence; a request like `GET /api//api/../../../.ssh/id_rsa` resolves past the `.team/` root. Fix: assert `filePath.startsWith(teamDir + sep)` before serving.
 
-## Findings
-
-🟡 `dashboard/app.js:465` — Pre-existing backslash-injection XSS: feature name `foo\'; alert(1);//` → `foo\\'; alert(1);//` in JS, where `\\` is a literal backslash and `'` then closes the string. Fix: use `data-name` attribute + `addEventListener`, or wrap with `JSON.stringify`. (Not introduced in this commit.)
-
-🟡 `dashboard/app.js:642` — Same backslash-injection XSS in activity feed onclick. (Pre
+🔴 `bin/agt.mjs:226` — `"Access-Control-Allow-Origin": "*"` is set on every API response (including the fallback
 
 ### [architect]
+---
+
 **Verdict: ITERATE**
+
+Files read: `dashboard/app.js`, `dashboard/style.css`, `dashboard/index.html`, `bin/agt.mjs:266-382`
 
 ---
 
-### Findings
+🟡 `dashboard/style.css:267` — `.stat-grid` uses `repeat(3, 1fr)` but 4 stat cards are rendered; the 4th card wraps orphaned at 33% width. The fix commit claimed to address the "4th stat card" in JS but missed changing this CSS rule to `repeat(4, 1fr)`.
 
-🔴 `dashboard/app.js:316` — `renderBacklog()` uses `class="section"` but no `.section` CSS rule exists; change to `class="dashboard-section"` to get 40px bottom margin
-
-🔴 `dashboard/app.js:317` — `renderBacklog()` uses `<h2 class="section-title">` but `.section-title` is undefined in CSS; change to `<div class="section-header">` for consistent heading styling
-
-🟡 `dashboard/app.js:285` — SPEC requires 4 stat cards (features shipped, success rate, avg cyc
+🟡 `bin/agt.mjs:373` — `loadTokenData` returns no `sources` field. SPEC item 3 explicitly requires "Source brea
 
 ### [devil's-advocate]
-Eval written. Here are the findings:
+**Verdict: FAIL**
+
+Here are all findings:
 
 ---
 
-**Verdict: ITERATE**
+🔴 `bin/agt.mjs:373` — Source breakdown (by AI tool) missing from API response; SPEC §3 explicitly requires it. `loadTokenData()` returns `{summary, daily, models}` — no `sources` field. `renderTokensView()` has no source section. Zero implementation for a named deliverable.
 
-🟡 `bin/agt.mjs:267–288` — `readFeatures()` omits `_last_modified`; `app.js:435` sorts by it, so in-flight features with no `completedAt` sort non-deterministically — functional regression
-🟡 `dashboard/app.js:134–139` — Token data fetched once at startup; 10s auto-refresh and SSE only refresh features — stale token accumulates silently
-🟡 `dashboard/app.js:339` — Load failure shows same copy as "pew not installed" — misleading for
+🔴 `dashboard/style.css:268` — `repeat(3, 1fr)` with 4 stat cards; 4th card wraps to its own row at 33% width at all desktop viewports. SPEC says "Stats row: 4 cards."
+
+🔴 `da
