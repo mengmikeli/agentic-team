@@ -300,6 +300,75 @@ switch (command) {
       return result;
     }
 
+    function loadTokenData(fs, join, home) {
+      const pewDir = join(home, ".config", "pew");
+      const queuePath = join(pewDir, "queue.jsonl");
+      if (!fs.existsSync(queuePath)) return { available: false };
+
+      try {
+        const lines = fs.readFileSync(queuePath, "utf8").trim().split("\n").filter(Boolean);
+        const records = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+
+        // Last 7 days
+        const now = new Date();
+        const sevenDaysAgo = new Date(now);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+
+        const recent = records.filter((r) => new Date(r.hour_start) >= sevenDaysAgo);
+
+        // Summary
+        let input = 0, cached = 0, output = 0, reasoning = 0, total = 0;
+        for (const r of recent) {
+          input += r.input_tokens || 0;
+          cached += r.cached_input_tokens || 0;
+          output += r.output_tokens || 0;
+          reasoning += r.reasoning_output_tokens || 0;
+          total += r.total_tokens || 0;
+        }
+
+        // Daily aggregation (last 7 days)
+        const dailyMap = new Map();
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(now);
+          d.setDate(d.getDate() - i);
+          const key = d.toISOString().slice(0, 10);
+          dailyMap.set(key, { date: key, total: 0, input: 0, output: 0, cached: 0 });
+        }
+        for (const r of recent) {
+          const key = new Date(r.hour_start).toISOString().slice(0, 10);
+          if (dailyMap.has(key)) {
+            const d = dailyMap.get(key);
+            d.total += r.total_tokens || 0;
+            d.input += r.input_tokens || 0;
+            d.output += r.output_tokens || 0;
+            d.cached += r.cached_input_tokens || 0;
+          }
+        }
+
+        // Model breakdown
+        const modelMap = new Map();
+        for (const r of recent) {
+          const m = r.model || "unknown";
+          if (!modelMap.has(m)) modelMap.set(m, { model: m, total: 0, input: 0, output: 0 });
+          const entry = modelMap.get(m);
+          entry.total += r.total_tokens || 0;
+          entry.input += r.input_tokens || 0;
+          entry.output += r.output_tokens || 0;
+        }
+        const models = [...modelMap.values()].sort((a, b) => b.total - a.total);
+
+        return {
+          available: true,
+          summary: { input, cached, output, reasoning, total },
+          daily: [...dailyMap.values()],
+          models,
+        };
+      } catch {
+        return { available: false };
+      }
+    }
+
     const server = createServer((req, res) => {
       const url = new URL(req.url, `http://localhost:${port}`);
       const pathname = url.pathname;
@@ -341,6 +410,9 @@ switch (command) {
               if (r.status === 0 && r.stdout) return jsonRes(res, JSON.parse(r.stdout));
             } catch {}
             return jsonRes(res, []);
+          }
+          if (pathname === "/api/tokens") {
+            return jsonRes(res, loadTokenData(fs, join, home));
           }
           // Fallback: raw .team/ files
           const teamDir = join(process.cwd(), ".team");

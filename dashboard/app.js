@@ -1,5 +1,5 @@
-// agentic-team dashboard — app.js
-// Reads live project data from /api/ endpoints.
+// agentic-team dashboard — single-scroll redesign
+// 4 sections: Status Hero, Token Usage, Feature Timeline, Task Board
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -11,20 +11,10 @@ let currentProject = null;
 let features = [];
 let sprints = [];
 let issues = [];
-let currentPage = "overview";
+let tokenData = null;
 let selectedFeature = null;
 let refreshTimer = null;
-
-// ── Navigation ──
-$$(".nav-links a").forEach((link) => {
-  link.addEventListener("click", (e) => {
-    e.preventDefault();
-    $$(".nav-links a").forEach((l) => l.classList.remove("active"));
-    link.classList.add("active");
-    currentPage = link.dataset.page;
-    render();
-  });
-});
+let expandedFeatures = new Set();
 
 // ── Project selector ──
 const projectSelect = $("#project-select");
@@ -33,27 +23,31 @@ projectSelect.addEventListener("change", (e) => {
   if (projects[idx]) {
     currentProject = projects[idx];
     selectedFeature = null;
+    expandedFeatures.clear();
     loadProjectData();
   }
 });
 
-// ── Global handlers (called from onclick in rendered HTML) ──
-window.selectProject = function (path) {
-  const p = projects.find((pr) => pr.path === path);
-  if (p) {
-    currentProject = p;
-    projectSelect.value = projects.indexOf(p);
-    selectedFeature = null;
-    loadProjectData();
+// ── Global handlers ──
+window.toggleFeature = function (name) {
+  if (expandedFeatures.has(name)) {
+    expandedFeatures.delete(name);
+  } else {
+    expandedFeatures.add(name);
   }
+  render();
 };
 
-window.selectFeature = function (name) {
+window.selectBoardFeature = function (name) {
   selectedFeature = name;
-  currentPage = "board";
-  $$(".nav-links a").forEach((l) => l.classList.remove("active"));
-  const boardLink = $$(".nav-links a").find((l) => l.dataset.page === "board");
-  if (boardLink) boardLink.classList.add("active");
+  render();
+  // Scroll to board section
+  const boardSection = document.getElementById("section-board");
+  if (boardSection) boardSection.scrollIntoView({ behavior: "smooth" });
+};
+
+window.changeBoardFeature = function (name) {
+  selectedFeature = name;
   render();
 };
 
@@ -76,7 +70,7 @@ async function loadProjects() {
 
 function updateProjectSelector() {
   projectSelect.innerHTML = projects
-    .map((p, i) => `<option value="${i}">${p.name}${p.version ? " " + p.version : ""}</option>`)
+    .map((p, i) => `<option value="${i}">${esc(p.name)}${p.version ? " " + esc(p.version) : ""}</option>`)
     .join("");
 }
 
@@ -84,10 +78,11 @@ async function loadProjectData() {
   if (!currentProject) return;
   const path = encodeURIComponent(currentProject.path);
   try {
-    const [featRes, sprintRes, issueRes] = await Promise.all([
+    const [featRes, sprintRes, issueRes, tokenRes] = await Promise.all([
       fetch(`/api/features?path=${path}`),
       fetch(`/api/sprints?path=${path}`),
       fetch(`/api/issues?path=${path}`).catch(() => null),
+      fetch("/api/tokens").catch(() => null),
     ]);
     if (featRes.ok) features = await featRes.json();
     if (sprintRes.ok) {
@@ -95,12 +90,13 @@ async function loadProjectData() {
       sprints = data.sprints || [];
     }
     if (issueRes?.ok) issues = await issueRes.json();
+    if (tokenRes?.ok) tokenData = await tokenRes.json();
   } catch {}
   render();
   startAutoRefresh();
 }
 
-// ── Auto-refresh (10s) ──
+// ── Auto-refresh (10s) — only refreshes features for active section ──
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(async () => {
@@ -118,194 +114,309 @@ function startAutoRefresh() {
 
 // ── Render ──
 function render() {
-  switch (currentPage) {
-    case "overview":
-      renderOverview();
-      break;
-    case "timeline":
-      renderTimeline();
-      break;
-    case "board":
-      renderBoard();
-      break;
-    case "metrics":
-      renderMetrics();
-      break;
-  }
-}
-
-// ── Overview ──
-function renderOverview() {
   const withState = features.filter((f) => f.state);
+  const active = withState.find((f) => ["active", "executing"].includes(f.state?.status));
+  const completed = withState.filter((f) => f.state?.status === "completed");
   const totalFeatures = withState.length;
-  const active = withState.filter((f) => ["active", "executing"].includes(f.state?.status)).length;
-  const completed = withState.filter((f) => f.state?.status === "completed").length;
-  const specOnly = features.filter((f) => !f.state).length;
-  const totalTasks = withState.reduce((s, f) => s + (f.state?.tasks?.length || 0), 0);
-  const passedTasks = withState.reduce(
-    (s, f) => s + (f.state?.tasks?.filter((t) => t.status === "passed").length || 0),
-    0
-  );
-  const totalGates = withState.reduce((s, f) => s + (f.state?.gates?.length || 0), 0);
-  const passedGates = withState.reduce(
-    (s, f) => s + (f.state?.gates?.filter((g) => g.verdict === "PASS").length || 0),
-    0
-  );
+  const completedCount = completed.length;
+  const successRate = totalFeatures > 0 ? Math.round((completedCount / totalFeatures) * 100) : 0;
 
-  const projectCards =
-    projects.length > 1
-      ? `<div class="cards">${projects
-          .map(
-            (p) => `
-        <div class="card project-card${p === currentProject ? " card-active" : ""}" onclick="selectProject('${p.path.replace(/'/g, "\\'")}')">
-          <div class="card-header">
-            <span class="card-title">${esc(p.name)}</span>
-            ${p.version ? `<span class="badge badge-version">${esc(p.version)}</span>` : ""}
-          </div>
-          <div class="card-label">${esc(p.status || "")}</div>
-          <div class="card-meta">
-            ${p.totalFeatures ? `<span>${p.completedFeatures}/${p.totalFeatures} features</span>` : ""}
-            ${p.activeFeatures ? `<span class="text-green">${p.activeFeatures} active</span>` : ""}
-          </div>
-          ${p.repo?.url ? `<div class="card-label"><a href="${p.repo.url}" target="_blank" class="repo-link">${esc(p.repo.name)}</a></div>` : ""}
-        </div>`
-          )
-          .join("")}</div>`
-      : "";
+  // Avg cycle time from sprints or features
+  const avgCycleTime = computeAvgCycleTime(withState);
+
+  // Total tokens from pew data
+  const totalTokens = tokenData?.available !== false && tokenData?.summary
+    ? formatTokens(tokenData.summary.total)
+    : "—";
+
+  // Update nav status
+  const navStatus = $("#nav-status");
+  if (active) {
+    navStatus.innerHTML = `<div class="status-dot"></div> Executing`;
+  } else {
+    navStatus.innerHTML = `<span style="color:var(--text-muted)">Idle</span>`;
+  }
 
   app.innerHTML = `
-    <h2 class="section-header">${esc(currentProject?.name || "Overview")}</h2>
-    ${projectCards}
-    <div class="cards">
-      <div class="card">
-        <div class="card-header"><span class="card-title">Features</span></div>
-        <div class="card-value">${totalFeatures}</div>
-        <div class="card-label">${active} active · ${completed} completed${specOnly ? ` · ${specOnly} spec-only` : ""}</div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Tasks</span></div>
-        <div class="card-value">${passedTasks}/${totalTasks}</div>
-        <div class="card-label">${totalTasks > 0 ? Math.round((passedTasks / totalTasks) * 100) : 0}% complete</div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Gate Pass Rate</span></div>
-        <div class="card-value">${totalGates > 0 ? Math.round((passedGates / totalGates) * 100) : 0}%</div>
-        <div class="card-label">${passedGates}/${totalGates} passed</div>
-      </div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Transitions</span></div>
-        <div class="card-value">${withState.reduce((s, f) => s + (f.state?.transitionCount || 0), 0)}</div>
-        <div class="card-label">state changes</div>
-      </div>
-    </div>
-
-    ${issues.length > 0 ? `<div class="issue-banner">${issues.length} open issue${issues.length === 1 ? "" : "s"} on GitHub</div>` : ""}
-
-    <h3 class="section-header">Features</h3>
-    <div class="feature-list">
-      ${features
-        .map((f) => {
-          const s = f.state || {};
-          const tasks = s.tasks || [];
-          const passed = tasks.filter((t) => t.status === "passed").length;
-          const pct = tasks.length > 0 ? Math.round((passed / tasks.length) * 100) : 0;
-          const statusClass = s.status || (f.hasSpec ? "spec-only" : "unknown");
-          const duration = s.summary?.duration || "";
-          return `
-          <div class="feature-item" onclick="selectFeature('${f.name}')">
-            <div>
-              <div class="feature-name">${esc(f.name)}</div>
-              ${duration ? `<div class="feature-duration">⏱ ${duration}</div>` : ""}
-            </div>
-            <div class="feature-meta">
-              ${
-                tasks.length > 0
-                  ? `<span>${passed}/${tasks.length} tasks</span>
-                <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`
-                  : ""
-              }
-              <span class="badge badge-${statusClass}">${statusClass}</span>
-              <span>${relativeTime(s._last_modified)}</span>
-            </div>
-          </div>`;
-        })
-        .join("")}
-    </div>
+    ${renderStatusHero(active, completed, withState)}
+    ${renderStatCards(completedCount, successRate, avgCycleTime, totalTokens)}
+    ${renderTokenSection()}
+    ${renderTimeline(withState)}
+    ${renderBoard(withState, active)}
   `;
 }
 
-// ── Timeline ──
-function renderTimeline() {
-  const sorted = [...features]
-    .filter((f) => f.state)
-    .sort((a, b) => {
-      const ta = a.state.completedAt || a.state._last_modified || "";
-      const tb = b.state.completedAt || b.state._last_modified || "";
-      return tb.localeCompare(ta);
-    });
+// ── Section 1: Status Hero ──
+function renderStatusHero(active, completed, withState) {
+  if (active) {
+    const s = active.state;
+    const tasks = s.tasks || [];
+    const passed = tasks.filter((t) => t.status === "passed").length;
+    const pct = tasks.length > 0 ? Math.round((passed / tasks.length) * 100) : 0;
+    const duration = s.summary?.duration || computeDuration(s.createdAt);
 
-  app.innerHTML = `
-    <h2 class="section-header">Feature Timeline</h2>
-    <p class="section-sub">History of features and their outcomes</p>
-    <div class="timeline">
-      ${sorted
-        .map((f) => {
-          const s = f.state;
-          const tasks = s.tasks || [];
-          const passed = tasks.filter((t) => t.status === "passed").length;
-          const gates = s.gates || [];
-          const gp = gates.filter((g) => g.verdict === "PASS").length;
-          const gf = gates.filter((g) => g.verdict === "FAIL").length;
-          const dotClass = s.status === "completed" ? "completed" : s.status === "failed" ? "failed" : "";
-          const time = s.completedAt || s._last_modified;
-          const duration = s.summary?.duration;
-          const created = s.createdAt ? new Date(s.createdAt) : null;
-          const ended = s.completedAt ? new Date(s.completedAt) : null;
-          const durationMs = created && ended ? ended - created : 0;
-          const maxDuration = Math.max(...sorted.map((x) => {
-            const c = x.state.createdAt ? new Date(x.state.createdAt) : null;
-            const e = x.state.completedAt ? new Date(x.state.completedAt) : null;
-            return c && e ? e - c : 0;
-          }), 1);
-          const barPct = Math.max(5, Math.round((durationMs / maxDuration) * 100));
+    return `
+    <div class="dashboard-section" id="section-hero">
+      <div class="hero-card">
+        <div class="hero-top">
+          <div>
+            <div class="hero-feature-name">${esc(active.name)}</div>
+            <div class="hero-feature-status">
+              <span class="badge badge-${s.status}">${s.status}</span>
+              ${duration ? `<span class="hero-duration">⏱ ${duration}</span>` : ""}
+            </div>
+          </div>
+        </div>
+        <div class="hero-progress">
+          <div class="hero-progress-bar">
+            <div class="hero-progress-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="hero-progress-label">
+            <span>${passed} of ${tasks.length} tasks complete</span>
+            <span>${pct}%</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
 
-          return `
-          <div class="timeline-item">
-            <div class="timeline-dot ${dotClass}"></div>
-            <div class="timeline-content">
-              <div class="timeline-title">${esc(f.name)}</div>
-              <div class="timeline-time">${time ? fmtDate(time) : "—"} · ${s.status}</div>
-              ${durationMs > 0 ? `<div class="duration-bar-wrap"><div class="duration-bar" style="width:${barPct}%"></div></div>` : ""}
-              <div class="timeline-stats">
-                <span>📋 ${passed}/${tasks.length} tasks</span>
-                <span>🔒 ${gp}/${gates.length} gates${gf ? ` <span class="text-red">(${gf} fail)</span>` : ""}</span>
-                <span>🔄 ${s.transitionCount || 0} transitions</span>
-                ${duration ? `<span>⏱ ${duration}</span>` : ""}
+  const lastCompleted = completed.length > 0
+    ? completed.sort((a, b) => (b.state.completedAt || "").localeCompare(a.state.completedAt || ""))[0]
+    : null;
+
+  return `
+  <div class="dashboard-section" id="section-hero">
+    <div class="hero-card hero-idle">
+      <div class="hero-idle-msg">No active feature</div>
+      ${lastCompleted
+        ? `<div class="hero-idle-last">Last completed: <strong>${esc(lastCompleted.name)}</strong> ${lastCompleted.state.completedAt ? "— " + relativeTime(lastCompleted.state.completedAt) : ""}</div>`
+        : `<div class="hero-idle-last">No features completed yet</div>`}
+    </div>
+  </div>`;
+}
+
+function renderStatCards(completedCount, successRate, avgCycleTime, totalTokens) {
+  return `
+  <div class="dashboard-section">
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-card-accent" style="background:var(--accent)"></div>
+        <div class="stat-card-label">Features Shipped</div>
+        <div class="stat-card-value">${completedCount}</div>
+        <div class="stat-card-sub">total completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent" style="background:var(--green)"></div>
+        <div class="stat-card-label">Success Rate</div>
+        <div class="stat-card-value">${successRate}%</div>
+        <div class="stat-card-sub">completed / attempted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent" style="background:var(--purple)"></div>
+        <div class="stat-card-label">Avg Cycle Time</div>
+        <div class="stat-card-value">${avgCycleTime}</div>
+        <div class="stat-card-sub">per feature</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-accent" style="background:var(--cyan)"></div>
+        <div class="stat-card-label">Token Usage</div>
+        <div class="stat-card-value">${totalTokens}</div>
+        <div class="stat-card-sub">all models</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Section 2: Token Usage ──
+function renderTokenSection() {
+  if (!tokenData || tokenData.available === false) {
+    return `
+    <div class="dashboard-section" id="section-tokens">
+      <div class="section-header">Token Usage</div>
+      <div class="token-unavailable">
+        <div class="token-unavailable-icon">📊</div>
+        <div>Install <a href="https://github.com/nicepkg/pew" target="_blank">pew</a> for token tracking</div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text-muted)">npm i -g pew</div>
+      </div>
+    </div>`;
+  }
+
+  const summary = tokenData.summary || {};
+  const daily = tokenData.daily || [];
+  const models = tokenData.models || [];
+
+  return `
+  <div class="dashboard-section" id="section-tokens">
+    <div class="section-header">Token Usage</div>
+    <div class="token-grid">
+      <div class="token-summary-card">
+        <div class="token-total">${formatTokens(summary.total || 0)}</div>
+        <div class="token-total-label">Total tokens (last 7 days)</div>
+        <div class="token-breakdown">
+          <div class="token-row">
+            <span class="token-row-label"><span class="token-row-dot" style="background:var(--accent)"></span> Input</span>
+            <span class="token-row-value">${formatTokens(summary.input || 0)}</span>
+          </div>
+          <div class="token-row">
+            <span class="token-row-label"><span class="token-row-dot" style="background:var(--green)"></span> Cached</span>
+            <span class="token-row-value">${formatTokens(summary.cached || 0)}</span>
+          </div>
+          <div class="token-row">
+            <span class="token-row-label"><span class="token-row-dot" style="background:var(--purple)"></span> Output</span>
+            <span class="token-row-value">${formatTokens(summary.output || 0)}</span>
+          </div>
+          <div class="token-row">
+            <span class="token-row-label"><span class="token-row-dot" style="background:var(--yellow)"></span> Reasoning</span>
+            <span class="token-row-value">${formatTokens(summary.reasoning || 0)}</span>
+          </div>
+        </div>
+        ${models.length > 0 ? `
+        <div class="model-list">
+          <div style="font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.5px;margin-top:16px;margin-bottom:8px">By Model</div>
+          ${models.map((m) => {
+            const maxTokens = Math.max(...models.map((x) => x.total));
+            const barPct = maxTokens > 0 ? Math.round((m.total / maxTokens) * 100) : 0;
+            return `
+            <div class="model-item">
+              <span class="model-name">${esc(m.model)}</span>
+              <div class="model-bar-wrap"><div class="model-bar" style="width:${barPct}%"></div></div>
+              <span class="model-tokens">${formatTokens(m.total)}</span>
+            </div>`;
+          }).join("")}
+        </div>` : ""}
+      </div>
+      <div class="token-chart-card">
+        <div class="token-chart-title">Last 7 Days</div>
+        ${renderBarChart(daily)}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderBarChart(daily) {
+  if (!daily || daily.length === 0) {
+    return `<div style="color:var(--text-muted);text-align:center;padding:40px 0;font-size:13px">No data</div>`;
+  }
+
+  const maxVal = Math.max(...daily.map((d) => d.total), 1);
+  const barWidth = 36;
+  const gap = 12;
+  const chartHeight = 140;
+  const labelHeight = 20;
+  const valueHeight = 16;
+  const totalWidth = daily.length * (barWidth + gap) - gap;
+  const svgHeight = chartHeight + labelHeight + valueHeight;
+
+  const bars = daily.map((d, i) => {
+    const x = i * (barWidth + gap);
+    const barH = Math.max(2, (d.total / maxVal) * (chartHeight - valueHeight));
+    const y = chartHeight - barH;
+    const dayLabel = new Date(d.date + "T00:00:00").toLocaleDateString("en-US", { weekday: "short" });
+    return `
+      <rect class="bar" x="${x}" y="${y}" width="${barWidth}" height="${barH}" rx="3"/>
+      <text class="bar-value" x="${x + barWidth / 2}" y="${y - 4}">${formatTokensShort(d.total)}</text>
+      <text class="bar-label" x="${x + barWidth / 2}" y="${chartHeight + 14}">${dayLabel}</text>
+    `;
+  }).join("");
+
+  return `<svg class="token-chart-svg" viewBox="0 0 ${totalWidth} ${svgHeight}" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
+}
+
+// ── Section 3: Feature Timeline ──
+function renderTimeline(withState) {
+  const sorted = [...withState].sort((a, b) => {
+    const ta = a.state.completedAt || a.state._last_modified || "";
+    const tb = b.state.completedAt || b.state._last_modified || "";
+    return tb.localeCompare(ta);
+  });
+
+  if (sorted.length === 0) {
+    return `
+    <div class="dashboard-section" id="section-timeline">
+      <div class="section-header">Feature Timeline</div>
+      <div class="empty">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">No features yet</div>
+      </div>
+    </div>`;
+  }
+
+  return `
+  <div class="dashboard-section" id="section-timeline">
+    <div class="section-header">Feature Timeline</div>
+    <div class="timeline-scroll">
+      ${sorted.map((f) => {
+        const s = f.state;
+        const tasks = s.tasks || [];
+        const passed = tasks.filter((t) => t.status === "passed").length;
+        const gates = s.gates || [];
+        const gp = gates.filter((g) => g.verdict === "PASS").length;
+        const gf = gates.filter((g) => g.verdict === "FAIL").length;
+        const status = s.status || "unknown";
+        const duration = s.summary?.duration || "";
+        const isExpanded = expandedFeatures.has(f.name);
+
+        return `
+        <div class="timeline-card${isExpanded ? " expanded" : ""}" onclick="toggleFeature('${esc(f.name).replace(/'/g, "\\'")}')">
+          <div class="timeline-border status-${status}"></div>
+          <div class="timeline-body">
+            <div class="timeline-top">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                <span class="timeline-name">${esc(f.name)}</span>
+                <span class="badge badge-${status}">${status}</span>
               </div>
-              ${gates.length > 0 ? `<div class="gate-verdicts">${gates.map((g) => `<span class="gate-badge gate-${g.verdict}">${g.verdict}</span>`).join("")}</div>` : ""}
+              <div class="timeline-meta">
+                ${duration ? `<span class="timeline-duration">⏱ ${duration}</span>` : ""}
+                <span class="timeline-gates">
+                  ${gates.length > 0 ? `<span class="gate-pass">✓${gp}</span><span class="gate-fail">✗${gf}</span>` : ""}
+                </span>
+                <span style="font-size:12px;color:var(--text-muted)">${passed}/${tasks.length} tasks</span>
+                <span class="timeline-expand-icon">▶</span>
+              </div>
             </div>
-          </div>`;
-        })
-        .join("")}
+            <div class="timeline-tasks">
+              ${tasks.length === 0 ? '<div style="color:var(--text-muted);font-size:13px">No tasks</div>' : ""}
+              ${tasks.map((t) => {
+                const icon = t.status === "passed" ? "✅"
+                  : t.status === "in-progress" ? "🔄"
+                  : t.status === "blocked" || t.status === "failed" ? "🚫"
+                  : "⏳";
+                return `
+                <div class="timeline-task">
+                  <span class="timeline-task-icon">${icon}</span>
+                  <span class="timeline-task-name">${esc(t.id)}${t.description ? " — " + esc(t.description) : t.title ? " — " + esc(t.title) : ""}</span>
+                  ${t.lastGate ? `<span class="timeline-task-verdict ${t.lastGate.verdict}">${t.lastGate.verdict}</span>` : ""}
+                </div>`;
+              }).join("")}
+            </div>
+          </div>
+        </div>`;
+      }).join("")}
     </div>
-  `;
+  </div>`;
 }
 
-// ── Board ──
-function renderBoard() {
-  // Feature selector for board
-  const withState = features.filter((f) => f.state);
-  const active =
+// ── Section 4: Task Board ──
+function renderBoard(withState, activeFeature) {
+  const boardFeature =
     (selectedFeature && withState.find((f) => f.name === selectedFeature)) ||
-    withState.find((f) => ["active", "executing"].includes(f.state?.status)) ||
+    activeFeature ||
+    withState.filter((f) => f.state?.status === "completed")
+      .sort((a, b) => (b.state.completedAt || "").localeCompare(a.state.completedAt || ""))[0] ||
     withState[0];
 
-  if (!active?.state) {
-    app.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No features with state found</div></div>`;
-    return;
+  if (!boardFeature?.state) {
+    return `
+    <div class="dashboard-section" id="section-board">
+      <div class="section-header">Task Board</div>
+      <div class="empty">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">No features with tasks</div>
+      </div>
+    </div>`;
   }
 
-  const tasks = active.state.tasks || [];
+  const tasks = boardFeature.state.tasks || [];
   const columns = {
     pending: tasks.filter((t) => t.status === "pending"),
     "in-progress": tasks.filter((t) => t.status === "in-progress"),
@@ -313,195 +424,97 @@ function renderBoard() {
     blocked: tasks.filter((t) => t.status === "blocked" || t.status === "failed"),
   };
   const icons = { pending: "⏳", "in-progress": "🔄", passed: "✅", blocked: "🚫" };
+  const labels = { pending: "Pending", "in-progress": "In Progress", passed: "Done", blocked: "Blocked" };
 
-  const featureSelector = withState.length > 1
-    ? `<div class="feature-selector">
-        <select onchange="selectFeature(this.value)">
-          ${withState.map((f) => `<option value="${f.name}" ${f.name === active.name ? "selected" : ""}>${f.name} (${f.state.status})</option>`).join("")}
+  const featureOptions = withState.length > 1
+    ? `<div class="board-feature-selector">
+        <select onchange="changeBoardFeature(this.value)">
+          ${withState.map((f) => `<option value="${esc(f.name)}" ${f.name === boardFeature.name ? "selected" : ""}>${esc(f.name)} (${f.state.status})</option>`).join("")}
         </select>
       </div>`
     : "";
 
-  app.innerHTML = `
-    <h2 class="section-header">Task Board — ${esc(active.name)}</h2>
-    ${featureSelector}
-    <p class="section-sub"><span class="badge badge-${active.state.status}">${active.state.status}</span>
-      ${active.state.summary?.duration ? `<span class="duration-tag">⏱ ${active.state.summary.duration}</span>` : ""}
-    </p>
+  return `
+  <div class="dashboard-section" id="section-board">
+    <div class="section-header">Task Board</div>
+    <div class="board-header">
+      <div class="board-feature-name">${esc(boardFeature.name)} <span class="badge badge-${boardFeature.state.status}">${boardFeature.state.status}</span></div>
+      ${featureOptions}
+    </div>
     <div class="board">
-      ${Object.entries(columns)
-        .map(
-          ([col, items]) => `
+      ${Object.entries(columns).map(([col, items]) => `
         <div class="board-column">
           <div class="board-column-header">
-            ${icons[col]} ${col} <span class="board-column-count">${items.length}</span>
+            ${icons[col]} ${labels[col]} <span class="board-column-count">${items.length}</span>
           </div>
-          ${items.length === 0 ? '<div class="board-empty">Empty</div>' : ""}
-          ${items
-            .map(
-              (t) => `
+          ${items.length === 0 ? '<div class="board-empty">—</div>' : ""}
+          ${items.map((t) => `
             <div class="board-task">
               <div class="board-task-id">${esc(t.id)}</div>
               ${t.description || t.title ? `<div class="board-task-desc">${esc(t.description || t.title)}</div>` : ""}
-              ${t.lastGate ? `<span class="gate-badge gate-${t.lastGate.verdict}">${t.lastGate.verdict}</span>` : ""}
-              ${t.lastReason ? `<div class="board-task-reason">${esc(t.lastReason)}</div>` : ""}
-              ${t.replanSource ? `<div class="board-task-replan">↳ re-planned from ${esc(t.replanSource)}</div>` : ""}
-            </div>`
-            )
-            .join("")}
-        </div>`
-        )
-        .join("")}
-    </div>
-  `;
-}
-
-// ── Metrics ──
-function renderMetrics() {
-  const withState = features.filter((f) => f.state);
-  const totalTasks = withState.reduce((s, f) => s + (f.state?.tasks?.length || 0), 0);
-  const passedTasks = withState.reduce(
-    (s, f) => s + (f.state?.tasks?.filter((t) => t.status === "passed").length || 0),
-    0
-  );
-  const totalGates = withState.reduce((s, f) => s + (f.state?.gates?.length || 0), 0);
-  const passedGates = withState.reduce(
-    (s, f) => s + (f.state?.gates?.filter((g) => g.verdict === "PASS").length || 0),
-    0
-  );
-  const totalTransitions = withState.reduce((s, f) => s + (f.state?.transitionCount || 0), 0);
-  const totalRetries = withState.reduce(
-    (s, f) => s + (f.state?.tasks || []).reduce((rs, t) => rs + (t.retries || t.attempts || 0), 0),
-    0
-  );
-
-  // Sprint history
-  const sprintRows = sprints
-    .map(
-      (sp) => `
-    <tr>
-      <td>${esc(sp.name)}</td>
-      <td>${esc(sp.status)}</td>
-      <td>${esc(sp.version)}</td>
-      <td>${esc(sp.dates)}</td>
-      <td>${esc(sp.commits)}</td>
-      <td>${esc(sp.model)}</td>
-    </tr>`
-    )
-    .join("");
-
-  // Activity heatmap from real transition dates
-  const activityMap = new Map();
-  for (const f of withState) {
-    for (const t of f.state.transitionHistory || []) {
-      if (!t.timestamp) continue;
-      const day = t.timestamp.slice(0, 10);
-      activityMap.set(day, (activityMap.get(day) || 0) + 1);
-    }
-  }
-  const today = new Date();
-  const heatmapCells = Array.from({ length: 28 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (27 - i));
-    const key = d.toISOString().slice(0, 10);
-    const count = activityMap.get(key) || 0;
-    const level = count === 0 ? 0 : count <= 2 ? 1 : count <= 5 ? 2 : count <= 10 ? 3 : 4;
-    return `<div class="heatmap-cell level-${level}" title="${key}: ${count} transitions"></div>`;
-  }).join("");
-
-  app.innerHTML = `
-    <h2 class="section-header">Metrics</h2>
-
-    <div class="metrics-grid">
-      <div class="card">
-        <div class="card-title">Task Completion</div>
-        <div class="card-value" style="margin-top:8px">${totalTasks > 0 ? Math.round((passedTasks / totalTasks) * 100) : 0}%</div>
-        <div class="card-label">${passedTasks} of ${totalTasks} tasks passed</div>
-        <div class="progress-bar" style="width:100%;margin-top:12px">
-          <div class="progress-fill" style="width:${totalTasks > 0 ? (passedTasks / totalTasks) * 100 : 0}%"></div>
+              <div class="board-task-footer">
+                ${t.lastGate ? `<span class="gate-badge gate-${t.lastGate.verdict}">${t.lastGate.verdict}</span>` : ""}
+                ${t.attempts || t.retries ? `<span class="board-task-attempts">${t.attempts || t.retries} attempt${(t.attempts || t.retries) > 1 ? "s" : ""}</span>` : ""}
+                ${t.duration ? `<span class="board-task-duration">⏱ ${t.duration}</span>` : ""}
+              </div>
+              ${t.lastReason ? `<div style="font-size:11px;color:var(--yellow);margin-top:4px">${esc(t.lastReason)}</div>` : ""}
+              ${t.replanSource ? `<div style="font-size:11px;color:var(--purple);margin-top:4px;font-style:italic">↳ re-planned from ${esc(t.replanSource)}</div>` : ""}
+            </div>
+          `).join("")}
         </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Gate Pass Rate</div>
-        <div class="card-value" style="margin-top:8px">${totalGates > 0 ? Math.round((passedGates / totalGates) * 100) : 0}%</div>
-        <div class="card-label">${passedGates} of ${totalGates} gates passed</div>
-        <div class="progress-bar" style="width:100%;margin-top:12px">
-          <div class="progress-fill" style="width:${totalGates > 0 ? (passedGates / totalGates) * 100 : 0}%"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">Efficiency</div>
-        <div class="card-value" style="margin-top:8px">${totalTransitions}</div>
-        <div class="card-label">transitions · ${totalRetries} retries</div>
-      </div>
-      <div class="card">
-        <div class="card-title">Features</div>
-        <div class="card-value" style="margin-top:8px">${withState.length}</div>
-        <div class="card-label">${withState.filter((f) => f.state?.status === "completed").length} completed · ${withState.filter((f) => ["active", "executing"].includes(f.state?.status)).length} active</div>
-      </div>
+      `).join("")}
     </div>
-
-    <div style="margin-top:32px">
-      <div class="card">
-        <div class="card-title">Activity (28 days)</div>
-        <div class="heatmap" style="margin-top:12px">${heatmapCells}</div>
-        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:var(--text-dim)">
-          <span>4 weeks ago</span><span>Today</span>
-        </div>
-      </div>
-    </div>
-
-    ${
-      sprints.length > 0
-        ? `
-    <div style="margin-top:32px">
-      <h3 class="section-header">Sprint History</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Sprint</th><th>Status</th><th>Version</th><th>Dates</th><th>Commits</th><th>Model</th></tr>
-          </thead>
-          <tbody>${sprintRows}</tbody>
-        </table>
-      </div>
-    </div>`
-        : ""
-    }
-
-    <div style="margin-top:24px">
-      <h3 class="section-header">Per-Feature Breakdown</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Feature</th><th>Status</th><th>Tasks</th><th>Gates</th><th>Transitions</th><th>Duration</th></tr>
-          </thead>
-          <tbody>
-            ${withState
-              .map((f) => {
-                const s = f.state;
-                const tasks = s.tasks || [];
-                const gates = s.gates || [];
-                return `
-                <tr>
-                  <td class="feat-name">${esc(f.name)}</td>
-                  <td><span class="badge badge-${s.status}">${s.status}</span></td>
-                  <td>${tasks.filter((t) => t.status === "passed").length}/${tasks.length}</td>
-                  <td>${gates.filter((g) => g.verdict === "PASS").length}/${gates.length}</td>
-                  <td>${s.transitionCount || 0}</td>
-                  <td>${s.summary?.duration || "—"}</td>
-                </tr>`;
-              })
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  `;
+  </div>`;
 }
 
 // ── Helpers ──
+function formatTokens(n) {
+  if (n === 0 || n == null) return "0";
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
+  return String(n);
+}
+
+function formatTokensShort(n) {
+  if (n === 0 || n == null) return "0";
+  if (n >= 1e9) return (n / 1e9).toFixed(0) + "B";
+  if (n >= 1e6) return (n / 1e6).toFixed(0) + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + "K";
+  return String(n);
+}
+
+function computeAvgCycleTime(features) {
+  const completed = features.filter(
+    (f) => f.state?.status === "completed" && f.state?.createdAt && f.state?.completedAt
+  );
+  if (completed.length === 0) return "—";
+  const totalMs = completed.reduce((sum, f) => {
+    return sum + (new Date(f.state.completedAt) - new Date(f.state.createdAt));
+  }, 0);
+  const avgMs = totalMs / completed.length;
+  return formatDuration(avgMs);
+}
+
+function computeDuration(createdAt) {
+  if (!createdAt) return "";
+  const ms = Date.now() - new Date(createdAt).getTime();
+  return formatDuration(ms);
+}
+
+function formatDuration(ms) {
+  if (ms < 60000) return "<1m";
+  const mins = Math.floor(ms / 60000);
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remainMins = mins % 60;
+  if (hours < 24) return remainMins > 0 ? `${hours}h ${remainMins}m` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ${hours % 24}h`;
+}
+
 function relativeTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "";
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
@@ -510,10 +523,6 @@ function relativeTime(iso) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
-}
-
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function esc(str) {
