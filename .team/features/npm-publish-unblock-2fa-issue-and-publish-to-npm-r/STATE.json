@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "npm-publish-unblock-2fa-issue-and-publish-to-npm-r",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-21T04:10:20.483Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T04:15:19.549Z",
-  "_write_nonce": "ff905437a7abdf53"
+  "_last_modified": "2026-04-21T04:15:24.681Z",
+  "_write_nonce": "079d94f0291b6547",
+  "completedAt": "2026-04-21T04:15:24.681Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "5m"
+  }
 }

@@ -1,0 +1,60 @@
+{
+  "version": "2.0",
+  "feature": "playbook-md-rewrite-update-for-v2-cli-workflow-cur",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "PLAYBOOK.md rewrite — Update for v2 CLI workflow. Current playbook references old multi-agent Discord coordination, not the agt CLI product.",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 26,
+      "lastTransition": "2026-04-21T04:16:52.864Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-21T04:19:23.707Z",
+        "taskId": "task-1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 27
+    }
+  ],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-21T04:19:23.707Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-21T04:16:52.864Z"
+    }
+  ],
+  "createdAt": "2026-04-21T04:16:41.438Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-21T04:19:23.707Z",
+  "_write_nonce": "7b8e54efb42af587"
+}

@@ -31,4 +31,4 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 5. **Backlog enforcement** — ✅ Done. Warning tracking, gate blocking.
 6. **Per-command help** — Add `agt help <command>` with usage, flags, and examples for each command. Currently `agt` only shows a flat list.
 7. **PLAYBOOK.md rewrite** — Update for v2 CLI workflow. Current playbook references old multi-agent Discord coordination, not the agt CLI product.
-8. **npm publish** — Unblock 2FA issue and publish to npm registry via GitHub Actions.
+8. **npm publish** — ✅ Done. Unblock 2FA issue and publish to npm registry via GitHub Actions.

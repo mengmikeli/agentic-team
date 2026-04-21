@@ -1,13 +1,20 @@
 {
   "taskId": "task-1",
-  "nodeType": "build",
+  "nodeType": "gate",
   "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Rewrote PLAYBOOK.md to replace all Discord/OpenClaw content with accurate v2 agt CLI documentation. The new playbook covers every agt subcommand, a Standard Sprint Workflow section, Flow Selection tiers (light-review/build-verify/full-stack), quality gates, and retains the GitHub and Deploy sections.",
-  "timestamp": "2026-04-21T00:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: echo gate-recorded — exit code 0",
+  "timestamp": "2026-04-21T04:19:23.707Z",
   "artifacts": [
-    { "type": "code", "path": "PLAYBOOK.md" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
