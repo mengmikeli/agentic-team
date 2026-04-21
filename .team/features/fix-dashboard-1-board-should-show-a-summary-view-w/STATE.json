@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "fix-dashboard-1-board-should-show-a-summary-view-w",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-21T09:45:04.657Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T09:55:36.848Z",
-  "_write_nonce": "b7430ee94214a873"
+  "_last_modified": "2026-04-21T09:55:42.151Z",
+  "_write_nonce": "fe0c9a597e93ff63",
+  "completedAt": "2026-04-21T09:55:42.151Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "11m"
+  }
 }
