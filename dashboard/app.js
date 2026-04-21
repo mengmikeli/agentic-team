@@ -5,6 +5,23 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 const app = $("#app");
 
+// ── Display helpers ──
+function humanizeName(slug) {
+  if (!slug) return "";
+  const readable = slug.replace(/[-_]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return readable.length > 50 ? readable.slice(0, 47) + "…" : readable;
+}
+
+function truncate(text, maxLen) {
+  if (!text) return "";
+  return text.length > maxLen ? text.slice(0, maxLen - 1) + "…" : text;
+}
+
+const GATE_TASK_TITLE = "Quality gate passes";
+function isGateTask(t) {
+  return t.title === GATE_TASK_TITLE;
+}
+
 // ── State ──
 let projects = [];
 let currentProject = null;
@@ -15,7 +32,7 @@ let backlogItems = [];
 let tokenData = null;
 let selectedFeature = null;
 let refreshTimer = null;
-let expandedFeatures = new Set();
+
 
 // ── Project selector ──
 const projectSelect = $("#project-select");
@@ -24,21 +41,11 @@ projectSelect.addEventListener("change", (e) => {
   if (projects[idx]) {
     currentProject = projects[idx];
     selectedFeature = null;
-    expandedFeatures.clear();
     loadProjectData();
   }
 });
 
 // ── Global handlers ──
-window.toggleFeature = function (name) {
-  if (expandedFeatures.has(name)) {
-    expandedFeatures.delete(name);
-  } else {
-    expandedFeatures.add(name);
-  }
-  render();
-};
-
 window.selectBoardFeature = function (name) {
   selectedFeature = name;
   render();
@@ -164,7 +171,7 @@ function renderStatusHero(active, completed, withState) {
       <div class="hero-card">
         <div class="hero-top">
           <div>
-            <div class="hero-feature-name">${esc(active.name)}</div>
+            <div class="hero-feature-name">${esc(humanizeName(active.name))}</div>
             <div class="hero-feature-status">
               <span class="badge badge-${s.status}">${s.status}</span>
               ${duration ? `<span class="hero-duration">⏱ ${duration}</span>` : ""}
@@ -193,13 +200,14 @@ function renderStatusHero(active, completed, withState) {
     <div class="hero-card hero-idle">
       <div class="hero-idle-msg">No active feature</div>
       ${lastCompleted
-        ? `<div class="hero-idle-last">Last completed: <strong>${esc(lastCompleted.name)}</strong> ${lastCompleted.completedAt ? "— " + relativeTime(lastCompleted.completedAt) : ""}</div>`
+        ? `<div class="hero-idle-last">Last completed: <strong>${esc(humanizeName(lastCompleted.name))}</strong> ${lastCompleted.completedAt ? "— " + relativeTime(lastCompleted.completedAt) : ""}</div>`
         : `<div class="hero-idle-last">No features completed yet</div>`}
     </div>
   </div>`;
 }
 
 function renderStatCards(completedCount, successRate, avgCycleTime, totalTokens) {
+  const projectLabel = currentProject?.name || "Project";
   return `
   <div class="dashboard-section">
     <div class="stat-grid">
@@ -207,7 +215,7 @@ function renderStatCards(completedCount, successRate, avgCycleTime, totalTokens)
         <div class="stat-card-accent" style="background:var(--accent)"></div>
         <div class="stat-card-label">Features Shipped</div>
         <div class="stat-card-value">${completedCount}</div>
-        <div class="stat-card-sub">total completed</div>
+        <div class="stat-card-sub">${esc(projectLabel)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-card-accent" style="background:var(--green)"></div>
@@ -375,47 +383,26 @@ function renderTimeline(withState) {
     <div class="timeline-scroll">
       ${sorted.map((f) => {
         const s = f;
-        const tasks = s.tasks || [];
+        const tasks = (s.tasks || []).filter((t) => !isGateTask(t));
         const passed = tasks.filter((t) => t.status === "passed").length;
-        const gates = s.gates || [];
-        const gp = gates.filter((g) => g.verdict === "PASS").length;
-        const gf = gates.filter((g) => g.verdict === "FAIL").length;
         const status = s.status || "unknown";
-        const duration = s.summary?.duration || "";
-        const isExpanded = expandedFeatures.has(f.name);
+        const dateStr = f.completedAt || f._last_modified || f.createdAt || "";
+        const timeLabel = dateStr ? relativeTime(dateStr) : "";
+        const isSelected = selectedFeature === f.name;
 
         return `
-        <div class="timeline-card${isExpanded ? " expanded" : ""}" onclick="toggleFeature('${esc(f.name).replace(/'/g, "\\'")}')">
+        <div class="timeline-card${isSelected ? " selected" : ""}" onclick="selectBoardFeature('${esc(f.name).replace(/'/g, "\\'")}')">
           <div class="timeline-border status-${status}"></div>
           <div class="timeline-body">
             <div class="timeline-top">
               <div style="display:flex;align-items:center;gap:8px;min-width:0">
-                <span class="timeline-name">${esc(f.name)}</span>
+                <span class="timeline-name">${esc(humanizeName(f.name))}</span>
                 <span class="badge badge-${status}">${status}</span>
               </div>
               <div class="timeline-meta">
-                ${duration ? `<span class="timeline-duration">⏱ ${duration}</span>` : ""}
-                <span class="timeline-gates">
-                  ${gates.length > 0 ? `<span class="gate-pass">✓${gp}</span><span class="gate-fail">✗${gf}</span>` : ""}
-                </span>
+                ${timeLabel ? `<span class="timeline-date">${timeLabel}</span>` : ""}
                 <span style="font-size:12px;color:var(--text-muted)">${passed}/${tasks.length} tasks</span>
-                <span class="timeline-expand-icon">▶</span>
               </div>
-            </div>
-            <div class="timeline-tasks">
-              ${tasks.length === 0 ? '<div style="color:var(--text-muted);font-size:13px">No tasks</div>' : ""}
-              ${tasks.map((t) => {
-                const icon = t.status === "passed" ? "✅"
-                  : t.status === "in-progress" ? "🔄"
-                  : t.status === "blocked" || t.status === "failed" ? "🚫"
-                  : "⏳";
-                return `
-                <div class="timeline-task">
-                  <span class="timeline-task-icon">${icon}</span>
-                  <span class="timeline-task-name">${esc(t.id)}${t.description ? " — " + esc(t.description) : t.title ? " — " + esc(t.title) : ""}</span>
-                  ${t.lastGate ? `<span class="timeline-task-verdict ${t.lastGate.verdict}">${t.lastGate.verdict}</span>` : ""}
-                </div>`;
-              }).join("")}
             </div>
           </div>
         </div>`;
@@ -457,7 +444,7 @@ function renderBoard(withState, activeFeature) {
   const featureOptions = withState.length > 1
     ? `<div class="board-feature-selector">
         <select onchange="changeBoardFeature(this.value)">
-          ${withState.map((f) => `<option value="${esc(f.name)}" ${f.name === boardFeature.name ? "selected" : ""}>${esc(f.name)} (${f.status})</option>`).join("")}
+          ${withState.map((f) => `<option value="${esc(f.name)}" ${f.name === boardFeature.name ? "selected" : ""}>${esc(humanizeName(f.name))} (${f.status})</option>`).join("")}
         </select>
       </div>`
     : "";
@@ -466,31 +453,31 @@ function renderBoard(withState, activeFeature) {
   <div class="dashboard-section" id="section-board">
     <div class="section-header">Task Board</div>
     <div class="board-header">
-      <div class="board-feature-name">${esc(boardFeature.name)} <span class="badge badge-${boardFeature.status}">${boardFeature.status}</span></div>
+      <div class="board-feature-name">${esc(humanizeName(boardFeature.name))} <span class="badge badge-${boardFeature.status}">${boardFeature.status}</span></div>
       ${featureOptions}
     </div>
     <div class="board">
-      ${Object.entries(columns).map(([col, items]) => `
+      ${Object.entries(columns).map(([col, items]) => {
+        const realTasks = items.filter((t) => !isGateTask(t));
+        return `
         <div class="board-column">
           <div class="board-column-header">
-            ${icons[col]} ${labels[col]} <span class="board-column-count">${items.length}</span>
+            ${icons[col]} ${labels[col]} <span class="board-column-count">${realTasks.length}</span>
           </div>
-          ${items.length === 0 ? '<div class="board-empty">—</div>' : ""}
-          ${items.map((t) => `
+          ${realTasks.length === 0 ? '<div class="board-empty">—</div>' : ""}
+          ${realTasks.map((t) => `
             <div class="board-task">
               <div class="board-task-id">${esc(t.id)}</div>
-              ${t.description || t.title ? `<div class="board-task-desc">${esc(t.description || t.title)}</div>` : ""}
+              ${t.description || t.title ? `<div class="board-task-desc">${esc(truncate(t.description || t.title, 80))}</div>` : ""}
               <div class="board-task-footer">
                 ${t.lastGate ? `<span class="gate-badge gate-${t.lastGate.verdict}">${t.lastGate.verdict}</span>` : ""}
                 ${t.attempts || t.retries ? `<span class="board-task-attempts">${t.attempts || t.retries} attempt${(t.attempts || t.retries) > 1 ? "s" : ""}</span>` : ""}
                 ${t.duration ? `<span class="board-task-duration">⏱ ${t.duration}</span>` : ""}
               </div>
-              ${t.lastReason ? `<div style="font-size:11px;color:var(--yellow);margin-top:4px">${esc(t.lastReason)}</div>` : ""}
-              ${t.replanSource ? `<div style="font-size:11px;color:var(--purple);margin-top:4px;font-style:italic">↳ re-planned from ${esc(t.replanSource)}</div>` : ""}
             </div>
           `).join("")}
-        </div>
-      `).join("")}
+        </div>`;
+      }).join("")}
     </div>
   </div>`;
 }

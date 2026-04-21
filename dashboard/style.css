@@ -463,8 +463,9 @@ main {
   box-shadow: var(--shadow);
 }
 
-.timeline-card.expanded {
+.timeline-card.selected {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(88,166,255,0.2);
 }
 
 .timeline-border {
@@ -508,87 +509,13 @@ main {
   flex-shrink: 0;
 }
 
-.timeline-duration {
+.timeline-date {
   font-size: 12px;
-  color: var(--text-dim);
-}
-
-.timeline-gates {
-  display: flex;
-  gap: 4px;
-  font-size: 11px;
-}
-
-.timeline-gates .gate-pass {
-  color: var(--green);
-  font-weight: 700;
-}
-
-.timeline-gates .gate-fail {
-  color: var(--red);
-  font-weight: 700;
-}
-
-.timeline-expand-icon {
-  font-size: 12px;
-  color: var(--text-dim);
-  transition: transform var(--transition);
-}
-
-.timeline-card.expanded .timeline-expand-icon {
-  transform: rotate(90deg);
-}
-
-/* Expanded task list inside timeline card */
-.timeline-tasks {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
-  display: none;
-}
-
-.timeline-card.expanded .timeline-tasks {
-  display: block;
-}
-
-.timeline-task {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 0;
-  font-size: 13px;
-  color: var(--text-dim);
-}
-
-.timeline-task-icon {
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.timeline-task-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
-.timeline-task-verdict {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 3px;
-}
 
-.timeline-task-verdict.PASS {
-  background: rgba(63,185,80,0.15);
-  color: var(--green);
-}
-
-.timeline-task-verdict.FAIL {
-  background: rgba(248,81,73,0.15);
-  color: var(--red);
-}
 
 /* ── Task Board (Kanban) ── */
 .board-header {
