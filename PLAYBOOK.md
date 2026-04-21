@@ -1,109 +1,149 @@
 # PLAYBOOK.md — Platform Recipes
 
-Operational cookbook for OpenClaw + Discord + GitHub. The CHARTER says what to do; this says how.
+Operational cookbook for the `agt` CLI. The CHARTER says what to do; this says how.
 
 Items marked **[default]** are the standard approach. **[optional]** are supported alternatives. **[if configured]** require setup first.
 
 ---
 
-## OpenClaw
+## agt CLI
 
-### File access
-- **[default]** Use `read` tool for files — no approval needed, fastest path
-- **[fallback]** Use `exec` for shell commands — requires operator approval, typically ~30s overhead
-- **[tip]** Chain multiple shell commands into one `exec` to reduce approval count
-- **[tip]** Use `edit` for surgical file changes — no approval needed
+### Command Reference
 
-### Subagent dispatch
-**[default]** for scoped implementation tasks:
+| Command | Purpose |
+|---------|---------|
+| `agt init` | Interactive project setup — creates `.team/` structure, writes PRODUCT.md |
+| `agt brainstorm [idea]` | Interactive session that produces a SPEC for operator approval |
+| `agt run [description]` | Dispatch agents and run the execution loop |
+| `agt run --daemon` | Run the execution loop in the background |
+| `agt run --review` | Enable agent-based review step after each task |
+| `agt status` | Cross-project dashboard; shows running features and daemon state |
+| `agt board [feature]` | Task board view for a specific feature |
+| `agt metrics` | Token usage and cost stats |
+| `agt stop [feature]` | Pause execution of a running feature |
+| `agt stop --daemon` | Stop the background daemon |
+| `agt log [feature]` | Execution history for a feature |
+| `agt review [path\|desc]` | Trigger a review pass on code changes or files |
+| `agt audit` | Cross-project health check |
+| `agt dashboard [port]` | Launch local web dashboard (default port: 3847) |
+| `agt doctor` | Diagnose environment setup issues |
+| `agt version` | Show installed version |
+
+### Starting a feature
+
+```bash
+# Option A — brainstorm first (recommended for new features)
+agt brainstorm "add user authentication"
+# Review the generated SPEC, then:
+agt run "add user authentication"
+
+# Option B — run directly with a description
+agt run "fix the login redirect bug"
+
+# Option C — run with review enabled
+agt run "add user authentication" --review
+
+# Option D — background daemon (non-blocking)
+agt run "add user authentication" --daemon
+agt status          # check progress
+agt stop --daemon   # stop when done
 ```
-sessions_spawn:
-  runtime: "subagent"
-  mode: "run"
-  cwd: /path/to/project
-  label: task-name
-  task: |
-    {full task brief — see charter/conventions.md#handoff-templates}
+
+### Checking progress
+
+```bash
+agt status          # all features + daemon state
+agt board           # task board for current feature
+agt log             # execution history
 ```
-- Subagent inherits workspace but NOT session context
-- **[default]** Use `sessions_yield` after dispatch — don't poll with `sessions_list`
-- Completion arrives as push event
 
-**When to use subagent vs ACP vs direct:**
-| Situation | Use |
-|-----------|-----|
-| Scoped task with clear spec (2-10 min) | `sessions_spawn(runtime=subagent)` |
-| Thread-bound coding session in Discord | `sessions_spawn(runtime=acp)` |
-| One-line fix, CSS tweak | `edit` tool directly |
-| Need to explore/iterate interactively | ACP session or coordinator direct |
+### Stopping and resuming
 
-### ACP (Claude Code / Codex)
-**[if configured]** For persistent coding sessions:
+```bash
+agt stop            # pause current feature
+agt stop --daemon   # stop background daemon (feature state preserved)
+agt run             # resume where it left off
 ```
-sessions_spawn:
-  runtime: "acp"
-  thread: true
-  mode: "session"
-  agentId: {agent-id}
-```
-- Requires `acp.defaultAgent` or explicit `agentId`
-- Good for interactive coding in Discord threads
-
-### Shell approval friction
-**Problem:** Every `exec` needs operator approval. This is the #1 speed bottleneck.
-
-**Mitigations:**
-- Prefer `read`/`edit` tools over shell when possible
-- Chain commands: `build && commit && push` as one approval
-- Request `allow-always` for safe patterns (test, build, lint)
-- Approvals typically time out after ~2 min — retry if needed, don't assume denied
-
-**If operator doesn't approve:** Continue with non-shell alternatives. Use `read` to inspect, `edit` to change, note the blocked command for when operator returns.
-
-### Multi-agent setup
-**[if configured]** Each agent needs:
-- Own OpenClaw agent config (`~/.openclaw/agents/{name}/config.yaml`)
-- Own Discord bot token
-- `requireMention: true` recommended (agents respond only when pinged)
-
-**Single-agent alternative:** One agent can serve multiple roles using subagent dispatch. Multi-agent config is only needed for persistent team agents with Discord presence.
-
-### Heartbeats
-**[optional]** For periodic monitoring:
-- Configure in OpenClaw config
-- `HEARTBEAT.md` checked each poll
-- Good for: stall detection, channel check-ins, inbox monitoring
-- Not for: sprint execution (use subagents instead)
 
 ---
 
-## Discord
+## Standard Sprint Workflow
 
-### Pinging agents
-- **[required]** Use `<@BOT_ID>` format — @name doesn't trigger a response
-- Bot IDs stored in TOOLS.md per project
-- **If ping doesn't work:** Verify bot is online, check `requireMention` config
+The end-to-end sequence from idea to shipped deliverable:
 
-### Channel management
-**[default]** One channel per sprint:
+### 1. Brainstorm
+```bash
+agt brainstorm "your feature idea"
 ```
-message:
-  action: channel-create
-  channel: discord
-  guildId: {guild_id}
-  name: {sprint-name}
-  topic: {description + branch + spec link}
+- Interactive session produces a SPEC with scope, acceptance criteria, and task breakdown
+- **Operator approves** the SPEC before execution starts — this is the primary human checkpoint
+- Adjust scope/criteria before approving
+
+### 2. Run
+```bash
+agt run "feature description"
+```
+- Dispatches builder agents per task
+- Runs quality gate (`npm test` or project-configured command) after each task
+- Automatically selects flow tier based on description and task count (see Flow Selection below)
+
+### 3. Monitor (optional)
+```bash
+agt status          # check overall progress
+agt board           # inspect task-level detail
+agt log             # view execution log
 ```
 
-**Channel lifecycle:**
-1. Create on sprint start → pin overview
-2. Post updates during sprint
-3. Post "shipped" summary on completion
-4. Archive after retro
+### 4. Review failures
+- Gate failures are surfaced in `agt status` and `agt log`
+- Blocked tasks do not block the sprint — the loop continues with other tasks
+- Critical failures stop the feature and request operator input
 
-**If channel creation fails:** Use an existing channel or operator DM. Don't block on channel setup.
+### 5. Ship
+```bash
+gh pr create        # create PR when feature completes
+gh pr merge --squash
+```
+- See the GitHub and Deploy sections below for standard procedures
 
-**Reactions:** Use for lightweight acknowledgment without a full message (✅ done, 👀 reviewing, 🔥 nice work). Keeps channels scannable.
+---
+
+## Flow Selection
+
+Flows control how much verification runs after each task. Selected automatically, or override with `--flow <name>`.
+
+| Flow | Phases | When auto-selected |
+|------|--------|--------------------|
+| `light-review` | implement → gate | Default for small, well-scoped tasks (< 3 tasks, no integration keywords) |
+| `build-verify` | implement → gate → review | 3–5 tasks, or description includes: review, audit, integration, API, auth |
+| `full-stack` | brainstorm → implement → gate → multi-role review | 6+ tasks, or description includes: architecture, refactor, migration, redesign |
+
+**Multi-role review** (full-stack only) dispatches three reviewers in parallel:
+- `security` — vulnerabilities, input validation, safe defaults
+- `architect` — structure, patterns, modularity, maintainability
+- `devil's-advocate` — edge cases, hidden risks, assumptions
+
+Override auto-selection:
+```bash
+agt run "description" --flow full-stack
+agt run "description" --flow light-review
+```
+
+---
+
+## Quality Gates
+
+Each task must pass the project quality gate before the loop moves on. The gate command is configured in `.team/PROJECT.md` (defaults to `npm test`).
+
+**Gate outcomes:**
+- **Pass** — task complete, move to next task
+- **Fail** — task flagged, builder retries up to configured attempt limit
+- **Critical fail** — feature paused, operator notified
+
+**Handling failures:**
+- View gate output: `agt log [feature]`
+- Blocked tasks are skipped after max retries — the sprint continues
+- Fix a specific task manually, then `agt run` to resume
 
 ---
 
@@ -185,19 +225,28 @@ vercel --prod
 ## Common Recipes
 
 ### Start a new sprint
-1. Brainstorm with operator → write SPEC.md
-2. Write PLAN.md
-3. Create `.team/sprints/{name}/` directory (if not already created during brainstorm)
-4. Create Discord channel
-5. Pin overview in channel
-6. Start executing
+1. `agt brainstorm "idea"` → review + approve SPEC
+2. `agt run "feature description"`
+3. Monitor with `agt status` / `agt board`
+4. PR → merge → deploy
 
-### Quick QA cycle
-1. Push fix to branch
-2. Wait for PR preview redeploy (~1-2 min)
-3. Ping QA agent: `<@BOT_ID>` + preview URL + checklist
-4. Or operator tests on real device
-5. **If QA agent unavailable:** Coordinator runs headless checks manually, operator handles device testing
+### Quick fix
+```bash
+agt run "fix the specific bug"   # light-review auto-selected for small tasks
+```
+
+### Full feature with multi-role review
+```bash
+agt run "redesign authentication flow" --flow full-stack
+```
+
+### Background execution
+```bash
+agt run "big feature" --daemon
+# do other work
+agt status         # check progress
+agt stop --daemon  # stop when done
+```
 
 ### Ship to production
 1. Merge PR: `gh pr merge --squash`
@@ -206,5 +255,3 @@ vercel --prod
 4. Deploy production (see `.team/PROJECT.md` for method)
 5. Verify production
 6. Tag: `gh release create v{X.Y}`
-7. Post in sprint channel: "🚀 shipped"
-8. **If staging deploy fails:** Re-run action. Don't deploy to production from a failed staging.
