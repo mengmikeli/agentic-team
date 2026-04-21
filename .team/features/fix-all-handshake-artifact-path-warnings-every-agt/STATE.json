@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "fix-all-handshake-artifact-path-warnings-every-agt",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-21T10:05:37.287Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T10:14:21.901Z",
-  "_write_nonce": "de562793fc4074c3"
+  "_last_modified": "2026-04-21T10:16:54.556Z",
+  "_write_nonce": "9a56302aad14418b",
+  "completedAt": "2026-04-21T10:16:54.556Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "11m"
+  }
 }

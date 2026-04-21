@@ -1,0 +1,60 @@
+{
+  "version": "2.0",
+  "feature": "add-real-time-dashboard-updates-via-server-sent-ev",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Add real-time dashboard updates via Server-Sent Events (SSE). Currently the dashboard polls every 10s and misses in-progress states. Fix: 1) Add GET /api/events SSE endpoint to the dashboard server that streams notifications in real-time. 2) When agt-harness notify fires, it should write events to a shared log file at .team/.notify-stream. 3) The SSE endpoint watches this file and pushes new events to connected clients. 4) The dashboard frontend opens an EventSource connection and updates the UI immediately on task-started, task-passed, task-blocked, feature-complete events — no polling needed for active state. 5) Keep the 10s polling as fallback for when SSE disconnects. 6) Dashboard should show a live indicator (pulsing dot) when SSE is connected.",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 52,
+      "lastTransition": "2026-04-21T10:19:55.482Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-21T10:25:22.182Z",
+        "taskId": "task-1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 53
+    }
+  ],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-21T10:25:22.182Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-21T10:19:55.482Z"
+    }
+  ],
+  "createdAt": "2026-04-21T10:19:43.124Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-21T10:25:22.182Z",
+  "_write_nonce": "c36f71fd2a541dc3"
+}
