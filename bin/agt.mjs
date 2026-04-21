@@ -311,7 +311,7 @@ switch (command) {
       return result;
     }
 
-    function loadTokenData(fs, join, home) {
+    function loadTokenData(fs, join, home, projectPath) {
       const pewDir = join(home, ".config", "pew");
       const queuePath = join(pewDir, "queue.jsonl");
       if (!fs.existsSync(queuePath)) return { available: false };
@@ -325,12 +325,42 @@ switch (command) {
         const sevenDaysAgo = new Date(now);
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         sevenDaysAgo.setHours(0, 0, 0, 0);
-
         const recent = records.filter((r) => new Date(r.hour_start) >= sevenDaysAgo);
+
+        // Build project time windows from features
+        const featDir = join(projectPath, ".team", "features");
+        const projectWindows = [];
+        if (fs.existsSync(featDir)) {
+          try {
+            for (const d of fs.readdirSync(featDir)) {
+              const sp = join(featDir, d, "STATE.json");
+              if (!fs.existsSync(sp)) continue;
+              const state = JSON.parse(fs.readFileSync(sp, "utf8"));
+              if (state.createdAt) {
+                projectWindows.push({
+                  start: new Date(state.createdAt),
+                  end: new Date(state.completedAt || state._last_modified || now),
+                });
+              }
+            }
+          } catch {}
+        }
+
+        // Filter pew records: if project has features, only count tokens during feature time windows
+        // Otherwise show all tokens (global view)
+        let projectRecords = recent;
+        let scope = "all";
+        if (projectWindows.length > 0) {
+          scope = "project";
+          projectRecords = recent.filter((r) => {
+            const t = new Date(r.hour_start);
+            return projectWindows.some((w) => t >= w.start && t <= w.end);
+          });
+        }
 
         // Summary
         let input = 0, cached = 0, output = 0, reasoning = 0, total = 0;
-        for (const r of recent) {
+        for (const r of projectRecords) {
           input += r.input_tokens || 0;
           cached += r.cached_input_tokens || 0;
           output += r.output_tokens || 0;
@@ -338,7 +368,7 @@ switch (command) {
           total += r.total_tokens || 0;
         }
 
-        // Daily aggregation (last 7 days)
+        // Daily aggregation
         const dailyMap = new Map();
         for (let i = 6; i >= 0; i--) {
           const d = new Date(now);
@@ -346,7 +376,7 @@ switch (command) {
           const key = d.toISOString().slice(0, 10);
           dailyMap.set(key, { date: key, total: 0, input: 0, output: 0, cached: 0 });
         }
-        for (const r of recent) {
+        for (const r of projectRecords) {
           const key = new Date(r.hour_start).toISOString().slice(0, 10);
           if (dailyMap.has(key)) {
             const d = dailyMap.get(key);
@@ -359,7 +389,7 @@ switch (command) {
 
         // Model breakdown
         const modelMap = new Map();
-        for (const r of recent) {
+        for (const r of projectRecords) {
           const m = r.model || "unknown";
           if (!modelMap.has(m)) modelMap.set(m, { model: m, total: 0, input: 0, output: 0 });
           const entry = modelMap.get(m);
@@ -371,6 +401,8 @@ switch (command) {
 
         return {
           available: true,
+          scope,
+          featureWindows: projectWindows.length,
           summary: { input, cached, output, reasoning, total },
           daily: [...dailyMap.values()],
           models,
@@ -454,7 +486,8 @@ switch (command) {
             return jsonRes(res, backlog);
           }
           if (pathname === "/api/tokens") {
-            return jsonRes(res, loadTokenData(fs, join, home));
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            return jsonRes(res, loadTokenData(fs, join, home, pp));
           }
           if (pathname === "/api/events") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());

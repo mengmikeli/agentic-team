@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "add-real-time-dashboard-updates-via-server-sent-ev",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -85,6 +85,16 @@
   ],
   "createdAt": "2026-04-21T10:19:43.124Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T10:30:01.241Z",
-  "_write_nonce": "778f47414d02ac9b"
+  "_last_modified": "2026-04-21T10:32:51.994Z",
+  "_write_nonce": "e0d5e6483b6484ac",
+  "completedAt": "2026-04-21T10:32:51.994Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 2,
+    "gates": 2,
+    "duration": "13m"
+  }
 }

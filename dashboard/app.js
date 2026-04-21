@@ -340,8 +340,8 @@ function renderTokenSection() {
     <div class="token-grid">
       <div class="token-summary-card">
         <div class="token-total">${formatTokens(summary.total || 0)}</div>
-        <div class="token-total-label">All Projects · Last 7 Days</div>
-        <div class="token-data-note">pew tracks by tool, not per project</div>
+        <div class="token-total-label">${tokenData.scope === "project" ? esc(currentProject?.name || "Project") + " · Estimated" : "All Projects"} · Last 7 Days</div>
+        <div class="token-data-note">${tokenData.scope === "project" ? "Estimated from " + tokenData.featureWindows + " feature time windows" : "pew tracks by tool, not per project"}</div>
         <div class="token-breakdown">
           <div class="token-row">
             <span class="token-row-label"><span class="token-row-dot" style="background:var(--accent)"></span> Input</span>
