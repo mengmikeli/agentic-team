@@ -26,6 +26,9 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 ## Roadmap
 1. **v1.0 — Foundations** — ✅ Done. 11 skills, CLI, harness, dashboard.
 2. **v2.0 — CLI product** — ✅ Done. agt run, agt-harness, GitHub Issues, daemon, notifications, continuous mode.
-3. **Flow templates** — Add flow selection to agt run. Light review (gate only), build-verify (build + gate + review), full-stack (brainstorm + build + multi-role review + gate). Orchestrate picks the right flow based on task complexity.
-4. **Parallel reviewers** — Dispatch 2-5 role-specific reviewers simultaneously after build. Security + architect + devil's advocate all review in parallel. Merge findings before gate verdict.
-5. **Backlog enforcement** — Track every warning in .team/features/{name}/backlog.md. Gate cannot pass until warnings are documented. Unfixed warnings carry forward to next feature.
+3. **Flow templates** — ✅ Done. Light review, build-verify, full-stack flow selection.
+4. **Parallel reviewers** — ✅ Done. Multi-role dispatch with merged findings.
+5. **Backlog enforcement** — ✅ Done. Warning tracking, gate blocking.
+6. **Per-command help** — Add `agt help <command>` with usage, flags, and examples for each command. Currently `agt` only shows a flat list.
+7. **PLAYBOOK.md rewrite** — Update for v2 CLI workflow. Current playbook references old multi-agent Discord coordination, not the agt CLI product.
+8. **npm publish** — Unblock 2FA issue and publish to npm registry via GitHub Actions.
