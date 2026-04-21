@@ -214,64 +214,155 @@ switch (command) {
       ".svg": "image/svg+xml",
     };
 
-    const server = createServer((req, res) => {
-      // API: serve .team/ data
-      if (req.url.startsWith("/api/")) {
-        const teamDir = join(process.cwd(), ".team");
-        const apiPath = req.url.replace("/api/", "");
+    const { homedir } = await import("os");
+    const { spawnSync } = await import("child_process");
+    const home = homedir();
 
-        if (apiPath === "features") {
+    function expandTilde(p) {
+      return p && p.startsWith("~/") ? join(home, p.slice(2)) : p;
+    }
+
+    function jsonRes(res, data, code = 200) {
+      res.writeHead(code, { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" });
+      res.end(JSON.stringify(data));
+    }
+
+    function parseProjectsTable(content) {
+      const projects = [];
+      for (const line of content.split("\n")) {
+        if (!line.startsWith("|") || line.includes("---")) continue;
+        const cols = line.split("|").map(c => c.trim()).filter(Boolean);
+        if (cols.length < 5 || /project/i.test(cols[0].replace(/\*/g, ""))) continue;
+        const name = cols[0].replace(/\*\*/g, "");
+        const rawPath = cols[1].replace(/`/g, "");
+        const path = expandTilde(rawPath);
+        const repoMatch = cols[2].match(/\[([^\]]+)\]\(([^)]+)\)/);
+        const repo = repoMatch ? { name: repoMatch[1], url: repoMatch[2] } : { name: cols[2], url: "" };
+        const version = cols[3].replace(/—/g, "").trim() || null;
+        const status = cols[4];
+        const featuresDir = join(path, ".team", "features");
+        let totalFeatures = 0, activeFeatures = 0, completedFeatures = 0;
+        if (fs.existsSync(featuresDir)) {
           try {
-            const featuresDir = join(teamDir, "features");
-            if (!fs.existsSync(featuresDir)) {
-              res.writeHead(200, { "Content-Type": "application/json" });
-              res.end("[]");
-              return;
+            for (const d of fs.readdirSync(featuresDir, { withFileTypes: true })) {
+              if (!d.isDirectory()) continue;
+              totalFeatures++;
+              const sp = join(featuresDir, d.name, "STATE.json");
+              if (fs.existsSync(sp)) {
+                try {
+                  const st = JSON.parse(fs.readFileSync(sp, "utf8")).status;
+                  if (st === "completed") completedFeatures++;
+                  else if (st === "active" || st === "executing") activeFeatures++;
+                } catch {}
+              }
             }
-            const dirs = fs.readdirSync(featuresDir, { withFileTypes: true })
-              .filter(d => d.isDirectory())
-              .map(d => {
-                const statePath = join(featuresDir, d.name, "STATE.json");
-                const state = fs.existsSync(statePath)
-                  ? JSON.parse(fs.readFileSync(statePath, "utf8"))
-                  : null;
-                return { name: d.name, state };
-              });
-            res.writeHead(200, {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            });
-            res.end(JSON.stringify(dirs));
-          } catch (err) {
-            res.writeHead(500, { "Content-Type": "application/json" });
-            res.end(JSON.stringify({ error: err.message }));
-          }
-          return;
+          } catch {}
         }
+        projects.push({ name, path, rawPath, repo, version, status, hasTeam: fs.existsSync(join(path, ".team")), totalFeatures, activeFeatures, completedFeatures });
+      }
+      return projects;
+    }
 
-        // Serve raw .team/ files
-        const filePath = join(teamDir, apiPath);
-        if (fs.existsSync(filePath)) {
-          res.writeHead(200, {
-            "Content-Type": mimeTypes[extname(filePath)] || "text/plain",
-            "Access-Control-Allow-Origin": "*",
+    function readFeatures(projectPath) {
+      const featDir = join(projectPath, ".team", "features");
+      if (!fs.existsSync(featDir)) return [];
+      try {
+        return fs.readdirSync(featDir, { withFileTypes: true })
+          .filter(d => d.isDirectory())
+          .map(d => {
+            const sp = join(featDir, d.name, "STATE.json");
+            const state = fs.existsSync(sp) ? JSON.parse(fs.readFileSync(sp, "utf8")) : null;
+            return { name: d.name, state, hasSpec: fs.existsSync(join(featDir, d.name, "SPEC.md")) };
           });
-          res.end(fs.readFileSync(filePath, "utf8"));
-        } else {
-          res.writeHead(404, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "not found" }));
+      } catch { return []; }
+    }
+
+    function parseSprints(content) {
+      const sprints = [];
+      for (const line of content.split("\n")) {
+        if (!line.startsWith("|") || line.includes("---")) continue;
+        const cols = line.split("|").map(c => c.trim()).filter(Boolean);
+        if (cols.length < 5 || /sprint/i.test(cols[0])) continue;
+        sprints.push({ name: cols[0], status: cols[1], version: cols[2], dates: cols[3], commits: cols[4], model: cols[5] || "" });
+      }
+      return sprints;
+    }
+
+    function parseProduct(content) {
+      const result = {};
+      let current = null;
+      for (const line of content.split("\n")) {
+        const h = line.match(/^##\s+(.+)/);
+        if (h) { current = h[1].toLowerCase(); result[current] = []; }
+        else if (current) result[current].push(line);
+      }
+      for (const k of Object.keys(result)) result[k] = result[k].join("\n").trim();
+      return result;
+    }
+
+    const server = createServer((req, res) => {
+      const url = new URL(req.url, `http://localhost:${port}`);
+      const pathname = url.pathname;
+
+      if (pathname.startsWith("/api/")) {
+        try {
+          if (pathname === "/api/projects") {
+            const p = join(home, "clawd", "PROJECTS.md");
+            if (!fs.existsSync(p)) return jsonRes(res, []);
+            return jsonRes(res, parseProjectsTable(fs.readFileSync(p, "utf8")));
+          }
+          if (pathname === "/api/features") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            return jsonRes(res, readFeatures(pp));
+          }
+          if (pathname === "/api/sprints") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const sp = join(pp, ".team", "SPRINTS.md");
+            if (!fs.existsSync(sp)) return jsonRes(res, { sprints: [], raw: "" });
+            const c = fs.readFileSync(sp, "utf8");
+            return jsonRes(res, { sprints: parseSprints(c), raw: c });
+          }
+          if (pathname === "/api/state") {
+            const fd = expandTilde(url.searchParams.get("path") || "");
+            const sp = join(fd, "STATE.json");
+            if (!fs.existsSync(sp)) return jsonRes(res, null);
+            return jsonRes(res, JSON.parse(fs.readFileSync(sp, "utf8")));
+          }
+          if (pathname === "/api/product") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const pm = join(pp, ".team", "PRODUCT.md");
+            if (!fs.existsSync(pm)) return jsonRes(res, {});
+            return jsonRes(res, parseProduct(fs.readFileSync(pm, "utf8")));
+          }
+          if (pathname === "/api/issues") {
+            const cwd = expandTilde(url.searchParams.get("path") || process.cwd());
+            try {
+              const r = spawnSync("gh", ["issue", "list", "--state", "open", "--json", "number,title,labels,state", "--limit", "50"], { encoding: "utf8", timeout: 10000, cwd });
+              if (r.status === 0 && r.stdout) return jsonRes(res, JSON.parse(r.stdout));
+            } catch {}
+            return jsonRes(res, []);
+          }
+          // Fallback: raw .team/ files
+          const teamDir = join(process.cwd(), ".team");
+          const apiPath = pathname.replace("/api/", "");
+          const filePath = join(teamDir, apiPath);
+          if (fs.existsSync(filePath)) {
+            res.writeHead(200, { "Content-Type": mimeTypes[extname(filePath)] || "text/plain", "Access-Control-Allow-Origin": "*" });
+            return res.end(fs.readFileSync(filePath, "utf8"));
+          }
+          return jsonRes(res, { error: "not found" }, 404);
+        } catch (err) {
+          return jsonRes(res, { error: err.message }, 500);
         }
-        return;
       }
 
       // Static files
-      let filePath = req.url === "/" ? "/index.html" : req.url;
+      let filePath = pathname === "/" ? "/index.html" : pathname;
       filePath = join(dashDir, filePath);
       if (fs.existsSync(filePath)) {
         res.writeHead(200, { "Content-Type": mimeTypes[extname(filePath)] || "text/plain" });
         res.end(fs.readFileSync(filePath));
       } else {
-        // SPA fallback
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(fs.readFileSync(join(dashDir, "index.html")));
       }
