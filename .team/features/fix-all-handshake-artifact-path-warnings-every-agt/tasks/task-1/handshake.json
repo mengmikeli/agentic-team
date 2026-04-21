@@ -1,0 +1,20 @@
+{
+  "taskId": "task-1",
+  "nodeType": "gate",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": "PASS",
+  "summary": "Gate command: echo gate-recorded — exit code 0",
+  "timestamp": "2026-04-21T10:10:22.501Z",
+  "artifacts": [
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
+  ],
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
+}
