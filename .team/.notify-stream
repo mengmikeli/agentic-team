@@ -2,3 +2,5 @@
 {"ts":"2026-04-21T10:28:56.808Z","event":"task-started","msg":"▶ Task 2/2: Quality gate passes"}
 {"ts":"2026-04-21T10:32:46.357Z","event":"task-passed","msg":"✓ Task 2/2: Quality gate passes"}
 {"ts":"2026-04-21T10:32:54.136Z","event":"feature-complete","msg":"Feature complete: add-real-time-dashboard-updates-via-server-sent-ev — 2/2 done, 0 blocked, 12m 59s"}
+{"ts":"2026-04-21T14:11:04.705Z","event":"feature-started","msg":"▶ Feature: complete-dashboard-redesign-and-audit-the-current- (2 tasks planned)"}
+{"ts":"2026-04-21T14:13:56.378Z","event":"task-started","msg":"▶ Task 1/2: Complete dashboard redesign and audit. The current IA is broken — global token data is under a per-project filter, which is misleading. Fix the entire information architecture:"}

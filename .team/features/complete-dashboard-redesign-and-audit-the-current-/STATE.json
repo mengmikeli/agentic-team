@@ -1,0 +1,60 @@
+{
+  "version": "2.0",
+  "feature": "complete-dashboard-redesign-and-audit-the-current-",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Complete dashboard redesign and audit. The current IA is broken — global token data is under a per-project filter, which is misleading. Fix the entire information architecture:",
+      "status": "passed",
+      "attempts": 0,
+      "issueNumber": 54,
+      "lastTransition": "2026-04-21T14:13:53.483Z",
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-21T14:20:39.065Z",
+        "taskId": "task-1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 55
+    }
+  ],
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-21T14:20:39.065Z",
+      "taskId": "task-1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-21T14:13:53.483Z"
+    }
+  ],
+  "createdAt": "2026-04-21T14:11:04.656Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-21T14:20:39.065Z",
+  "_write_nonce": "a897ea62d1da1977"
+}

@@ -1,5 +1,5 @@
-// agentic-team dashboard — single-scroll redesign
-// 4 sections: Status Hero, Token Usage, Feature Timeline, Task Board
+// agentic-team dashboard — tabbed redesign
+// Tabs: Projects (per-project features/tasks) | Token Usage (global, all tools)
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
@@ -34,7 +34,20 @@ let selectedFeature = null;
 let refreshTimer = null;
 let eventSource = null;
 let sseConnected = false;
+let currentTab = 'project'; // 'project' | 'tokens'
 
+// ── Tab switching ──
+window.switchTab = function(tab) {
+  currentTab = tab;
+  // Update tab button active state
+  $$('.tab-btn').forEach(btn => {
+    btn.classList.toggle('tab-active', btn.dataset.tab === tab);
+  });
+  // Show project selector only on project tab
+  const ps = document.getElementById('project-select');
+  if (ps) ps.style.display = tab === 'project' ? '' : 'none';
+  render();
+};
 
 // ── Project selector ──
 const projectSelect = $("#project-select");
@@ -47,7 +60,6 @@ projectSelect.addEventListener("change", (e) => {
     sprints = [];
     issues = [];
     backlogItems = [];
-    tokenData = null;
     localStorage.setItem('agt-dashboard-project', currentProject.name);
     loadProjectData();
   }
@@ -84,7 +96,9 @@ async function loadProjects() {
     currentProject = { name: "Current Project", path: ".", rawPath: "." };
     projectSelect.style.display = "none";
   }
-  await loadProjectData();
+
+  // Load token data globally (not per-project) and project data in parallel
+  await Promise.all([loadProjectData(), loadTokens()]);
 }
 
 function updateProjectSelector(selectedIdx = 0) {
@@ -97,12 +111,11 @@ async function loadProjectData() {
   if (!currentProject) return;
   const path = encodeURIComponent(currentProject.path);
   try {
-    const [featRes, sprintRes, issueRes, backlogRes, tokenRes] = await Promise.all([
+    const [featRes, sprintRes, issueRes, backlogRes] = await Promise.all([
       fetch(`/api/features?path=${path}`),
       fetch(`/api/sprints?path=${path}`),
       fetch(`/api/issues?path=${path}`).catch(() => null),
       fetch(`/api/backlog?path=${path}`).catch(() => null),
-      fetch(`/api/tokens?path=${path}`).catch(() => null),
     ]);
     if (featRes.ok) features = await featRes.json();
     if (sprintRes.ok) {
@@ -111,14 +124,21 @@ async function loadProjectData() {
     }
     if (issueRes?.ok) issues = await issueRes.json();
     if (backlogRes?.ok) backlogItems = await backlogRes.json();
-    if (tokenRes?.ok) tokenData = await tokenRes.json();
   } catch {}
   render();
   startSSE();
   startAutoRefresh();
 }
 
-// ── Auto-refresh (10s fallback) — only refreshes features for active section ──
+// Load global token data (no project path — all projects, all tools)
+async function loadTokens() {
+  try {
+    const res = await fetch('/api/tokens');
+    if (res.ok) tokenData = await res.json();
+  } catch {}
+}
+
+// ── Auto-refresh (10s fallback) ──
 function startAutoRefresh() {
   if (refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(async () => {
@@ -172,22 +192,29 @@ function updateSSEIndicator() {
   if (dot) dot.style.display = sseConnected ? "inline-block" : "none";
 }
 
-// ── Render ──
+// ── Render router ──
 function render() {
+  // Keep SSE indicator in sync
+  const liveDot = document.getElementById("sse-live-dot");
+  if (liveDot) liveDot.style.display = sseConnected ? "inline-block" : "none";
+
+  if (currentTab === 'tokens') {
+    app.innerHTML = renderTokensView();
+    return;
+  }
+
+  renderProjectView();
+}
+
+// ── Project View ──
+function renderProjectView() {
   const withState = features.filter((f) => f.status && f.status !== "unknown");
   const active = withState.find((f) => ["active", "executing"].includes(f.status));
   const completed = withState.filter((f) => f.status === "completed");
   const totalFeatures = withState.length;
   const completedCount = completed.length;
   const successRate = totalFeatures > 0 ? Math.round((completedCount / totalFeatures) * 100) : 0;
-
-  // Avg cycle time from sprints or features
   const avgCycleTime = computeAvgCycleTime(withState);
-
-  // Total tokens from pew data
-  const totalTokens = tokenData?.available !== false && tokenData?.summary
-    ? formatTokens(tokenData.summary.total)
-    : "—";
 
   // Update nav status
   const navStatus = $("#nav-status");
@@ -196,14 +223,10 @@ function render() {
   } else {
     navStatus.innerHTML = `<span style="color:var(--text-muted)">Idle</span>`;
   }
-  // Show SSE live indicator
-  const liveDot = document.getElementById("sse-live-dot");
-  if (liveDot) liveDot.style.display = sseConnected ? "inline-block" : "none";
 
   app.innerHTML = `
     ${renderStatusHero(active, completed, withState)}
-    ${renderStatCards(completedCount, successRate, avgCycleTime, totalTokens)}
-    ${renderTokenSection()}
+    ${renderStatCards(completedCount, successRate, avgCycleTime)}
     ${renderBacklog()}
     ${renderTimeline(withState)}
     ${renderBoard(withState, active)}
@@ -259,7 +282,7 @@ function renderStatusHero(active, completed, withState) {
   </div>`;
 }
 
-function renderStatCards(completedCount, successRate, avgCycleTime, totalTokens) {
+function renderStatCards(completedCount, successRate, avgCycleTime) {
   const projectLabel = currentProject?.name || "Project";
   return `
   <div class="dashboard-section">
@@ -282,17 +305,11 @@ function renderStatCards(completedCount, successRate, avgCycleTime, totalTokens)
         <div class="stat-card-value">${avgCycleTime}</div>
         <div class="stat-card-sub">per feature</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-card-accent" style="background:var(--cyan)"></div>
-        <div class="stat-card-label">Token Usage</div>
-        <div class="stat-card-value">${totalTokens}</div>
-        <div class="stat-card-sub">all models</div>
-      </div>
     </div>
   </div>`;
 }
 
-// ── Section 2: Token Usage ──
+// ── Backlog ──
 function renderBacklog() {
   if (!backlogItems.length && !issues.length) return '';
   return `
@@ -317,7 +334,8 @@ function renderBacklog() {
   `;
 }
 
-function renderTokenSection() {
+// ── Tokens View (global, all projects/tools) ──
+function renderTokensView() {
   if (!tokenData || tokenData.available === false) {
     return `
     <div class="dashboard-section" id="section-tokens">
@@ -340,8 +358,7 @@ function renderTokenSection() {
     <div class="token-grid">
       <div class="token-summary-card">
         <div class="token-total">${formatTokens(summary.total || 0)}</div>
-        <div class="token-total-label">${tokenData.scope === "project" ? esc(currentProject?.name || "Project") + " · Estimated" : "All Projects"} · Last 7 Days</div>
-        <div class="token-data-note">${tokenData.scope === "project" ? "Estimated from " + tokenData.featureWindows + " feature time windows" : "pew tracks by tool, not per project"}</div>
+        <div class="token-total-label">All projects &amp; tools · Last 7 days</div>
         <div class="token-breakdown">
           <div class="token-row">
             <span class="token-row-label"><span class="token-row-dot" style="background:var(--accent)"></span> Input</span>
