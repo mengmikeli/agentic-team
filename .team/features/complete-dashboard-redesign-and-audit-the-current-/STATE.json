@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "complete-dashboard-redesign-and-audit-the-current-",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -25,9 +25,10 @@
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "pending",
+      "status": "passed",
       "attempts": 0,
-      "issueNumber": 55
+      "issueNumber": 55,
+      "lastTransition": "2026-04-22T01:02:28.556Z"
     }
   ],
   "gates": [
@@ -54,7 +55,7 @@
       "newWarnings": 0
     }
   ],
-  "transitionCount": 1,
+  "transitionCount": 3,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -62,10 +63,34 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-21T14:13:53.483Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-22T01:02:28.508Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-22T01:02:28.556Z"
     }
   ],
   "createdAt": "2026-04-21T14:11:04.656Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-21T14:33:09.763Z",
-  "_write_nonce": "d53ed966c8d88481"
+  "_last_modified": "2026-04-22T01:02:28.604Z",
+  "_write_nonce": "274de08c758761a1",
+  "completedAt": "2026-04-22T01:02:28.604Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 3,
+    "gates": 2,
+    "duration": "651m"
+  }
 }

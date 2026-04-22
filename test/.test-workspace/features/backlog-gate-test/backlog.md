@@ -2,4 +2,4 @@
 
 Warnings tracked during feature execution.
 
-- [ ] [gate] 2026-04-21: warning: deprecated api
+- [ ] [gate] 2026-04-22: warning: deprecated api
