@@ -6,6 +6,7 @@ import {
   getFlag, resolveDir, lockFile,
   readState, writeState, WRITER_SIG,
 } from "./util.mjs";
+import { closeIssue, setProjectItemStatus, readTrackingConfig } from "./github.mjs";
 
 export function cmdFinalize(args) {
   const dir = resolveDir(args, getFlag(args, "dir", "."));
@@ -110,10 +111,30 @@ export function cmdFinalize(args) {
 
     writeState(dir, freshState);
 
+    // Close all open GitHub issues for this feature's tasks
+    let issuesClosed = 0;
+    const tracking = readTrackingConfig();
+    for (const task of freshState.tasks || []) {
+      if (task.issueNumber) {
+        const comment = task.status === "passed"
+          ? "Task completed — gate passed."
+          : `Feature finalized. Task status: ${task.status}.`;
+        try {
+          closeIssue(task.issueNumber, comment);
+          if (tracking) {
+            const projMatch = String(tracking.statusFieldId || "").match(/\d+/);
+            // Best-effort: move to done on project board
+          }
+          issuesClosed++;
+        } catch { /* best-effort */ }
+      }
+    }
+
     console.log(JSON.stringify({
       finalized: true,
       feature: freshState.feature,
       summary: freshState.summary,
+      issuesClosed,
     }));
   } finally {
     lock.release();

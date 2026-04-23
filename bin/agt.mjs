@@ -48,6 +48,19 @@ switch (command) {
     cmdStop(args);
     break;
   case "log":     cmdLog(args);     break;
+  case "finalize": {
+    const { cmdFinalize } = await import("./lib/finalize.mjs");
+    const featureName = args[0];
+    if (!featureName) {
+      console.log("Usage: agt finalize <feature-name>");
+      console.log("  Marks a feature as completed and closes all its GitHub issues.");
+      console.log("  Use after killing a run that was functionally complete.");
+      break;
+    }
+    const dir = join(process.cwd(), ".team", "features", featureName);
+    cmdFinalize(["--dir", dir]);
+    break;
+  }
   case "review":  await cmdReview(args);  break;
   case "audit":   await cmdAudit(args);   break;
   case "brainstorm": await cmdBrainstorm(args); break;
