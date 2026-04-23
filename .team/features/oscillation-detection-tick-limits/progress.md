@@ -155,3 +155,13 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-23 10:40:50
+**Task 11: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count**
+- Verdict: 🟡 Review FAIL (attempt 3)
+- Will retry with review feedback
+
+### 2026-04-23 10:41:02
+**Re-plan for task 11: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count**
+- Verdict: inject
+- Rationale: The blocking issue is not the feature implementation itself but a systematic gate misconfiguration: something in the builder run resets the gate command to `echo gate-recorded` instead of `npm test`, and this has reverted two separate fix commits. The root cause must be diagnosed and permanently fixed before any retry of the original task can produce valid evidence.
+
