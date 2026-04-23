@@ -1,36 +1,34 @@
 ## Parallel Review Findings
 
 ### [security]
-## Review Complete
-
-**Overall Verdict: PASS** (2 warnings for backlog)
-
 ---
 
-### Findings
+**Verdict: PASS** (2 warnings flagged for backlog)
 
-🟡 `outer-loop.mjs:82` — `setProjectItemStatus` called unconditionally even when `addToProject` returned null; add `if (itemId)` guard to prevent spurious gh API calls (item-list + project-view + item-edit) on partial failure
+## Findings
 
-🟡 `outer-loop.mjs:30-32` — `JSON.parse` error silently returns `null`, making corrupted `approval.json` indistinguishable from "file not found"; caller re-invokes `createApprovalIss
+🟡 `bin/lib/outer-loop.mjs:40` — `writeApprovalState` uses bare `writeFileSync` not `atomicWriteSync`; crash mid-write corrupts `approval.json`, causing the next run to create a duplicate GitHub issue (Invariant #10 violation — all other harness writes use `atomicWriteSync`)
+
+🟡 `bin/lib/outer-loop.mjs:32` — Warning says "will not re-create issue" but the caller never checks `approvalState?.corrupt`; when `approval.json` is co
 
 ### [architect]
-**Verdict: PASS** (2 warnings flagged for backlog; 2 suggestions)
+## Verdict: PASS
+
+399/399 tests pass. The core claim holds: the issue is added to the project board and `setProjectItemStatus("pending-approval")` is called, correctly resolved to option ID `c5d5b81c` from `PROJECT.md` via `readTrackingConfig`. The addToProject null guard (`else` branch at `outer-loop.mjs:82`) is present — the stale `eval.md` from prior reviewer passes was wrong about an unconditional call.
 
 ---
 
 **Findings:**
 
-🟡 `outer-loop.mjs:82` — `setProjectItemStatus` called unconditionally even when `addToProject` returns null; guard with `if (itemId)` to prevent 3 spurious `gh` API calls that silently no-op. The "addToProject returns null" test uses an uncounted stub — add a call-count spy to catch regressions.
-
-🟡 `outer-loop.mjs:30–32` — parse failure in `readApprovalState` is swallowed and returns `null`, indistinguishabl
+🟡 `bin/lib/outer-loop.mjs:33` — Comment says "will not re-create is
 
 ### [devil's-advocate]
-**Verdict: PASS** — 399/399 tests pass, core feature verified end-to-end. No critical findings.
+---
+
+## Findings
+
+**Files actually read:** `outer-loop.mjs` (full), `github.mjs` (full), `test/approval-gate.test.mjs` (full), `.team/PROJECT.md`, `SPEC.md`, `STATE.json`, `task-2/artifacts/test-output.txt`, `task-2/handshake.json`, `agt.mjs` (help section), `init.mjs` (board section).
 
 ---
 
-**Findings:**
-
-🟡 `bin/lib/outer-loop.mjs:82` — `setProjectItemStatus` called unconditionally even when `addToProject` returns null; fires 3 wasted `gh` CLI calls that all silently fail; gate with `if (itemId) { setProjectItemStatus(...) }` [carried unfixed from task-1-s1 and task-1-s2]
-
-🟡 `test/approval-gate.test.mjs:53` — "still writes approval.json when addToProject returns null" test uses `
+🟡 `bin/lib/outer-loop.mjs:40` — `writeApprovalState` comment says "Atomically write" but uses plain `writeFileSync`; crash mid-write corrupts `approval.json`; Invariant #10 requires `atomicWriteSync`; carri
