@@ -106,3 +106,5 @@
 {"ts":"2026-04-23T23:31:08.036Z","event":"task-started","msg":"▶ Task 11/15: 1–2 layers tripped produces `verdict: \"WARN\"` and is logged without blocking."}
 {"ts":"2026-04-23T23:39:05.522Z","event":"task-passed","msg":"✓ Task 11/15: 1–2 layers tripped produces `verdict: \"WARN\"` and is logged without blocking."}
 {"ts":"2026-04-23T23:39:12.217Z","event":"task-started","msg":"▶ Task 12/15: Unit tests cover all 5 detectors with both positive (should trip) and negative (should not trip) cases."}
+{"ts":"2026-04-23T23:45:29.621Z","event":"task-passed","msg":"✓ Task 12/15: Unit tests cover all 5 detectors with both positive (should trip) and negative (should not trip) cases."}
+{"ts":"2026-04-23T23:45:36.355Z","event":"task-started","msg":"▶ Task 13/15: Integration test with a synthetic thin/fabricated `eval.md` fixture results in hard FAIL."}

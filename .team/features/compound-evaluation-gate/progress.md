@@ -119,3 +119,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 23:45:29
+**Task 12: Unit tests cover all 5 detectors with both positive (should trip) and negative (should not trip) cases.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
