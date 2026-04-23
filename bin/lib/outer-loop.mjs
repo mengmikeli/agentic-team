@@ -620,7 +620,8 @@ export async function outerLoop(args, deps) {
     // ── Step 2.5: APPROVAL GATE ──────────────────────────────────
 
     // Re-read state (BRAINSTORM may have created/modified the feature dir)
-    const approvalState = readApprovalState(featureDir);
+    const signingKey = getOrCreateApprovalSigningKey(teamDir);
+    const approvalState = readApprovalState(featureDir, signingKey);
     let approvalIssueNumber = approvalState?.issueNumber ?? null;
     const projectNumber = readProjectNumber(teamDir);
 
@@ -631,13 +632,15 @@ export async function outerLoop(args, deps) {
       getProjectItemStatus: deps.getProjectItemStatus,
       getIssueUrl: deps.getIssueUrl,
       sleep: deps.sleep,
+      signingKey,
     };
 
     if (approvalState?.status === "approved") {
       console.log(`  ${c.green}→ Already approved (issue #${approvalIssueNumber})${c.reset}\n`);
       // Ensure approvalStatus is persisted in STATE.json even on re-entry (e.g. crash after approval write but before EXECUTE)
-      const existingStateOnReentry = readState(featureDir) ?? {};
-      if (existingStateOnReentry.approvalStatus !== "approved") {
+      // Only update STATE.json if it already has structure (avoid creating a minimal file that breaks harness init)
+      const existingStateOnReentry = readState(featureDir);
+      if (existingStateOnReentry && existingStateOnReentry.approvalStatus !== "approved") {
         writeState(featureDir, { ...existingStateOnReentry, approvalStatus: "approved" });
       }
     } else if (approvalState?.corrupt) {
@@ -668,15 +671,19 @@ export async function outerLoop(args, deps) {
           break;
         }
         // Mark approved in approval.json and STATE.json
-        writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
-        const stateOnApproval = readState(featureDir) ?? {};
-        writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
+        writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" }, signingKey);
+        const stateOnApproval = readState(featureDir);
+        if (stateOnApproval) {
+          writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
+        }
         console.log(`  ${c.green}→ Approved! Proceeding to execute.${c.reset}`);
       } else if (approvalIssueNumber && !projectNumber) {
         console.log(`  ${c.yellow}⚠ No project board configured — skipping approval wait. Proceeding to execute.${c.reset}`);
-        writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
-        const stateNoBoard = readState(featureDir) ?? {};
-        writeState(featureDir, { ...stateNoBoard, approvalStatus: "approved" });
+        writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" }, signingKey);
+        const stateNoBoard = readState(featureDir);
+        if (stateNoBoard) {
+          writeState(featureDir, { ...stateNoBoard, approvalStatus: "approved" });
+        }
       }
     }
 

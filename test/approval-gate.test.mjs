@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createApprovalIssue, waitForApproval, readApprovalState } from "../bin/lib/outer-loop.mjs";
+import { createApprovalIssue, waitForApproval, readApprovalState, getOrCreateApprovalSigningKey } from "../bin/lib/outer-loop.mjs";
 
 // ── createApprovalIssue ─────────────────────────────────────────
 
@@ -432,5 +432,64 @@ describe("waitForApproval", () => {
       /\d+s elapsed/.test(combined),
       `Expected "Xs elapsed" in poll output, got: ${combined}`
     );
+  });
+});
+
+// ── getOrCreateApprovalSigningKey ───────────────────────────────
+
+describe("getOrCreateApprovalSigningKey", () => {
+  it("generates a new hex key when .approval-secret does not exist", () => {
+    const teamDir = mkdtempSync(join(tmpdir(), "signing-key-test-"));
+    const key = getOrCreateApprovalSigningKey(teamDir);
+    assert.ok(typeof key === "string");
+    assert.ok(key.length >= 32, `Expected key length >= 32, got ${key.length}`);
+    assert.ok(/^[0-9a-f]+$/.test(key), "Key should be lowercase hex");
+  });
+
+  it("writes the key to <teamDir>/.approval-secret", () => {
+    const teamDir = mkdtempSync(join(tmpdir(), "signing-key-test-"));
+    const key = getOrCreateApprovalSigningKey(teamDir);
+    const stored = readFileSync(join(teamDir, ".approval-secret"), "utf8").trim();
+    assert.equal(stored, key);
+  });
+
+  it("returns the same key on subsequent calls", () => {
+    const teamDir = mkdtempSync(join(tmpdir(), "signing-key-test-"));
+    const key1 = getOrCreateApprovalSigningKey(teamDir);
+    const key2 = getOrCreateApprovalSigningKey(teamDir);
+    assert.equal(key1, key2);
+  });
+
+  it("generates a fresh key when existing file has short/invalid key", () => {
+    const teamDir = mkdtempSync(join(tmpdir(), "signing-key-test-"));
+    writeFileSync(join(teamDir, ".approval-secret"), "short");
+    const key = getOrCreateApprovalSigningKey(teamDir);
+    assert.ok(key.length >= 32, `Expected fresh key, got: ${key}`);
+    assert.notEqual(key, "short");
+  });
+
+  it("approval.json written with custom signingKey is accepted by readApprovalState with same key", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "signing-key-test-"));
+    const specPath = join(featureDir, "SPEC.md");
+    writeFileSync(specPath, "# Feature: test\n\n## Goal\nTest goal\n");
+
+    const customKey = "custom-test-signing-key-1234567890abcdef";
+    const deps = {
+      createIssue: () => 77,
+      addToProject: () => null,
+      setProjectItemStatus: () => true,
+      signingKey: customKey,
+    };
+
+    await createApprovalIssue(featureDir, "my-feature", specPath, null, deps);
+
+    // Reading with the correct custom key should succeed
+    const state = readApprovalState(featureDir, customKey);
+    assert.equal(state?.issueNumber, 77);
+    assert.equal(state?.status, "pending");
+
+    // Reading with a different key should return corrupt
+    const stateWrongKey = readApprovalState(featureDir, "wrong-key");
+    assert.deepEqual(stateWrongKey, { corrupt: true });
   });
 });

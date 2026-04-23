@@ -724,10 +724,14 @@ Add flow selection to agt run.
   });
 
   it("re-entry guard: skips issue creation when approval.json already exists", async () => {
-    // Pre-create approval.json with existing pending issue
+    // Pre-seed the signing key so approval.json validation succeeds on re-entry
+    const knownKey = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
+    writeFileSync(join(tmpDir, ".team", ".approval-secret"), knownKey);
+
+    // Pre-create approval.json with existing pending issue (signed with knownKey)
     const featureDir = join(tmpDir, ".team", "features", "flow-templates");
     mkdirSync(featureDir, { recursive: true });
-    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 77, status: "pending", _written_by: "at-harness" }));
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 77, status: "pending", _written_by: knownKey }));
     writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
 
     // Create PROJECT.md with a valid project number so waitForApproval is actually invoked
