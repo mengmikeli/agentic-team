@@ -83,6 +83,14 @@ switch (command) {
           "--review          Enable agent-based review step after execution",
           "--dry-run         Show planned tasks without executing them",
         ],
+        prerequisites: [
+          "Your GitHub project board must have two columns added manually before using the outer loop:",
+          "  • Pending Approval — items waiting for human review (move here to request approval)",
+          "  • Ready            — items approved and cleared to execute",
+          "Record each column's Option ID in .team/PROJECT.md under the Tracking section:",
+          "  - Pending Approval Option ID: <your-option-id>",
+          "  - Ready Option ID: <your-option-id>",
+        ],
         examples: [
           "agt run",
           "agt run \"add dark mode toggle\"",
@@ -170,6 +178,11 @@ switch (command) {
       if (h.flags.length) {
         console.log("Flags:");
         h.flags.forEach(f => console.log(`  ${f}`));
+        console.log();
+      }
+      if (h.prerequisites && h.prerequisites.length) {
+        console.log("Prerequisites:");
+        h.prerequisites.forEach(p => console.log(`  ${p}`));
         console.log();
       }
       console.log("Examples:");

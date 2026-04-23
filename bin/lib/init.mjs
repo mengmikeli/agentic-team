@@ -126,6 +126,13 @@ ${trackingSection}`;
     console.log(`\n${c.cyan}Next steps:${c.reset}`);
     console.log(`  1. ${c.bold}at run "build feature X"${c.reset} — start autonomous loop`);
     console.log(`  2. ${c.bold}at status${c.reset} — see project dashboard`);
-    console.log(`  3. ${c.bold}at board${c.reset} — view task board\n`);
+    console.log(`  3. ${c.bold}at board${c.reset} — view task board`);
+    console.log();
+    console.log(`${c.yellow}Board setup required (before running agt run):${c.reset}`);
+    console.log(`  Add these two columns to your GitHub project board manually:`);
+    console.log(`    • ${c.bold}Pending Approval${c.reset} — items waiting for human review`);
+    console.log(`    • ${c.bold}Ready${c.reset} — items approved and ready to execute`);
+    console.log(`  Then record their Option IDs in .team/PROJECT.md under the Tracking section.`);
+    console.log(`  Run ${c.bold}agt help run${c.reset} for details.\n`);
   })();
 }

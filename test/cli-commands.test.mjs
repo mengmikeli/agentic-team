@@ -264,7 +264,6 @@ describe("smart entry flow (agt run no args)", () => {
   });
 });
 
-// ── Per-command help tests ────────────────────────────────────────
 
 describe("agt help <command>", () => {
   let tmpDir;
@@ -354,6 +353,28 @@ describe("agt help <command>", () => {
     assert.ok(
       result.stdout.includes("agt help <command>") || result.stdout.includes("help <command>"),
       "should hint at per-command help"
+    );
+  });
+
+  it("agt help run mentions 'Pending Approval' and 'Ready' board columns", () => {
+    const result = runAgt(["help", "run"], tmpDir);
+    assert.ok(result.ok, "help run should exit 0");
+    assert.ok(
+      result.stdout.includes("Pending Approval"),
+      "agt help run should mention 'Pending Approval' column"
+    );
+    assert.ok(
+      result.stdout.includes("Ready"),
+      "agt help run should mention 'Ready' column"
+    );
+  });
+
+  it("agt help run shows Prerequisites section for board setup", () => {
+    const result = runAgt(["help", "run"], tmpDir);
+    assert.ok(result.ok, "help run should exit 0");
+    assert.ok(
+      result.stdout.includes("Prerequisites") || result.stdout.includes("project board") || result.stdout.includes("manually"),
+      "agt help run should explain board setup is required"
     );
   });
 });
