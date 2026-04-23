@@ -49,9 +49,17 @@ export function readTrackingConfig(projectMdPath) {
     const inProgressId = text.match(/In Progress Option ID:\s*(\S+)/)?.[1] ?? null;
     const doneId = text.match(/Done Option ID:\s*(\S+)/)?.[1] ?? null;
     if (!fieldId || !todoId || !inProgressId || !doneId) return null;
+    const pendingApprovalId = text.match(/Pending Approval Option ID:\s*(\S+)/)?.[1] ?? null;
+    const readyId = text.match(/Ready Option ID:\s*(\S+)/)?.[1] ?? null;
     return {
       statusFieldId: fieldId,
-      statusOptions: { "todo": todoId, "in-progress": inProgressId, "done": doneId },
+      statusOptions: {
+        "todo": todoId,
+        "in-progress": inProgressId,
+        "done": doneId,
+        ...(pendingApprovalId ? { "pending-approval": pendingApprovalId } : {}),
+        ...(readyId ? { "ready": readyId } : {}),
+      },
     };
   } catch {
     return null;
@@ -80,6 +88,29 @@ export function getProjectFieldIds(projectNumber) {
     const done = statusField.options?.find(o => o.name.toLowerCase() === "done")?.id ?? null;
     if (!statusField.id || !todo || !inProgress || !done) return null;
     return { statusFieldId: statusField.id, todoId: todo, inProgressId: inProgress, doneId: done };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get the current Status option name for an issue on a GitHub Project board.
+ * Returns a string like "Ready", "Pending Approval", etc., or null on failure.
+ */
+export function getProjectItemStatus(issueNumber, projectNumber) {
+  if (!issueNumber || !projectNumber) return null;
+  const repoUrl = runGh("repo", "view", "--json", "url", "--jq", ".url");
+  if (!repoUrl) return null;
+  const issueUrl = `${repoUrl}/issues/${issueNumber}`;
+  const itemsJson = runGh("project", "item-list", String(projectNumber), "--owner", "@me", "--format", "json");
+  if (!itemsJson) return null;
+  try {
+    const data = JSON.parse(itemsJson);
+    const item = data.items?.find(
+      i => i.content?.url === issueUrl || i.content?.number === issueNumber,
+    );
+    if (!item) return null;
+    return item.fieldValues?.find(fv => fv.field?.name === "Status")?.name ?? null;
   } catch {
     return null;
   }

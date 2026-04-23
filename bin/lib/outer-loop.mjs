@@ -8,7 +8,102 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
 import { c, readState, writeState } from "./util.mjs";
-import { createIssue as ghCreateIssue } from "./github.mjs";
+import {
+  createIssue as ghCreateIssue,
+  addToProject as ghAddToProject,
+  setProjectItemStatus as ghSetProjectItemStatus,
+  getProjectItemStatus as ghGetProjectItemStatus,
+} from "./github.mjs";
+
+// ── Approval gate helpers ────────────────────────────────────────
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function readProjectNumber(teamDir) {
+  const projectMdPath = join(teamDir, "PROJECT.md");
+  if (!existsSync(projectMdPath)) return null;
+  try {
+    const text = readFileSync(projectMdPath, "utf8");
+    const match = text.match(/\/projects\/(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Create a GitHub approval issue for a feature and record it in STATE.json.
+ *
+ * @param {string} featureDir - Path to the feature directory
+ * @param {string} featureName - Human-readable feature name
+ * @param {string} specPath - Path to SPEC.md
+ * @param {number|null} projectNumber - GitHub project board number (or null)
+ * @param {object} deps - Injectable dependencies for testing
+ * @returns {Promise<number|null>} Issue number, or null on failure
+ */
+export async function createApprovalIssue(featureDir, featureName, specPath, projectNumber, deps = {}) {
+  const {
+    createIssue = ghCreateIssue,
+    addToProject = ghAddToProject,
+    setProjectItemStatus = ghSetProjectItemStatus,
+  } = deps;
+
+  const specContent = existsSync(specPath) ? readFileSync(specPath, "utf8") : "";
+  const title = `[Feature] ${featureName}`;
+
+  const issueNumber = createIssue(title, specContent, ["awaiting-approval"]);
+  if (!issueNumber) return null;
+
+  if (projectNumber) {
+    addToProject(issueNumber, projectNumber);
+    setProjectItemStatus(issueNumber, projectNumber, "pending-approval");
+  }
+
+  mkdirSync(featureDir, { recursive: true });
+  const state = readState(featureDir) ?? {};
+  writeState(featureDir, { ...state, approvalIssueNumber: issueNumber, approvalStatus: "pending" });
+
+  return issueNumber;
+}
+
+/**
+ * Poll until the approval issue is moved to "Ready" on the project board,
+ * or until the stopping flag is set (SIGINT).
+ *
+ * @param {number} issueNumber - GitHub issue number to poll
+ * @param {string} featureDir - Feature directory (unused currently, kept for future STATE writes)
+ * @param {number|null} projectNumber - GitHub project board number
+ * @param {function} getStoppingFn - Returns true when the loop should stop
+ * @param {object} deps - Injectable dependencies for testing
+ * @returns {Promise<"approved"|"interrupted">}
+ */
+export async function waitForApproval(issueNumber, featureDir, projectNumber, getStoppingFn, deps = {}) {
+  const {
+    getProjectItemStatus = ghGetProjectItemStatus,
+    sleep: sleepFn = sleep,
+  } = deps;
+
+  const intervalMs = parseInt(process.env.APPROVAL_POLL_INTERVAL ?? "30000", 10);
+  const startTime = Date.now();
+
+  console.log(`  ${c.cyan}Waiting for approval (issue #${issueNumber})... (poll every ${intervalMs / 1000}s)${c.reset}`);
+
+  while (true) {
+    if (getStoppingFn?.()) return "interrupted";
+
+    const status = getProjectItemStatus(issueNumber, projectNumber);
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    console.log(`  ${c.dim}Polling issue #${issueNumber} — status: ${status ?? "unknown"} (${elapsed}s elapsed)${c.reset}`);
+
+    if (status === "Ready") return "approved";
+
+    await sleepFn(intervalMs);
+
+    if (getStoppingFn?.()) return "interrupted";
+  }
+}
 
 // ── Brief builders ──────────────────────────────────────────────
 
@@ -334,6 +429,11 @@ export function parseRoadmap(productContent) {
  * @param {function} deps.findAgent - () => string|null
  * @param {function} deps.dispatchToAgent - (agent, brief, cwd) => { ok, output, error }
  * @param {function} deps.runSingleFeature - (args, description) => Promise<string>
+ * @param {function} [deps.createIssue] - Injectable gh createIssue (for testing)
+ * @param {function} [deps.addToProject] - Injectable gh addToProject (for testing)
+ * @param {function} [deps.setProjectItemStatus] - Injectable gh setProjectItemStatus (for testing)
+ * @param {function} [deps.getProjectItemStatus] - Injectable gh getProjectItemStatus (for testing)
+ * @param {function} [deps.sleep] - Injectable sleep (for testing)
  */
 export async function outerLoop(args, deps) {
   const { findAgent, dispatchToAgent, runSingleFeature } = deps;
@@ -455,6 +555,56 @@ export async function outerLoop(args, deps) {
     }
     console.log();
 
+    if (stopping) break;
+
+    // ── Step 2.5: APPROVAL GATE ──────────────────────────────────
+
+    // Re-read state (BRAINSTORM may have created/modified the feature dir)
+    const gateState = readState(featureDir);
+    let approvalIssueNumber = gateState?.approvalIssueNumber ?? null;
+    const projectNumber = readProjectNumber(teamDir);
+
+    const approvalDeps = {
+      createIssue: deps.createIssue,
+      addToProject: deps.addToProject,
+      setProjectItemStatus: deps.setProjectItemStatus,
+      getProjectItemStatus: deps.getProjectItemStatus,
+      sleep: deps.sleep,
+    };
+
+    if (gateState?.approvalStatus === "approved") {
+      console.log(`  ${c.green}→ Already approved (issue #${approvalIssueNumber})${c.reset}\n`);
+    } else {
+      if (!approvalIssueNumber) {
+        console.log(`${c.bold}Creating approval issue...${c.reset}`);
+        approvalIssueNumber = await createApprovalIssue(
+          featureDir, priority.name, specPath, projectNumber, approvalDeps,
+        );
+        if (approvalIssueNumber) {
+          console.log(`  ${c.green}→ Created issue #${approvalIssueNumber}: [Feature] ${priority.name}${c.reset}`);
+        } else {
+          console.log(`  ${c.yellow}⚠ Could not create approval issue (gh not available). Skipping gate.${c.reset}`);
+        }
+      } else {
+        console.log(`${c.bold}Resuming approval wait for issue #${approvalIssueNumber}...${c.reset}`);
+      }
+
+      if (approvalIssueNumber) {
+        const approvalResult = await waitForApproval(
+          approvalIssueNumber, featureDir, projectNumber, () => stopping, approvalDeps,
+        );
+        if (approvalResult === "interrupted") {
+          console.log(`\n${c.yellow}Interrupted while waiting for approval (issue #${approvalIssueNumber}).${c.reset}`);
+          break;
+        }
+        // Mark approved in STATE.json
+        const approvedState = readState(featureDir) ?? {};
+        writeState(featureDir, { ...approvedState, approvalStatus: "approved" });
+        console.log(`  ${c.green}→ Approved! Proceeding to execute.${c.reset}`);
+      }
+    }
+
+    console.log();
     if (stopping) break;
 
     // ── Step 3: EXECUTE ─────────────────────────────────────────
