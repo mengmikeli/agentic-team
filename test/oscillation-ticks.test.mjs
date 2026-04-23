@@ -232,6 +232,34 @@ describe("tick-limit enforcement", () => {
     const result = harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
     assert.equal(result.allowed, true, "should be allowed: NaN falls back to 6, ticks=1 < 6");
   });
+
+  it("tick-limit exceeded writes timestamped progress.md entry with task ID and count", () => {
+    const featureName = "tick-limit-progress";
+    const dir = setupFeature(featureName, [
+      { id: "t1", status: "pending", title: "task one" },
+    ]);
+    const env = { TASK_MAX_TICKS: "1" };
+    const featureDir = join(testDir, "features", featureName);
+
+    // First dispatch: ticks 0→1 (allowed)
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "failed", "--dir", dir);
+    // Second attempt: ticks=1 >= 1 → blocked, writes to progress.md
+    const result = harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
+    assert.equal(result.allowed, false);
+    assert.match(result.reason, /tick-limit-exceeded/);
+
+    const progressPath = join(featureDir, "progress.md");
+    const progressContent = readFileSync(progressPath, "utf8");
+    // Must include a timestamp header
+    assert.match(progressContent, /###\s+\d{4}-\d{2}-\d{2}/, "progress.md must have a timestamped entry");
+    // Must reference the task ID
+    assert.match(progressContent, /t1/, "progress.md entry must include task ID");
+    // Must mention tick limit exceeded
+    assert.match(progressContent, /Tick limit exceeded/, "progress.md entry must describe the tick-limit event");
+    // Must include the triggering tick count
+    assert.match(progressContent, /1 ticks/, "progress.md entry must include the tick count");
+  });
 });
 
 describe("oscillation detection", () => {
@@ -308,6 +336,51 @@ describe("oscillation detection", () => {
     assert.equal(out.allowed, false);
     assert.equal(out.halt, true);
     assert.match(out.reason, /oscillation-halted/);
+  });
+
+  it("oscillation halt writes timestamped progress.md entry with task ID and pattern", () => {
+    const featureName = "osc-halt-progress";
+    const dir = setupFeature(featureName, [
+      { id: "t1", status: "pending", title: "task one" },
+    ]);
+    const env = { ...process.env, TASK_MAX_TICKS: "20" };
+    const featureDir = join(testDir, "features", featureName);
+
+    function tr(status) {
+      const out = execFileSync("node", [harnessPath, "transition", "--task", "t1", "--status", status, "--dir", dir], {
+        encoding: "utf8", cwd: testDir, timeout: 10000, env,
+      });
+      const lines = out.trim().split("\n");
+      for (let i = lines.length - 1; i >= 0; i--) {
+        try { return JSON.parse(lines[i]); } catch {}
+      }
+    }
+
+    // Build 6-entry history: [IP, F, IP, F, IP, F]
+    tr("in-progress");  // 1: pending→IP
+    tr("failed");       // 2: IP→F
+    tr("in-progress");  // 3: F→IP (retries=1)
+    tr("failed");       // 4: IP→F
+    tr("in-progress");  // 5: F→IP (retries=2) — warns at reps=2
+    tr("failed");       // 6: IP→F
+
+    // 7th transition: oscillation halt fires, writes to progress.md
+    spawnSync("node", [harnessPath, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir], {
+      encoding: "utf8", cwd: testDir, timeout: 10000, env,
+    });
+
+    const progressPath = join(featureDir, "progress.md");
+    const progressContent = readFileSync(progressPath, "utf8");
+    // Must include a timestamp header
+    assert.match(progressContent, /###\s+\d{4}-\d{2}-\d{2}/, "progress.md must have a timestamped entry");
+    // Must reference the task ID
+    assert.match(progressContent, /t1/, "progress.md entry must include task ID");
+    // Must distinguish halt from warning
+    assert.match(progressContent, /Oscillation halted/, "progress.md entry must describe the halt event");
+    // Must include the triggering pattern
+    assert.match(progressContent, /in-progress/, "progress.md entry must include the oscillating pattern");
+    // Must include the repetition count (3)
+    assert.match(progressContent, /3/, "progress.md entry must include the repetition count");
   });
 });
 
