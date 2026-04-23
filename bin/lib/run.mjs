@@ -692,6 +692,23 @@ async function _runSingleFeature(args, description) {
     console.log(`${c.green}✓${c.reset} Feature initialized: ${featureName}`);
   }
 
+  // ── Validate: feature must be trackable before execution ──
+  {
+    const initState = readState(featureDir);
+    if (!initState) {
+      console.log(`${c.red}✗ STATE.json missing after init — feature is not trackable.${c.reset}`);
+      console.log(`  This means the dashboard and harness can't see this feature.`);
+      console.log(`  Try: ${c.bold}agt-harness init --feature ${featureName} --dir ${teamDir} --force${c.reset}`);
+      process.exit(1);
+    }
+    if (!['active', 'executing'].includes(initState.status) && !initState._recovered_from) {
+      initState.status = 'executing';
+      initState._last_modified = new Date().toISOString();
+      writeState(featureDir, initState);
+    }
+    console.log(`${c.green}✓${c.reset} Feature trackable: ${initState.status}`);
+  }
+
   // ── Read or create spec ──
 
   const specPath = join(featureDir, "SPEC.md");
