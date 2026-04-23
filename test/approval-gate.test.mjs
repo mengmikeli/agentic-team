@@ -153,6 +153,58 @@ describe("createApprovalIssue", () => {
 // ── waitForApproval ─────────────────────────────────────────────
 
 describe("waitForApproval", () => {
+  it("prints issue URL before pausing when getIssueUrl returns a URL", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+
+    const logs = [];
+    const origLog = console.log;
+    console.log = (...args) => logs.push(args.join(" "));
+
+    try {
+      const deps = {
+        getProjectItemStatus: () => "Ready",
+        getIssueUrl: (n) => `https://github.com/owner/repo/issues/${n}`,
+        sleep: () => Promise.resolve(),
+      };
+
+      await waitForApproval(42, featureDir, 10, () => false, deps);
+    } finally {
+      console.log = origLog;
+    }
+
+    const combined = logs.join("\n");
+    assert.ok(
+      combined.includes("https://github.com/owner/repo/issues/42"),
+      `Expected URL in output, got: ${combined}`
+    );
+  });
+
+  it("prints 'Waiting for approval (issue #N)...' before pausing", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+
+    const logs = [];
+    const origLog = console.log;
+    console.log = (...args) => logs.push(args.join(" "));
+
+    try {
+      const deps = {
+        getProjectItemStatus: () => "Ready",
+        getIssueUrl: () => null,
+        sleep: () => Promise.resolve(),
+      };
+
+      await waitForApproval(42, featureDir, 10, () => false, deps);
+    } finally {
+      console.log = origLog;
+    }
+
+    const combined = logs.join("\n");
+    assert.ok(
+      combined.includes("Waiting for approval (issue #42)"),
+      `Expected waiting message in output, got: ${combined}`
+    );
+  });
+
   it("returns 'approved' when getProjectItemStatus returns 'Ready' on first poll", async () => {
     const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
 
