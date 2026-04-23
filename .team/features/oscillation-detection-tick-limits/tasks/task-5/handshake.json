@@ -1,20 +1,15 @@
 {
   "taskId": "task-5",
-  "nodeType": "gate",
-  "runId": "run_1",
+  "nodeType": "build",
+  "runId": "run_3",
   "status": "completed",
-  "verdict": "PASS",
-  "summary": "Gate command: npm test — exit code 0",
-  "timestamp": "2026-04-23T05:45:28.701Z",
+  "verdict": null,
+  "summary": "transition.mjs detects repeating patterns of length K ≥ 2 in a task's transitionHistory: after 2× repetitions it logs an oscillation warning to progress.md, and after 3× repetitions it halts the feature by setting status 'oscillation-halted' and exiting non-zero. Fixed task.lastTransition not being set on the tick-limit-exceeded block path.",
+  "timestamp": "2026-04-23T06:30:00.000Z",
   "artifacts": [
-    {
-      "type": "test-result",
-      "path": "artifacts/test-output.txt"
-    }
+    { "type": "code", "path": "bin/lib/transition.mjs" },
+    { "type": "test", "path": "test/oscillation-ticks.test.mjs" },
+    { "type": "test", "path": "test/smoke-terminates.test.mjs" }
   ],
-  "findings": {
-    "critical": 0,
-    "warning": 0,
-    "suggestion": 0
-  }
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

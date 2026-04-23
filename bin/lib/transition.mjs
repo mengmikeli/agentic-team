@@ -170,6 +170,7 @@ export function cmdTransition(args) {
       if (currentTicks >= maxTaskTicks) {
         task.status = "blocked";
         task.lastReason = "tick-limit-exceeded";
+        task.lastTransition = new Date().toISOString();
         writeState(dir, freshState);
         appendProgressInDir(dir, `**Tick limit exceeded** for task \`${taskId}\`: ${currentTicks} ticks ≥ ${maxTaskTicks}. Task blocked.`);
         console.log(JSON.stringify({
