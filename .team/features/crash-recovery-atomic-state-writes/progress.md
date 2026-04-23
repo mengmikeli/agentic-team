@@ -40,3 +40,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 13:26:52
+**Task 5: `harness init` removes any `STATE.json.tmp.*` orphans from the feature dir before writing initial state**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

@@ -47,3 +47,5 @@
 {"ts":"2026-04-23T13:04:47.198Z","event":"task-started","msg":"▶ Task 4/7: `applyCrashRecovery()` does not trigger for `status: \"paused\"` or `status: \"completed\"`"}
 {"ts":"2026-04-23T13:14:53.497Z","event":"task-passed","msg":"✓ Task 4/7: `applyCrashRecovery()` does not trigger for `status: \"paused\"` or `status: \"completed\"`"}
 {"ts":"2026-04-23T13:15:01.891Z","event":"task-started","msg":"▶ Task 5/7: `harness init` removes any `STATE.json.tmp.*` orphans from the feature dir before writing initial state"}
+{"ts":"2026-04-23T13:26:52.398Z","event":"task-passed","msg":"✓ Task 5/7: `harness init` removes any `STATE.json.tmp.*` orphans from the feature dir before writing initial state"}
+{"ts":"2026-04-23T13:27:00.557Z","event":"task-started","msg":"▶ Task 6/7: `lockFile()` acquires an exclusive `.lock` file with `{ flag: \"wx\" }`, evicts stale locks from dead PIDs, and returns `{ acquired: false }` after 5s timeout"}
