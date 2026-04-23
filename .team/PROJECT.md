@@ -39,3 +39,28 @@ None
 - CHARTER.md — methodology (compact overview + charter/ detailed reference)
 - PLAYBOOK.md — platform recipes (OpenClaw + Discord + GitHub)
 - templates/ — reference templates for .team/ files
+
+## Invariants
+
+Rules that `agt run` must always satisfy. Violating any of these is a bug.
+
+### Execution Visibility
+1. **Every executing feature has STATE.json** — if the feature directory exists (even from brainstorm), harness init must create STATE.json before any task dispatches.
+2. **STATE.json reflects real-time progress** — task status synced after every transition (start, pass, block). The dashboard must never show stale data.
+3. **Feature must be trackable before execution** — `agt run` validates STATE.json exists and status is active/executing before dispatching. Hard exit with actionable error if not.
+
+### Termination Guarantees
+4. **Tick limits** — every task has a `ticks` counter (lifetime dispatches, survives replan). Blocked at `maxTaskTicks` (default 6). No infinite replan cycles.
+5. **Oscillation detection** — K≥2 pattern repeated 3× halts the feature with `oscillation-halted` status and exit code 1. No infinite review loops.
+6. **Max retries per task** — 3 attempts before blocked. Combined with tick limits for defense-in-depth.
+
+### Labeling
+7. **Phase/item labels** — issues and CLI banner include `[P3/#10]` style labels parsed from PRODUCT.md roadmap headers. Roadmap position must be visible.
+
+### Quality Gates
+8. **Gate command is real** — never `echo gate-recorded` or similar stubs. Must execute the actual test/lint command configured for the project.
+9. **Separation of executor and evaluator** — the agent implementing a task never evaluates its own output.
+
+### State Integrity
+10. **Atomic writes** — STATE.json written via write-then-rename (`atomicWriteSync`). Process crash during write must not corrupt state.
+11. **Write nonces** — harness verifies `_written_by` signature. Unauthorized state modifications are detected.
