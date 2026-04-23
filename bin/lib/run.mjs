@@ -800,6 +800,17 @@ async function _runSingleFeature(args, description) {
 
   // ── Execute tasks ──
 
+  // Sync in-memory task list to STATE.json so the dashboard reflects real-time progress
+  function syncTaskState() {
+    const s = readState(featureDir);
+    if (s) {
+      s.tasks = tasks;
+      s.status = 'executing';
+      s._last_modified = new Date().toISOString();
+      writeState(featureDir, s);
+    }
+  }
+
   let completed = 0;
   let blocked = 0;
   const startTime = Date.now();
@@ -842,10 +853,12 @@ async function _runSingleFeature(args, description) {
       console.log(`  ${c.yellow}⊘ Transition rejected: ${transitionResult.reason}${c.reset}`);
       appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Transition rejected: ${transitionResult.reason}`);
       blocked++;
+      syncTaskState();
       continue;
     }
     if (useGitHub && task.issueNumber && projectNum) setProjectItemStatus(task.issueNumber, projectNum, "in-progress");
     harness("notify", "--event", "task-started", "--msg", `▶ Task ${i + 1}/${tasks.length}: ${task.title}`);
+    syncTaskState();
 
     let passed = false;
     let lastFailure = null;
@@ -1010,6 +1023,7 @@ async function _runSingleFeature(args, description) {
         harness("transition", "--task", task.id, "--status", "passed", "--dir", featureDir);
         harness("notify", "--event", "task-passed", "--msg", `✓ Task ${i + 1}/${tasks.length}: ${task.title}`);
         completed++;
+        syncTaskState();
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
         appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Verdict: ✅ PASS (attempt ${task.attempts})\n- Gate: \`${gateCmd}\` — exit 0`);
         if (task.issueNumber) { closeIssue(task.issueNumber, "Task completed — gate passed."); if (projectNum) setProjectItemStatus(task.issueNumber, projectNum, "done"); }
@@ -1039,11 +1053,13 @@ async function _runSingleFeature(args, description) {
               console.log(`  ${c.cyan}↻ Re-plan: ${replanResult.verdict} — ${replanResult.tasks.length} task(s) injected${c.reset}\n`);
             } else {
               blocked++;
+              syncTaskState();
               console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
               if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
             }
           } else {
             blocked++;
+            syncTaskState();
             console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
             if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
           }
