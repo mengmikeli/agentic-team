@@ -7,6 +7,7 @@ import { join } from "path";
 import { c } from "./util.mjs";
 import { buildReviewBrief } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
+import { runCompoundGate } from "./compound-gate.mjs";
 import { findAgent, dispatchToAgent } from "./run.mjs";
 import { buildContextBrief } from "./context.mjs";
 
@@ -208,6 +209,16 @@ export async function cmdReview(args) {
   // Parse findings through synthesize
   const output = result.output || "";
   const findings = parseFindings(output);
+
+  // Apply compound gate
+  const gateResult = runCompoundGate(findings, cwd);
+  if (gateResult.verdict === "FAIL") {
+    findings.unshift({
+      severity: "critical",
+      text: `🔴 [compound-gate] — Shallow review detected: ${gateResult.layers.join(", ")}`,
+    });
+  }
+
   const verdict = computeVerdict(findings);
 
   // Print verdict
