@@ -25,3 +25,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 12:54:14
+**Task 2: `applyCrashRecovery()` detects `status: "executing"` and resets `in-progress` tasks to `pending`, preserving all other task statuses**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

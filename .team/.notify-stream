@@ -40,3 +40,5 @@
 {"ts":"2026-04-23T12:14:05.854Z","event":"task-started","msg":"▶ Task 1/7: `writeState()` uses `atomicWriteSync()` for every STATE.json write"}
 {"ts":"2026-04-23T12:38:10.704Z","event":"task-passed","msg":"✓ Task 1/7: `writeState()` uses `atomicWriteSync()` for every STATE.json write"}
 {"ts":"2026-04-23T12:38:18.274Z","event":"task-started","msg":"▶ Task 2/7: `applyCrashRecovery()` detects `status: \"executing\"` and resets `in-progress` tasks to `pending`, preserving all other task statuses"}
+{"ts":"2026-04-23T12:54:14.279Z","event":"task-passed","msg":"✓ Task 2/7: `applyCrashRecovery()` detects `status: \"executing\"` and resets `in-progress` tasks to `pending`, preserving all other task statuses"}
+{"ts":"2026-04-23T12:54:22.118Z","event":"task-started","msg":"▶ Task 3/7: `applyCrashRecovery()` writes `_recovered_from` (crash timestamp) and `_recovery_count` (incrementing) to state after recovery"}

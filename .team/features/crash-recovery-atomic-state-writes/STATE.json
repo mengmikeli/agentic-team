@@ -14,7 +14,7 @@
       "id": "task-2",
       "title": "`applyCrashRecovery()` detects `status: \"executing\"` and resets `in-progress` tasks to `pending`, preserving all other task statuses",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 1,
       "issueNumber": 76
     },
     {
@@ -80,9 +80,18 @@
       "stderr": "",
       "timestamp": "2026-04-23T12:39:53.545Z",
       "taskId": "task-2"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (98.723125ms)\n  ✔ shows audit command in help (82.497125ms)\n  ✔ shows brainstorm command in help (91.653084ms)\n  ✔ help text includes all three new commands with descriptions (99.649416ms)\n✔ CLI help text (373.375333ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (110.886542ms)\n  ✔ prints review header (92.121292ms)\n✔ agt review (203.216083ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (66.971208ms)\n  ✔ runs audit with .team/ present and reports structure (151.907666ms)\n  ✔ detects missing required files (124.712917ms)\n  ✔ reports feature with issues (122.830583ms)\n  ✔ shows summary line (55.733083ms)\n✔ agt audit (522.426625ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20011.9545ms)\n✔ agt brainstorm (20012.081916ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (189.354166ms)\n  ✔ agt run with --dry-run shows tasks without executing (153.980708ms)\n✔ smart entry flow (agt run no args) (343.460083ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (50.309375ms)\n  ✔ agt help init shows usage and examples (51.285ms)\n  ✔ agt help status shows usage and examples (48.9155ms)\n  ✔ agt help review shows usage and examples (48.987333ms)\n  ✔ agt help audit shows usage and examples (49.84675ms)\n  ✔ agt help brainstorm shows usage and examples (49.7815ms)\n  ✔ agt help doctor shows usage and examples (49.613542ms)\n  ✔ agt help <unknown> exits non-zero and shows error (49.308ms)\n  ✔ agt help (no subcommand) lists all commands (49.955584ms)\n✔ agt help <command> (448.173541ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.445042ms)\n✔ audit-cmd module (3.466958ms)\n▶ review module\n  ✔ can be imported without errors (2.31275ms)\n✔ review module (2.333666ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.234083ms)\n✔ brainstorm-cmd module (0.257083ms)\n▶ buildContextBrief\n  ✔ returns fallback when no context files exist (28.568958ms)\n  ✔ includes SPEC.md content when present (24.173958ms)\n  ✔ includes project conventions from PROJECT.md (27.087625ms)\n  ✔ includes backlog as known issues (21.952666ms)\n  ✔ includes progress.md as known issues (21.767584ms)\n  ✔ includes git log when in a git repo (91.758041ms)\n  ✔ combines multiple context sources (22.7475ms)\n  ✔ truncates long SPEC.md content (24.871708ms)\n✔ buildContextBrief (264.596542ms)\n[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.12345.1234567890\n[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.99999.9999999999\n▶ crash-recovery\n  ▶ applyCrashRecovery — status: executing\n    ✔ detects crashed state and preserves tasks (4.539583ms)\n    ✔ writes _recovered_from and _recovery_count to state (1.159833ms)\n    ✔ increments _recovery_count on repeated crashes (1.118875ms)\n  ✔ applyCrashRecovery — status: executing (7.476167ms)\n  ▶ applyCrashRecovery — status: paused (no recovery)\n    ✔ does not recover for paused state (0.398833ms)\n  ✔ applyCrashRecovery — status: paused (no recovery) (0.784042ms)\n  ▶ applyCrashRecovery — status: completed (no recovery)\n    ✔ does not recover for completed state (0.30675ms)\n  ✔ applyCrashRecovery — status: completed (no recovery) (0.458666ms)\n  ▶ harness init — orphaned tmp cleanup\n    ✔ removes orphaned STATE.json.tmp.* files on init --force (166.080459ms)\n    ✔ leaves non-tmp files untouched (0.3135ms)\n  ✔ harness init — orphaned tmp cleanup (166.679333ms)\n✔ crash-recovery (178.598583ms)\n▶ doctor: checkNodeVersion\n  ✔ passes on current Node.js (≥18) (1.204875ms)\n✔ doctor: checkNodeVersion (2.623584ms)\n▶ doctor: checkGhCli\n  ✔ passes when gh is installed and authenticated (0.528709ms)\n  ✔ warns when gh is installed but not authenticated (0.250917ms)\n  ✔ fails when gh is not installed (0.103708ms)\n✔ doctor: checkGhCli (1.095ms)\n▶ doctor: checkCodingAgent\n  ✔ passes when claude is available (0.126ms)\n  ✔ passes when codex is available (no claude) (0.073375ms)\n  ✔ fails when neithe",
+      "stderr": "",
+      "timestamp": "2026-04-23T12:55:58.572Z",
+      "taskId": "task-3"
     }
   ],
-  "transitionCount": 2,
+  "transitionCount": 3,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -97,10 +106,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T12:38:15.840Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T12:54:19.406Z"
     }
   ],
   "createdAt": "2026-04-23T12:09:21.080Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T12:39:53.545Z",
-  "_write_nonce": "c384a3f2b0f7c4eb"
+  "_last_modified": "2026-04-23T12:55:58.572Z",
+  "_write_nonce": "c102415cbd1dc6eb"
 }
