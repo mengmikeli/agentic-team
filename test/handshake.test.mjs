@@ -41,6 +41,25 @@ describe("createHandshake", () => {
     assert.deepEqual(hs.findings, { critical: 0, warning: 0, suggestion: 0 });
   });
 
+  it("includes compoundGate field when provided", () => {
+    const gate = { tripped: 2, layers: ["thin-content", "missing-code-refs"], verdict: "WARN" };
+    const hs = createHandshake({
+      taskId: "task-5",
+      nodeType: "review",
+      status: "completed",
+      verdict: "PASS",
+      summary: "Review complete",
+      artifacts: [{ type: "evaluation", path: "eval.md" }],
+      compoundGate: gate,
+    });
+    assert.deepEqual(hs.compoundGate, gate);
+  });
+
+  it("omits compoundGate field when not provided", () => {
+    const hs = createHandshake({ taskId: "task-1", summary: "Done" });
+    assert.equal(Object.hasOwn(hs, "compoundGate"), false);
+  });
+
   it("preserves explicit fields", () => {
     const hs = createHandshake({
       taskId: "task-3",

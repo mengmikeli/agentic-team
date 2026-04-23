@@ -1117,7 +1117,7 @@ async function _runSingleFeature(args, description) {
               findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
               compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
             });
-            writeFileSync(join(taskDir, "review-handshake.json"), JSON.stringify(reviewHandshake, null, 2) + "\n");
+            writeFileSync(join(taskDir, "handshake.json"), JSON.stringify(reviewHandshake, null, 2) + "\n");
           }
         }
 
@@ -1168,7 +1168,7 @@ async function _runSingleFeature(args, description) {
             findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
             compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
           });
-          writeFileSync(join(taskDir, "review-handshake.json"), JSON.stringify(multiReviewHandshake, null, 2) + "\n");
+          writeFileSync(join(taskDir, "handshake.json"), JSON.stringify(multiReviewHandshake, null, 2) + "\n");
         }
 
         // If review found critical issues, treat as failure — retry the task
