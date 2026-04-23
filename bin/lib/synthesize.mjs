@@ -9,6 +9,7 @@
 //   🔵 file:line — fix suggestion   (suggestion — PASS, no backlog)
 
 import { readFileSync } from "fs";
+import { runCompoundGate } from "./compound-gate.mjs";
 
 /**
  * Parse review text for severity-tagged findings.
@@ -100,12 +101,28 @@ export function cmdSynthesize(args) {
     }
   }
 
+  // Optional --repo-root for compound gate fabricated-refs layer
+  const repoRootIdx = restArgs.indexOf("--repo-root");
+  const repoRoot = repoRootIdx !== -1 && restArgs[repoRootIdx + 1]
+    ? restArgs[repoRootIdx + 1]
+    : process.cwd();
+
   if (isVerify) {
     console.log(JSON.stringify(verifyFormat(text)));
     return;
   }
 
-  const findings = parseFindings(text);
+  let findings = parseFindings(text);
+
+  // Run compound gate before computing verdict
+  const gateResult = runCompoundGate(findings, repoRoot);
+  if (gateResult.verdict === "FAIL") {
+    findings = [
+      { severity: "critical", text: `🔴 [compound-gate] — Shallow review detected: ${gateResult.layers.join(", ")}` },
+      ...findings,
+    ];
+  }
+
   const { verdict, backlog, critical, warning, suggestion } = computeVerdict(findings);
 
   console.log(JSON.stringify({
@@ -115,6 +132,7 @@ export function cmdSynthesize(args) {
     critical,
     warning,
     suggestion,
+    compoundGate: { tripped: gateResult.tripped, layers: gateResult.layers, verdict: gateResult.verdict },
     findings: findings.map(f => ({ severity: f.severity, text: f.text })),
   }));
 }

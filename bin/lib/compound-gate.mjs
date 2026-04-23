@@ -2,7 +2,7 @@
 // 5-layer compound evaluation gate for detecting shallow/fabricated review findings
 
 import { existsSync } from "fs";
-import { join } from "path";
+import { join, resolve, sep } from "path";
 
 // ── Layer 1: Thin Content ──────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ export function detectThinContent(findings) {
 
 // ── Layer 2: Missing Code References ──────────────────────────────────────
 
-const FILE_LINE_PATTERN = /\S+:\d+/;
+const FILE_LINE_PATTERN = /\S+\.(mjs|ts|js|json|md|cjs|jsx|tsx|mts):\d+/;
 
 /**
  * Trips when zero non-suggestion findings contain a file:line reference.
@@ -48,7 +48,7 @@ function wordTrigrams(text) {
 }
 
 function jaccardSimilarity(a, b) {
-  if (a.size === 0 && b.size === 0) return 1;
+  if (a.size === 0 || b.size === 0) return 0;
   let inter = 0;
   for (const x of a) { if (b.has(x)) inter++; }
   return inter / (a.size + b.size - inter);
@@ -82,8 +82,10 @@ const FILE_EXT_PATTERN = /([^\s:]+\.(mjs|ts|js|json|md))/g;
 
 /**
  * Trips when any file path cited in findings does not exist under repoRoot.
+ * Path traversal protection: paths that escape repoRoot are treated as fabricated.
  */
 export function detectFabricatedRefs(findings, repoRoot) {
+  const resolvedRoot = resolve(repoRoot);
   const paths = new Set();
   for (const f of findings) {
     for (const m of f.text.matchAll(FILE_EXT_PATTERN)) {
@@ -92,7 +94,12 @@ export function detectFabricatedRefs(findings, repoRoot) {
   }
   if (paths.size === 0) return false;
   for (const p of paths) {
-    if (!existsSync(join(repoRoot, p))) return true;
+    const abs = resolve(join(resolvedRoot, p));
+    // Block path traversal: if resolved path escapes repoRoot, treat as fabricated
+    if (!abs.startsWith(resolvedRoot + sep) && abs !== resolvedRoot) {
+      return true;
+    }
+    if (!existsSync(abs)) return true;
   }
   return false;
 }
