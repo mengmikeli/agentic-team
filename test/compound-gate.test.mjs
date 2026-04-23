@@ -159,9 +159,35 @@ describe("detectFabricatedRefs", () => {
     writeFileSync(join(dir, "real.mjs"), "// real");
     const findings = [
       { severity: "critical", text: "🔴 real.mjs:1 — exists fine" },
-      { severity: "warning",  text: "🟡 ghost.mjs:2 — this file does not exist" },
+      { severity: "warning",  text: "🟡 ghost.mjs:2 — bad import here" },
     ];
     assert.ok(detectFabricatedRefs(findings, dir));
+  });
+
+  it("does not trip when finding text says the file is absent (false-positive guard)", () => {
+    const dir = makeDir();
+    // ghost.mjs is NOT on disk, but the reviewer is correctly noting it's absent.
+    // Layer 4 should skip this path and not treat it as a fabricated reference.
+    const findings = [
+      { severity: "warning", text: "🟡 ghost.mjs:1 — file is absent but imported by main.mjs" },
+    ];
+    assert.ok(!detectFabricatedRefs(findings, dir));
+  });
+
+  it("does not trip when finding says file does not exist", () => {
+    const dir = makeDir();
+    const findings = [
+      { severity: "critical", text: "🔴 missing.mjs:5 — does not exist but is referenced" },
+    ];
+    assert.ok(!detectFabricatedRefs(findings, dir));
+  });
+
+  it("does not trip when finding says file is missing", () => {
+    const dir = makeDir();
+    const findings = [
+      { severity: "critical", text: "🔴 gone.mjs:1 — is missing from the repo" },
+    ];
+    assert.ok(!detectFabricatedRefs(findings, dir));
   });
 
   it("handles nested directory paths", () => {

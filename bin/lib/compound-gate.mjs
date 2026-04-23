@@ -80,26 +80,31 @@ export function detectLowUniqueness(findings) {
 
 const FILE_EXT_PATTERN = /([^\s:]+\.(mjs|cjs|ts|mts|js|jsx|tsx|json|md))/g;
 
+// Phrases that indicate the reviewer is intentionally citing an absent file
+// (e.g. "bin/missing.mjs:1 — file is absent but imported"). In such cases,
+// the reviewer is reporting a real problem, not fabricating a reference.
+const MISSING_FILE_CONTEXT = /\b(does not exist|doesn't exist|is absent|missing file|not found|is missing|was deleted|no longer exists)\b/i;
+
 /**
  * Trips when any file path cited in findings does not exist under repoRoot.
  * Path traversal protection: paths that escape repoRoot are treated as fabricated.
+ * False-positive guard: paths whose finding text contains explicit "absent/missing"
+ * language are skipped — the reviewer is correctly flagging the absence, not hallucinating.
  */
 export function detectFabricatedRefs(findings, repoRoot) {
   const resolvedRoot = resolve(repoRoot);
-  const paths = new Set();
   for (const f of findings) {
     for (const m of f.text.matchAll(FILE_EXT_PATTERN)) {
-      paths.add(m[1]);
+      const p = m[1];
+      const abs = resolve(join(resolvedRoot, p));
+      // Block path traversal: if resolved path escapes repoRoot, treat as fabricated
+      if (!abs.startsWith(resolvedRoot + sep) && abs !== resolvedRoot) {
+        return true;
+      }
+      // Skip false-positive: reviewer is explicitly noting the file is absent/missing
+      if (MISSING_FILE_CONTEXT.test(f.text)) continue;
+      if (!existsSync(abs)) return true;
     }
-  }
-  if (paths.size === 0) return false;
-  for (const p of paths) {
-    const abs = resolve(join(resolvedRoot, p));
-    // Block path traversal: if resolved path escapes repoRoot, treat as fabricated
-    if (!abs.startsWith(resolvedRoot + sep) && abs !== resolvedRoot) {
-      return true;
-    }
-    if (!existsSync(abs)) return true;
   }
   return false;
 }
@@ -116,6 +121,15 @@ const ASPIRATIONAL_PHRASES = [
 
 /**
  * Trips when any non-critical finding contains an aspirational phrase.
+ *
+ * Severity exclusion rationale:
+ * - "critical" findings are explicitly negative (they flag real problems), so
+ *   aspirational language in a critical finding is incidental and not a signal
+ *   that the reviewer is providing hollow PASS-supporting claims.
+ * - "warning" and "suggestion" findings may be used to justify a PASS verdict
+ *   (no critical findings ⇒ PASS), so aspirational phrasing in these severities
+ *   suggests the reviewer is asserting unverified behaviour rather than
+ *   identifying a confirmed defect.
  */
 export function detectAspirationalClaims(findings) {
   const nonCritical = findings.filter(f => f.severity !== "critical");

@@ -1,0 +1,14 @@
+{
+  "taskId": "task-1-p1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Fixed Layer 4 (detectFabricatedRefs) false-positives by skipping paths whose finding text contains explicit missing-file language (e.g. 'does not exist', 'is absent', 'is missing'). Added detailed JSDoc to Layer 5 (detectAspirationalClaims) explaining why critical-severity findings are excluded from the aspirational-claims check. Updated the affected test and added 3 new tests covering the false-positive guard; all 476 tests pass.",
+  "timestamp": "2026-04-24T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/compound-gate.mjs" },
+    { "type": "code", "path": "test/compound-gate.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
