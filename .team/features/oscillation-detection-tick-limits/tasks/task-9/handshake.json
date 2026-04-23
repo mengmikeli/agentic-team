@@ -1,0 +1,13 @@
+{
+  "taskId": "task-9",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Created test/smoke-terminates.test.mjs which simulates a task that always fails and verifies it terminates via tick-limit-exceeded (not MAX_TOTAL_TRANSITIONS) within maxTaskTicks × 2 transitions. The test uses TASK_MAX_TICKS=3 and varied exit transitions to avoid triggering oscillation detection, confirming 6 transitions total before clean rejection at the tick limit.",
+  "timestamp": "2026-04-23T06:15:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "test/smoke-terminates.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

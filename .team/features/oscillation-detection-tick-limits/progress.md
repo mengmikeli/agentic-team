@@ -52,3 +52,20 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 05:37:34
+**Task 5: `transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
+### 2026-04-23 06:15:00
+**Task 5: `transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0 (373 tests)
+- Fix: Added smoke test (task-9 artifact) to provide required evidence of clean termination within maxTaskTicks × 2 transitions
+
+### 2026-04-23 06:15:00
+**Task 9: Manual smoke test with mock task that always fails confirms run terminates cleanly**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0 (373 tests)
+- Artifact: `test/smoke-terminates.test.mjs` — simulates always-failing task with TASK_MAX_TICKS=3; confirms 6 transitions (= 3 × 2) before tick-limit-exceeded rejection; transitionCount (6) << MAX_TOTAL_TRANSITIONS (100)
+
