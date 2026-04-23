@@ -3,34 +3,38 @@
 ### [security]
 ---
 
-## Review Complete
+**Security Review — `crash-recovery-atomic-state-writes`**
 
-**Verdict: PASS** (with 2 backlog items)
+**Verdict: PASS** (3 warnings to backlog, 2 suggestions)
 
-Files read: `util.mjs`, `run.mjs`, `harness-init.mjs`, `gate.mjs`, `transition.mjs`, `finalize.mjs`, `crash-recovery.test.mjs`, `test-output.txt` (376 tests, 0 failures), and the full handshake.
+---
 
-### Findings
+**Findings:**
 
-🟡 `bin/lib/harness-init.mjs:21` — `--feature` flag unsanitized; `path.join(".team", "features", "../../etc")` normalizes to `"etc"` (relative to cwd), placing `featureDir` outside `.team/features/`. The orphaned tmp cleanu
+🟡 `bin/lib/harness-init.mjs:21` — `--feature` value is used directly in `path.join` without validation; `--feature ../../../tmp/evil` constructs paths outside `.team/features/`; add a `/^[a-z0-9][a-z0-9_-]*$/i` guard before building `featureDir`
+
+🟡 `bin/lib/util.mjs:93` — `isPidAlive` catches all exceptions including EPERM; on Unix, EPERM means the proc
 
 ### [architect]
 ---
 
-**Verdict: PASS**
+**Verdict: PASS** (4 backlog items)
 
-All SPEC criteria are met. Every STATE.json write routes through `writeState()` → `atomicWriteSync()` (verified across all 6 harness modules). All 7 crash-recovery tests pass with direct evidence from `test-output.txt`.
+All 7 SPEC criteria are met with direct evidence. 376 tests pass, 0 failures. The implementation is structurally clean — `writeState()` is the sole write path for STATE.json and consistently routes through `atomicWriteSync`.
 
-**Findings:**
+Findings:
 
-🟡 bin/lib/run.mjs:806 — Status coercion block converts `"paused"` / `"completed"` → `"executing"` before `applyCrashRecovery` is called (line 843), causing a resumed-from-pause run to falsely trigger crash recovery: `_recovery_count` incre
+🟡 `bin/lib/gate.mjs:40` — TOCTOU: tamper check runs pre-lock; `freshState._written_by` not re-verified post-lock at line 89. A concurrent STATE.json swap between lines 40–53 bypasses the guard; re-check after lock acquis
 
 ### [devil's-advocate]
-Now the findings in the required format:
+---
+
+**Overall verdict: PASS** (with 3 backlog items)
+
+Files I actually read: `util.mjs`, `harness-init.mjs`, `run.mjs` (three regions), `transition.mjs` (oscillation section), `crash-recovery.test.mjs`, `test-output.txt`, `handshake.json`, `SPEC.md`.
 
 ---
 
-**Findings:**
+🟡 `test/crash-recovery.test.mjs` — `lockFile()` has zero test coverage; SPEC criterion 6 is verified by code reading only. Add tests for: lock acquired/released, stale PID eviction, and `{ acquired: false }` on timeout.
 
-🟡 bin/lib/gate.mjs:40 — TOCTOU: tamper check uses pre-lock `readState`; post-lock `freshState` (line 89) is never re-checked for `_written_by` before write at line 170. A concurrent tamper between lines 40–53 bypasses the guard. Re-check `freshState._written_by` after lock acquisition.
-
-🟡 bin/lib/transition.mjs:36 — Same TOCTOU as gate.mjs: `readState` at line 36 (pre-lock), tamper check at line 42, lock at line 49, fresh read at li
+🟡 `bin/lib/run.mjs:
