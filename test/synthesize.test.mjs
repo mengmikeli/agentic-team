@@ -244,4 +244,18 @@ describe("agt-harness synthesize CLI", () => {
     assert.equal(result.findings[0].severity, "critical");
     assert.equal(result.findings[1].severity, "suggestion");
   });
+
+  it("thin/aspirational review → compound gate FAIL via CLI", () => {
+    const dir = mkdtempSync(join(tmpdir(), "synth-compound-"));
+    const file = join(dir, "eval.md");
+    writeFileSync(file, [
+      "🟡 — looks good overall, implementation is reasonable",
+      "🟡 — seems correct and appears to work fine",
+      "🟡 — this should work after reviewing the logic",
+    ].join("\n"));
+    const result = harnessJSON("synthesize", "--input", file, "--repo-root", dir);
+    assert.equal(result.verdict, "FAIL");
+    assert.equal(result.compoundGate.verdict, "FAIL");
+    assert.ok(result.compoundGate.tripped >= 3);
+  });
 });

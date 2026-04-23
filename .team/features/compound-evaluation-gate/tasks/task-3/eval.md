@@ -3,34 +3,36 @@
 ### [security]
 ---
 
-**Overall verdict: PASS**
+## Structured Findings
 
-Files actually read: `bin/lib/synthesize.mjs`, `bin/lib/compound-gate.mjs`, `test/synthesize-compound.test.mjs`, `test/synthesize.test.mjs`, `tasks/task-3/artifacts/test-output.txt`, `tasks/task-3/handshake.json`.
+🟡 bin/lib/synthesize.mjs:135 — `appendFileSync` silently mutates the `--input` file on every invocation; add `--no-append` flag or require explicit `--append-section` to prevent unintended file mutation
 
-**Structured findings:**
-
-🟡 bin/lib/synthesize.mjs:118 — WARN verdict (1–2 layers tripped) has zero enforcement effect; a thin review can still get a clean PASS; inject a 🟡 warning finding when `gateResult.verdict === "WARN"`
-
-🟡 bin/lib/synthesize.mj
+🟡 bin/lib/synthesize.mjs:121 — injected FAIL/WARN findings use `[compound-gate]:0`, which has no recognized file extension; `FILE_LINE_PATTERN` won't match it, so if synthesized output is re-fed into the gate, Layer 2 (missing-code-refs) will trip on the injected f
 
 ### [architect]
-## Findings
-
-**Verdict: PASS**
-
-Files read: `bin/lib/synthesize.mjs`, `bin/lib/compound-gate.mjs`, `test/compound-gate.test.mjs`, `tasks/task-3/artifacts/test-output.txt`
-
-The primary claim is verified directly in code: `parseFindings` (line 115) → `runCompoundGate` (line 118) → `computeVerdict` (line 134). The FAIL injection path and JSON output shape match the spec. 480 tests pass with 0 failures including 7 synthesize+gate integration tests.
+Here are the structured findings from my architect review:
 
 ---
 
-🟡 `bin/lib/synthesize.mjs:119` — WARN verdic
+**Files actually read:** `bin/lib/compound-gate.mjs`, `bin/lib/synthesize.mjs`, `bin/lib/run.mjs` (lines 1065–1175), `bin/lib/handshake.mjs` (lines 148–162), `test/compound-gate.test.mjs`, `test/synthesize-compound.test.mjs`, `tasks/task-3/handshake.json`, `tasks/task-3/artifacts/test-output.txt`, `SPEC.md`.
+
+---
+
+**Findings:**
+
+🟡 bin/lib/run.mjs:1086 — WARN compound-gate path in single-review flow logs to console only; `synthesiz
 
 ### [devil's-advocate]
 ---
 
-Here are my structured findings:
+## Review Findings
 
-🔴 .team/features/compound-evaluation-gate/STATE.json:43 — task-3 shows `status: "pending"` and `attempts: 0` despite transitionHistory recording `in-progress` at 22:03:59 and a gate PASS at 22:05:10; harness re-invocation would re-execute task-3 from scratch; run `agt-harness transition task-3 passed` to reconcile
+🟡 test/synthesize.test.mjs:246 — No CLI test exercises the gate's primary contract: thin/aspirational review that would PASS without compound gate must become FAIL via `agt-harness synthesize`; add test with thin-content input and assert `verdict: "FAIL"` and `compoundGate.verdict: "FAIL"` in JSON output
 
-🟡 bin/lib/synthesize.mjs:119 — WARN path (1–2 layers tripped) has zero effect in `cmdSynthesize`; no finding is injected, no stderr warning em
+🟡 test/e2e.test.mjs:209 — E2e synthesize step calls `parseFindings`+`computeVerdict` directly, bypassing `runCompoundGate` entirely; compound gate wiring in `cmdSynth
+
+## Compound Gate
+
+**Verdict:** PASS
+**Layers tripped:** 0/5
+**All layers passed**

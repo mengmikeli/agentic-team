@@ -1080,11 +1080,15 @@ async function _runSingleFeature(args, description) {
             const compoundGateResult = runCompoundGate(findings, cwd);
             if (compoundGateResult.verdict === "FAIL") {
               findings = [
-                { severity: "critical", text: `🔴 [compound-gate] — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
+                { severity: "critical", text: `🔴 compound-gate.mjs:0 — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
                 ...findings,
               ];
             } else if (compoundGateResult.verdict === "WARN") {
               console.log(`  ${c.yellow}⚠ Compound gate WARN: ${compoundGateResult.layers.join(", ")}${c.reset}`);
+              findings = [
+                { severity: "warning", text: `🟡 compound-gate.mjs:0 — Thin review warning: ${compoundGateResult.layers.join(", ")}` },
+                ...findings,
+              ];
             }
             appendFileSync(evalPath, "\n\n" + compoundGateResult.section);
             const synth = computeVerdict(findings);
@@ -1132,11 +1136,15 @@ async function _runSingleFeature(args, description) {
           const compoundGateResult = runCompoundGate(findings, cwd);
           if (compoundGateResult.verdict === "FAIL") {
             findings = [
-              { severity: "critical", text: `🔴 [compound-gate] — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
+              { severity: "critical", text: `🔴 compound-gate.mjs:0 — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
               ...findings,
             ];
           } else if (compoundGateResult.verdict === "WARN") {
             console.log(`  ${c.yellow}⚠ Compound gate WARN: ${compoundGateResult.layers.join(", ")}${c.reset}`);
+            findings = [
+              { severity: "warning", text: `🟡 compound-gate.mjs:0 — Thin review warning: ${compoundGateResult.layers.join(", ")}` },
+              ...findings,
+            ];
           }
           appendFileSync(join(taskDir, "eval.md"), "\n\n" + compoundGateResult.section);
           const synth = computeVerdict(findings);

@@ -118,19 +118,19 @@ export function cmdSynthesize(args) {
   const gateResult = runCompoundGate(findings, repoRoot);
   if (gateResult.verdict === "FAIL") {
     findings = [
-      { severity: "critical", text: `🔴 [compound-gate]:0 — Shallow review detected: ${gateResult.layers.join(", ")}` },
+      { severity: "critical", text: `🔴 compound-gate.mjs:0 — Shallow review detected: ${gateResult.layers.join(", ")}` },
       ...findings,
     ];
   } else if (gateResult.verdict === "WARN") {
     findings = [
-      { severity: "warning", text: `🟡 [compound-gate]:0 — Thin review warning: ${gateResult.layers.join(", ")}` },
+      { severity: "warning", text: `🟡 compound-gate.mjs:0 — Thin review warning: ${gateResult.layers.join(", ")}` },
       ...findings,
     ];
   }
 
-  // Append compound gate section to input file if it was read from a file path
+  // Append compound gate section to input file only when --append-section is explicitly requested
   const inputFilePath = inputIdx !== -1 && restArgs[inputIdx + 1] ? restArgs[inputIdx + 1] : null;
-  if (inputFilePath) {
+  if (inputFilePath && restArgs.includes("--append-section")) {
     try {
       appendFileSync(inputFilePath, "\n\n" + gateResult.section);
     } catch { /* best-effort */ }

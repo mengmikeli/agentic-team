@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { validateHandshake, createHandshake } from "../bin/lib/handshake.mjs";
 import { buildContextBrief } from "../bin/lib/context.mjs";
 import { selectTier, formatTierBaseline, getMissingSeverity } from "../bin/lib/tiers.mjs";
-import { parseFindings, computeVerdict, verifyFormat } from "../bin/lib/synthesize.mjs";
+import { verifyFormat } from "../bin/lib/synthesize.mjs";
 import { selectFlow, buildReviewBrief, buildBrainstormBrief } from "../bin/lib/flows.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -201,20 +201,18 @@ LICENSE file is present and contains standard MIT license text. One minor sugges
     assert.ok(existsSync(join(taskDir, "eval.md")));
   });
 
-  // Step 10: Synthesize review — parse findings mechanically
+  // Step 10: Synthesize review — parse findings mechanically via CLI (exercises runCompoundGate)
   it("10. synthesize — parses findings and computes PASS verdict", () => {
     const taskDir = join(featureDir, "tasks", "task-1");
-    const evalContent = readFileSync(join(taskDir, "eval.md"), "utf8");
+    const evalPath = join(taskDir, "eval.md");
 
-    const findings = parseFindings(evalContent);
-    assert.equal(findings.length, 1);
-    assert.equal(findings[0].severity, "suggestion");
-
-    const synth = computeVerdict(findings);
-    assert.equal(synth.verdict, "PASS");
-    assert.equal(synth.backlog, false);
-    assert.equal(synth.critical, 0);
-    assert.equal(synth.suggestion, 1);
+    const result = harnessJSON("synthesize", "--input", evalPath);
+    assert.equal(result.ok, true);
+    assert.equal(result.verdict, "PASS");
+    assert.equal(result.backlog, false);
+    assert.equal(result.critical, 0);
+    assert.equal(result.suggestion, 1);
+    assert.equal(result.compoundGate.verdict, "PASS");
   });
 
   // Step 11: Verify format of review
