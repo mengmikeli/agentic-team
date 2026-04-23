@@ -108,7 +108,7 @@
       "id": "task-10",
       "title": "Unit tests pass for: issue creation writes `approvalIssueNumber`, poll resolves when status is \"Ready\", SIGINT during poll exits without corrupting state, re-entry guard skips issue creation when `approvalIssueNumber` exists",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 1,
       "issueNumber": 91
     }
   ],
@@ -442,6 +442,6 @@
   ],
   "createdAt": "2026-04-23T14:25:16.782Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T20:29:11.464Z",
-  "_write_nonce": "acfa3314c3f4fbde"
+  "_last_modified": "2026-04-23T20:35:56.005Z",
+  "_write_nonce": "0ae0870c6abb4b7f"
 }

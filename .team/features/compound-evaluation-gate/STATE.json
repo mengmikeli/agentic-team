@@ -1,0 +1,109 @@
+{
+  "version": "2.0",
+  "feature": "compound-evaluation-gate",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`bin/lib/compound-gate.mjs` exists with `runCompoundGate(findings, repoRoot)` implementing all 5 layers.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 92
+    },
+    {
+      "id": "task-2",
+      "title": "Each layer has its own named export function and can be tested independently.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 93
+    },
+    {
+      "id": "task-3",
+      "title": "`synthesize.mjs` calls `runCompoundGate` after `parseFindings()` and before verdict is finalized.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 94
+    },
+    {
+      "id": "task-4",
+      "title": "A `## Compound Gate` section is appended to `eval.md` showing which layers tripped and why.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 95
+    },
+    {
+      "id": "task-5",
+      "title": "`handshake.json` includes a `compoundGate` field with `tripped`, `layers`, and `verdict`.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 96
+    },
+    {
+      "id": "task-6",
+      "title": "≥3 layers tripped produces `verdict: \"FAIL\"` that overrides the reviewer's verdict.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 97
+    },
+    {
+      "id": "task-7",
+      "title": "1–2 layers tripped produces `verdict: \"WARN\"` and is logged without blocking.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 98
+    },
+    {
+      "id": "task-8",
+      "title": "Unit tests cover all 5 detectors with both positive (should trip) and negative (should not trip) cases.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 99
+    },
+    {
+      "id": "task-9",
+      "title": "Integration test with a synthetic thin/fabricated `eval.md` fixture results in hard FAIL.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 100
+    },
+    {
+      "id": "task-10",
+      "title": "Integration test with a detailed, code-referencing `eval.md` fixture passes the gate.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 101
+    },
+    {
+      "id": "task-11",
+      "title": "All existing tests continue to pass.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 102
+    }
+  ],
+  "gates": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (4.801667ms)\n  ✔ returns null and does not write approval.json when createIssue fails (0.745667ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (0.865166ms)\n  ✔ skips project board calls when projectNumber is null (0.412792ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.329875ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.256708ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.313666ms)\n✔ createApprovalIssue (8.837667ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.149916ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.257833ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.43775ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.195416ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.182ms)\n✔ readApprovalState (1.333917ms)\n▶ waitForApproval\n  ✔ prints issue URL before pausing when getIssueUrl returns a URL (0.220917ms)\n  ✔ prints 'Waiting for approval (issue #N)...' before pausing (0.107875ms)\n  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (818.132125ms)\n  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (712.965333ms)\n  ✔ polls multiple times before returning 'approved' (713.086708ms)\n  ✔ returns 'interrupted' after sleep when stopping flag becomes true (720.375917ms)\n  ✔ uses APPROVAL_POLL_INTERVAL env var as sleep interval (0.371709ms)\n  ✔ defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set (0.760625ms)\n  ✔ uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid (0.228583ms)\n  ✔ prints elapse",
+      "stderr": "",
+      "timestamp": "2026-04-23T20:51:06.338Z",
+      "taskId": "task-1"
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T20:43:51.635Z"
+    }
+  ],
+  "createdAt": "2026-04-23T20:39:49.791Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-23T20:51:06.338Z",
+  "_write_nonce": "f0f344fc0984e1b5"
+}

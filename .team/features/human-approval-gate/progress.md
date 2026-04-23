@@ -148,3 +148,22 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 20:35:56
+**Task 14: Unit tests pass for: issue creation writes `approvalIssueNumber`, poll resolves when status is "Ready", SIGINT during poll exits without corrupting state, re-entry guard skips issue creation when `approvalIssueNumber` exists**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-23 20:36:03
+**Run Summary**
+- Tasks: 11/14 done, 1 blocked
+- Duration: 369m 55s
+- Dispatches: 141
+- Tokens: 113.1M (in: 673.1K, cached: 110.8M, out: 1.6M)
+- Cost: $116.67
+- By phase: brainstorm $1.41, build $11.58, review $103.68
+
+### 2026-04-23 20:36:16
+**Outcome Review**
+This feature directly advances success metric #1 (idea → deliverable with human only at init + completion) by enforcing a hard approval gate before execution — agents now surface scope to a human via GitHub issue and wait for explicit sign-off, ensuring humans remain in the loop at initialization without being a bottleneck during execution.
+Roadmap status: already current
+

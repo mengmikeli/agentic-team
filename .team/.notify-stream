@@ -81,3 +81,7 @@
 {"ts":"2026-04-23T20:14:53.359Z","event":"task-started","msg":"▶ Task 13/14: `agt init` help text or `agt help run` explains that \"Pending Approval\" and \"Ready\" columns must be added to the project board manually before using the outer loop"}
 {"ts":"2026-04-23T20:25:08.421Z","event":"task-passed","msg":"✓ Task 13/14: `agt init` help text or `agt help run` explains that \"Pending Approval\" and \"Ready\" columns must be added to the project board manually before using the outer loop"}
 {"ts":"2026-04-23T20:25:16.592Z","event":"task-started","msg":"▶ Task 14/14: Unit tests pass for: issue creation writes `approvalIssueNumber`, poll resolves when status is \"Ready\", SIGINT during poll exits without corrupting state, re-entry guard skips issue creation when `approvalIssueNumber` exists"}
+{"ts":"2026-04-23T20:35:56.003Z","event":"task-passed","msg":"✓ Task 14/14: Unit tests pass for: issue creation writes `approvalIssueNumber`, poll resolves when status is \"Ready\", SIGINT during poll exits without corrupting state, re-entry guard skips issue creation when `approvalIssueNumber` exists"}
+{"ts":"2026-04-23T20:36:03.533Z","event":"feature-complete","msg":"Feature complete: human-approval-gate — 11/14 done, 1 blocked, 369m 55s, $116.67"}
+{"ts":"2026-04-23T20:39:49.842Z","event":"feature-started","msg":"▶ Feature: compound-evaluation-gate (11 tasks planned)"}
+{"ts":"2026-04-23T20:43:53.934Z","event":"task-started","msg":"▶ Task 1/11: `bin/lib/compound-gate.mjs` exists with `runCompoundGate(findings, repoRoot)` implementing all 5 layers."}
