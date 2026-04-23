@@ -204,7 +204,7 @@ switch (command) {
     const { fileURLToPath } = await import("url");
 
     const __dirname = join(fileURLToPath(import.meta.url), "..");
-    const dashDir = join(__dirname, "..", "dashboard");
+    const dashDir = join(__dirname, "..", "dashboard-ui", "dist");
 
     const mimeTypes = {
       ".html": "text/html",
@@ -315,7 +315,7 @@ switch (command) {
       return result;
     }
 
-    function loadTokenData(fs, join, home) {
+    function loadTokenData(fs, join, home, days = 7) {
       const pewDir = join(home, ".config", "pew");
       const queuePath = join(pewDir, "queue.jsonl");
       if (!fs.existsSync(queuePath)) return { available: false };
@@ -324,12 +324,11 @@ switch (command) {
         const lines = fs.readFileSync(queuePath, "utf8").trim().split("\n").filter(Boolean);
         const records = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 
-        // Last 7 days — global, all projects and tools
         const now = new Date();
-        const sevenDaysAgo = new Date(now);
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        sevenDaysAgo.setHours(0, 0, 0, 0);
-        const recent = records.filter((r) => new Date(r.hour_start) >= sevenDaysAgo);
+        const cutoff = new Date(now);
+        cutoff.setDate(cutoff.getDate() - days);
+        cutoff.setHours(0, 0, 0, 0);
+        const recent = records.filter((r) => new Date(r.hour_start) >= cutoff);
 
         // Summary
         let input = 0, cached = 0, output = 0, reasoning = 0, total = 0;
@@ -343,7 +342,7 @@ switch (command) {
 
         // Daily aggregation
         const dailyMap = new Map();
-        for (let i = 6; i >= 0; i--) {
+        for (let i = days - 1; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(d.getDate() - i);
           const key = d.toISOString().slice(0, 10);
@@ -470,7 +469,9 @@ switch (command) {
             return jsonRes(res, backlog);
           }
           if (pathname === "/api/tokens") {
-            return jsonRes(res, loadTokenData(fs, join, home));
+            const daysParam = parseInt(url.searchParams.get("days") || "7", 10);
+            const validDays = [1, 7, 28].includes(daysParam) ? daysParam : 7;
+            return jsonRes(res, loadTokenData(fs, join, home, validDays));
           }
           if (pathname === "/api/events") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());
