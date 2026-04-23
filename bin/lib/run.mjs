@@ -7,7 +7,7 @@ import { join, resolve, dirname } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
 import {
-  c, getFlag, readState, writeState, generateNonce,
+  c, getFlag, readState, writeState, lockFile, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS, appendProgress,
 } from "./util.mjs";
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
@@ -117,19 +117,27 @@ function runGateInline(cmd, featureDir, taskId) {
 
   // Record gate result in STATE.json gates array directly (avoids subprocess overwriting real artifacts)
   try {
-    const s = readState(featureDir);
-    if (s) {
-      if (!s.gates) s.gates = [];
-      s.gates.push({
-        command: cmd,
-        exitCode,
-        verdict,
-        stdout: stdout.slice(0, 4096),
-        stderr: stderr.slice(0, 4096),
-        timestamp: new Date().toISOString(),
-        taskId: taskId || null,
-      });
-      writeState(featureDir, s);
+    const statePath = join(featureDir, "STATE.json");
+    const lock = lockFile(statePath, { command: "runGateInline" });
+    if (lock.acquired) {
+      try {
+        const s = readState(featureDir);
+        if (s) {
+          if (!s.gates) s.gates = [];
+          s.gates.push({
+            command: cmd,
+            exitCode,
+            verdict,
+            stdout: stdout.slice(0, 4096),
+            stderr: stderr.slice(0, 4096),
+            timestamp: new Date().toISOString(),
+            taskId: taskId || null,
+          });
+          writeState(featureDir, s);
+        }
+      } finally {
+        lock.release();
+      }
     }
   } catch { /* best-effort */ }
 
