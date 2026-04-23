@@ -84,9 +84,22 @@
     {
       "id": "task-6",
       "title": "On the 3rd repetition of the same oscillation pattern for a single task, the harness exits non-zero and sets feature `status: \"oscillation-halted\"` in STATE.json",
-      "status": "pending",
+      "status": "passed",
       "attempts": 0,
-      "issueNumber": 71
+      "issueNumber": 71,
+      "lastTransition": "2026-04-23T07:21:52.826Z",
+      "ticks": 1,
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-23T07:25:06.131Z",
+        "taskId": "task-6",
+        "warnings": 0,
+        "newWarnings": 0
+      }
     },
     {
       "id": "task-7",
@@ -154,9 +167,20 @@
       "taskId": "task-5-r1",
       "warnings": 0,
       "newWarnings": 0
+    },
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-23T07:25:06.131Z",
+      "taskId": "task-6",
+      "warnings": 0,
+      "newWarnings": 0
     }
   ],
-  "transitionCount": 2,
+  "transitionCount": 3,
   "transitionHistory": [
     {
       "taskId": "task-5-p1",
@@ -171,10 +195,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T06:54:32.014Z"
+    },
+    {
+      "taskId": "task-6",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T07:21:52.826Z"
     }
   ],
   "createdAt": "2026-04-23T03:57:41.972Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T06:57:27.264Z",
-  "_write_nonce": "606335734db67bcf"
+  "_last_modified": "2026-04-23T07:25:06.131Z",
+  "_write_nonce": "59d9d86576e6b8ad"
 }

@@ -26,3 +26,5 @@
 {"ts":"2026-04-23T06:14:32.741Z","event":"progress","msg":"Progress: 4/11 done, 0 blocked."}
 {"ts":"2026-04-23T06:14:32.839Z","event":"task-started","msg":"▶ Task 6/11: Fix `run.mjs` to capture and act on harness transition result"}
 {"ts":"2026-04-23T06:54:32.064Z","event":"task-started","msg":"▶ Task 7/11: `transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`"}
+{"ts":"2026-04-23T07:21:52.776Z","event":"task-passed","msg":"✓ Task 7/11: `transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`"}
+{"ts":"2026-04-23T07:21:55.273Z","event":"task-started","msg":"▶ Task 8/11: On the 3rd repetition of the same oscillation pattern for a single task, the harness exits non-zero and sets feature `status: \"oscillation-halted\"` in STATE.json"}
