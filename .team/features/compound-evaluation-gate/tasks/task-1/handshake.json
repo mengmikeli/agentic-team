@@ -1,15 +1,20 @@
 {
   "taskId": "task-1",
-  "nodeType": "build",
-  "runId": "run_2",
+  "nodeType": "gate",
+  "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Fixed path traversal vulnerability in detectFabricatedRefs by resolving paths and asserting they stay within repoRoot. Tightened file:line regex to require a known extension, fixed Jaccard similarity to return 0 for empty sets, integrated runCompoundGate into synthesize.mjs (injects synthetic critical on FAIL, adds compoundGate field to output), and added 7 fixture-based integration tests covering thin/fabricated eval.md → FAIL and detailed eval.md → PASS scenarios.",
-  "timestamp": "2026-04-24T00:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-23T20:59:22.855Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/compound-gate.mjs" },
-    { "type": "code", "path": "bin/lib/synthesize.mjs" },
-    { "type": "test", "path": "test/synthesize-compound.test.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
