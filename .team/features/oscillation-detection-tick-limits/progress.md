@@ -170,3 +170,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 11:22:16
+**Task 12: Diagnose and permanently fix gate command reset to `echo gate-recorded`**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+
