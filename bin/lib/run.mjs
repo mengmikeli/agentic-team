@@ -973,9 +973,11 @@ async function _runSingleFeature(args, description) {
               const replanRaw = dispatchToAgent(agent, replanBrief, cwd);
               const replanResult = parseReplanOutput(replanRaw.output);
               if (replanResult && replanResult.verdict !== "abandon") {
+                const preReplanState = readState(featureDir);
+                if (preReplanState) { const ft = preReplanState.tasks.find(t => t.id === task.id); if (ft !== undefined) task.ticks = ft.ticks; }
                 applyReplan(tasks, task, replanResult);
                 const updState = readState(featureDir);
-                if (updState) { updState.tasks = tasks; writeState(featureDir, updState); }
+                if (updState) { const existingIds = new Set(updState.tasks.map(t => t.id)); const newTasks = tasks.filter(t => !existingIds.has(t.id)); const bi = updState.tasks.findIndex(t => t.id === task.id); updState.tasks.splice(bi + 1, 0, ...newTasks); writeState(featureDir, updState); }
                 appendProgress(featureDir, `**Re-plan for task ${i + 1}: ${task.title}**\n- Verdict: ${replanResult.verdict}\n- Rationale: ${replanResult.rationale}`);
                 console.log(`  ${c.cyan}↻ Re-plan: ${replanResult.verdict} — ${replanResult.tasks.length} task(s) injected${c.reset}\n`);
               } else {
@@ -1013,9 +1015,11 @@ async function _runSingleFeature(args, description) {
             const replanRaw = dispatchToAgent(agent, replanBrief, cwd);
             const replanResult = parseReplanOutput(replanRaw.output);
             if (replanResult && replanResult.verdict !== "abandon") {
+              const preReplanState = readState(featureDir);
+              if (preReplanState) { const ft = preReplanState.tasks.find(t => t.id === task.id); if (ft !== undefined) task.ticks = ft.ticks; }
               applyReplan(tasks, task, replanResult);
               const updState = readState(featureDir);
-              if (updState) { updState.tasks = tasks; writeState(featureDir, updState); }
+              if (updState) { const existingIds = new Set(updState.tasks.map(t => t.id)); const newTasks = tasks.filter(t => !existingIds.has(t.id)); const bi = updState.tasks.findIndex(t => t.id === task.id); updState.tasks.splice(bi + 1, 0, ...newTasks); writeState(featureDir, updState); }
               appendProgress(featureDir, `**Re-plan for task ${i + 1}: ${task.title}**\n- Verdict: ${replanResult.verdict}\n- Rationale: ${replanResult.rationale}`);
               console.log(`  ${c.cyan}↻ Re-plan: ${replanResult.verdict} — ${replanResult.tasks.length} task(s) injected${c.reset}\n`);
             } else {

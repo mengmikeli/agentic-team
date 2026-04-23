@@ -7,6 +7,7 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
 import { applyReplan } from "../bin/lib/replan.mjs";
+import { readState as utilReadState, writeState as utilWriteState } from "../bin/lib/util.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const harnessPath = join(__dirname, "..", "bin", "agt-harness.mjs");
@@ -319,5 +320,85 @@ describe("replan tick inheritance", () => {
     });
     assert.equal(tasks[1].ticks, 1);
     assert.equal(tasks[2].ticks, 1);
+  });
+});
+
+describe("replan tick inheritance — STATE.json sync", () => {
+  const syncTestDir = join(__dirname, ".test-workspace-ticks-sync");
+  before(() => { mkdirSync(syncTestDir, { recursive: true }); });
+  after(() => { rmSync(syncTestDir, { recursive: true, force: true }); });
+
+  it("syncing ticks from STATE.json before applyReplan gives correct ticks to replacement tasks", () => {
+    // STATE.json has task with ticks: 5 (updated by harness subprocess)
+    const stateTask = { id: "t-sync", title: "the task", status: "blocked", ticks: 5, attempts: 3 };
+    const initialState = { status: "active", tasks: [stateTask], transitionHistory: [] };
+    utilWriteState(syncTestDir, initialState);
+
+    // In-memory task is stale: ticks is undefined (never synced from STATE.json)
+    const staleTask = { id: "t-sync", title: "the task", status: "blocked", ticks: undefined, attempts: 3 };
+    const inMemoryTasks = [staleTask];
+
+    // Simulate the fixed run.mjs pattern: read fresh ticks before calling applyReplan
+    const freshState = utilReadState(syncTestDir);
+    if (freshState) {
+      const ft = freshState.tasks.find(t => t.id === staleTask.id);
+      if (ft !== undefined) staleTask.ticks = ft.ticks;
+    }
+    applyReplan(inMemoryTasks, staleTask, {
+      verdict: "split",
+      rationale: "needs split",
+      tasks: [{ title: "part A", description: "" }, { title: "part B", description: "" }],
+    });
+    assert.equal(staleTask.ticks, 5, "stale task should be synced to ticks=5 from STATE.json");
+    assert.equal(inMemoryTasks[1].ticks, 6, "replacement task 1 should get ticks=6 (5+1)");
+    assert.equal(inMemoryTasks[2].ticks, 6, "replacement task 2 should get ticks=6 (5+1)");
+  });
+
+  it("merging new tasks into STATE.json does not overwrite harness-updated ticks on blocked task", () => {
+    // STATE.json has blocked task with ticks: 4 (incremented by harness)
+    const stateTask = { id: "t-merge", title: "blocker", status: "blocked", ticks: 4, attempts: 3 };
+    const otherTask = { id: "t-other", title: "other", status: "pending", ticks: 0, attempts: 0 };
+    const state = { status: "active", tasks: [stateTask, otherTask], transitionHistory: [] };
+    utilWriteState(syncTestDir, state);
+
+    // In-memory tasks with stale ticks
+    const staleBlocked = { id: "t-merge", title: "blocker", status: "blocked", ticks: undefined, attempts: 3 };
+    const staleOther = { id: "t-other", title: "other", status: "pending", ticks: 0, attempts: 0 };
+    const inMemoryTasks = [staleBlocked, staleOther];
+
+    // Sync ticks from fresh state
+    const freshState = utilReadState(syncTestDir);
+    if (freshState) {
+      const ft = freshState.tasks.find(t => t.id === staleBlocked.id);
+      if (ft !== undefined) staleBlocked.ticks = ft.ticks;
+    }
+
+    applyReplan(inMemoryTasks, staleBlocked, {
+      verdict: "inject",
+      rationale: "needs prereq",
+      tasks: [{ title: "prereq", description: "" }],
+    });
+
+    // Simulate the fixed merge pattern
+    const updState = utilReadState(syncTestDir);
+    if (updState) {
+      const existingIds = new Set(updState.tasks.map(t => t.id));
+      const newTasks = inMemoryTasks.filter(t => !existingIds.has(t.id));
+      const bi = updState.tasks.findIndex(t => t.id === staleBlocked.id);
+      updState.tasks.splice(bi + 1, 0, ...newTasks);
+      utilWriteState(syncTestDir, updState);
+    }
+
+    const finalState = utilReadState(syncTestDir);
+    const finalBlocked = finalState.tasks.find(t => t.id === "t-merge");
+    assert.equal(finalBlocked.ticks, 4, "blocked task ticks should be preserved from STATE.json (not overwritten by stale in-memory value)");
+    const prereq = finalState.tasks.find(t => t.id === "t-merge-p1");
+    assert.ok(prereq, "prereq task should be in STATE.json");
+    assert.equal(prereq.ticks, 5, "prereq task ticks should be 4+1=5");
+    const retry = finalState.tasks.find(t => t.id === "t-merge-r1");
+    assert.ok(retry, "retry task should be in STATE.json");
+    assert.equal(retry.ticks, 5, "retry task ticks should be 4+1=5");
+    // other task should still be there
+    assert.ok(finalState.tasks.find(t => t.id === "t-other"), "unrelated task should still be in STATE.json");
   });
 });
