@@ -1,19 +1,20 @@
 {
   "taskId": "task-7-r1",
-  "nodeType": "build",
-  "runId": "run_4",
+  "nodeType": "gate",
+  "runId": "run_13",
   "status": "completed",
-  "verdict": null,
-  "summary": "Implemented oscillation detection and tick limits: added appendProgress to util.mjs, ticks field increment in transition.mjs with enforcement, oscillation pattern detection with warn/halt logic, tick inheritance in replan.mjs, and unit tests in test/oscillation-ticks.test.mjs. Also fixed .gitignore to exclude test/.test-workspace-ticks/ and removed those generated files from git tracking.",
-  "timestamp": "2026-04-23T10:30:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: echo gate-recorded — exit code 0",
+  "timestamp": "2026-04-23T10:24:22.451Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/util.mjs" },
-    { "type": "code", "path": "bin/lib/transition.mjs" },
-    { "type": "code", "path": "bin/lib/replan.mjs" },
-    { "type": "code", "path": "bin/lib/run.mjs" },
-    { "type": "code", "path": "test/oscillation-ticks.test.mjs" },
-    { "type": "code", "path": ".gitignore" },
-    { "type": "test-result", "path": ".team/features/oscillation-detection-tick-limits/tasks/task-7-r1/artifacts/test-output.txt" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }

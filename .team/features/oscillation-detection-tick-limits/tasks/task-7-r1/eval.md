@@ -1,34 +1,22 @@
 ## Parallel Review Findings
 
 ### [security]
-**Verdict: PASS** (with 3 warnings to backlog)
-
 ---
 
-**Files read:** `transition.mjs`, `util.mjs`, `run.mjs`, `replan.mjs`, `test/oscillation-ticks.test.mjs`, `test/smoke-terminates.test.mjs`, `SPEC.md`, all handshake.json and eval.md files.
-
-**Tests run:** `node --test test/oscillation-ticks.test.mjs test/smoke-terminates.test.mjs` — 21/21 pass.
-
----
-
-**Findings:**
-
-🟡 `bin/lib/transition.mjs:56` — TOCTOU: `_written_by` tamper check runs on the pre-lock `state` read (line 36); `freshState` (rea
-
-### [architect]
 ## Findings
 
-🟡 `bin/lib/util.mjs:68-72` — `appendProgress` error-fallback calls `writeFileSync(progressPath, line)` without existing content; a write failure silently destroys all prior progress history. Use `appendFileSync` throughout.
+🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1/artifacts/test-output.txt:1` — Gate ran `echo gate-recorded` not `npm test`; artifact contains only `gate-recorded`. The fix-gate task (task-7-p1) also ran with `echo gate-recorded`. Re-run with `npm test` and capture real test output.
 
-🟡 `bin/lib/util.mjs:68` — Non-atomic read-modify-write (read full file → concat in memory → rewrite). Concurrent harness processes can silently lose entries. Replace with `appendFileSync`.
+🟡 `bin/lib/util.mjs:63` — `appendProgress` is a non-atomic read-modify-write without a file lock on `progress.md`; concurrent harness invocations can silently overwrite each o
 
-🟡 `bin/lib/transition.mjs:103-118` — Double warning entry per oscilla
-
-### [devil's-advocate]
-Here are my structured findings:
+### [architect]
+Eval written. Here are the findings:
 
 ---
 
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1/artifacts/test-output.txt:1` — Gate artifact contains only `gate-recorded\n`; the actual gate command was `echo gate-recorded` (confirmed in `STATE.json.lastGate.command`). task-7-p1 was created specifically to fix this — it also ran `echo gate-recorded`. Re-run the gate as `npm test` and capture the real artifact.
+**Verdict: FAIL**
 
-🟡 `.team/features/oscillation-detection-tick-limits/progress.md:143` — PA
+🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1/handshake.json:7` — Commit `1060fc2` reverted the valid build handshake (nodeType=build, real 375-test npm output) that `47a6f31` had correctly written, back to `echo gate-recorded`. This is the third time this fake gate has survived review — devil's-advocate flagged it, a fix was committed, then immediately reverted by the next commit. The current artifact falsely r
+
+### [devil's-advocate]
+Now I have enough evidence. Let me write the evaluation.
