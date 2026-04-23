@@ -12,3 +12,5 @@
 {"ts":"2026-04-21T14:59:49.976Z","event":"feature-complete","msg":"Feature complete: impeccable-design-overhaul-of-the-dashboard-dashbo — 2/2 done, 0 blocked, 14m 25s"}
 {"ts":"2026-04-23T03:34:20.810Z","event":"feature-started","msg":"▶ Feature: crash-recovery-atomic-state-writes (8 tasks planned)"}
 {"ts":"2026-04-23T03:40:30.112Z","event":"task-started","msg":"▶ Task 1/8: `agt run` on a feature with `status: \"executing\"` logs `[crash-recovery]` and resumes rather than resetting all tasks"}
+{"ts":"2026-04-23T03:57:41.969Z","event":"feature-started","msg":"▶ Feature: oscillation-detection-tick-limits (9 tasks planned)"}
+{"ts":"2026-04-23T04:07:14.576Z","event":"task-started","msg":"▶ Task 1/9: Each task object in STATE.json has a `ticks` field that increments on every agent dispatch (including retries)"}

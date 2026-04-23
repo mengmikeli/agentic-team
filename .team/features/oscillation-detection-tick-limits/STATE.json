@@ -1,0 +1,74 @@
+{
+  "version": "2.0",
+  "feature": "oscillation-detection-tick-limits",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Each task object in STATE.json has a ticks field that increments on every agent dispatch",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 66
+    },
+    {
+      "id": "task-2",
+      "title": "A replacement task created by replan starts with ticks equal to replaced task ticks + 1",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 67
+    },
+    {
+      "id": "task-3",
+      "title": "agt-harness transition rejects in-progress for task at or above maxTaskTicks",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 68
+    },
+    {
+      "id": "task-4",
+      "title": "maxTaskTicks is configurable via TASK_MAX_TICKS env var (default: 6)",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 69
+    },
+    {
+      "id": "task-5",
+      "title": "transition.mjs detects repeating pattern of length K >= 2 in transitionHistory",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 70
+    },
+    {
+      "id": "task-6",
+      "title": "On 3rd repetition of same oscillation pattern, harness exits non-zero",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 71
+    },
+    {
+      "id": "task-7",
+      "title": "progress.md contains timestamped entry whenever tick limit or oscillation halt fires",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 72
+    },
+    {
+      "id": "task-8",
+      "title": "Unit tests pass for tick increment, replan inheritance, tick-limit rejection, oscillation detection",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 73
+    },
+    {
+      "id": "task-9",
+      "title": "Manual smoke test with mock task that always fails confirms run terminates cleanly",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 74
+    }
+  ],
+  "gates": [],
+  "transitionCount": 0,
+  "transitionHistory": [],
+  "createdAt": "2026-04-23T03:57:41.972Z"
+}

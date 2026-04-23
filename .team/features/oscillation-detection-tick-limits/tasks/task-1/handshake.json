@@ -1,14 +1,20 @@
 {
   "taskId": "task-1",
-  "nodeType": "build",
+  "nodeType": "gate",
   "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Added `ticks` field to task objects in STATE.json that increments on every `→ in-progress` transition, tracking total agent dispatches including retries. Backward-compatible: old tasks without `ticks` default to 0. Added 8 unit tests in test/oscillation-ticks.test.mjs covering first dispatch, retries, blocked recovery, non-increment on other transitions, per-task isolation, and accumulation across multiple dispatches.",
-  "timestamp": "2026-04-23T00:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-23T04:13:33.102Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/transition.mjs" },
-    { "type": "code", "path": "test/oscillation-ticks.test.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
