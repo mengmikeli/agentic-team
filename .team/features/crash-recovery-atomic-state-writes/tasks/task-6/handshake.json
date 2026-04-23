@@ -1,13 +1,20 @@
 {
   "taskId": "task-6",
-  "nodeType": "build",
-  "runId": "run_2",
+  "nodeType": "gate",
+  "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Fixed gate.mjs so the lock is acquired only for the readState→writeState critical section inside the finally block, not before execSync. Previously the lock was held for the entire gate command duration (up to 120s), causing concurrent transition/finalize/stop calls to exhaust the 5s lock timeout and silently drop STATE.json writes. All 376 tests pass.",
-  "timestamp": "2026-04-23T00:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-23T13:42:24.124Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/gate.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
