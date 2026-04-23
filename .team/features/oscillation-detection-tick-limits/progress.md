@@ -165,3 +165,8 @@
 - Verdict: inject
 - Rationale: The blocking issue is not the feature implementation itself but a systematic gate misconfiguration: something in the builder run resets the gate command to `echo gate-recorded` instead of `npm test`, and this has reverted two separate fix commits. The root cause must be diagnosed and permanently fixed before any retry of the original task can produce valid evidence.
 
+### 2026-04-23 11:04:09
+**Task 12: Diagnose and permanently fix gate command reset to `echo gate-recorded`**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
