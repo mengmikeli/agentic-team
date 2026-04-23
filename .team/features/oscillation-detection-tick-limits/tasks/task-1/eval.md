@@ -3,36 +3,36 @@
 ### [security]
 ---
 
-**Verdict: FAIL**
+## Security Review: `oscillation-detection-tick-limits`
 
-Files I actually read: `transition.mjs`, `replan.mjs`, `oscillation-ticks.test.mjs`, `STATE.json`, `SPEC.md`, `handshake.json`, `test-output.txt` + grep over all test files.
+**Overall verdict: PASS** — no criticals, 2 warnings for backlog.
+
+---
+
+### Findings
+
+🟡 `bin/lib/transition.mjs:15-16` — No upper bound on `TASK_MAX_TICKS`; `TASK_MAX_TICKS=999999` disables tick-limit enforcement entirely; add `Math.min(_rawMaxTicks, 100)` to preserve the safety guarantee
+
+🟡 `bin/lib/transition.mjs:169,207` — `Number.isInteger()` guard silently resets tick counter to 1 when `task.ticks` is a float (e.g. `1.5` in STA
+
+### [architect]
+---
+
+**Verdict: PASS** (3 backlog warnings, 0 critical)
 
 ---
 
 **Findings:**
 
-🔴 `bin/lib/transition.mjs:15` — `parseInt(TASK_MAX_TICKS)` returns NaN for non-numeric env values, silently disabling tick-limit enforcement for the entire process; replace with `const raw = parseInt(..., 10); const maxTaskTicks = Number.isInteger(raw) && raw > 0 ? raw : 6;`
+🟡 `bin/lib/transition.mjs:15` — `--max-task-ticks` CLI flag required by SPEC is absent; only `TASK_MAX_TICKS` env var is implemented; add `getFlag(args, "max-task-ticks")` and prefer it over env var
+
+🟡 `bin/lib/transition.mjs:171` — SPEC specifies `reason: "tick-limit-exceeded"` written to STATE.json but code writes `task.lastReason`; tests confirm `lastReason` works but field name diverges from SPEC; standardize
 
 🟡 
 
-### [architect]
----
-
-## Review Findings
-
-**Verdict: ITERATE**
-
----
-
-🔴 bin/lib/transition.mjs:232 — `process.exit(haltCode)` is dead code; `return` at line 175 exits the function through `finally` before reaching line 232; oscillation halt never exits non-zero — call `process.exit(1)` directly in the halt branch after `lock.release()`
-
-🔴 test/oscillation-ticks.test.mjs — Missing tests for 4 of 5 SPEC-required categories (replan inheritance, tick-limit rejection, oscillation K=2 detection, feature halt with exi
-
 ### [devil's-advocate]
----
+**Findings:**
 
-**Structured Findings:**
+🟡 `bin/lib/transition.mjs:164` — `task.retries` incremented before tick-limit check fires; when tick-limit blocks, state is written with inflated retries; subsequent `failed→in-progress` attempt may hit "max retries reached" instead of "tick-limit-exceeded"; move mutation after the tick-limit guard
 
-🔴 `bin/lib/transition.mjs:175` — `return` inside `try` block makes `process.exit(haltCode)` at line 232 dead code; oscillation halt exits code 0, not 1; move `process.exit(1)` into the halt branch after `lock.release()` and remove the `haltCode` detour
-
-🔴 `bin/lib/transition.mjs:109-118` — Oscillation halt for `[failed, in-progress]` pattern (primary retry loop) is structurally unreachable: `MAX_RETRIES_PER_TASK=3` exhausts before oscillation accumulates 3 reps; 
+🟡 `bin/lib/transition.mjs:116-132` — K loop breaks on first K=2 match; a K=3 repeating pattern (e.g. [IP,F,B] × 3) always has a K=2 sub-pattern that fires first with reps=2 (warning)
