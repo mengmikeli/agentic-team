@@ -1,20 +1,17 @@
 {
   "taskId": "task-7-r1",
-  "nodeType": "gate",
-  "runId": "run_11",
+  "nodeType": "build",
+  "runId": "run_2",
   "status": "completed",
-  "verdict": "PASS",
-  "summary": "Gate command: echo gate-recorded — exit code 0",
-  "timestamp": "2026-04-23T09:39:06.054Z",
+  "verdict": null,
+  "summary": "Implemented progress.md logging for tick-limit and oscillation-halt events. appendProgress was extracted to util.mjs and transition.mjs calls it with timestamped entries containing task ID, tick count (for tick-limit) and task ID, pattern, and repetition count (for oscillation halt). All 375 tests pass including 3 tests that specifically assert the progress.md entry content.",
+  "timestamp": "2026-04-23T11:00:00.000Z",
   "artifacts": [
-    {
-      "type": "test-result",
-      "path": "artifacts/test-output.txt"
-    }
+    { "type": "code", "path": "bin/lib/util.mjs" },
+    { "type": "code", "path": "bin/lib/transition.mjs" },
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "bin/lib/replan.mjs" },
+    { "type": "code", "path": "test/oscillation-ticks.test.mjs" }
   ],
-  "findings": {
-    "critical": 0,
-    "warning": 0,
-    "suggestion": 0
-  }
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
