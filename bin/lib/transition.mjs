@@ -141,6 +141,11 @@ export function cmdTransition(args) {
     task.lastTransition = new Date().toISOString();
     if (reason) task.lastReason = reason;
 
+    // Increment tick counter on every agent dispatch (→ in-progress)
+    if (status === "in-progress") {
+      task.ticks = (task.ticks || 0) + 1;
+    }
+
     freshState.transitionCount++;
     freshState.transitionHistory.push({
       taskId,
