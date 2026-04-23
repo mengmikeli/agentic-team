@@ -215,6 +215,23 @@ describe("detectFabricatedRefs", () => {
     ];
     assert.ok(!detectFabricatedRefs(findings, dir));
   });
+
+  it("returns false when repoRoot is not a string (type guard)", () => {
+    const findings = [
+      { severity: "critical", text: "🔴 foo.mjs:1 — some issue" },
+    ];
+    assert.ok(!detectFabricatedRefs(findings, undefined));
+    assert.ok(!detectFabricatedRefs(findings, null));
+  });
+
+  it("does not trip when 'not found' precedes the filename in the text", () => {
+    // Regression: backward window fix — MISSING_FILE_CONTEXT before the filename
+    const dir = makeDir();
+    const findings = [
+      { severity: "warning", text: "🟡 this file is absent — ghost.mjs:1 is missing from repo" },
+    ];
+    assert.ok(!detectFabricatedRefs(findings, dir));
+  });
 });
 
 // ── Layer 5: Aspirational Claims ──────────────────────────────────────────
@@ -347,6 +364,13 @@ describe("runCompoundGate", () => {
     assert.ok(Array.isArray(result.layers));
     assert.ok(typeof result.verdict === "string");
     assert.ok(typeof result.section === "string");
+  });
+
+  it("handles null findings gracefully (non-array guard)", () => {
+    const dir = makeDir();
+    const result = runCompoundGate(null, dir);
+    assert.equal(result.verdict, "PASS");
+    assert.equal(result.tripped, 0);
   });
 });
 

@@ -92,7 +92,9 @@ const MISSING_FILE_CONTEXT = /\b(does not exist|doesn't exist|is absent|missing 
  * language are skipped — the reviewer is correctly flagging the absence, not hallucinating.
  */
 export function detectFabricatedRefs(findings, repoRoot) {
+  if (typeof repoRoot !== 'string') return false;
   const resolvedRoot = resolve(repoRoot);
+  const backPathRe = /[^\s:]+\.(mjs|cjs|ts|mts|js|jsx|tsx|json|md)/g;
   for (const f of findings) {
     for (const m of f.text.matchAll(FILE_EXT_PATTERN)) {
       const p = m[1];
@@ -102,11 +104,16 @@ export function detectFabricatedRefs(findings, repoRoot) {
         return true;
       }
       // Skip false-positive: reviewer is explicitly noting THIS path is absent/missing.
-      // We test a window starting at the matched path and extending ~60 chars to the
-      // right (not the whole finding text) so a "not found" phrase about a *different*
-      // path earlier in the same finding does not grant immunity here.
-      const window = f.text.slice(m.index, m.index + p.length + 60);
-      if (MISSING_FILE_CONTEXT.test(window)) continue;
+      // Forward window: check 60 chars after the matched path.
+      const forwardWindow = f.text.slice(m.index, m.index + p.length + 60);
+      // Backward window: only use if no other file path appears between the window
+      // start and this path — otherwise the MISSING_FILE_CONTEXT belongs to that
+      // earlier path, not the current one.
+      const backStart = Math.max(0, m.index - 60);
+      const backwardRegion = f.text.slice(backStart, m.index);
+      backPathRe.lastIndex = 0;
+      const backwardWindow = backPathRe.test(backwardRegion) ? '' : backwardRegion;
+      if (MISSING_FILE_CONTEXT.test(forwardWindow + backwardWindow)) continue;
       if (!existsSync(abs)) return true;
     }
   }
@@ -149,6 +156,7 @@ export function detectAspirationalClaims(findings) {
  * @returns {{ tripped: number, layers: string[], verdict: string, section: string }}
  */
 export function runCompoundGate(findings, repoRoot) {
+  if (!Array.isArray(findings)) findings = [];
   const layers = [];
   if (detectThinContent(findings))              layers.push("thin-content");
   if (detectMissingCodeRefs(findings))          layers.push("missing-code-refs");
