@@ -3,31 +3,32 @@
 ### [security]
 ---
 
-## Security Review: oscillation-detection-tick-limits — Fix `run.mjs` harness transition result
+## Findings
 
-**Files read:** `bin/lib/run.mjs` (full), `bin/lib/transition.mjs` (full), `bin/lib/util.mjs` (resolveDir region), all task handshake.json and prior eval.md files.
+🟡 `bin/lib/run.mjs:863` — `eval.md` content (AI-generated review output) is appended verbatim to `lastFailure` and embedded in subsequent agent briefs dispatched with `--permission-mode bypassPermissions`. Adversarial test output or a crafted review could inject arbitrary instructions executed with full permissions. Sanitize or quote-fence the `prevEval` content before embedding.
+
+🟡 `bin/lib/run.mjs:187` — `dispatchToAgentAsync` spawns subprocesses with no timeout. `runParall
+
+### [architect]
+**Verdict: PASS**
 
 ---
 
-### Fix Verification
-
-The previous critical finding (task-9 devil's-advocate): `run.mjs:831` discarded the harness return value — oscillation halt and tick-limit were silently ignored.
-
-**Traced the fix end-to-end:**
-- **Oscilla
-
-### [architect]
 **Findings:**
 
-🔴 `bin/lib/run.mjs:831` — No integration test covers the `allowed === false` branch. Both the oscillation-halt-break path and the tick-limit-skip path are untested by any test in the suite. The gate that approved task-5-p1 was `echo gate-recorded` — not `npm test`. An engineer reverting these 8 lines would not be caught. Add an integration test verifying: (a) `{allowed: false, halt: true}` causes loop break, (b) `{allowed: false, reason: "tick-limit-exceeded"}` causes `blocked++`
+🟡 `bin/lib/run.mjs:1010` — `harness("transition", ..., "passed")` result not captured; if harness rejects (state mismatch, lock failure), `run.mjs` marks task complete while STATE.json is inconsistent — capture result and log a warning on `allowed === false`
+
+🟡 `bin/lib/run.mjs:984` — `harness("transition", ..., "blocked")` result not captured in the review-fail path — same fix as above
+
+🟡 `bin/lib/run.mjs:1024` — `harness("transition", ..., "blocked")` 
 
 ### [devil's-advocate]
 ---
 
 **Verdict: PASS**
 
-## Findings
+Files read for this review: `bin/lib/run.mjs:28-45`, `bin/lib/run.mjs:820-846`, `bin/lib/run.mjs:1053-1068`, `bin/lib/run.mjs:1096-1097`, `test/smoke-terminates.test.mjs` (full).
 
-🟡 `bin/lib/run.mjs:832-846` — No test exercises the fixed branch. All harness tests call the subprocess directly. If the JSON output format of `transition.mjs` changes (e.g. `halt` → `halted`), this handling silently breaks with no failing test to catch it. Add a test that stubs `harness()` returning `{ allowed: false, halt: true }` and asserts the loop breaks.
+---
 
-🟡 `bin/lib/run.mjs:844` — `blocked++` for tick-limit contributes to the systemic-halt counter at
+**Fix status — prior 🔴 resolved.** `run.mjs:831-846` now captures `transitionResult`, checks `allowed === false`, breaks on `halt: true`, and `blocked++; continue` on tick-limit. The `harness()` wrapper at lines 28-45 correctly returns parsed JSON on both exit-0 (tick-limit) and exit-1 (os

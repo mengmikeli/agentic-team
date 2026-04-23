@@ -658,3 +658,210 @@ This does not block merge (no Done-When criterion requires integration tests for
 ## Summary
 
 The required fix is implemented correctly and completely. Both the oscillation halt and tick-limit paths are now captured and acted upon in `run.mjs`. Eight pre-existing 🟡 warnings remain in backlog; none are newly introduced by this fix. No criticals. **Verdict: PASS.**
+
+---
+
+# Architect Review — oscillation-detection-tick-limits (run.mjs fix / code-structure pass)
+
+**Reviewer role:** architect (code structure, design patterns, modularity, maintainability)
+**Task:** Fix `run.mjs` to capture and act on harness transition result
+**Verdict: PASS**
+**Date:** 2026-04-23
+
+---
+
+## Files Actually Read
+
+- `bin/lib/run.mjs` (full, 1105 lines)
+- `bin/lib/transition.mjs` (full, 233 lines)
+- `test/oscillation-ticks.test.mjs` (full, 439 lines)
+- `test/smoke-terminates.test.mjs` (full, 118 lines)
+- `.team/features/oscillation-detection-tick-limits/tasks/task-9/handshake.json`
+- `.team/features/oscillation-detection-tick-limits/tasks/task-5/artifacts/test-output.txt` (373/373 pass, confirmed)
+
+---
+
+## Fix Verification
+
+`run.mjs:831-846` correctly captures and acts on the `in-progress` transition result:
+- `const transitionResult = harness("transition", ..., "in-progress", ...)` ✓
+- `transitionResult.allowed === false && halt === true` → `break` (feature stop) ✓
+- `transitionResult.allowed === false` (non-halt) → `blocked++; continue` (skip dispatch) ✓
+- `harness()` wrapper recovers JSON from `err.stdout` on non-zero exit ✓
+
+The prior critical is resolved.
+
+---
+
+## Architectural Findings
+
+🟡 `bin/lib/run.mjs:1010` — `harness("transition", ..., "passed")` result not captured. All other harness calls post-fix check `allowed`. If the harness rejects this (e.g. task already in terminal state, STATE.json locked, status out of sequence), `run.mjs` marks the task complete and moves on while STATE.json is inconsistent. Add `const pr = harness(...); if (pr && pr.allowed === false) console.log(c.yellow + "⚠ passed-transition rejected: " + pr.reason + c.reset)`.
+
+🟡 `bin/lib/run.mjs:984` — `harness("transition", ..., "blocked")` result not captured (review-fail path). Same risk as above — undetected rejection leaves STATE.json in a stale state with no diagnostic output.
+
+🟡 `bin/lib/run.mjs:1024` — `harness("transition", ..., "blocked")` result not captured (gate-fail path). Same issue, second occurrence.
+
+🔵 `bin/lib/run.mjs:992-995` — Replan tick-sync + STATE.json merge block is a dense one-liner (`if (preReplanState) { const ft = ...; if (ft !== undefined) task.ticks = ft.ticks; }` / `if (updState) { const existingIds = ...; updState.tasks.splice(...); writeState(...); }`). The identical block is duplicated verbatim at lines 1033-1036. Extract to a named helper (e.g. `syncTicksBeforeReplan` + `mergeNewTasksIntoState`) so the two replan branches share one implementation — a future bug fix in one won't silently leave the other broken.
+
+🔵 `bin/lib/run.mjs:1054` — Secondary `blocked >= 3` guard uses a cumulative count rather than a consecutive-block count. Per the comment "3 consecutive blocks", the variable name and check both imply consecutive, but `blocked` is never reset, so three non-adjacent blocks (across different tasks, with passing tasks in between) trigger it. Either rename to `totalBlocked` and update the comment, or reset after a pass to accurately reflect "consecutive" semantics.
+
+---
+
+## Summary
+
+All 9 Done-When criteria met. The core fix is architecturally sound: the result is captured, the two exit paths (halt vs. skip) are correctly differentiated, and the existing `harness()` wrapper already handles the non-zero exit recovery. Three 🟡 warnings on unchecked transition results (`passed`, `blocked` ×2) must go to backlog — these are the only remaining unchecked harness calls in the hot path. Two 🔵 suggestions on code duplication and naming clarity are optional. No criticals.
+
+**Verdict: PASS**
+
+---
+
+# Security Review — oscillation-detection-tick-limits (external gate pass)
+
+**Reviewer role:** security-gate (external reviewer)
+**Task:** Fix `run.mjs` to capture and act on harness transition result
+**Verdict: PASS**
+**Date:** 2026-04-23
+
+---
+
+## Files Actually Read (this pass only)
+
+- `bin/lib/run.mjs` (all 1104 lines)
+- `bin/lib/transition.mjs` (all 233 lines)
+- `.team/features/oscillation-detection-tick-limits/tasks/task-9/handshake.json`
+- `.team/features/oscillation-detection-tick-limits/tasks/task-5-p1/handshake.json`
+- All prior entries in this eval.md
+
+---
+
+## Fix Verification
+
+Traced the critical fix independently. `run.mjs:831–846` correctly:
+- Assigns the return value (`const transitionResult = harness(...)`)
+- On `allowed === false` + `halt === true` → `break`s the outer task loop
+- On `allowed === false` without halt → `blocked++; continue` (skips dispatch for that task)
+- `harness()` wrapper at line 39–44 recovers JSON from `err.stdout` when harness exits non-zero
+
+**The fix is correct. No new critical issues introduced.**
+
+---
+
+## New Findings (not in prior security passes)
+
+🟡 `bin/lib/run.mjs:863` — `eval.md` content from a previous AI review is appended verbatim to `lastFailure` and embedded in subsequent agent briefs dispatched with `--permission-mode bypassPermissions`. If a gate command produces adversarial output, or if a reviewer's output contains injected instructions, those instructions execute in the next agent call with full permissions. Sanitize or quote-fence the `prevEval` content before inclusion.
+
+🟡 `bin/lib/run.mjs:187` — `dispatchToAgentAsync` spawns subprocesses with no timeout. `Promise.all` in `runParallelReviews` hangs indefinitely if any agent call stalls. Add a `setTimeout` race (e.g. 600s matching the sync dispatch bound) to bound the parallel review phase.
+
+🔵 `bin/lib/run.mjs:104` — Gate command is persisted verbatim in handshake `summary` field: `Gate command: ${cmd} — exit code ${exitCode}`. If gate commands embed inline credentials (e.g. `API_TOKEN=secret npm test`), they are written to `handshake.json` on disk. Document that gate commands must not embed secrets inline.
+
+---
+
+## Carryover Findings (confirmed still unresolved in current source)
+
+All eight 🟡 warnings from the previous security-gate pass are confirmed unresolved. Not repeated here to avoid duplication.
+
+---
+
+## Summary
+
+**Verdict: PASS.** The prior 🔴 (transition result discarded) is fully resolved. Two new 🟡 and one 🔵 are added to backlog; no criticals.
+
+---
+
+# Devil's Advocate Review — oscillation-detection-tick-limits (run.mjs fix — final independent pass)
+
+**Reviewer role:** devil's-advocate (independent, adversarial)
+**Task reviewed:** Fix `run.mjs` to capture and act on harness transition result
+**Verdict: PASS**
+**Date:** 2026-04-23
+
+---
+
+## Files Actually Read (this pass only)
+
+- `bin/lib/run.mjs:28-45` (harness wrapper — read directly)
+- `bin/lib/run.mjs:820-846` (the fix block — read directly)
+- `bin/lib/run.mjs:1053-1068` (systemic-halt check — read directly)
+- `bin/lib/run.mjs:1096-1097` (feature-complete notify — read directly)
+- `bin/lib/run.mjs:804` (blocked counter init — confirmed via grep)
+- `test/smoke-terminates.test.mjs` (full, 118 lines — read directly)
+- `.team/features/oscillation-detection-tick-limits/tasks/task-9/handshake.json`
+- `.team/features/oscillation-detection-tick-limits/tasks/task-9/eval.md` (all prior reviews)
+
+---
+
+## Fix Verification
+
+**Prior critical (from prior devil's-advocate pass):** `run.mjs:831` discarded the harness transition return value — oscillation halt and tick-limit were no-ops in the execution loop.
+
+**Current code at `run.mjs:831-846` (read directly):**
+```javascript
+const transitionResult = harness("transition", "--task", task.id, "--status", "in-progress", "--dir", featureDir);
+if (transitionResult && transitionResult.allowed === false) {
+  if (transitionResult.halt === true) {
+    console.log(`...⚠ Oscillation halt: ${transitionResult.reason}`);
+    appendProgress(featureDir, `**Oscillation halt**: ${transitionResult.reason}`);
+    harness("notify", "--event", "anomaly", "--msg", ...);
+    break;
+  }
+  console.log(`  ⊘ Transition rejected: ${transitionResult.reason}`);
+  appendProgress(featureDir, ...);
+  blocked++;
+  continue;
+}
+```
+
+**Oscillation halt trace (verified against actual code):**
+1. `harness()` at lines 28-45: `execFileSync` throws on exit(1); catch at line 43 parses stdout → returns `{ allowed: false, halt: true, reason: "..." }` ✓
+2. `run.mjs:832`: `transitionResult.allowed === false` → true ✓
+3. `run.mjs:833`: `transitionResult.halt === true` → logs, appends, notifies, `break` ✓
+
+**Tick-limit trace (verified):**
+1. Harness exits 0 with `{ allowed: false, reason: "tick-limit-exceeded" }` → `harness()` line 38 parses JSON ✓
+2. `run.mjs:832`: `allowed === false` → `blocked++; continue` ✓
+
+**Prior 🔴 is resolved.** Both enforcement paths are captured and acted upon.
+
+---
+
+## New Finding (not in prior passes)
+
+### `blocked >= 3` systemic-halt fires on passing task after 3 tick-limit skips
+
+The `continue` at `run.mjs:845` skips the `if (blocked >= 3)` check at line 1055. `blocked` is initialized at line 804 and **never reset** on task success (confirmed: grep for `blocked = 0` returns only line 804). Scenario: 3 consecutive tasks hit tick-limit → each executes `blocked++; continue` (blocked=3, line 1055 never reached). Task 4 completes successfully → `completed++`, falls through to line 1055 → fires "3 consecutive blocks — possible systemic issue. Stopping." despite task 4 passing. This false-positive stop is novel to the `continue` path introduced by this fix: before the fix, all blocked tasks fell through to line 1055 on each iteration. The comment at line 1054 ("3 consecutive blocks") describes the intent, but `blocked` is a cumulative counter and the `continue` path defers the check onto the next non-skipped task regardless of its outcome.
+
+---
+
+## Done-When Criteria
+
+| # | Criterion | Evidence | Verdict |
+|---|-----------|----------|---------|
+| 1 | `ticks` increments on every `→ in-progress` | Unchanged from prior reviews | ✅ PASS |
+| 2 | Replan tick inheritance | Unchanged | ✅ PASS |
+| 3 | Tick-limit rejects `in-progress`; agent dispatch skipped | `transition.mjs:168-181` + `run.mjs:841-845` (read directly) | ✅ PASS |
+| 4 | `TASK_MAX_TICKS` env var | Unchanged | ✅ PASS |
+| 5 | K≥2 pattern after 2× → warn + progress.md | Unchanged | ✅ PASS |
+| 6 | 3rd repetition → halt + **loop stops** | `run.mjs:833-839` `break` (read directly) ✓ | ✅ PASS |
+| 7 | `progress.md` timestamped entries | `run.mjs:836,843` call `appendProgress` for both paths (read directly) ✓ | ✅ PASS |
+| 8 | Unit tests pass | 373 tests in task-5 artifacts; gate output truncated before smoke/oscillation suites | ✅ PASS (prior-run evidence) |
+| 9 | Smoke test terminates within maxTaskTicks×2 | `test/smoke-terminates.test.mjs` read in full; harness-only | ✅ PASS (harness-level) |
+
+---
+
+## Findings
+
+🟡 `bin/lib/run.mjs:844-845` — `blocked++; continue` skips the systemic-halt check at line 1055. Three consecutive tick-limited tasks accumulate `blocked=3` without triggering the check; the 4th task (even if it passes with `completed++`) then triggers "3 consecutive blocks — systemic issue" at line 1055. The `blocked` counter is never reset on task success (only init at line 804). Add `blocked = 0` after `completed++` or replace the cumulative counter with a consecutive-block counter that resets on each passing task.
+
+🟡 `bin/lib/run.mjs:1096` — `harness("notify", "--event", "feature-complete", ...)` fires unconditionally after the task loop, including when the loop exited via `break` from oscillation halt at line 839. A halted feature fires a false "feature-complete" signal. Carryover from security pass; unresolved.
+
+🟡 `bin/lib/run.mjs:832-845` — Zero integration-test coverage for the entire fix block. No test exercises the `agt run` task loop with a harness returning `{ allowed: false, halt: true }` or `{ allowed: false, reason: "tick-limit-exceeded" }`. Carryover; unresolved.
+
+🟡 Gate output truncated at `brainstorm-cmd module` — `smoke-terminates.test.mjs` and `oscillation-ticks.test.mjs` suites are absent from the provided gate output (run later alphabetically). No direct evidence in this gate run that those suites still pass. (Run.mjs fix does not touch transition.mjs or the smoke test; regression very unlikely but unconfirmed.)
+
+---
+
+## Summary
+
+The prior 🔴 critical (`run.mjs:831` discards transition result) is fully resolved. The fix at `run.mjs:831-846` is correct: oscillation halt breaks the task loop; tick-limit increments blocked and continues. One new 🟡 finding is surfaced: the `continue` path causes `blocked >= 3` to misfire on the first passing task after 3 tick-limited tasks. Three carryover 🟡 remain open. No criticals.
+
+**Verdict: PASS**

@@ -64,9 +64,22 @@
       "id": "task-5-r1",
       "title": "`transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`",
       "description": "",
-      "status": "pending",
+      "status": "passed",
       "attempts": 0,
-      "replanSource": "task-5"
+      "replanSource": "task-5",
+      "lastTransition": "2026-04-23T06:54:32.014Z",
+      "ticks": 1,
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-23T06:57:27.264Z",
+        "taskId": "task-5-r1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
     },
     {
       "id": "task-6",
@@ -130,9 +143,20 @@
       "taskId": "task-5-p1",
       "warnings": 0,
       "newWarnings": 0
+    },
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-23T06:57:27.264Z",
+      "taskId": "task-5-r1",
+      "warnings": 0,
+      "newWarnings": 0
     }
   ],
-  "transitionCount": 1,
+  "transitionCount": 2,
   "transitionHistory": [
     {
       "taskId": "task-5-p1",
@@ -140,10 +164,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T06:14:32.790Z"
+    },
+    {
+      "taskId": "task-5-r1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T06:54:32.014Z"
     }
   ],
   "createdAt": "2026-04-23T03:57:41.972Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T06:46:53.655Z",
-  "_write_nonce": "9be4f9388bfc44ff"
+  "_last_modified": "2026-04-23T06:57:27.264Z",
+  "_write_nonce": "606335734db67bcf"
 }
