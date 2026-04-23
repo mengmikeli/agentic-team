@@ -30,3 +30,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 13:04:39
+**Task 3: `applyCrashRecovery()` writes `_recovered_from` (crash timestamp) and `_recovery_count` (incrementing) to state after recovery**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
