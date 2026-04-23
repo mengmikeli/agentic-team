@@ -118,3 +118,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 19:23:51
+**Task 8: Wire getOrCreateApprovalSigningKey into the approval read/write flow**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+
