@@ -39,3 +39,8 @@
 - Verdict: inject
 - Rationale: The two findings are small, targeted fixes: add a heuristic to skip 'missing file' findings in Layer 4, and add a comment in Layer 5 explaining the intentional exclusion of critical-severity findings. A single focused fix task before a retry is the right scope.
 
+### 2026-04-23 21:28:22
+**Task 2: Fix Layer 4 false-positives and document Layer 5 severity exclusion in compound-gate.mjs**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

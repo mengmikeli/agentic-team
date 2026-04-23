@@ -169,7 +169,7 @@ describe("detectFabricatedRefs", () => {
     // ghost.mjs is NOT on disk, but the reviewer is correctly noting it's absent.
     // Layer 4 should skip this path and not treat it as a fabricated reference.
     const findings = [
-      { severity: "warning", text: "🟡 ghost.mjs:1 — file is absent but imported by main.mjs" },
+      { severity: "warning", text: "🟡 ghost.mjs:1 — file is absent but referenced as a dependency" },
     ];
     assert.ok(!detectFabricatedRefs(findings, dir));
   });
@@ -180,6 +180,22 @@ describe("detectFabricatedRefs", () => {
       { severity: "critical", text: "🔴 missing.mjs:5 — does not exist but is referenced" },
     ];
     assert.ok(!detectFabricatedRefs(findings, dir));
+  });
+
+  it("trips on absent path even when 'not found' appears near a different path in the same finding", () => {
+    // Regression test: the MISSING_FILE_CONTEXT guard must be applied per-path
+    // (using a text window around each match), not to the entire finding text.
+    // Here "not found" is near real.mjs (which exists), but fabricated.mjs does NOT
+    // exist and "not found" is far away — the gate must still trip.
+    const dir = makeDir();
+    writeFileSync(join(dir, "real.mjs"), "// real");
+    const findings = [
+      {
+        severity: "critical",
+        text: "🔴 real.mjs:1 — function not found; fabricated.mjs:99 — bad ref",
+      },
+    ];
+    assert.ok(detectFabricatedRefs(findings, dir), "should trip because fabricated.mjs does not exist");
   });
 
   it("does not trip when finding says file is missing", () => {

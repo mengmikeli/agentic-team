@@ -101,8 +101,12 @@ export function detectFabricatedRefs(findings, repoRoot) {
       if (!abs.startsWith(resolvedRoot + sep) && abs !== resolvedRoot) {
         return true;
       }
-      // Skip false-positive: reviewer is explicitly noting the file is absent/missing
-      if (MISSING_FILE_CONTEXT.test(f.text)) continue;
+      // Skip false-positive: reviewer is explicitly noting THIS path is absent/missing.
+      // We test a window starting at the matched path and extending ~60 chars to the
+      // right (not the whole finding text) so a "not found" phrase about a *different*
+      // path earlier in the same finding does not grant immunity here.
+      const window = f.text.slice(m.index, m.index + p.length + 60);
+      if (MISSING_FILE_CONTEXT.test(window)) continue;
       if (!existsSync(abs)) return true;
     }
   }
