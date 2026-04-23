@@ -77,3 +77,5 @@
 {"ts":"2026-04-23T19:52:48.401Z","event":"task-started","msg":"▶ Task 11/14: If `approvalIssueNumber` is already set in `STATE.json` on re-entry, the loop polls the existing issue instead of creating a new one"}
 {"ts":"2026-04-23T20:06:58.323Z","event":"task-passed","msg":"✓ Task 11/14: If `approvalIssueNumber` is already set in `STATE.json` on re-entry, the loop polls the existing issue instead of creating a new one"}
 {"ts":"2026-04-23T20:07:05.556Z","event":"task-started","msg":"▶ Task 12/14: `PROJECT.md` documents the field option IDs for both `\"Pending Approval\"` and `\"Ready\"` columns in the same format as existing status IDs"}
+{"ts":"2026-04-23T20:14:45.850Z","event":"task-passed","msg":"✓ Task 12/14: `PROJECT.md` documents the field option IDs for both `\"Pending Approval\"` and `\"Ready\"` columns in the same format as existing status IDs"}
+{"ts":"2026-04-23T20:14:53.359Z","event":"task-started","msg":"▶ Task 13/14: `agt init` help text or `agt help run` explains that \"Pending Approval\" and \"Ready\" columns must be added to the project board manually before using the outer loop"}

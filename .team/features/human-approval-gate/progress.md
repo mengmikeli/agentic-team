@@ -138,3 +138,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 20:14:45
+**Task 12: `PROJECT.md` documents the field option IDs for both `"Pending Approval"` and `"Ready"` columns in the same format as existing status IDs**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
