@@ -130,3 +130,13 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-23 08:59:50
+**Task 9: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count**
+- Verdict: 🟡 Review FAIL (attempt 3)
+- Will retry with review feedback
+
+### 2026-04-23 09:00:17
+**Re-plan for task 9: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count**
+- Verdict: inject
+- Rationale: The block has two root causes that need fixing before task-7 can be retried: (1) the gate has been using `echo gate-recorded` instead of `npm test` — four consecutive times — so no real test validation has occurred; (2) `run.mjs` is not writing a `✅ PASS` entry to progress.md on successful task completion, which means the very feature being tested cannot self-verify. Fix these systemic issues first, then retry task-7 with a real gate.
+

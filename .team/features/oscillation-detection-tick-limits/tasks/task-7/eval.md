@@ -1,30 +1,38 @@
 ## Parallel Review Findings
 
 ### [security]
+The eval is written. Here are the findings:
+
 ---
 
-## Review Findings
+**Files I actually read:** `bin/lib/transition.mjs` (full), `bin/lib/util.mjs` (full), `bin/lib/run.mjs` (full), `test/smoke-terminates.test.mjs` (full), `test/oscillation-ticks.test.mjs` (lines 200–439), `SPEC.md`, all handshake.json files, task-9/eval.md (all prior reviews).
 
-Ran `node --test test/oscillation-ticks.test.mjs` (20/20 pass) and `node --test test/smoke-terminates.test.mjs` (1/1 pass) to resolve the prior 🔴 about untested gates.
+---
 
-**Structured findings:**
+**Findings:**
 
-🟡 `bin/lib/transition.mjs:22-27` — `appendProgressInDir` does a non-atomic read-then-write on progress.md. `writeState` uses atomic `tmp+rename`; the audit log doesn't. A crash between read and write silently loses the file's prior history. Backlog: use `atomicWriteSync` patter
+🟡 `bin/lib/util.mjs:69-72` — `appendProgress` catch block calls `writeFileSync(progressPath, line)` without `existing +`; on a write failure (disk ful
 
 ### [architect]
----
-
-## Findings
-
-🟡 `bin/lib/transition.mjs:18` — `appendProgressInDir` duplicates `run.mjs:393` `appendProgress`; extract to `util.mjs` as a shared export to prevent format drift
-
-🟡 `bin/lib/run.mjs:843` — Tick-limit rejection writes a second progress.md entry after `transition.mjs:175` already wrote one; add a guard matching the oscillation-halt comment at line 835 (`// Note: transition.mjs already wrote the progress.md entry`) to skip this `appendProgress` call when reason is `tick-limit-ex
-
-### [devil's-advocate]
 **Verdict: FAIL**
 
 ---
 
-Findings (each on its own line per required format):
+## Findings
 
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7/artifacts/test-output.txt:1` — Gate artifact contains only `gate-recorded` (literal echo output, not test results); gate command was `echo gate-recorded`; previous devil's-advocate already issued 🔴 on this; current eval downgraded it to a suggestion while admitting "oscillation detection… suites do not appear in the displayed output"; re-gate with `npm 
+🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7/artifacts/test-output.txt:1` — Gate artifact is the literal string `gate-recorded` (output of `echo gate-recorded`), not a test suite result. The gate never ran `npm test`. Prior 🔴 on this exact issue was not fixed. Re-gate with `npm test` and replace the artifact before claiming PASS.
+
+🟡 `bin/lib/util.mjs:68-69` — `appendProgress` reads then writes `progress.md` non-atomically (`readFileSync
+
+### [devil's-advocate]
+---
+
+**Verdict: FAIL**
+
+Files read: `task-7/handshake.json`, `task-7/artifacts/test-output.txt`, `task-9/handshake.json`, `STATE.json`, `progress.md`, `bin/lib/transition.mjs`, `bin/lib/util.mjs:55-95`, `bin/lib/run.mjs:383-855`, `test/oscillation-ticks.test.mjs`. Ran `node --test test/oscillation-ticks.test.mjs` — 20/20 pass.
+
+---
+
+**Findings:**
+
+🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7/artifacts/test-output.txt:1` — Gate artifact contains only `gate-recorded`; gate com

@@ -865,3 +865,98 @@ The `continue` at `run.mjs:845` skips the `if (blocked >= 3)` check at line 1055
 The prior 🔴 critical (`run.mjs:831` discards transition result) is fully resolved. The fix at `run.mjs:831-846` is correct: oscillation halt breaks the task loop; tick-limit increments blocked and continues. One new 🟡 finding is surfaced: the `continue` path causes `blocked >= 3` to misfire on the first passing task after 3 tick-limited tasks. Three carryover 🟡 remain open. No criticals.
 
 **Verdict: PASS**
+
+---
+
+# Security Review — oscillation-detection-tick-limits (progress.md logging / final security gate)
+
+**Reviewer role:** security (independent, gate-assigned)
+**Task:** `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count
+**Verdict: PASS** (0 criticals, 6 warnings for backlog, 1 suggestion)
+**Date:** 2026-04-23
+
+---
+
+## Files Actually Read
+
+- `bin/lib/transition.mjs` (full, 220 lines) — primary implementation
+- `bin/lib/util.mjs` (full, 220 lines) — `appendProgress`, `resolveDir`, `lockFile`
+- `bin/lib/run.mjs` (full, 1113 lines) — execution loop, harness caller
+- `test/smoke-terminates.test.mjs` (full, 118 lines)
+- `test/oscillation-ticks.test.mjs` (lines 200–439)
+- `.team/features/oscillation-detection-tick-limits/SPEC.md` (full)
+- All handshake.json files (task-1 through task-7, task-5-p1, task-5-r1, task-9)
+- This eval.md (all prior reviews)
+
+---
+
+## Core Feature Verification
+
+**Tick-limit entry** (`transition.mjs:162`):
+```
+**Tick limit exceeded** for task `${taskId}`: ${currentTicks} ticks ≥ ${maxTaskTicks}. Task blocked.
+```
+Task ID ✓  Tick count ✓  What was blocked ✓  Timestamp from `appendProgress` ✓
+
+**Oscillation warning entry** (`transition.mjs:137`):
+```
+**Oscillation warning** on task `${taskId}`: pattern [${patStr}] repeated ${oscillation.reps}×.
+```
+Task ID ✓  Pattern ✓  Repetitions ✓
+
+**Oscillation halt entry** (`transition.mjs:126`):
+```
+**Oscillation halted** on task `${taskId}`: pattern [${patStr}] repeated ${oscillation.reps}×. Feature stopped.
+```
+Task ID ✓  Pattern ✓  Repetitions ✓
+
+**No duplicate entries verified**:
+- Halt: `run.mjs:832–839` comment "no duplicate needed here" confirmed — no `appendProgress` call in that branch. `transition.mjs:126` is the sole writer. ✓
+- Tick-limit: `run.mjs:844` guards with `if (!transitionResult.reason?.startsWith("tick-limit-exceeded"))` before writing. ✓
+
+**Test coverage verified by direct read**:
+- `oscillation-ticks.test.mjs:236–262` asserts: `/###\s+\d{4}-\d{2}-\d{2}/`, `/t1/`, `/Tick limit exceeded/`, `/1 ticks/` ✓
+- `oscillation-ticks.test.mjs:341–384` asserts: timestamp, task ID, `/Oscillation halted/`, `/in-progress/`, `/3/` ✓
+- `smoke-terminates.test.mjs:110–115` asserts: file exists, `/Tick limit exceeded/`, `/t1/` ✓
+
+---
+
+## Security Edge Cases Checked
+
+- **`taskId` in path construction**: `join(featureDir, "progress.md")` — `taskId` never enters the path. No path injection. ✓
+- **`patStr` delimiter collision**: `first.join(",")` against `VALID_TASK_STATUSES` values — none contain commas. False-positive oscillation match via delimiter injection impossible. ✓
+- **Lock/`process.exit(1)` interaction**: `lock.release()` at `transition.mjs:145` runs before `process.exit(1)`. `finally` does NOT execute after `process.exit` in Node.js. No lock leak. ✓
+- **`reason` field in STATE.json**: written via `writeState` JSON serialization — neutralises control characters. ✓
+
+---
+
+## Findings
+
+### Novel finding (not in prior reviews)
+
+🟡 `bin/lib/util.mjs:69-72` — The `catch` fallback in `appendProgress` calls `writeFileSync(progressPath, line)` **without** `existing +`. If the initial write fails (disk full, permission error), the fallback overwrites the file with only the current entry, silently destroying all prior progress history. This is distinct from the "concurrent overwrite" risk flagged by prior reviewers — it is a single-writer, write-failure-triggered data loss path. Replace with `appendFileSync(progressPath, line)` throughout.
+
+### Confirmed carryover findings (verified unresolved in current source)
+
+🟡 `bin/lib/util.mjs:65` — `resolveDir` calls `path.resolve(raw)` with no base-directory restriction. `agt-harness transition --dir /tmp/attack` writes STATE.json and progress.md to any writable path. In an agentic context, this is an arbitrary-file-write primitive. Add a guard that the resolved path starts with `process.cwd()`.
+
+🟡 `bin/lib/transition.mjs:16` — No upper bound on `TASK_MAX_TICKS`. `TASK_MAX_TICKS=2147483647` passes `Number.isInteger && > 0` and silently disables tick-limit enforcement. Add `Math.min(raw, 1000)` ceiling.
+
+🟡 `bin/lib/transition.mjs:14` — `parseInt("2abc", 10)` returns `2`, which passes the guard and silently sets the tick limit to 2. The existing test at line 223 only covers pure non-numeric strings. Add a `/^\d+$/` pre-check before `parseInt`.
+
+🟡 `bin/lib/transition.mjs:42-45` — Tamper check runs on the pre-lock `state` read (line 36). Post-lock `freshState` (line 56) is never re-validated. TOCTOU race allows a racing writer to substitute a tampered STATE.json that evades detection.
+
+🟡 `bin/lib/transition.mjs:68` — No re-entry guard for `oscillation-halted` status post-lock. After halt is persisted and `process.exit(1)` fires, subsequent `transition` calls on the same feature's other tasks are not blocked.
+
+### Suggestion
+
+🔵 `bin/lib/transition.mjs:31` — `taskId` has no character-class validation. A taskId containing `\n` would corrupt progress.md structure. Add `/^[\w-]+$/` guard alongside the existing `status` validation at line 28.
+
+---
+
+## Summary
+
+All three SPEC criteria for progress.md logging (tick-limit entry with task ID + count, oscillation-halt entry with task ID + pattern + repetitions, ISO timestamp header) are met with direct code and test evidence. No duplicate entries are written. One novel 🟡 finding surfaces a destructive write-failure fallback in `appendProgress` not previously identified; five carryover 🟡 and one 🔵 remain open. No criticals.
+
+**Verdict: PASS**
+

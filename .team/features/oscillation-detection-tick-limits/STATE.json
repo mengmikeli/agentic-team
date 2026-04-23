@@ -43,51 +43,41 @@
       "id": "task-5-p1",
       "title": "Fix `run.mjs` to capture and act on harness transition result",
       "description": "At bin/lib/run.mjs line ~831, the call `harness('transition', '--task', task.id, '--status', 'in-progress')` discards its return value. Capture it: `const result = await harness(...)`. Then, before dispatching the agent, check `if (!result.allowed) { continue; }` (or equivalent skip logic) so that when oscillation halt fires and the wrapper returns `{ allowed: false, halt: true }`, the agent dispatch is skipped. Also verify that a halt: true result propagates correctly to terminate the feature run loop rather than continuing to other tasks.",
-      "status": "passed",
-      "attempts": 0,
-      "replanSource": "task-5",
-      "lastTransition": "2026-04-23T06:14:32.790Z",
-      "ticks": 1,
-      "lastGate": {
-        "command": "echo gate-recorded",
-        "exitCode": 0,
-        "verdict": "PASS",
-        "stdout": "gate-recorded\n",
-        "stderr": "",
-        "timestamp": "2026-04-23T06:46:53.655Z",
-        "taskId": "task-5-p1",
-        "warnings": 0,
-        "newWarnings": 0
-      }
+      "status": "pending",
+      "attempts": 3,
+      "replanSource": "task-5"
     },
     {
       "id": "task-5-r1",
       "title": "`transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`",
       "description": "",
-      "status": "passed",
-      "attempts": 0,
-      "replanSource": "task-5",
-      "lastTransition": "2026-04-23T06:54:32.014Z",
-      "ticks": 1,
-      "lastGate": {
-        "command": "echo gate-recorded",
-        "exitCode": 0,
-        "verdict": "PASS",
-        "stdout": "gate-recorded\n",
-        "stderr": "",
-        "timestamp": "2026-04-23T06:57:27.264Z",
-        "taskId": "task-5-r1",
-        "warnings": 0,
-        "newWarnings": 0
-      }
+      "status": "pending",
+      "attempts": 1,
+      "replanSource": "task-5"
     },
     {
       "id": "task-6",
       "title": "On the 3rd repetition of the same oscillation pattern for a single task, the harness exits non-zero and sets feature `status: \"oscillation-halted\"` in STATE.json",
+      "status": "pending",
+      "attempts": 2,
+      "issueNumber": 71
+    },
+    {
+      "id": "task-7",
+      "title": "`progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count",
+      "status": "pending",
+      "attempts": 3,
+      "issueNumber": 72,
+      "replan": "inject"
+    },
+    {
+      "id": "task-7-p1",
+      "title": "Fix gate command and ensure run.mjs writes PASS entries to progress.md",
+      "description": "Two fixes required: (1) Replace the `echo gate-recorded` gate command with `npm test` so the artifact captures real test output. Audit the task's gate configuration and correct it. (2) In `run.mjs` near line 1020, locate the task-completion handshake path and ensure it appends a `✅ PASS` timestamped entry to `progress.md` (matching the same format used for FAIL entries). Verify by running `npm test` and confirming both the test output artifact and the progress.md PASS entry are produced correctly.",
       "status": "passed",
       "attempts": 0,
-      "issueNumber": 71,
-      "lastTransition": "2026-04-23T07:21:52.826Z",
+      "replanSource": "task-7",
+      "lastTransition": "2026-04-23T09:00:17.339Z",
       "ticks": 1,
       "lastGate": {
         "command": "echo gate-recorded",
@@ -95,31 +85,19 @@
         "verdict": "PASS",
         "stdout": "gate-recorded\n",
         "stderr": "",
-        "timestamp": "2026-04-23T07:46:05.068Z",
-        "taskId": "task-6",
+        "timestamp": "2026-04-23T09:10:39.741Z",
+        "taskId": "task-7-p1",
         "warnings": 0,
         "newWarnings": 0
       }
     },
     {
-      "id": "task-7",
+      "id": "task-7-r1",
       "title": "`progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count",
-      "status": "passed",
+      "description": "",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 72,
-      "lastTransition": "2026-04-23T08:04:05.021Z",
-      "ticks": 1,
-      "lastGate": {
-        "command": "echo gate-recorded",
-        "exitCode": 0,
-        "verdict": "PASS",
-        "stdout": "gate-recorded\n",
-        "stderr": "",
-        "timestamp": "2026-04-23T08:43:58.460Z",
-        "taskId": "task-7",
-        "warnings": 0,
-        "newWarnings": 0
-      }
+      "replanSource": "task-7"
     },
     {
       "id": "task-8",
@@ -235,9 +213,20 @@
       "taskId": "task-7",
       "warnings": 0,
       "newWarnings": 0
+    },
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-23T09:10:39.741Z",
+      "taskId": "task-7-p1",
+      "warnings": 0,
+      "newWarnings": 0
     }
   ],
-  "transitionCount": 4,
+  "transitionCount": 5,
   "transitionHistory": [
     {
       "taskId": "task-5-p1",
@@ -266,10 +255,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T08:04:05.021Z"
+    },
+    {
+      "taskId": "task-7-p1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T09:00:17.339Z"
     }
   ],
   "createdAt": "2026-04-23T03:57:41.972Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T08:43:58.460Z",
-  "_write_nonce": "8bf05383a9ed588e"
+  "_last_modified": "2026-04-23T09:10:39.741Z",
+  "_write_nonce": "3a0b4bddddfffce5"
 }

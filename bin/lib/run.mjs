@@ -115,10 +115,23 @@ function runGateInline(cmd, featureDir, taskId) {
     }
   }
 
-  // Also update state via harness for tamper-detection
-  if (verdict === "PASS") {
-    harness("gate", "--cmd", "echo gate-recorded", "--dir", featureDir, "--task", taskId);
-  }
+  // Record gate result in STATE.json gates array directly (avoids subprocess overwriting real artifacts)
+  try {
+    const s = readState(featureDir);
+    if (s) {
+      if (!s.gates) s.gates = [];
+      s.gates.push({
+        command: cmd,
+        exitCode,
+        verdict,
+        stdout: stdout.slice(0, 4096),
+        stderr: stderr.slice(0, 4096),
+        timestamp: new Date().toISOString(),
+        taskId: taskId || null,
+      });
+      writeState(featureDir, s);
+    }
+  } catch { /* best-effort */ }
 
   return { ok: true, verdict, exitCode, stdout: stdout.slice(0, 4096), stderr: stderr.slice(0, 4096) };
 }
