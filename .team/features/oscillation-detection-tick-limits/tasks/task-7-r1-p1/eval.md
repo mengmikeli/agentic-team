@@ -1,40 +1,44 @@
 ## Parallel Review Findings
 
 ### [security]
-**Verdict: FAIL** — Three critical findings block merge.
+---
+
+## Security Review: oscillation-detection-tick-limits
+
+**Verdict: PASS** (1 warning for backlog, 2 suggestions)
+
+376/376 tests pass. Gate confirmed running `npm test` in `task-7-r1-p1` (the prior `task-7-r1` gate used the `echo gate-recorded` placeholder — the exact defect this feature fixed, now correctly rejected by the harness).
 
 ---
 
-**Findings:**
+### Findings
 
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1-p1/artifacts/test-output.txt:1` — Artifact contains only `gate-recorded`; gate ran `echo gate-recorded` not `npm test`; evidence is fabricated — run `npm test` and write real output before marking done
-
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1-p1/handshake.json:7` — Gate command is `echo gate-recorded` (the exact defect thi
+🟡 `bin/lib/gate.mjs:106` — Path traversal: `taskId` from `--task` CLI flag is used in `join(dir, "tasks", taskId, ...)` and `mkdirSync` befo
 
 ### [architect]
-**Verdict: FAIL**
+---
+
+## Architect Review: PASS
+
+**Verdict: PASS** — 376/376 tests pass. All SPEC "Done When" criteria are met with direct code evidence.
 
 ---
 
-## Findings
+### Findings
 
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1-p1/artifacts/test-output.txt:1` — Contains only `gate-recorded`; task was gated by `echo gate-recorded` not `npm test`; the task reproduced the exact defect it was assigned to fix
+🔵 `bin/lib/transition.mjs:95` — 45-line oscillation algorithm is inline inside `cmdTransition`; extract to `detectOscillation(taskStatuses)` → `{K, reps, pattern}|null` for independent unit testability and reduced cognitive load
 
-🔴 `commit 34c0aa6` — Zero source files changed; commit title "Diagnose and permanently fix gate command reset to gate-recorded" is factually false; no diagnosis and no fix were applied
-
-🔴 `.team/features/oscilla
+🔵 `bin/lib/transition.mjs:14` — `--max-task-ticks` CLI flag referenced in SPEC body (line 21) is absent; only `
 
 ### [devil's-advocate]
+## Review: oscillation-detection-tick-limits
+
+**Overall Verdict: PASS**
+
+376/376 tests pass. The core features are correctly implemented. No critical blockers.
+
 ---
 
-**Verdict: FAIL**
+### Findings
 
-The task was to diagnose and permanently fix the gate command resetting to `echo gate-recorded`. It did neither.
-
----
-
-## Findings
-
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1-p1/artifacts/test-output.txt:1` — Artifact contains only `gate-recorded`; task explicitly required real `npm test` output before PASS; run `npm test` and write actual output
-
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7-r1-p1/handshake.json:7` — Gate com
+🟡 `bin/lib/run.mjs:49` — `runGateInline` (the actual gate execution path in `_runSingleFeature`) has no placeholder guard; the fix only lives in `cmdGate` in `gate.mjs`, which is only reached when `agt-harness gate` is called as a subprocess — add a matching check to `runGateInline` so both code paths reject trivial c
