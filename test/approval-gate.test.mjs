@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createApprovalIssue, waitForApproval } from "../bin/lib/outer-loop.mjs";
+import { createApprovalIssue, waitForApproval, readApprovalState } from "../bin/lib/outer-loop.mjs";
 
 // ── createApprovalIssue ─────────────────────────────────────────
 
@@ -147,6 +147,41 @@ describe("createApprovalIssue", () => {
     assert.equal(capturedArgs.issueNum, 42);
     assert.equal(capturedArgs.projectNum, 10);
     assert.equal(capturedArgs.status, "pending-approval");
+  });
+});
+
+// ── readApprovalState ────────────────────────────────────────────
+
+describe("readApprovalState", () => {
+  it("returns null when approval.json does not exist", () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    const result = readApprovalState(featureDir);
+    assert.equal(result, null);
+  });
+
+  it("returns parsed object when approval.json is valid JSON", () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 42, status: "pending" }));
+    const result = readApprovalState(featureDir);
+    assert.equal(result.issueNumber, 42);
+    assert.equal(result.status, "pending");
+  });
+
+  it("returns { corrupt: true } when approval.json contains invalid JSON", () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    writeFileSync(join(featureDir, "approval.json"), "{ not valid json !!!");
+    const result = readApprovalState(featureDir);
+    assert.deepEqual(result, { corrupt: true });
+  });
+
+  it("corrupt state does not expose issueNumber (so outer loop skips create branch)", () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    writeFileSync(join(featureDir, "approval.json"), "CORRUPTED");
+    const state = readApprovalState(featureDir);
+    // approvalIssueNumber = state?.issueNumber ?? null => null
+    // but state.corrupt === true, so create branch is skipped
+    assert.equal(state?.issueNumber ?? null, null, "issueNumber should be null for corrupt state");
+    assert.equal(state?.corrupt, true, "corrupt flag should be set");
   });
 });
 

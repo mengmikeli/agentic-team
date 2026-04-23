@@ -7,7 +7,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
-import { c, readState, writeState } from "./util.mjs";
+import { c, readState, writeState, atomicWriteSync } from "./util.mjs";
 import {
   createIssue as ghCreateIssue,
   addToProject as ghAddToProject,
@@ -23,7 +23,7 @@ function sleep(ms) {
 }
 
 /** Read approval sidecar (approval.json) — separate from STATE.json to avoid crash-recovery false triggers. */
-function readApprovalState(featureDir) {
+export function readApprovalState(featureDir) {
   const approvalPath = join(featureDir, "approval.json");
   if (!existsSync(approvalPath)) return null;
   try {
@@ -34,10 +34,10 @@ function readApprovalState(featureDir) {
   }
 }
 
-/** Atomically write approval sidecar. */
+/** Write approval sidecar atomically to prevent corrupt file on crash. */
 function writeApprovalState(featureDir, data) {
   mkdirSync(featureDir, { recursive: true });
-  writeFileSync(join(featureDir, "approval.json"), JSON.stringify(data, null, 2));
+  atomicWriteSync(join(featureDir, "approval.json"), JSON.stringify(data, null, 2));
 }
 
 function readProjectNumber(teamDir) {
@@ -109,7 +109,7 @@ export async function waitForApproval(issueNumber, featureDir, projectNumber, ge
   } = deps;
 
   const rawInterval = parseInt(process.env.APPROVAL_POLL_INTERVAL ?? "30000", 10);
-  const intervalMs = isNaN(rawInterval) || rawInterval < 1000 ? 30000 : rawInterval;
+  const intervalMs = isNaN(rawInterval) || rawInterval < 1000 || rawInterval > 3600000 ? 30000 : rawInterval;
   const startTime = Date.now();
 
   const issueUrl = getIssueUrl(issueNumber);
@@ -604,7 +604,7 @@ export async function outerLoop(args, deps) {
     if (approvalState?.status === "approved") {
       console.log(`  ${c.green}→ Already approved (issue #${approvalIssueNumber})${c.reset}\n`);
     } else {
-      if (!approvalIssueNumber) {
+      if (!approvalIssueNumber && !approvalState?.corrupt) {
         console.log(`${c.bold}Creating approval issue...${c.reset}`);
         approvalIssueNumber = await createApprovalIssue(
           featureDir, priority.name, specPath, projectNumber, approvalDeps,
