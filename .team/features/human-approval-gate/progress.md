@@ -143,3 +143,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 20:25:08
+**Task 13: `agt init` help text or `agt help run` explains that "Pending Approval" and "Ready" columns must be added to the project board manually before using the outer loop**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
