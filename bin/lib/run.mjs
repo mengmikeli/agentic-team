@@ -803,7 +803,7 @@ async function _runSingleFeature(args, description) {
       console.log(`  Try: ${c.bold}agt-harness init --feature ${featureName} --dir ${teamDir} --force${c.reset}`);
       process.exit(1);
     }
-    if (!['active', 'executing'].includes(initState.status) && !initState._recovered_from) {
+    if (!['active', 'executing', 'paused', 'completed'].includes(initState.status) && !initState._recovered_from) {
       initState.status = 'executing';
       initState._last_modified = new Date().toISOString();
       writeState(featureDir, initState);

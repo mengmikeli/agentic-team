@@ -62,6 +62,15 @@
       "stderr": "",
       "timestamp": "2026-04-23T12:15:53.127Z",
       "taskId": "task-1"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (115.986833ms)\n  ✔ shows audit command in help (83.0355ms)\n  ✔ shows brainstorm command in help (92.457292ms)\n  ✔ help text includes all three new commands with descriptions (79.322084ms)\n✔ CLI help text (371.892708ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (111.242708ms)\n  ✔ prints review header (87.740583ms)\n✔ agt review (199.088125ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (62.468375ms)\n  ✔ runs audit with .team/ present and reports structure (148.75825ms)\n  ✔ detects missing required files (124.257958ms)\n  ✔ reports feature with issues (124.877125ms)\n  ✔ shows summary line (56.390291ms)\n✔ agt audit (516.939209ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (15523.035083ms)\n✔ agt brainstorm (15523.447959ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (157.682042ms)\n  ✔ agt run with --dry-run shows tasks without executing (152.469ms)\n✔ smart entry flow (agt run no args) (310.2145ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.115166ms)\n  ✔ agt help init shows usage and examples (49.417125ms)\n  ✔ agt help status shows usage and examples (49.465083ms)\n  ✔ agt help review shows usage and examples (52.905291ms)\n  ✔ agt help audit shows usage and examples (52.7015ms)\n  ✔ agt help brainstorm shows usage and examples (50.78ms)\n  ✔ agt help doctor shows usage and examples (49.991292ms)\n  ✔ agt help <unknown> exits non-zero and shows error (48.673458ms)\n  ✔ agt help (no subcommand) lists all commands (50.614917ms)\n✔ agt help <command> (455.856375ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.501834ms)\n✔ audit-cmd module (3.522541ms)\n▶ review module\n  ✔ can be imported without errors (2.185209ms)\n✔ review module (2.203458ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.199333ms)\n✔ brainstorm-cmd module (0.218875ms)\n▶ buildContextBrief\n  ✔ returns fallback when no context files exist (29.479ms)\n  ✔ includes SPEC.md content when present (20.699083ms)\n  ✔ includes project conventions from PROJECT.md (25.313416ms)\n  ✔ includes backlog as known issues (23.086709ms)\n  ✔ includes progress.md as known issues (26.963583ms)\n  ✔ includes git log when in a git repo (85.196292ms)\n  ✔ combines multiple context sources (27.0575ms)\n  ✔ truncates long SPEC.md content (23.026125ms)\n✔ buildContextBrief (262.076542ms)\n[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.12345.1234567890\n[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.99999.9999999999\n▶ crash-recovery\n  ▶ applyCrashRecovery — status: executing\n    ✔ detects crashed state and preserves tasks (3.187167ms)\n    ✔ writes _recovered_from and _recovery_count to state (0.49025ms)\n    ✔ increments _recovery_count on repeated crashes (0.3445ms)\n  ✔ applyCrashRecovery — status: executing (4.3645ms)\n  ▶ applyCrashRecovery — status: paused (no recovery)\n    ✔ does not recover for paused state (1.134667ms)\n  ✔ applyCrashRecovery — status: paused (no recovery) (1.327542ms)\n  ▶ applyCrashRecovery — status: completed (no recovery)\n    ✔ does not recover for completed state (1.121084ms)\n  ✔ applyCrashRecovery — status: completed (no recovery) (1.533833ms)\n  ▶ harness init — orphaned tmp cleanup\n    ✔ removes orphaned STATE.json.tmp.* files on init --force (145.559ms)\n    ✔ leaves non-tmp files untouched (0.16975ms)\n  ✔ harness init — orphaned tmp cleanup (147.513625ms)\n✔ crash-recovery (157.180083ms)\n▶ doctor: checkNodeVersion\n  ✔ passes on current Node.js (≥18) (0.437667ms)\n✔ doctor: checkNodeVersion (0.928666ms)\n▶ doctor: checkGhCli\n  ✔ passes when gh is installed and authenticated (0.221083ms)\n  ✔ warns when gh is installed but not authenticated (0.1035ms)\n  ✔ fails when gh is not installed (0.049083ms)\n✔ doctor: checkGhCli (0.447792ms)\n▶ doctor: checkCodingAgent\n  ✔ passes when claude is available (0.071417ms)\n  ✔ passes when codex is available (no claude) (0.047417ms)\n  ✔ fails when neither is",
+      "stderr": "",
+      "timestamp": "2026-04-23T12:29:52.843Z",
+      "taskId": "task-1"
     }
   ],
   "transitionCount": 1,
@@ -76,6 +85,6 @@
   ],
   "createdAt": "2026-04-23T12:09:21.080Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T12:15:53.127Z",
-  "_write_nonce": "125bde04f80964af"
+  "_last_modified": "2026-04-23T12:29:52.843Z",
+  "_write_nonce": "082dfeb14fc12ae4"
 }
