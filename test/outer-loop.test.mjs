@@ -778,6 +778,123 @@ Add flow selection to agt run.
     assert.ok(executeCalled, "Execute should proceed after re-entry approval");
   });
 
+  it("re-entry guard: polls existing issue when approvalIssueNumber is in STATE.json but approval.json is absent", async () => {
+    // Pre-seed the signing key
+    const knownKey = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
+    writeFileSync(join(tmpDir, ".team", ".approval-secret"), knownKey);
+
+    // Pre-create STATE.json with approvalIssueNumber but NO approval.json
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+    const initialState = {
+      version: "2.0",
+      feature: "flow-templates",
+      status: "active",
+      tasks: [],
+      gates: [],
+      transitionCount: 0,
+      transitionHistory: [],
+      createdAt: new Date().toISOString(),
+      approvalIssueNumber: 55,
+    };
+    writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(initialState));
+    writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+
+    // Create PROJECT.md so waitForApproval is invoked
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Project\nhttps://github.com/users/test/projects/42\n");
+
+    let createIssueCalled = false;
+    let executeCalled = false;
+    let getStatusCalled = false;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => { createIssueCalled = true; return 100; },
+      addToProject: () => "item-id-123",
+      setProjectItemStatus: () => false,
+      getProjectItemStatus: () => { getStatusCalled = true; return "Ready"; },
+      sleep: () => Promise.resolve(),
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          return { ok: true, output: "SPEC.md already exists." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        const fd = join(tmpDir, ".team", "features", "flow-templates");
+        mkdirSync(fd, { recursive: true });
+        writeFileSync(join(fd, "progress.md"), "done\n");
+        return "exhausted";
+      },
+    };
+
+    await outerLoop([], mockDeps);
+
+    assert.equal(createIssueCalled, false, "createIssue should NOT be called when approvalIssueNumber is in STATE.json");
+    assert.ok(getStatusCalled, "getProjectItemStatus should be called (polling resumed from STATE.json issue number)");
+    assert.ok(executeCalled, "Execute should proceed after re-entry approval");
+  });
+
+  it("persists approvalIssueNumber to STATE.json after issue creation", async () => {
+    // Pre-create a structurally complete STATE.json for the feature
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+    const initialState = {
+      version: "2.0",
+      feature: "flow-templates",
+      status: "active",
+      tasks: [],
+      gates: [],
+      transitionCount: 0,
+      transitionHistory: [],
+      createdAt: new Date().toISOString(),
+    };
+    writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(initialState));
+
+    // Create PROJECT.md so waitForApproval is invoked
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Project\nhttps://github.com/users/test/projects/42\n");
+
+    let dispatchCount = 0;
+    let executeCalled = false;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => 66,
+      addToProject: () => "item-id",
+      setProjectItemStatus: () => true,
+      getProjectItemStatus: () => "Ready",
+      sleep: () => Promise.resolve(),
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+          return { ok: true, output: "SPEC.md written." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        writeFileSync(join(featureDir, "progress.md"), "done\n");
+        return "exhausted";
+      },
+    };
+
+    await outerLoop([], mockDeps);
+
+    assert.ok(executeCalled, "Execute should have run");
+    const stateData = JSON.parse(readFileSync(join(featureDir, "STATE.json"), "utf8"));
+    assert.equal(stateData.approvalIssueNumber, 66, "approvalIssueNumber should be persisted in STATE.json after issue creation");
+  });
+
   it("skips waitForApproval and proceeds when projectNumber is null", async () => {
     let waitForApprovalCalled = false;
     let executeCalled = false;
@@ -1090,11 +1207,13 @@ Add flow selection to agt run.
 
     await outerLoop([], mockDeps);
 
-    // STATE.json must still be parseable and unchanged (not corrupted)
+    // STATE.json must still be parseable and structurally intact (not corrupted)
     const stateData = JSON.parse(readFileSync(join(featureDir, "STATE.json"), "utf8"));
     assert.equal(stateData.version, "2.0", "STATE.json version must be preserved");
     assert.equal(stateData.feature, "flow-templates", "STATE.json feature must be preserved");
-    assert.equal(stateData._write_nonce, "initial-nonce", "STATE.json nonce must be unchanged");
+    // Note: approvalIssueNumber is written to STATE.json by the loop after issue creation,
+    // so the nonce will have changed from "initial-nonce" — that is expected and correct.
+    assert.ok(typeof stateData._write_nonce === "string" && stateData._write_nonce.length > 0, "STATE.json nonce must be a non-empty string");
     // approvalStatus should NOT be set (interrupted before approval)
     assert.equal(stateData.approvalStatus, undefined, "approvalStatus must not be set after interruption");
   });

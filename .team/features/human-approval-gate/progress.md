@@ -128,3 +128,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 19:52:40
+**Task 10: Pressing Ctrl+C while waiting exits cleanly with a message identifying the pending issue number and no STATE.json corruption**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

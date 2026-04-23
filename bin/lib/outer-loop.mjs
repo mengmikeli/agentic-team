@@ -664,6 +664,10 @@ export async function outerLoop(args, deps) {
     const signingKey = getOrCreateApprovalSigningKey(teamDir);
     const approvalState = readApprovalState(featureDir, signingKey);
     let approvalIssueNumber = approvalState?.issueNumber ?? null;
+    // Re-entry fallback: if approval.json is absent/unreadable, recover issue number from STATE.json
+    if (!approvalIssueNumber && existingState?.approvalIssueNumber) {
+      approvalIssueNumber = existingState.approvalIssueNumber;
+    }
     const projectNumber = readProjectNumber(teamDir);
 
     const approvalDeps = {
@@ -696,6 +700,11 @@ export async function outerLoop(args, deps) {
         );
         if (approvalIssueNumber) {
           console.log(`  ${c.green}→ Created issue #${approvalIssueNumber}: [Feature] ${priority.name}${c.reset}`);
+          // Persist approvalIssueNumber to STATE.json so re-entry can recover it even if approval.json is unavailable
+          const stateForNum = readState(featureDir);
+          if (isStructurallyComplete(stateForNum) && !stateForNum.approvalIssueNumber) {
+            writeState(featureDir, { ...stateForNum, approvalIssueNumber });
+          }
         } else {
           console.log(`  ${c.yellow}⚠ Could not create approval issue (gh not available). Skipping gate.${c.reset}`);
         }
