@@ -140,3 +140,8 @@
 - Verdict: inject
 - Rationale: The block has two root causes that need fixing before task-7 can be retried: (1) the gate has been using `echo gate-recorded` instead of `npm test` — four consecutive times — so no real test validation has occurred; (2) `run.mjs` is not writing a `✅ PASS` entry to progress.md on successful task completion, which means the very feature being tested cannot self-verify. Fix these systemic issues first, then retry task-7 with a real gate.
 
+### 2026-04-23 09:33:43
+**Task 10: Fix gate command and ensure run.mjs writes PASS entries to progress.md**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

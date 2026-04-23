@@ -31,3 +31,5 @@
 {"ts":"2026-04-23T08:03:59.790Z","event":"task-passed","msg":"✓ Task 8/11: On the 3rd repetition of the same oscillation pattern for a single task, the harness exits non-zero and sets feature `status: \"oscillation-halted\"` in STATE.json"}
 {"ts":"2026-04-23T08:04:07.471Z","event":"task-started","msg":"▶ Task 9/11: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count"}
 {"ts":"2026-04-23T09:00:17.390Z","event":"task-started","msg":"▶ Task 10/13: Fix gate command and ensure run.mjs writes PASS entries to progress.md"}
+{"ts":"2026-04-23T09:33:43.733Z","event":"task-passed","msg":"✓ Task 10/13: Fix gate command and ensure run.mjs writes PASS entries to progress.md"}
+{"ts":"2026-04-23T09:33:43.833Z","event":"task-started","msg":"▶ Task 11/13: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count"}

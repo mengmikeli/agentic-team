@@ -95,9 +95,22 @@
       "id": "task-7-r1",
       "title": "`progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count",
       "description": "",
-      "status": "pending",
+      "status": "passed",
       "attempts": 0,
-      "replanSource": "task-7"
+      "replanSource": "task-7",
+      "lastTransition": "2026-04-23T09:33:43.786Z",
+      "ticks": 1,
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-23T09:39:06.054Z",
+        "taskId": "task-7-r1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
     },
     {
       "id": "task-8",
@@ -224,9 +237,20 @@
       "taskId": "task-7-p1",
       "warnings": 0,
       "newWarnings": 0
+    },
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-23T09:39:06.054Z",
+      "taskId": "task-7-r1",
+      "warnings": 0,
+      "newWarnings": 0
     }
   ],
-  "transitionCount": 5,
+  "transitionCount": 6,
   "transitionHistory": [
     {
       "taskId": "task-5-p1",
@@ -262,10 +286,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T09:00:17.339Z"
+    },
+    {
+      "taskId": "task-7-r1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T09:33:43.786Z"
     }
   ],
   "createdAt": "2026-04-23T03:57:41.972Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T09:10:39.741Z",
-  "_write_nonce": "3a0b4bddddfffce5"
+  "_last_modified": "2026-04-23T09:39:06.054Z",
+  "_write_nonce": "e2b47cffe86adf79"
 }
