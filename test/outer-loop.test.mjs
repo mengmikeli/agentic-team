@@ -730,16 +730,20 @@ Add flow selection to agt run.
     writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 77, status: "pending" }));
     writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
 
+    // Create PROJECT.md with a valid project number so waitForApproval is actually invoked
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Project\nhttps://github.com/users/test/projects/42\n");
+
     let createIssueCalled = false;
     let executeCalled = false;
+    let getStatusCalled = false;
     let dispatchCount = 0;
 
     const mockDeps = {
       findAgent: () => "claude",
       createIssue: () => { createIssueCalled = true; return 100; },
-      addToProject: () => null,
+      addToProject: () => "item-id-123",
       setProjectItemStatus: () => false,
-      getProjectItemStatus: () => "Ready",  // immediately approved on first poll
+      getProjectItemStatus: () => { getStatusCalled = true; return "Ready"; },  // immediately approved on first poll
       sleep: () => Promise.resolve(),
       dispatchToAgent: (agent, brief) => {
         dispatchCount++;
@@ -763,6 +767,7 @@ Add flow selection to agt run.
     await outerLoop([], mockDeps);
 
     assert.equal(createIssueCalled, false, "createIssue should NOT be called when issue already exists");
+    assert.ok(getStatusCalled, "getProjectItemStatus should be called to poll approval (resume-polling path exercised)");
     assert.ok(executeCalled, "Execute should proceed after re-entry approval");
   });
 

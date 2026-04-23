@@ -74,7 +74,10 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
   if (!issueNumber) return null;
 
   if (projectNumber) {
-    addToProject(issueNumber, projectNumber);
+    const itemId = addToProject(issueNumber, projectNumber);
+    if (!itemId) {
+      console.warn(`  ${c.yellow}⚠ Could not add issue #${issueNumber} to project board — approval polling may not work.${c.reset}`);
+    }
     setProjectItemStatus(issueNumber, projectNumber, "pending-approval");
   }
 
