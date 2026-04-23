@@ -18,6 +18,8 @@ import {
   slugify,
   parseRoadmap,
   outerLoop,
+  createApprovalIssue,
+  waitForApproval,
 } from "../bin/lib/outer-loop.mjs";
 
 // ── Test fixtures ───────────────────────────────────────────────
@@ -491,6 +493,15 @@ describe("getCompletedFeatures", () => {
 
 // ── outerLoop (mocked) ─────────────────────────────────────────
 
+/** Approval mock deps — prevent any real gh calls in outerLoop tests. */
+const NO_GH_APPROVAL_DEPS = {
+  createIssue: () => null,
+  addToProject: () => null,
+  setProjectItemStatus: () => false,
+  getProjectItemStatus: () => null,
+  sleep: () => Promise.resolve(),
+};
+
 describe("outerLoop", () => {
   let tmpDir;
   let originalCwd;
@@ -522,6 +533,7 @@ describe("outerLoop", () => {
 
     const mockDeps = {
       findAgent: () => "claude",
+      ...NO_GH_APPROVAL_DEPS,
       dispatchToAgent: (agent, brief, cwd) => {
         dispatchCount++;
         if (dispatchCount === 1) {
@@ -600,6 +612,7 @@ Add flow selection to agt run.
     let dispatchCount = 0;
     const mockDeps = {
       findAgent: () => "claude",
+      ...NO_GH_APPROVAL_DEPS,
       dispatchToAgent: (agent, brief, cwd) => {
         dispatchCount++;
         // Agent can't find any undone items
@@ -616,6 +629,7 @@ Add flow selection to agt run.
   it("handles prioritize failure gracefully", async () => {
     const mockDeps = {
       findAgent: () => "claude",
+      ...NO_GH_APPROVAL_DEPS,
       dispatchToAgent: () => ({ ok: false, output: "", error: "Agent crashed" }),
       runSingleFeature: async () => "done",
     };
@@ -628,6 +642,7 @@ Add flow selection to agt run.
     let dispatchCount = 0;
     const mockDeps = {
       findAgent: () => "claude",
+      ...NO_GH_APPROVAL_DEPS,
       dispatchToAgent: (agent, brief, cwd) => {
         dispatchCount++;
         if (dispatchCount === 1) {
@@ -659,5 +674,219 @@ Add flow selection to agt run.
     const spec = readFileSync(specPath, "utf8");
     assert.ok(spec.includes("## Goal"));
     assert.ok(spec.includes("## Scope"));
+  });
+
+  it("creates approval issue and proceeds after approval", async () => {
+    let createIssueCalled = false;
+    let executeCalled = false;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: (title, body, labels) => { createIssueCalled = true; return 99; },
+      addToProject: () => null,
+      setProjectItemStatus: () => false,
+      getProjectItemStatus: () => "Ready",  // immediately approved
+      sleep: () => Promise.resolve(),
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+          mkdirSync(featureDir, { recursive: true });
+          writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+          return { ok: true, output: "SPEC.md written." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+        mkdirSync(featureDir, { recursive: true });
+        writeFileSync(join(featureDir, "progress.md"), "done\n");
+        return "done";
+      },
+    };
+
+    await outerLoop([], mockDeps);
+
+    assert.ok(createIssueCalled, "createIssue should be called when gh is available");
+    assert.ok(executeCalled, "Execute should proceed after approval");
+
+    // Verify approval.json was written with approved status
+    const approvalPath = join(tmpDir, ".team", "features", "flow-templates", "approval.json");
+    assert.ok(existsSync(approvalPath), "approval.json should exist");
+    const approvalData = JSON.parse(readFileSync(approvalPath, "utf8"));
+    assert.equal(approvalData.issueNumber, 99);
+    assert.equal(approvalData.status, "approved");
+  });
+
+  it("re-entry guard: skips issue creation when approval.json already exists", async () => {
+    // Pre-create approval.json with existing pending issue
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 77, status: "pending" }));
+    writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+
+    let createIssueCalled = false;
+    let executeCalled = false;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => { createIssueCalled = true; return 100; },
+      addToProject: () => null,
+      setProjectItemStatus: () => false,
+      getProjectItemStatus: () => "Ready",  // immediately approved on first poll
+      sleep: () => Promise.resolve(),
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          return { ok: true, output: "SPEC.md already exists." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        const fd = join(tmpDir, ".team", "features", "flow-templates");
+        mkdirSync(fd, { recursive: true });
+        writeFileSync(join(fd, "progress.md"), "done\n");
+        return "exhausted";
+      },
+    };
+
+    await outerLoop([], mockDeps);
+
+    assert.equal(createIssueCalled, false, "createIssue should NOT be called when issue already exists");
+    assert.ok(executeCalled, "Execute should proceed after re-entry approval");
+  });
+});
+
+// ── createApprovalIssue ─────────────────────────────────────────
+
+describe("createApprovalIssue", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("writes issueNumber and status:pending to approval.json", async () => {
+    const featureDir = join(tmpDir, "my-feature");
+    const specPath = join(featureDir, "SPEC.md");
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(specPath, "# Spec\n\n## Goal\nDo stuff.");
+
+    const mockDeps = {
+      createIssue: (title, body, labels) => {
+        assert.equal(title, "[Feature] My Feature");
+        assert.ok(labels.includes("awaiting-approval"));
+        return 42;
+      },
+      addToProject: () => "item-id",
+      setProjectItemStatus: () => true,
+    };
+
+    const result = await createApprovalIssue(featureDir, "My Feature", specPath, null, mockDeps);
+    assert.equal(result, 42);
+
+    const approvalData = JSON.parse(readFileSync(join(featureDir, "approval.json"), "utf8"));
+    assert.equal(approvalData.issueNumber, 42);
+    assert.equal(approvalData.status, "pending");
+  });
+
+  it("returns null and does not write approval.json when createIssue fails", async () => {
+    const featureDir = join(tmpDir, "my-feature");
+    mkdirSync(featureDir, { recursive: true });
+    const mockDeps = { createIssue: () => null };
+
+    const result = await createApprovalIssue(featureDir, "My Feature", join(featureDir, "SPEC.md"), null, mockDeps);
+    assert.equal(result, null);
+    assert.equal(existsSync(join(featureDir, "approval.json")), false);
+  });
+
+  it("does not write to STATE.json (no crash-recovery interference)", async () => {
+    const featureDir = join(tmpDir, "my-feature");
+    const specPath = join(featureDir, "SPEC.md");
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(specPath, "# Spec");
+
+    await createApprovalIssue(featureDir, "My Feature", specPath, null, {
+      createIssue: () => 55,
+      addToProject: () => null,
+      setProjectItemStatus: () => false,
+    });
+
+    // STATE.json should not exist (no crash-recovery fields were written there)
+    assert.equal(existsSync(join(featureDir, "STATE.json")), false,
+      "approval fields must not pollute STATE.json");
+  });
+});
+
+// ── waitForApproval ─────────────────────────────────────────────
+
+describe("waitForApproval", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = createTmpDir();
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("returns 'approved' immediately when status is already 'Ready'", async () => {
+    const mockDeps = {
+      getProjectItemStatus: () => "Ready",
+      sleep: () => Promise.resolve(),
+    };
+    const result = await waitForApproval(42, tmpDir, null, () => false, mockDeps);
+    assert.equal(result, "approved");
+  });
+
+  it("returns 'interrupted' when stopping flag is set before first poll", async () => {
+    let pollCount = 0;
+    const mockDeps = {
+      getProjectItemStatus: () => { pollCount++; return "Pending Approval"; },
+      sleep: () => Promise.resolve(),
+    };
+    const result = await waitForApproval(42, tmpDir, null, () => true, mockDeps);
+    assert.equal(result, "interrupted");
+    assert.equal(pollCount, 0, "Should not poll when stopping from the start");
+  });
+
+  it("polls until status changes to Ready", async () => {
+    let pollCount = 0;
+    const mockDeps = {
+      getProjectItemStatus: () => {
+        pollCount++;
+        return pollCount >= 3 ? "Ready" : "Pending Approval";
+      },
+      sleep: () => Promise.resolve(),
+    };
+    const result = await waitForApproval(42, tmpDir, null, () => false, mockDeps);
+    assert.equal(result, "approved");
+    assert.ok(pollCount >= 3, "Should have polled at least 3 times");
+  });
+
+  it("returns 'interrupted' when stopping flag set after several polls", async () => {
+    let pollCount = 0;
+    const mockDeps = {
+      getProjectItemStatus: () => { pollCount++; return "Pending Approval"; },
+      sleep: () => Promise.resolve(),
+    };
+    // Stop after 2 polls
+    const result = await waitForApproval(42, tmpDir, null, () => pollCount >= 2, mockDeps);
+    assert.equal(result, "interrupted");
   });
 });

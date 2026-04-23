@@ -21,6 +21,23 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/** Read approval sidecar (approval.json) — separate from STATE.json to avoid crash-recovery false triggers. */
+function readApprovalState(featureDir) {
+  const approvalPath = join(featureDir, "approval.json");
+  if (!existsSync(approvalPath)) return null;
+  try {
+    return JSON.parse(readFileSync(approvalPath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/** Atomically write approval sidecar. */
+function writeApprovalState(featureDir, data) {
+  mkdirSync(featureDir, { recursive: true });
+  writeFileSync(join(featureDir, "approval.json"), JSON.stringify(data, null, 2));
+}
+
 function readProjectNumber(teamDir) {
   const projectMdPath = join(teamDir, "PROJECT.md");
   if (!existsSync(projectMdPath)) return null;
@@ -62,8 +79,7 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
   }
 
   mkdirSync(featureDir, { recursive: true });
-  const state = readState(featureDir) ?? {};
-  writeState(featureDir, { ...state, approvalIssueNumber: issueNumber, approvalStatus: "pending" });
+  writeApprovalState(featureDir, { issueNumber, status: "pending" });
 
   return issueNumber;
 }
@@ -560,8 +576,8 @@ export async function outerLoop(args, deps) {
     // ── Step 2.5: APPROVAL GATE ──────────────────────────────────
 
     // Re-read state (BRAINSTORM may have created/modified the feature dir)
-    const gateState = readState(featureDir);
-    let approvalIssueNumber = gateState?.approvalIssueNumber ?? null;
+    const approvalState = readApprovalState(featureDir);
+    let approvalIssueNumber = approvalState?.issueNumber ?? null;
     const projectNumber = readProjectNumber(teamDir);
 
     const approvalDeps = {
@@ -572,7 +588,7 @@ export async function outerLoop(args, deps) {
       sleep: deps.sleep,
     };
 
-    if (gateState?.approvalStatus === "approved") {
+    if (approvalState?.status === "approved") {
       console.log(`  ${c.green}→ Already approved (issue #${approvalIssueNumber})${c.reset}\n`);
     } else {
       if (!approvalIssueNumber) {
@@ -597,9 +613,8 @@ export async function outerLoop(args, deps) {
           console.log(`\n${c.yellow}Interrupted while waiting for approval (issue #${approvalIssueNumber}).${c.reset}`);
           break;
         }
-        // Mark approved in STATE.json
-        const approvedState = readState(featureDir) ?? {};
-        writeState(featureDir, { ...approvedState, approvalStatus: "approved" });
+        // Mark approved in approval.json
+        writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
         console.log(`  ${c.green}→ Approved! Proceeding to execute.${c.reset}`);
       }
     }

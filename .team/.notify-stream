@@ -55,3 +55,5 @@
 {"ts":"2026-04-23T14:15:13.538Z","event":"feature-complete","msg":"Feature complete: crash-recovery-atomic-state-writes — 7/7 done, 0 blocked, 125m 16s, $26.56"}
 {"ts":"2026-04-23T14:25:16.837Z","event":"feature-started","msg":"▶ Feature: human-approval-gate (10 tasks planned)"}
 {"ts":"2026-04-23T14:33:39.385Z","event":"task-started","msg":"▶ Task 1/10: After BRAINSTORM, outer loop creates a GitHub issue titled `[Feature] {name}` with SPEC.md as the body and label `awaiting-approval`, and records `approvalIssueNumber` in `STATE.json`"}
+{"ts":"2026-04-23T15:22:52.466Z","event":"task-blocked","msg":"✗ Task 1/10: After BRAINSTORM, outer loop creates a GitHub issue titled `[Feature] {name}` with SPEC.md as the body and label `awaiting-approval`, and records `approvalIssueNumber` in `STATE.json` — failed after 3 attempts"}
+{"ts":"2026-04-23T15:23:19.020Z","event":"task-started","msg":"▶ Task 2/12: Implement feature issue creation in outer-loop.mjs"}

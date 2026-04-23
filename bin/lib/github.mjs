@@ -11,7 +11,6 @@ function runGh(...args) {
       encoding: "utf8",
       timeout: 30000,
       stdio: ["pipe", "pipe", "pipe"],
-      shell: process.platform === "win32",
     });
     if (result.status !== 0) return null;
     return result.stdout.trim();
@@ -27,7 +26,6 @@ export function ghAvailable() {
       encoding: "utf8",
       timeout: 10000,
       stdio: ["pipe", "pipe", "pipe"],
-      shell: process.platform === "win32",
     });
     return result.status === 0;
   } catch {
