@@ -64,3 +64,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 22:10:11
+**Task 5: `synthesize.mjs` calls `runCompoundGate` after `parseFindings()` and before verdict is finalized.**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
