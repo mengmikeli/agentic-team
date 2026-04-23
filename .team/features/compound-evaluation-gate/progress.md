@@ -44,3 +44,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 21:36:51
+**Task 2: Fix Layer 4 false-positives and document Layer 5 severity exclusion in compound-gate.mjs**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+
