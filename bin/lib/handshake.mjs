@@ -144,7 +144,7 @@ export function validateHandshake(handshake, opts = {}) {
  * @returns {object} Complete handshake object
  */
 export function createHandshake(fields) {
-  return {
+  const result = {
     taskId: fields.taskId || "unknown",
     nodeType: fields.nodeType || "build",
     runId: fields.runId || "run_1",
@@ -155,6 +155,10 @@ export function createHandshake(fields) {
     artifacts: fields.artifacts || [],
     findings: fields.findings || { critical: 0, warning: 0, suggestion: 0 },
   };
+  if (fields.compoundGate !== undefined) {
+    result.compoundGate = fields.compoundGate;
+  }
+  return result;
 }
 
 // ── CLI command for agt-harness validate ─────────────────────────

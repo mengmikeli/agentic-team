@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, mkdirSync } from "fs";
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import {
@@ -14,6 +14,7 @@ import {
   detectAspirationalClaims,
   runCompoundGate,
 } from "../bin/lib/compound-gate.mjs";
+import { parseFindings } from "../bin/lib/synthesize.mjs";
 
 function makeDir() {
   return mkdtempSync(join(tmpdir(), "cg-test-"));
@@ -304,5 +305,56 @@ describe("runCompoundGate", () => {
     assert.ok(Array.isArray(result.layers));
     assert.ok(typeof result.verdict === "string");
     assert.ok(typeof result.section === "string");
+  });
+});
+
+// ── Integration: eval.md file fixtures ────────────────────────────────────
+
+describe("Integration: runCompoundGate with eval.md fixtures", () => {
+  it("returns FAIL for thin/fabricated eval.md content (trips ≥3 layers)", () => {
+    const dir = makeDir();
+    // Thin content: generic phrases, no file:line refs, aspirational → ≥3 layers
+    const evalContent = [
+      "## Findings",
+      "🔴 — this looks good overall",
+      "🟡 — implementation is reasonable and should work fine",
+    ].join("\n");
+    writeFileSync(join(dir, "eval.md"), evalContent);
+
+    const text = readFileSync(join(dir, "eval.md"), "utf8");
+    const findings = parseFindings(text);
+    const result = runCompoundGate(findings, dir);
+
+    assert.equal(result.verdict, "FAIL");
+    assert.ok(result.tripped >= 3,
+      `Expected ≥3 layers tripped but got ${result.tripped}: ${result.layers.join(", ")}`);
+    assert.ok(result.layers.includes("thin-content"), "Expected thin-content to trip");
+    assert.ok(result.layers.includes("missing-code-refs"), "Expected missing-code-refs to trip");
+    assert.ok(result.layers.includes("aspirational-claims"), "Expected aspirational-claims to trip");
+    assert.ok(result.section.includes("## Compound Gate"), "section must include header");
+    assert.ok(result.section.includes("FAIL"), "section must include verdict");
+  });
+
+  it("returns PASS for clean eval.md content with real file references", () => {
+    const dir = makeDir();
+    // Create a real file so fabricated-refs layer doesn't trip
+    writeFileSync(join(dir, "real.mjs"), "// real module");
+
+    const evalContent = [
+      "## Findings",
+      "🔴 real.mjs:10 — null pointer dereference in production code path, crashes on empty input",
+      "🟡 real.mjs:25 — missing input validation for user-provided data passed to external API",
+    ].join("\n");
+    writeFileSync(join(dir, "eval.md"), evalContent);
+
+    const text = readFileSync(join(dir, "eval.md"), "utf8");
+    const findings = parseFindings(text);
+    const result = runCompoundGate(findings, dir);
+
+    assert.equal(result.verdict, "PASS",
+      `Expected PASS but got ${result.verdict}. Tripped layers: ${result.layers.join(", ")}`);
+    assert.equal(result.tripped, 0);
+    assert.deepEqual(result.layers, []);
+    assert.ok(result.section.includes("All layers passed"));
   });
 });

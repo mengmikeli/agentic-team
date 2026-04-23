@@ -2,7 +2,7 @@
 // Dispatches agents, runs quality gates, manages state via harness.
 
 import { execSync, spawnSync, execFileSync, spawn } from "child_process";
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, mkdirSync, writeFileSync, appendFileSync } from "fs";
 import { join, resolve, dirname } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
@@ -13,6 +13,7 @@ import {
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
+import { runCompoundGate } from "./compound-gate.mjs";
 import { cmdInit } from "./init.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
@@ -1075,7 +1076,17 @@ async function _runSingleFeature(args, description) {
             writeFileSync(evalPath, reviewResult.output);
             console.log(`  ${c.green}✓ eval.md written${c.reset}`);
 
-            const findings = parseFindings(reviewResult.output);
+            let findings = parseFindings(reviewResult.output);
+            const compoundGateResult = runCompoundGate(findings, cwd);
+            if (compoundGateResult.verdict === "FAIL") {
+              findings = [
+                { severity: "critical", text: `🔴 [compound-gate] — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
+                ...findings,
+              ];
+            } else if (compoundGateResult.verdict === "WARN") {
+              console.log(`  ${c.yellow}⚠ Compound gate WARN: ${compoundGateResult.layers.join(", ")}${c.reset}`);
+            }
+            appendFileSync(evalPath, "\n\n" + compoundGateResult.section);
             const synth = computeVerdict(findings);
             console.log(`  ${c.dim}Review verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
             if (synth.critical > 0) {
@@ -1091,6 +1102,18 @@ async function _runSingleFeature(args, description) {
                 console.log(`    ${c.yellow}${f.text}${c.reset}`)
               );
             }
+            // Write review handshake with compound gate result
+            const reviewHandshake = createHandshake({
+              taskId: task.id,
+              nodeType: "review",
+              status: synth.critical > 0 ? "failed" : "completed",
+              verdict: synth.verdict,
+              summary: `Review: ${synth.verdict} (${synth.critical} critical, ${synth.warning} warning, ${synth.suggestion} suggestion). Compound gate: ${compoundGateResult.verdict}`,
+              artifacts: [{ type: "evaluation", path: "eval.md" }],
+              findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
+              compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
+            });
+            writeFileSync(join(taskDir, "review-handshake.json"), JSON.stringify(reviewHandshake, null, 2) + "\n");
           }
         }
 
@@ -1105,7 +1128,17 @@ async function _runSingleFeature(args, description) {
           writeFileSync(join(taskDir, "eval.md"), merged);
           console.log(`  ${c.dim}${merged.slice(0, 1000)}${c.reset}`);
           const allText = roleFindings.map(f => f.output || "").join("\n");
-          const findings = parseFindings(allText);
+          let findings = parseFindings(allText);
+          const compoundGateResult = runCompoundGate(findings, cwd);
+          if (compoundGateResult.verdict === "FAIL") {
+            findings = [
+              { severity: "critical", text: `🔴 [compound-gate] — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
+              ...findings,
+            ];
+          } else if (compoundGateResult.verdict === "WARN") {
+            console.log(`  ${c.yellow}⚠ Compound gate WARN: ${compoundGateResult.layers.join(", ")}${c.reset}`);
+          }
+          appendFileSync(join(taskDir, "eval.md"), "\n\n" + compoundGateResult.section);
           const synth = computeVerdict(findings);
           console.log(`  ${c.dim}Synthesized verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
           if (synth.critical > 0) {
@@ -1116,6 +1149,18 @@ async function _runSingleFeature(args, description) {
             );
             lastFailure = `Review FAIL: ${synth.critical} critical finding(s)\n` + findings.filter(f => f.severity === "critical").map(f => f.text).join("\n");
           }
+          // Write review handshake with compound gate result
+          const multiReviewHandshake = createHandshake({
+            taskId: task.id,
+            nodeType: "review",
+            status: synth.critical > 0 ? "failed" : "completed",
+            verdict: synth.verdict,
+            summary: `Parallel review: ${synth.verdict} (${synth.critical} critical, ${synth.warning} warning, ${synth.suggestion} suggestion). Compound gate: ${compoundGateResult.verdict}`,
+            artifacts: [{ type: "evaluation", path: "eval.md" }],
+            findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
+            compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
+          });
+          writeFileSync(join(taskDir, "review-handshake.json"), JSON.stringify(multiReviewHandshake, null, 2) + "\n");
         }
 
         // If review found critical issues, treat as failure — retry the task

@@ -8,7 +8,7 @@
 //   🟡 file:line — fix suggestion   (warning  — PASS but goes to backlog)
 //   🔵 file:line — fix suggestion   (suggestion — PASS, no backlog)
 
-import { readFileSync } from "fs";
+import { readFileSync, appendFileSync } from "fs";
 import { runCompoundGate } from "./compound-gate.mjs";
 
 /**
@@ -121,6 +121,14 @@ export function cmdSynthesize(args) {
       { severity: "critical", text: `🔴 [compound-gate] — Shallow review detected: ${gateResult.layers.join(", ")}` },
       ...findings,
     ];
+  }
+
+  // Append compound gate section to input file if it was read from a file path
+  const inputFilePath = inputIdx !== -1 && restArgs[inputIdx + 1] ? restArgs[inputIdx + 1] : null;
+  if (inputFilePath) {
+    try {
+      appendFileSync(inputFilePath, "\n\n" + gateResult.section);
+    } catch { /* best-effort */ }
   }
 
   const { verdict, backlog, critical, warning, suggestion } = computeVerdict(findings);

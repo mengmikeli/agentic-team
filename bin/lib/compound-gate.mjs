@@ -78,7 +78,7 @@ export function detectLowUniqueness(findings) {
 
 // ── Layer 4: Fabricated References ────────────────────────────────────────
 
-const FILE_EXT_PATTERN = /([^\s:]+\.(mjs|ts|js|json|md))/g;
+const FILE_EXT_PATTERN = /([^\s:]+\.(mjs|cjs|ts|mts|js|jsx|tsx|json|md))/g;
 
 /**
  * Trips when any file path cited in findings does not exist under repoRoot.
