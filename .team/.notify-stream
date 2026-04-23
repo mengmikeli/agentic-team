@@ -75,3 +75,5 @@
 {"ts":"2026-04-23T19:35:27.178Z","event":"task-started","msg":"▶ Task 10/14: Pressing Ctrl+C while waiting exits cleanly with a message identifying the pending issue number and no STATE.json corruption"}
 {"ts":"2026-04-23T19:52:40.370Z","event":"task-passed","msg":"✓ Task 10/14: Pressing Ctrl+C while waiting exits cleanly with a message identifying the pending issue number and no STATE.json corruption"}
 {"ts":"2026-04-23T19:52:48.401Z","event":"task-started","msg":"▶ Task 11/14: If `approvalIssueNumber` is already set in `STATE.json` on re-entry, the loop polls the existing issue instead of creating a new one"}
+{"ts":"2026-04-23T20:06:58.323Z","event":"task-passed","msg":"✓ Task 11/14: If `approvalIssueNumber` is already set in `STATE.json` on re-entry, the loop polls the existing issue instead of creating a new one"}
+{"ts":"2026-04-23T20:07:05.556Z","event":"task-started","msg":"▶ Task 12/14: `PROJECT.md` documents the field option IDs for both `\"Pending Approval\"` and `\"Ready\"` columns in the same format as existing status IDs"}

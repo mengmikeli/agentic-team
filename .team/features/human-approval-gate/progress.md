@@ -133,3 +133,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 20:06:58
+**Task 11: If `approvalIssueNumber` is already set in `STATE.json` on re-entry, the loop polls the existing issue instead of creating a new one**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
