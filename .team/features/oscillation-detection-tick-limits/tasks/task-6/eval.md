@@ -1,32 +1,37 @@
 ## Parallel Review Findings
 
 ### [security]
-Eval written. Here are the structured findings:
+**Overall verdict: PASS** (with warnings — no criticals block merge)
 
 ---
 
-**Overall verdict: PASS** — core halt path (exit 1 + `oscillation-halted` status) is correctly implemented and tested. No critical findings.
+**Structured Findings:**
 
----
+🟡 `bin/lib/transition.mjs:116-131` — K-loop `break` fires on the first matching K even when reps=2 (warn path); a larger-K pattern with reps≥3 (halt) is silently skipped. Fix: complete the full K loop, track highest-severity match instead of breaking early.
 
-🟡 `bin/lib/transition.mjs:131` — K-loop `break` fires on first match even when reps=2 (warn-only); a K=3 pattern with reps=3 (halt) is silently skipped. Fix: don't break on warn-only; track max-severity across all K values.
-
-🟡 `bin/lib/transition.mjs:156` — `(task.retries || 0)` returns `-1` for 
+🟡 `bin/lib/run.mjs:832` — `transitionResult.allowed === false` doesn't guard harness crash-before-write; crash returns `{ ok: false, error
 
 ### [architect]
 ---
 
-## Findings
+## Verdict: PASS
 
-🟡 `bin/lib/run.mjs:39-43` — Harness crash (exception before JSON written to stdout) returns `{ ok: false, error: "..." }` — `allowed` is undefined, not false. `run.mjs:832` check (`allowed === false`) silently passes, dispatching the agent as if the transition succeeded. Add `!transitionResult.ok` to the guard condition.
+**Files read:** `transition.mjs` (full), `run.mjs` (harness wrapper, task loop, return path), `finalize.mjs` (status guard), `oscillation-ticks.test.mjs` (full), STATE.json, SPEC.md, handshake.json
 
-🟡 `bin/lib/transition.mjs:148-150` — reps=2 oscillation warning is stderr-only; stdout returns `{ allowed: true }` with no machine-readable oscillation meta
+**Core logic verified by code trace:**
+- `transition.mjs:137–146` writes `status: "oscillation-halted"` then exits 1 — correct order, lock released before exit
+- `run.mjs:43` catch block parses stdout JSON from the throwing `execFileSync` — halt payload reaches the caller
+- `ru
 
 ### [devil's-advocate]
-Eval written. Here are the findings:
+Here are the structured findings from my independent review:
 
 ---
 
-🔴 `.team/features/oscillation-detection-tick-limits/STATE.json:127` — Gate command `echo gate-recorded` used for every task including task-6; `test-output.txt` is a single line. The architect reviewer's "373/373" evidence is from task-5's artifacts, not task-6's. Re-gate with `npm test` before claiming PASS.
+**Verdict: PASS**
 
-🟡 `bin/lib/run.mjs:1099-1103` — `_runSingleFeature` returns `"done"` when oscillation breaks the task loop and `blocked === 0`; `agt.mjs:29` dis
+**Files read:** `transition.mjs` (full), `run.mjs` (full), `finalize.mjs` (full), `util.mjs` (lockFile region), `oscillation-ticks.test.mjs` (full), `smoke-terminates.test.mjs` (full), `task-6/handshake.json`, `task-6/artifacts/test-output.txt`, `task-9/handshake.json`, `task-5/handshake.json`, `task-5/artifacts/test-output.txt`, `STATE.json`, `SPEC.md`, both eval files.
+
+---
+
+🟡 `task-6/handshake.json:6` — Gat

@@ -115,3 +115,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 08:03:59
+**Task 8: On the 3rd repetition of the same oscillation pattern for a single task, the harness exits non-zero and sets feature `status: "oscillation-halted"` in STATE.json**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+

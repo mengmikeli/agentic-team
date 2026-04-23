@@ -1,57 +1,64 @@
 {
   "version": "2.0",
   "feature": "ticks-test",
-  "status": "active",
+  "status": "oscillation-halted",
   "tasks": [
     {
       "id": "t1",
-      "status": "in-progress",
+      "status": "failed",
       "title": "task one",
-      "lastTransition": "2026-04-23T08:10:31.412Z",
+      "lastTransition": "2026-04-23T08:10:32.031Z",
       "ticks": 3,
       "retries": 2
     }
   ],
   "gates": [],
-  "transitionCount": 5,
+  "transitionCount": 6,
   "transitionHistory": [
     {
       "taskId": "t1",
       "from": "pending",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T08:10:31.221Z"
+      "timestamp": "2026-04-23T08:10:31.794Z"
     },
     {
       "taskId": "t1",
       "from": "in-progress",
       "status": "failed",
       "reason": null,
-      "timestamp": "2026-04-23T08:10:31.269Z"
+      "timestamp": "2026-04-23T08:10:31.840Z"
     },
     {
       "taskId": "t1",
       "from": "failed",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T08:10:31.317Z"
+      "timestamp": "2026-04-23T08:10:31.888Z"
     },
     {
       "taskId": "t1",
       "from": "in-progress",
       "status": "failed",
       "reason": null,
-      "timestamp": "2026-04-23T08:10:31.363Z"
+      "timestamp": "2026-04-23T08:10:31.935Z"
     },
     {
       "taskId": "t1",
       "from": "failed",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T08:10:31.412Z"
+      "timestamp": "2026-04-23T08:10:31.983Z"
+    },
+    {
+      "taskId": "t1",
+      "from": "in-progress",
+      "status": "failed",
+      "reason": null,
+      "timestamp": "2026-04-23T08:10:32.031Z"
     }
   ],
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T08:10:31.412Z",
-  "_write_nonce": "ff1adb61b15f8dd2"
+  "_last_modified": "2026-04-23T08:10:32.077Z",
+  "_write_nonce": "8dc3755b5c6f9142"
 }
