@@ -138,6 +138,26 @@ function runGateInline(cmd, featureDir, taskId) {
 
 // ── Agent dispatch ──────────────────────────────────────────────
 
+// ── Token usage tracking ───────────────────────────────────────
+
+const _runUsage = { dispatches: 0, inputTokens: 0, cacheRead: 0, cacheCreate: 0, outputTokens: 0, costUsd: 0, durationMs: 0 };
+
+function trackUsage(jsonResult) {
+  if (!jsonResult) return;
+  _runUsage.dispatches++;
+  if (jsonResult.usage) {
+    _runUsage.inputTokens += jsonResult.usage.input_tokens || 0;
+    _runUsage.cacheRead += jsonResult.usage.cache_read_input_tokens || 0;
+    _runUsage.cacheCreate += jsonResult.usage.cache_creation_input_tokens || 0;
+    _runUsage.outputTokens += jsonResult.usage.output_tokens || 0;
+  }
+  _runUsage.costUsd += jsonResult.total_cost_usd || 0;
+  _runUsage.durationMs += jsonResult.duration_ms || 0;
+}
+
+export function getRunUsage() { return { ..._runUsage }; }
+export function resetRunUsage() { Object.assign(_runUsage, { dispatches: 0, inputTokens: 0, cacheRead: 0, cacheCreate: 0, outputTokens: 0, costUsd: 0, durationMs: 0 }); }
+
 // ── Agent dispatch (exported for outer loop) ───────────────────
 
 export function findAgent() {
@@ -159,15 +179,24 @@ export function dispatchToAgent(agent, brief, cwd) {
 
   try {
     if (agent === "claude") {
-      const result = spawnSync("claude", ["--print", "--permission-mode", "bypassPermissions", brief], {
+      const result = spawnSync("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
         encoding: "utf8",
         cwd,
         timeout: 600000, // 10 min max per task
         stdio: ["pipe", "pipe", "pipe"],
         env: { ...process.env },
       });
-      if (result.stdout) console.log(`  ${c.dim}${result.stdout.slice(0, 2000)}${c.reset}`);
-      return { ok: result.status === 0, output: result.stdout || "", error: result.stderr || "" };
+      let output = result.stdout || "";
+      let parsed = null;
+      try {
+        parsed = JSON.parse(output);
+        trackUsage(parsed);
+        output = parsed.result || "";
+      } catch {
+        // fallback: treat as plain text (old claude versions)
+      }
+      if (output) console.log(`  ${c.dim}${output.slice(0, 2000)}${c.reset}`);
+      return { ok: result.status === 0, output, error: result.stderr || "", usage: parsed?.usage || null, cost: parsed?.total_cost_usd || null };
     }
 
     if (agent === "codex") {
@@ -197,14 +226,22 @@ function dispatchToAgentAsync(agent, brief, cwd) {
     }
     let stdout = "";
     let stderr = "";
-    const child = spawn("claude", ["--print", "--permission-mode", "bypassPermissions", brief], {
+    const child = spawn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },
     });
     child.stdout?.on("data", d => { stdout += d; });
     child.stderr?.on("data", d => { stderr += d; });
-    child.on("close", code => resolve({ ok: code === 0, output: stdout, error: stderr }));
+    child.on("close", code => {
+      let output = stdout;
+      try {
+        const parsed = JSON.parse(stdout);
+        trackUsage(parsed);
+        output = parsed.result || "";
+      } catch { /* plain text fallback */ }
+      resolve({ ok: code === 0, output, error: stderr });
+    });
     child.on("error", err => resolve({ ok: false, output: "", error: err.message }));
   });
 }
@@ -1127,15 +1164,28 @@ async function _runSingleFeature(args, description) {
 
   // ── Completion report ──
 
+  const usage = getRunUsage();
+  const formatTokens = (n) => n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : String(n);
+
   console.log(`${"═".repeat(50)}`);
-  console.log(`${c.bold}Feature complete: ${featureName}${c.reset}`);
+  console.log(`${c.bold}Feature complete: ${featureLabel ? `[${featureLabel}] ` : ''}${featureName}${c.reset}`);
   console.log(`  ${c.green}✓${c.reset} ${completed}/${tasks.length} tasks done`);
   if (blocked > 0) console.log(`  ${c.red}✗${c.reset} ${blocked} blocked`);
   console.log(`  ${c.dim}Duration: ${durationStr}${c.reset}`);
+  if (usage.dispatches > 0) {
+    console.log(`  ${c.dim}Dispatches: ${usage.dispatches}${c.reset}`);
+    console.log(`  ${c.dim}Tokens: ${formatTokens(usage.inputTokens + usage.cacheRead + usage.outputTokens)} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})${c.reset}`);
+    if (usage.costUsd > 0) console.log(`  ${c.dim}Cost: $${usage.costUsd.toFixed(2)}${c.reset}`);
+  }
   console.log(`${"═".repeat(50)}\n`);
 
+  // Write usage to progress log
+  if (usage.dispatches > 0) {
+    appendProgress(featureDir, `**Run Summary**\n- Tasks: ${completed}/${tasks.length} done, ${blocked} blocked\n- Duration: ${durationStr}\n- Dispatches: ${usage.dispatches}\n- Tokens: ${formatTokens(usage.inputTokens + usage.cacheRead + usage.outputTokens)} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})\n- Cost: $${usage.costUsd.toFixed(2)}`);
+  }
+
   harness("notify", "--event", "feature-complete", "--msg",
-    `Feature complete: ${featureName} — ${completed}/${tasks.length} done, ${blocked} blocked, ${durationStr}`);
+    `Feature complete: ${featureName} — ${completed}/${tasks.length} done, ${blocked} blocked, ${durationStr}${usage.costUsd > 0 ? `, $${usage.costUsd.toFixed(2)}` : ''}`);
 
   if (blocked > 0) {
     console.log(`${c.yellow}Blocked tasks need attention. Review and run again or fix manually.${c.reset}`);
