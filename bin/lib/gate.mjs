@@ -48,13 +48,7 @@ export function cmdGate(args) {
     return;
   }
 
-  // Acquire lock
   const statePath = join(dir, "STATE.json");
-  const lock = lockFile(statePath, { command: "gate" });
-  if (!lock.acquired) {
-    console.log(JSON.stringify({ ok: false, error: "could not acquire lock", holder: lock.holder }));
-    return;
-  }
 
   let exitCode = 0;
   let stdout = "";
@@ -84,7 +78,12 @@ export function cmdGate(args) {
     stdout = err.stdout || "";
     stderr = stderr || err.stderr || "";
   } finally {
-    // Write verdict to STATE.json
+    // Write verdict to STATE.json — acquire lock only for the read-modify-write critical section
+    const lock = lockFile(statePath, { command: "gate" });
+    if (!lock.acquired) {
+      console.log(JSON.stringify({ ok: false, error: "could not acquire lock for STATE.json write", holder: lock.holder }));
+      return;
+    }
     try {
       const freshState = readState(dir);
       if (!freshState) {
