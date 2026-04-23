@@ -215,7 +215,12 @@ export async function cmdReview(args) {
   if (gateResult.verdict === "FAIL") {
     findings.unshift({
       severity: "critical",
-      text: `🔴 [compound-gate] — Shallow review detected: ${gateResult.layers.join(", ")}`,
+      text: `🔴 compound-gate.mjs:0 — Shallow review detected: ${gateResult.layers.join(", ")}`,
+    });
+  } else if (gateResult.verdict === "WARN") {
+    findings.unshift({
+      severity: "warning",
+      text: `🟡 compound-gate.mjs:0 — Thin review warning: ${gateResult.layers.join(", ")}`,
     });
   }
 
