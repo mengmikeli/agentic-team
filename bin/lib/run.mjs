@@ -832,8 +832,8 @@ async function _runSingleFeature(args, description) {
     if (transitionResult && transitionResult.allowed === false) {
       if (transitionResult.halt === true) {
         // Oscillation halt — stop the entire feature
+        // Note: transition.mjs already wrote the progress.md entry; no duplicate needed here
         console.log(`${c.red}${c.bold}⚠ Oscillation halt: ${transitionResult.reason}${c.reset}\n`);
-        appendProgress(featureDir, `**Oscillation halt**: ${transitionResult.reason}`);
         harness("notify", "--event", "anomaly", "--msg",
           `⚠ Oscillation halt in ${featureName}: ${transitionResult.reason}`);
         break;
