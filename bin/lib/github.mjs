@@ -86,9 +86,13 @@ export function getProjectFieldIds(projectNumber) {
 }
 
 /** Create a GitHub issue. Returns the issue number, or null on failure. */
-export function createIssue(title, body) {
+export function createIssue(title, body, labels = []) {
   if (!title) return null;
-  const output = runGh("issue", "create", "--title", title, "--body", body || "");
+  const args = ["issue", "create", "--title", title, "--body", body || ""];
+  for (const label of labels) {
+    args.push("--label", label);
+  }
+  const output = runGh(...args);
   if (!output) return null;
   const match = output.match(/\/issues\/(\d+)/);
   return match ? parseInt(match[1], 10) : null;

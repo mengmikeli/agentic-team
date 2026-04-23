@@ -1,0 +1,725 @@
+
+> @mengmikeli/agentic-team@2.1.0 test
+> node --test test/*.test.mjs
+
+▶ CLI help text
+  ✔ shows review command in help (102.154292ms)
+  ✔ shows audit command in help (87.847875ms)
+  ✔ shows brainstorm command in help (96.911375ms)
+  ✔ help text includes all three new commands with descriptions (84.182583ms)
+✔ CLI help text (372.021625ms)
+▶ agt review
+  ✔ handles review gracefully (with or without agent) (107.031333ms)
+  ✔ prints review header (91.86525ms)
+✔ agt review (199.059334ms)
+▶ agt audit
+  ✔ runs audit and reports missing .team/ (61.449ms)
+  ✔ runs audit with .team/ present and reports structure (226.927417ms)
+  ✔ detects missing required files (125.556292ms)
+  ✔ reports feature with issues (125.66925ms)
+  ✔ shows summary line (56.160375ms)
+✔ agt audit (596.048834ms)
+▶ agt brainstorm
+  ✔ prints brainstorm header with idea (20013.835ms)
+✔ agt brainstorm (20013.972791ms)
+▶ smart entry flow (agt run no args)
+  ✔ agt run with explicit description still works with .team/ (207.2245ms)
+  ✔ agt run with --dry-run shows tasks without executing (151.934792ms)
+✔ smart entry flow (agt run no args) (359.301667ms)
+▶ agt help <command>
+  ✔ agt help run shows usage, flags, and examples (51.532792ms)
+  ✔ agt help init shows usage and examples (50.11825ms)
+  ✔ agt help status shows usage and examples (49.436875ms)
+  ✔ agt help review shows usage and examples (50.05425ms)
+  ✔ agt help audit shows usage and examples (49.997917ms)
+  ✔ agt help brainstorm shows usage and examples (50.90875ms)
+  ✔ agt help doctor shows usage and examples (50.581458ms)
+  ✔ agt help <unknown> exits non-zero and shows error (50.649833ms)
+  ✔ agt help (no subcommand) lists all commands (50.082958ms)
+✔ agt help <command> (453.54375ms)
+▶ audit-cmd module
+  ✔ can be imported without errors (3.437875ms)
+✔ audit-cmd module (3.459958ms)
+▶ review module
+  ✔ can be imported without errors (2.204042ms)
+✔ review module (2.224708ms)
+▶ brainstorm-cmd module
+  ✔ can be imported without errors (0.199916ms)
+✔ brainstorm-cmd module (0.217875ms)
+▶ buildContextBrief
+  ✔ returns fallback when no context files exist (29.479166ms)
+  ✔ includes SPEC.md content when present (25.344333ms)
+  ✔ includes project conventions from PROJECT.md (22.322459ms)
+  ✔ includes backlog as known issues (22.39675ms)
+  ✔ includes progress.md as known issues (22.62325ms)
+  ✔ includes git log when in a git repo (86.046042ms)
+  ✔ combines multiple context sources (23.476625ms)
+  ✔ truncates long SPEC.md content (24.970166ms)
+✔ buildContextBrief (257.855916ms)
+[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.12345.1234567890
+[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.99999.9999999999
+▶ crash-recovery
+  ▶ applyCrashRecovery — status: executing
+    ✔ detects crashed state and preserves tasks (5.069166ms)
+    ✔ writes _recovered_from and _recovery_count to state (1.057417ms)
+    ✔ increments _recovery_count on repeated crashes (0.373583ms)
+  ✔ applyCrashRecovery — status: executing (7.135667ms)
+  ▶ applyCrashRecovery — status: paused (no recovery)
+    ✔ does not recover for paused state (0.327834ms)
+  ✔ applyCrashRecovery — status: paused (no recovery) (0.500291ms)
+  ▶ applyCrashRecovery — status: completed (no recovery)
+    ✔ does not recover for completed state (0.338125ms)
+  ✔ applyCrashRecovery — status: completed (no recovery) (0.476667ms)
+  ▶ harness init — orphaned tmp cleanup
+    ✔ removes orphaned STATE.json.tmp.* files on init --force (179.303292ms)
+    ✔ leaves non-tmp files untouched (0.229125ms)
+  ✔ harness init — orphaned tmp cleanup (179.792375ms)
+✔ crash-recovery (190.80875ms)
+▶ doctor: checkNodeVersion
+  ✔ passes on current Node.js (≥18) (0.467292ms)
+✔ doctor: checkNodeVersion (1.007625ms)
+▶ doctor: checkGhCli
+  ✔ passes when gh is installed and authenticated (0.219917ms)
+  ✔ warns when gh is installed but not authenticated (0.102833ms)
+  ✔ fails when gh is not installed (0.041875ms)
+✔ doctor: checkGhCli (0.438209ms)
+▶ doctor: checkCodingAgent
+  ✔ passes when claude is available (0.071792ms)
+  ✔ passes when codex is available (no claude) (0.050125ms)
+  ✔ fails when neither is available (0.050958ms)
+✔ doctor: checkCodingAgent (0.25775ms)
+▶ doctor: checkPew
+  ✔ passes when pew is available (0.067ms)
+  ✔ warns (not fails) when pew is missing (0.042042ms)
+✔ doctor: checkPew (0.164125ms)
+▶ doctor: checkTeamDir
+  ✔ passes when .team/ exists (0.595125ms)
+  ✔ fails when .team/ is missing (0.195958ms)
+✔ doctor: checkTeamDir (0.837875ms)
+▶ doctor: checkTeamFile
+  ✔ passes when file exists (0.495041ms)
+  ✔ fails for required file when missing (0.251667ms)
+  ✔ warns for optional file when missing (0.236667ms)
+✔ doctor: checkTeamFile (1.029334ms)
+▶ doctor: checkQualityGate
+  ✔ passes when Quality Gate section has a code block (0.46425ms)
+  ✔ fails when Quality Gate section exists but no code block (0.407792ms)
+  ✔ fails when no Quality Gate section (0.384041ms)
+  ✔ fails when PROJECT.md is missing (0.222459ms)
+✔ doctor: checkQualityGate (1.535125ms)
+▶ doctor: checkProjectBoard
+  ✔ passes when Tracking section has a URL (2.616666ms)
+  ✔ fails when Tracking section has no URL (1.448583ms)
+  ✔ fails when no Tracking section (1.469667ms)
+  ✔ fails when PROJECT.md is missing (0.335583ms)
+✔ doctor: checkProjectBoard (6.024917ms)
+▶ e2e: simulated agt run 'add a LICENSE file'
+  ✔ 1. init — creates feature state (83.6445ms)
+  ✔ 2. task dir — created with artifacts subdirectory (0.453416ms)
+  ✔ 3. spec — written for the feature (0.489834ms)
+  ✔ 4. progress.md — initialized (0.968ms)
+  ✔ 5. transition — pending → in-progress (82.980041ms)
+  ✔ 6. builder handshake — written and validates (92.269208ms)
+  ✔ 7. gate — captures test output as artifact (97.90125ms)
+  ✔ 8. validate — gate handshake passes validation (0.515375ms)
+  ✔ 9. reviewer eval.md — structured findings (0.636792ms)
+  ✔ 10. synthesize — parses findings and computes PASS verdict (0.208916ms)
+  ✔ 11. verify format — review has proper file:line references (0.212041ms)
+  ✔ 12. transition — state reflects passed after gate (0.109042ms)
+  ✔ 13. progress.md — updated with task result (0.369ms)
+  ✔ 14. context brief — includes spec, progress, and known issues (24.325958ms)
+  ✔ 15. finalize — feature marked complete (71.727625ms)
+  ✔ 16. file structure — all expected files exist (0.242916ms)
+✔ e2e: simulated agt run 'add a LICENSE file' (460.149291ms)
+▶ e2e: tier integration with builder and reviewer briefs
+  ✔ polished tier baseline appears in builder brief context (0.146916ms)
+  ✔ delightful tier has more items and stricter severity (0.059708ms)
+  ✔ functional tier has empty baseline (0.032084ms)
+  ✔ reviewer brief includes evidence verification instructions (0.068625ms)
+  ✔ flow selection matches task complexity (0.064334ms)
+✔ e2e: tier integration with builder and reviewer briefs (1.075125ms)
+▶ e2e: anti-rationalization enforcement
+  ✔ builder brief contains anti-rationalization table (0.03475ms)
+  ✔ reviewer brief warns against rubber-stamping (0.025834ms)
+✔ e2e: anti-rationalization enforcement (0.087666ms)
+▶ FLOWS
+  ✔ defines light-review with gate only (0.932625ms)
+  ✔ defines build-verify with review phase (0.046833ms)
+  ✔ defines full-stack with brainstorm and multi-review (0.039417ms)
+✔ FLOWS (1.525375ms)
+▶ selectFlow
+  ✔ returns light-review for simple 1-task feature (0.123666ms)
+  ✔ returns light-review for 2-task simple feature (0.8415ms)
+  ✔ returns build-verify for 3+ tasks (0.122416ms)
+  ✔ returns build-verify for 5 tasks (0.15825ms)
+  ✔ returns full-stack for 6+ tasks (0.137709ms)
+  ✔ returns build-verify when description includes 'review' (0.10225ms)
+  ✔ returns build-verify when description includes 'api' (0.124042ms)
+  ✔ returns full-stack when description includes 'architecture' (0.082958ms)
+  ✔ returns full-stack when description includes 'refactor' (0.068458ms)
+  ✔ handles null/empty description gracefully (0.063583ms)
+  ✔ handles empty task array gracefully (0.059042ms)
+  ✔ returns full-stack for 'migration' keyword (0.059709ms)
+✔ selectFlow (2.372917ms)
+▶ buildBrainstormBrief
+  ✔ includes feature name and description (0.133584ms)
+  ✔ instructs not to write code yet (0.079167ms)
+✔ buildBrainstormBrief (0.301333ms)
+▶ buildReviewBrief
+  ✔ includes feature name and task title (0.180084ms)
+  ✔ includes role-specific focus for architect (0.076375ms)
+  ✔ includes role-specific focus for security (0.062458ms)
+  ✔ includes role-specific focus for pm (0.054834ms)
+  ✔ works without a role (generic review) (0.053333ms)
+  ✔ handles null gate output (0.051709ms)
+✔ buildReviewBrief (0.614458ms)
+▶ PARALLEL_REVIEW_ROLES
+  ✔ is an array with 2-5 roles (0.113542ms)
+  ✔ includes security and architect (0.049583ms)
+  ✔ includes devil's-advocate (0.031083ms)
+✔ PARALLEL_REVIEW_ROLES (0.255167ms)
+▶ mergeReviewFindings
+  ✔ combines findings from multiple roles into a single report (0.069167ms)
+  ✔ handles empty output gracefully (0.0335ms)
+  ✔ returns a string with a heading (0.026666ms)
+✔ mergeReviewFindings (0.164542ms)
+▶ buildReviewBrief — devil's-advocate role
+  ✔ includes devil's-advocate focus on risks and edge cases (0.055791ms)
+✔ buildReviewBrief — devil's-advocate role (0.074542ms)
+▶ createHandshake
+  ✔ fills in defaults for minimal input (3.252833ms)
+  ✔ preserves explicit fields (0.068042ms)
+✔ createHandshake (4.015708ms)
+▶ validateHandshake
+  ✔ accepts a valid build handshake (0.251459ms)
+  ✔ rejects null input (0.047625ms)
+  ✔ rejects missing required fields (0.08675ms)
+  ✔ rejects invalid nodeType (0.056125ms)
+  ✔ rejects invalid status (0.052167ms)
+  ✔ rejects invalid verdict (0.569459ms)
+  ✔ accepts null and undefined verdict (0.072625ms)
+  ✔ rejects empty summary (0.077375ms)
+  ✔ rejects invalid timestamp (0.095083ms)
+  ✔ rejects non-array artifacts (0.039042ms)
+  ✔ rejects artifact with invalid type (0.045709ms)
+  ✔ rejects artifact with missing path (0.038834ms)
+  ✔ rejects build without code artifact (0.031667ms)
+  ✔ rejects gate without test-result or cli-output artifact (0.032875ms)
+  ✔ accepts gate with test-result artifact (0.025083ms)
+  ✔ accepts gate with cli-output artifact (0.02425ms)
+  ✔ rejects review without evaluation artifact (0.033334ms)
+  ✔ accepts review with evaluation artifact (0.027458ms)
+  ✔ rejects PASS verdict with critical findings (0.030708ms)
+  ✔ accepts FAIL verdict with critical findings (0.024584ms)
+  ✔ accepts PASS verdict with zero critical findings (0.024875ms)
+  ✔ rejects when artifact file does not exist (basePath given) (0.211166ms)
+  ✔ accepts when artifact file exists (basePath given) (0.263417ms)
+  ✔ skips file existence check when no basePath (0.028583ms)
+  ✔ resolves project-root-relative paths correctly (builder pattern) (1.032ms)
+  ✔ resolves task-dir-relative paths correctly (gate pattern) (0.927917ms)
+  ✔ accepts absolute paths regardless of basePath (0.198042ms)
+✔ validateHandshake (4.738583ms)
+▶ agt-harness validate CLI
+  ✔ validates a correct handshake file (111.629625ms)
+  ✔ rejects handshake with missing fields via CLI (93.637125ms)
+  ✔ rejects handshake with findings/verdict mismatch via CLI (82.311417ms)
+  ✔ reports file not found for bad path (67.561583ms)
+✔ agt-harness validate CLI (355.338583ms)
+▶ at-harness
+  ▶ init
+    ✔ creates feature STATE.json (93.69ms)
+    ✔ refuses duplicate init without --force (105.227541ms)
+    ✔ allows --force to overwrite (78.649708ms)
+  ✔ init (277.947958ms)
+  ▶ transition
+    ✔ allows pending → in-progress (86.755084ms)
+    ✔ allows in-progress → passed (87.937792ms)
+    ✔ rejects invalid transition (passed → pending) (66.388334ms)
+    ✔ rejects invalid status (60.680208ms)
+    ✔ rejects unknown task (65.00175ms)
+  ✔ transition (368.966458ms)
+  ▶ gate
+    ✔ PASS for successful command (68.864292ms)
+    ✔ FAIL for failing command (61.387ms)
+    ✔ writes gate result to STATE.json (0.130167ms)
+    ✔ rejects placeholder gate command 'echo gate-recorded' (52.990834ms)
+  ✔ gate (183.750833ms)
+  ▶ notify
+    ✔ outputs notification JSON to stdout (54.1495ms)
+    ✔ rejects invalid event (52.466458ms)
+    ✔ writes event to .team/.notify-stream (54.379208ms)
+  ✔ notify (161.082333ms)
+  ▶ finalize
+    ✔ rejects when tasks not all done (53.839583ms)
+    ✔ succeeds when all tasks passed/skipped (54.63375ms)
+  ✔ finalize (108.546917ms)
+  ▶ metrics
+    ✔ computes metrics from STATE.json (90.827417ms)
+  ✔ metrics (90.877375ms)
+  ▶ tamper detection
+    ✔ rejects manually edited STATE.json (53.392708ms)
+  ✔ tamper detection (53.441667ms)
+✔ at-harness (1246.77975ms)
+▶ backlog
+  ▶ extractWarnings
+    ✔ returns empty array for empty input (0.621208ms)
+    ✔ extracts lines containing 'warning' (0.112917ms)
+    ✔ extracts lines containing 'warn' (0.030208ms)
+    ✔ deduplicates identical warning lines (0.036542ms)
+    ✔ ignores lines over 500 chars (0.028167ms)
+  ✔ extractWarnings (0.882416ms)
+  ▶ readBacklog
+    ✔ returns empty lists when backlog.md does not exist (0.177125ms)
+    ✔ parses unchecked items as unresolved and documented (0.322834ms)
+  ✔ readBacklog (0.532458ms)
+  ▶ documentWarnings
+    ✔ creates backlog.md if absent (0.292917ms)
+    ✔ appends to existing backlog.md (0.353333ms)
+    ✔ does nothing when warnings list is empty (0.074ms)
+  ✔ documentWarnings (0.762541ms)
+  ▶ findNewWarnings
+    ✔ returns all warnings when backlog is empty (0.097792ms)
+    ✔ excludes warnings already in backlog (0.227625ms)
+  ✔ findNewWarnings (0.347375ms)
+  ▶ carryForward
+    ✔ copies unresolved warnings to new feature dir (0.329417ms)
+    ✔ returns 0 when no unresolved warnings (0.177542ms)
+  ✔ carryForward (0.527792ms)
+  ▶ gate integration
+    ✔ gate documents warnings in backlog.md (59.890708ms)
+    ✔ init --prev carries warnings forward (54.846ms)
+  ✔ gate integration (114.798834ms)
+✔ backlog (117.95275ms)
+▶ github integration
+  ✔ ghAvailable returns a boolean (1070.17475ms)
+  ✔ createIssue returns null for empty title (0.091041ms)
+  ✔ closeIssue returns false for null number (0.039875ms)
+  ✔ commentIssue returns false for null number (0.029583ms)
+  ✔ commentIssue returns false for empty body (0.023084ms)
+✔ github integration (1070.430583ms)
+▶ readTrackingConfig
+  ✔ returns null for nonexistent path (0.092ms)
+  ✔ returns null when tracking fields are missing (0.312125ms)
+  ✔ parses complete tracking section (0.377833ms)
+✔ readTrackingConfig (0.824208ms)
+▶ core loop integration
+  ▶ full chain: init → build → validate → gate → review → synthesize
+    ✔ initializes feature via harness (93.311708ms)
+    ✔ creates task directory structure (0.417167ms)
+    ✔ builder writes valid handshake.json (1.992875ms)
+    ✔ validates handshake via CLI (85.793417ms)
+    ✔ gate captures evidence artifacts (107.295334ms)
+    ✔ gate handshake validates correctly (0.250459ms)
+    ✔ reviewer writes eval.md (0.35875ms)
+    ✔ synthesizes review findings mechanically (0.314375ms)
+    ✔ context brief includes spec and known issues (26.882292ms)
+    ✔ tier baseline integrates with build brief (0.356125ms)
+  ✔ full chain: init → build → validate → gate → review → synthesize (317.770792ms)
+  ▶ failing gate creates proper artifacts
+    ✔ captures stderr and writes FAIL handshake (85.065833ms)
+  ✔ failing gate creates proper artifacts (85.184333ms)
+  ▶ handshake findings/verdict contract enforcement
+    ✔ rejects PASS with critical findings in full chain (0.165166ms)
+  ✔ handshake findings/verdict contract enforcement (0.253708ms)
+✔ core loop integration (405.699167ms)
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [failed → in-progress] ×2
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [failed → in-progress] ×2
+▶ ticks field
+  ✔ ticks starts undefined on a new task (no ticks field) (4.069083ms)
+  ✔ ticks is 1 after first pending → in-progress (87.92825ms)
+  ✔ ticks is 2 after failed → in-progress retry (230.075208ms)
+  ✔ ticks is 2 after blocked → in-progress (193.548208ms)
+  ✔ ticks does NOT increment on in-progress → passed (124.373708ms)
+  ✔ ticks does NOT increment on in-progress → failed (109.654417ms)
+  ✔ ticks accumulates across multiple retries (276.748209ms)
+  ✔ ticks is backward-compatible — old tasks without ticks start from 0 (55.229041ms)
+  ✔ ticks are per-task — other tasks unaffected (164.742625ms)
+✔ ticks field (1255.8245ms)
+▶ tick-limit enforcement
+  ✔ rejects in-progress when ticks >= TASK_MAX_TICKS (261.798542ms)
+  ✔ invalid TASK_MAX_TICKS falls back to default of 6 (158.364458ms)
+  ✔ tick-limit exceeded writes timestamped progress.md entry with task ID and count (145.186708ms)
+✔ tick-limit enforcement (565.519541ms)
+▶ oscillation detection
+  ✔ warns and allows transition after 2 reps of K=2 pattern, logs to progress.md (246.919625ms)
+  ✔ halts feature with exit code 1 after 3 reps of K=2 pattern (338.592333ms)
+  ✔ oscillation halt writes timestamped progress.md entry with task ID and pattern (338.617167ms)
+✔ oscillation detection (924.257125ms)
+▶ replan tick inheritance
+  ✔ split replan: new tasks inherit ticks = blockedTask.ticks + 1 (0.120333ms)
+  ✔ inject replan: prereq and retry tasks inherit ticks = blockedTask.ticks + 1 (0.036791ms)
+  ✔ split replan: blocked task with ticks=0 produces ticks=1 in new tasks (0.032ms)
+✔ replan tick inheritance (0.229167ms)
+▶ replan tick inheritance — STATE.json sync
+  ✔ syncing ticks from STATE.json before applyReplan gives correct ticks to replacement tasks (0.707ms)
+  ✔ merging new tasks into STATE.json does not overwrite harness-updated ticks on blocked task (0.397334ms)
+✔ replan tick inheritance — STATE.json sync (1.277875ms)
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mHighest impact on execution quality.[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Flow templates directly advance autonomous execution by enabling smart flow selection.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 2[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Parallel reviewers"[0m
+  [2mFallback: next undone roadmap item (Parallel reviewers)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 2 complete: "Parallel reviewers" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 3[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Backlog enforcement"[0m
+  [2mFallback: next undone roadmap item (Backlog enforcement)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 3 complete: "Backlog enforcement" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 4[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [31m✗ Prioritization failed: Agent crashed[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Parallel reviewers"[0m
+  [2mNeeded for quality.[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Good progress.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Parallel reviewers" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 2[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mFallback: next undone roadmap item (Flow templates)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 2 complete: "Flow templates" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 3[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Backlog enforcement"[0m
+  [2mFallback: next undone roadmap item (Backlog enforcement)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 3 complete: "Backlog enforcement" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 4[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+▶ buildPrioritizeBrief
+  ✔ includes product content in the brief (0.735625ms)
+  ✔ lists completed features (0.482541ms)
+  ✔ shows 'None yet' when no features completed (0.084792ms)
+  ✔ includes working directory (0.070458ms)
+  ✔ includes required output format instructions (0.047584ms)
+  ✔ instructs not to write code (0.254792ms)
+✔ buildPrioritizeBrief (2.89625ms)
+▶ buildOuterBrainstormBrief
+  ✔ includes product context (0.10625ms)
+  ✔ includes the priority item description (0.053917ms)
+  ✔ includes completed features (0.069292ms)
+  ✔ includes SPEC.md path with feature name (0.07175ms)
+  ✔ requires Goal, Scope, Out of Scope, Done When sections (0.049958ms)
+  ✔ instructs not to implement (0.036375ms)
+✔ buildOuterBrainstormBrief (0.550459ms)
+▶ buildOutcomeReviewBrief
+  ✔ includes feature name (0.102708ms)
+  ✔ includes product content for metric comparison (0.028208ms)
+  ✔ includes progress content (0.027666ms)
+  ✔ handles empty progress gracefully (0.024875ms)
+  ✔ includes OUTCOME output format requirement (0.024375ms)
+  ✔ instructs to update PRODUCT.md roadmap (0.023083ms)
+✔ buildOutcomeReviewBrief (0.300167ms)
+▶ parsePriorityOutput
+  ✔ extracts PRIORITY and REASONING from well-formed output (0.15ms)
+  ✔ handles PRIORITY with no REASONING (0.0895ms)
+  ✔ returns null for empty output (0.032042ms)
+  ✔ returns null when PRIORITY line is missing (0.024625ms)
+  ✔ returns null when PRIORITY value is empty (0.804458ms)
+  ✔ handles multiline agent output with PRIORITY embedded (0.148959ms)
+✔ parsePriorityOutput (1.366542ms)
+▶ validateSpecFile
+  ✔ validates a complete SPEC.md (2.006667ms)
+  ✔ detects missing sections (1.191833ms)
+  ✔ returns all missing for non-existent file (0.603917ms)
+  ✔ is case-insensitive for section headings (0.422833ms)
+  ✔ handles empty file (0.281917ms)
+✔ validateSpecFile (4.654125ms)
+▶ markRoadmapItemDone
+  ✔ marks an item as done in PRODUCT.md (0.509375ms)
+  ✔ does not double-mark already done items (0.311792ms)
+  ✔ returns false for non-existent file (0.133917ms)
+  ✔ returns false for non-matching item (0.251917ms)
+  ✔ is case-insensitive for matching (0.329834ms)
+✔ markRoadmapItemDone (1.583417ms)
+▶ parseRoadmap
+  ✔ parses roadmap items with done status (0.17875ms)
+  ✔ returns empty array for content without roadmap (0.610292ms)
+  ✔ returns empty array for empty roadmap section (0.061792ms)
+✔ parseRoadmap (0.881167ms)
+▶ slugify
+  ✔ converts spaces and special chars to hyphens (0.067042ms)
+  ✔ removes leading and trailing hyphens (0.019292ms)
+  ✔ truncates to 50 chars (0.022125ms)
+  ✔ handles version numbers (0.027916ms)
+  ✔ collapses multiple special chars (0.017834ms)
+✔ slugify (0.190542ms)
+▶ getCompletedFeatures
+  ✔ returns empty array when features dir doesn't exist (0.197917ms)
+  ✔ returns completed features only (2.167667ms)
+  ✔ ignores directories without STATE.json (0.442375ms)
+✔ getCompletedFeatures (2.853917ms)
+▶ outerLoop
+  ✔ runs one full cycle with mocked deps (3.095459ms)
+  ✔ stops when all roadmap items are exhausted (0.429334ms)
+  ✔ handles prioritize failure gracefully (0.353292ms)
+  ✔ creates minimal SPEC.md when agent doesn't write one (1.906459ms)
+✔ outerLoop (5.843791ms)
+▶ parseReplanOutput
+  ✔ parses valid split output (1.651417ms)
+  ✔ parses valid inject output (0.143042ms)
+  ✔ parses valid abandon output (0.071708ms)
+  ✔ returns null for missing JSON block (0.049417ms)
+  ✔ returns null for invalid verdict (0.047834ms)
+  ✔ returns null for split with too few tasks (0.054291ms)
+  ✔ returns null for split with too many tasks (0.042917ms)
+  ✔ returns null for inject with wrong task count (0.0385ms)
+  ✔ returns null for null input (0.044666ms)
+  ✔ returns null for empty string (0.487292ms)
+  ✔ returns null for task with missing title (0.112417ms)
+✔ parseReplanOutput (5.051333ms)
+▶ buildReplanBrief
+  ✔ includes feature name (0.410208ms)
+  ✔ includes task id and title (0.114125ms)
+  ✔ includes failure context (0.108625ms)
+  ✔ includes remaining tasks (0.07775ms)
+  ✔ includes spec content (0.090917ms)
+  ✔ handles null failure context gracefully (0.093125ms)
+  ✔ shows (none) for empty remaining tasks (0.112ms)
+✔ buildReplanBrief (1.320375ms)
+▶ applyReplan
+  ✔ split injects sub-tasks after blocked task (0.198ms)
+  ✔ split annotates blocked task with replan field (0.049709ms)
+  ✔ split sets replanSource on new tasks (0.034583ms)
+  ✔ inject inserts prereq and retry clone after blocked task (0.037125ms)
+  ✔ inject annotates blocked task with replan field (0.026417ms)
+  ✔ inject sets replanSource on new tasks (0.026833ms)
+  ✔ new tasks from inject start with pending status and zero attempts (0.037958ms)
+  ✔ abandon leaves tasks unchanged (0.024958ms)
+  ✔ no-ops when replanResult is null (0.030375ms)
+  ✔ no-ops when blocked task is not in tasks array (0.025959ms)
+✔ applyReplan (0.59775ms)
+▶ smoke test — always-failing task terminates cleanly
+  ✔ terminates via tick-limit-exceeded (not MAX_TOTAL_TRANSITIONS) within maxTaskTicks × 2 transitions (490.933209ms)
+✔ smoke test — always-failing task terminates cleanly (493.258792ms)
+▶ parseDateRange
+  ✔ parses 'Apr 14–18' (1.748042ms)
+  ✔ parses 'Apr 1–14' (0.12775ms)
+  ✔ parses single-day 'Apr 14' (0.079458ms)
+  ✔ returns null for invalid input (0.155583ms)
+  ✔ parses hyphen separator 'Apr 14-18' (0.145042ms)
+✔ parseDateRange (3.931291ms)
+▶ parseSprints
+  ✔ parses sprint table from SPRINTS.md (1.525958ms)
+  ✔ returns empty array if file doesn't exist (1.963916ms)
+✔ parseSprints (3.675875ms)
+▶ computeCycleTime
+  ✔ computes cycle time from transitionHistory + lastGate (0.739ms)
+  ✔ skips tasks without in-progress transition (0.1415ms)
+  ✔ skips pending/in-progress tasks (0.1445ms)
+  ✔ handles multiple features and tasks (0.1325ms)
+✔ computeCycleTime (1.382625ms)
+▶ computeFailureRate
+  ✔ returns 0 when all tasks pass (0.166584ms)
+  ✔ returns correct failure fraction (0.066958ms)
+  ✔ returns null when no terminal tasks (0.049708ms)
+  ✔ returns null when no tasks (0.0535ms)
+✔ computeFailureRate (0.428667ms)
+▶ computeGatePassRate
+  ✔ returns 1 when all gates pass (0.129208ms)
+  ✔ computes correct rate (0.056375ms)
+  ✔ returns null when no gates (0.046083ms)
+✔ computeGatePassRate (0.302334ms)
+▶ computeFlowUsage
+  ✔ classifies by task count (0.13725ms)
+✔ computeFlowUsage (0.182334ms)
+▶ computeReplanRate
+  ✔ returns 0 when no replanned tasks (0.105417ms)
+  ✔ computes correct re-plan fraction (0.058625ms)
+  ✔ returns null when no tasks (0.25125ms)
+✔ computeReplanRate (0.503959ms)
+▶ computeSprintMetrics integration
+  ✔ returns noData when no features match sprint (4.395042ms)
+  ✔ computes metrics for matching features (2.535708ms)
+  ✔ persists analytics.json to .team/sprints/{sprint}/ (1.307583ms)
+  ✔ accepts sprintName override to target a specific sprint (1.290875ms)
+  ✔ handles team dir with no SPRINTS.md gracefully (0.460875ms)
+✔ computeSprintMetrics integration (10.115292ms)
+▶ parseFindings
+  ✔ finds critical (🔴) findings (1.118583ms)
+  ✔ finds warning (🟡) findings (0.167333ms)
+  ✔ finds suggestion (🔵) findings (0.265958ms)
+  ✔ finds multiple findings across lines (0.07825ms)
+  ✔ returns empty array for text with no findings (0.05475ms)
+  ✔ returns empty array for empty input (0.968542ms)
+  ✔ ignores lines without severity emoji (0.095666ms)
+✔ parseFindings (4.663167ms)
+▶ computeVerdict
+  ✔ returns FAIL when there are critical findings (0.128125ms)
+  ✔ returns PASS with backlog=true when only warnings (0.063167ms)
+  ✔ returns PASS with backlog=false when only suggestions (0.067916ms)
+  ✔ returns PASS with backlog=false when no findings (0.045ms)
+  ✔ FAIL trumps warnings — any red = FAIL (0.769958ms)
+  ✔ counts severities correctly (0.260209ms)
+  ✔ backlog=true only when no critical but has warnings (0.058917ms)
+✔ computeVerdict (1.582083ms)
+▶ verifyFormat
+  ✔ accepts valid finding with emoji + file:line + fix (0.229375ms)
+  ✔ accepts multiple valid findings (0.079375ms)
+  ✔ flags missing file:line reference (0.041834ms)
+  ✔ flags missing fix suggestion (0.041333ms)
+  ✔ returns valid=true and findings=0 for no findings (0.897834ms)
+  ✔ returns ok=true always (it's a format check, not a verdict) (0.098042ms)
+✔ verifyFormat (1.49125ms)
+▶ agt-harness synthesize CLI
+  ✔ synthesize --input returns FAIL for critical findings (76.968625ms)
+  ✔ synthesize --input returns PASS with backlog for warnings only (63.060292ms)
+  ✔ synthesize --input returns PASS for no findings (61.22825ms)
+  ✔ synthesize verify --input accepts valid format (63.109875ms)
+  ✔ synthesize verify --input rejects format without file:line (63.13775ms)
+  ✔ synthesize includes findings array in output (58.105583ms)
+✔ agt-harness synthesize CLI (385.785083ms)
+▶ TIERS
+  ✔ defines functional, polished, and delightful tiers (0.800167ms)
+  ✔ functional has no baseline items (0.068834ms)
+  ✔ polished has baseline items (0.060042ms)
+  ✔ delightful has more baseline items than polished (0.053625ms)
+  ✔ delightful includes polished items plus extras (0.054083ms)
+  ✔ all baseline items have key and text (0.0595ms)
+✔ TIERS (2.113833ms)
+▶ selectTier
+  ✔ returns explicit tier when flag is provided (0.088958ms)
+  ✔ ignores invalid tier flag and falls through to auto-detect (0.056875ms)
+  ✔ selects functional for CLI/API descriptions (0.057ms)
+  ✔ selects polished for UI/frontend descriptions (0.086625ms)
+  ✔ selects delightful for showcase/demo descriptions (0.08125ms)
+  ✔ defaults to functional for ambiguous descriptions (0.176708ms)
+✔ selectTier (1.559542ms)
+▶ formatTierBaseline
+  ✔ formats functional tier with no checklist (0.080209ms)
+  ✔ formats polished tier with checklist items (0.042708ms)
+  ✔ formats delightful tier with all items (0.05125ms)
+  ✔ includes builder and reviewer guidance (0.036209ms)
+  ✔ handles null tier gracefully (0.027916ms)
+✔ formatTierBaseline (0.309042ms)
+▶ getMissingSeverity
+  ✔ returns null for functional tier (0.046875ms)
+  ✔ returns warning for most polished items (0.030666ms)
+  ✔ returns critical for key polished items (0.021542ms)
+  ✔ returns critical for all delightful items (0.024542ms)
+✔ getMissingSeverity (0.158708ms)
+ℹ tests 376
+ℹ suites 92
+ℹ pass 376
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22101.552375

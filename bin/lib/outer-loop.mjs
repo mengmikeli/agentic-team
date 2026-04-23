@@ -7,7 +7,8 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
-import { c, readState } from "./util.mjs";
+import { c, readState, writeState } from "./util.mjs";
+import { createIssue as ghCreateIssue } from "./github.mjs";
 
 // ── Brief builders ──────────────────────────────────────────────
 

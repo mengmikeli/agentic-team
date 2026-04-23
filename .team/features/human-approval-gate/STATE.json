@@ -1,0 +1,102 @@
+{
+  "version": "2.0",
+  "feature": "human-approval-gate",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "After BRAINSTORM, outer loop creates a GitHub issue titled `[Feature] {name}` with SPEC.md as the body and label `awaiting-approval`, and records `approvalIssueNumber` in `STATE.json`",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 82
+    },
+    {
+      "id": "task-2",
+      "title": "Issue is added to the project board with status `\"Pending Approval\"` using the field option ID stored in `PROJECT.md`",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 83
+    },
+    {
+      "id": "task-3",
+      "title": "CLI prints the issue URL and \"Waiting for approval (issue #{N})...\" before pausing",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 84
+    },
+    {
+      "id": "task-4",
+      "title": "Outer loop polls the project board at an interval controlled by `APPROVAL_POLL_INTERVAL` env var (default: 30s) and prints elapsed wait time each poll",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 85
+    },
+    {
+      "id": "task-5",
+      "title": "When the project item is moved to `\"Ready\"`, the loop resumes EXECUTE and sets `approvalStatus: \"approved\"` in `STATE.json`",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 86
+    },
+    {
+      "id": "task-6",
+      "title": "Pressing Ctrl+C while waiting exits cleanly with a message identifying the pending issue number and no STATE.json corruption",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 87
+    },
+    {
+      "id": "task-7",
+      "title": "If `approvalIssueNumber` is already set in `STATE.json` on re-entry, the loop polls the existing issue instead of creating a new one",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 88
+    },
+    {
+      "id": "task-8",
+      "title": "`PROJECT.md` documents the field option IDs for both `\"Pending Approval\"` and `\"Ready\"` columns in the same format as existing status IDs",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 89
+    },
+    {
+      "id": "task-9",
+      "title": "`agt init` help text or `agt help run` explains that \"Pending Approval\" and \"Ready\" columns must be added to the project board manually before using the outer loop",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 90
+    },
+    {
+      "id": "task-10",
+      "title": "Unit tests pass for: issue creation writes `approvalIssueNumber`, poll resolves when status is \"Ready\", SIGINT during poll exits without corrupting state, re-entry guard skips issue creation when `approvalIssueNumber` exists",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 91
+    }
+  ],
+  "gates": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (102.154292ms)\n  ✔ shows audit command in help (87.847875ms)\n  ✔ shows brainstorm command in help (96.911375ms)\n  ✔ help text includes all three new commands with descriptions (84.182583ms)\n✔ CLI help text (372.021625ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (107.031333ms)\n  ✔ prints review header (91.86525ms)\n✔ agt review (199.059334ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (61.449ms)\n  ✔ runs audit with .team/ present and reports structure (226.927417ms)\n  ✔ detects missing required files (125.556292ms)\n  ✔ reports feature with issues (125.66925ms)\n  ✔ shows summary line (56.160375ms)\n✔ agt audit (596.048834ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20013.835ms)\n✔ agt brainstorm (20013.972791ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (207.2245ms)\n  ✔ agt run with --dry-run shows tasks without executing (151.934792ms)\n✔ smart entry flow (agt run no args) (359.301667ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.532792ms)\n  ✔ agt help init shows usage and examples (50.11825ms)\n  ✔ agt help status shows usage and examples (49.436875ms)\n  ✔ agt help review shows usage and examples (50.05425ms)\n  ✔ agt help audit shows usage and examples (49.997917ms)\n  ✔ agt help brainstorm shows usage and examples (50.90875ms)\n  ✔ agt help doctor shows usage and examples (50.581458ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.649833ms)\n  ✔ agt help (no subcommand) lists all commands (50.082958ms)\n✔ agt help <command> (453.54375ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.437875ms)\n✔ audit-cmd module (3.459958ms)\n▶ review module\n  ✔ can be imported without errors (2.204042ms)\n✔ review module (2.224708ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.199916ms)\n✔ brainstorm-cmd module (0.217875ms)\n▶ buildContextBrief\n  ✔ returns fallback when no context files exist (29.479166ms)\n  ✔ includes SPEC.md content when present (25.344333ms)\n  ✔ includes project conventions from PROJECT.md (22.322459ms)\n  ✔ includes backlog as known issues (22.39675ms)\n  ✔ includes progress.md as known issues (22.62325ms)\n  ✔ includes git log when in a git repo (86.046042ms)\n  ✔ combines multiple context sources (23.476625ms)\n  ✔ truncates long SPEC.md content (24.970166ms)\n✔ buildContextBrief (257.855916ms)\n[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.12345.1234567890\n[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.99999.9999999999\n▶ crash-recovery\n  ▶ applyCrashRecovery — status: executing\n    ✔ detects crashed state and preserves tasks (5.069166ms)\n    ✔ writes _recovered_from and _recovery_count to state (1.057417ms)\n    ✔ increments _recovery_count on repeated crashes (0.373583ms)\n  ✔ applyCrashRecovery — status: executing (7.135667ms)\n  ▶ applyCrashRecovery — status: paused (no recovery)\n    ✔ does not recover for paused state (0.327834ms)\n  ✔ applyCrashRecovery — status: paused (no recovery) (0.500291ms)\n  ▶ applyCrashRecovery — status: completed (no recovery)\n    ✔ does not recover for completed state (0.338125ms)\n  ✔ applyCrashRecovery — status: completed (no recovery) (0.476667ms)\n  ▶ harness init — orphaned tmp cleanup\n    ✔ removes orphaned STATE.json.tmp.* files on init --force (179.303292ms)\n    ✔ leaves non-tmp files untouched (0.229125ms)\n  ✔ harness init — orphaned tmp cleanup (179.792375ms)\n✔ crash-recovery (190.80875ms)\n▶ doctor: checkNodeVersion\n  ✔ passes on current Node.js (≥18) (0.467292ms)\n✔ doctor: checkNodeVersion (1.007625ms)\n▶ doctor: checkGhCli\n  ✔ passes when gh is installed and authenticated (0.219917ms)\n  ✔ warns when gh is installed but not authenticated (0.102833ms)\n  ✔ fails when gh is not installed (0.041875ms)\n✔ doctor: checkGhCli (0.438209ms)\n▶ doctor: checkCodingAgent\n  ✔ passes when claude is available (0.071792ms)\n  ✔ passes when codex is available (no claude) (0.050125ms)\n  ✔ fails wh",
+      "stderr": "",
+      "timestamp": "2026-04-23T14:44:01.831Z",
+      "taskId": "task-1"
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T14:33:36.875Z"
+    }
+  ],
+  "createdAt": "2026-04-23T14:25:16.782Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-23T14:44:01.831Z",
+  "_write_nonce": "c52b11412e254585"
+}

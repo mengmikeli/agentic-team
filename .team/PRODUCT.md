@@ -35,7 +35,7 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 9. **Dashboard React rebuild** — ✅ Done. Vite + React + shadcn/ui + Recharts. TE × Marathon palette (60-30-10 monochrome + orange). Light/dark toggle, time range tabs, responsive.
 
 ### Phase 3 — Reliable Autonomous Execution
-10. **Crash recovery + atomic state writes** — Write-then-rename for STATE.json. Detect incomplete state on restart and resume from last good checkpoint. File locking for concurrent safety.
+10. **Crash recovery + atomic state writes** — ✅ Done. Write-then-rename for STATE.json. Detect incomplete state on restart and resume from last good checkpoint. File locking for concurrent safety.
 11. **Oscillation detection + tick limits** — ✅ Done. Tick-limit enforcement (default 6, configurable), K≥2 pattern detection with warn/halt, replan tick inheritance, progress.md logging. 376 tests.
 12. **Human approval gate** — Outer loop creates GitHub issue for each feature, waits for human to move to Ready before executing. Agents never self-approve scope.
 13. **Compound evaluation gate** — Multi-layer substance check on reviews (thin content, missing code refs, low uniqueness, fabricated references, aspirational claims). ≥3 layers tripped = hard FAIL.
