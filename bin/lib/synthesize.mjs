@@ -118,7 +118,12 @@ export function cmdSynthesize(args) {
   const gateResult = runCompoundGate(findings, repoRoot);
   if (gateResult.verdict === "FAIL") {
     findings = [
-      { severity: "critical", text: `🔴 [compound-gate] — Shallow review detected: ${gateResult.layers.join(", ")}` },
+      { severity: "critical", text: `🔴 [compound-gate]:0 — Shallow review detected: ${gateResult.layers.join(", ")}` },
+      ...findings,
+    ];
+  } else if (gateResult.verdict === "WARN") {
+    findings = [
+      { severity: "warning", text: `🟡 [compound-gate]:0 — Thin review warning: ${gateResult.layers.join(", ")}` },
       ...findings,
     ];
   }

@@ -194,7 +194,7 @@ describe("agt-harness synthesize CLI", () => {
   it("synthesize --input returns PASS with backlog for warnings only", () => {
     const dir = mkdtempSync(join(tmpdir(), "synth-test-"));
     const file = join(dir, "review.txt");
-    writeFileSync(file, "🟡 bin/lib/foo.mjs:20 — Should add error handling here");
+    writeFileSync(file, "🟡 bin/lib/synthesize.mjs:20 — Add error handling here");
     const result = harnessJSON("synthesize", "--input", file);
     assert.equal(result.verdict, "PASS");
     assert.equal(result.backlog, true);
@@ -235,8 +235,8 @@ describe("agt-harness synthesize CLI", () => {
     const dir = mkdtempSync(join(tmpdir(), "synth-test-"));
     const file = join(dir, "review.txt");
     writeFileSync(file, [
-      "🔴 a.mjs:1 — Critical issue needs fix",
-      "🔵 b.mjs:2 — Consider refactoring this block",
+      "🔴 bin/lib/synthesize.mjs:1 — Critical issue needs fix",
+      "🔵 bin/lib/compound-gate.mjs:2 — Consider refactoring this block",
     ].join("\n"));
     const result = harnessJSON("synthesize", "--input", file);
     assert.ok(Array.isArray(result.findings));
