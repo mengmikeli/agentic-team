@@ -1,0 +1,15 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added crash-recovery detection to `agt run`: when a feature's STATE.json has `status: \"executing\"`, the run command logs `[crash-recovery]`, resets any `in-progress` tasks to `pending`, preserves completed/skipped tasks, and writes `_recovered_from`/`_recovery_count` metadata. Also added orphaned `STATE.json.tmp.*` file cleanup in `harness-init.mjs`. Extracted the logic into an exported `applyCrashRecovery` helper and added 7 passing tests in `test/crash-recovery.test.mjs`.",
+  "timestamp": "2026-04-23T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "bin/lib/harness-init.mjs" },
+    { "type": "code", "path": "test/crash-recovery.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

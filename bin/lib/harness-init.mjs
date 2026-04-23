@@ -1,6 +1,6 @@
 // at-harness init — create feature state in .team/features/{name}/STATE.json
 
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, unlinkSync } from "fs";
 import { join } from "path";
 import {
   getFlag, hasFlag, writeState, generateNonce, WRITER_SIG,
@@ -30,6 +30,16 @@ export function cmdHarnessInit(args) {
   }
 
   mkdirSync(featureDir, { recursive: true });
+
+  // Clean up any orphaned tmp files left by a crashed atomic write
+  if (existsSync(featureDir)) {
+    for (const f of readdirSync(featureDir)) {
+      if (/^STATE\.json\.tmp\./.test(f)) {
+        try { unlinkSync(join(featureDir, f)); } catch { /* best-effort */ }
+        console.error(`[crash-recovery] Removed orphaned tmp file: ${f}`);
+      }
+    }
+  }
 
   const state = {
     version: "2.0",

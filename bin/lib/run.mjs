@@ -402,6 +402,29 @@ function appendProgress(featureDir, entry) {
   }
 }
 
+// ── Crash recovery helper ────────────────────────────────────────
+// Exported for testing. Mutates state in-place and returns tasks to use.
+// Returns { tasks, recovered: bool }.
+export function applyCrashRecovery(state, plannedTasks, featureDir) {
+  if (state && state.status === "executing") {
+    const crashedAt = state._last_modified;
+    for (const t of state.tasks) {
+      if (t.status === "in-progress") t.status = "pending";
+    }
+    state._recovered_from = crashedAt;
+    state._recovery_count = (state._recovery_count || 0) + 1;
+    state.status = "executing";
+    writeState(featureDir, state);
+    return { tasks: state.tasks, recovered: true, crashedAt };
+  }
+  if (state) {
+    state.tasks = plannedTasks;
+    state.status = "executing";
+    writeState(featureDir, state);
+  }
+  return { tasks: plannedTasks, recovered: false };
+}
+
 // ── Main execution loop ─────────────────────────────────────────
 
 export async function cmdRun(args) {
@@ -683,7 +706,7 @@ async function _runSingleFeature(args, description) {
 
   // ── Plan tasks ──
 
-  const tasks = planTasks(featureDescription, spec);
+  let tasks = planTasks(featureDescription, spec);
   console.log(`${c.green}✓${c.reset} Planned ${tasks.length} task(s)\n`);
 
   // ── Select execution flow ──
@@ -693,13 +716,13 @@ async function _runSingleFeature(args, description) {
   console.log(`${c.bold}Flow:${c.reset}     ${flow.label}`);
   console.log(`${c.bold}Tier:${c.reset}     🎯 ${tier.label}\n`);
 
-  // Write tasks to state
+  // Write tasks to state (with crash-recovery detection)
   const state = readState(featureDir);
-  if (state) {
-    state.tasks = tasks;
-    state.status = "executing";
-    writeState(featureDir, state);
+  const recovery = applyCrashRecovery(state, tasks, featureDir);
+  if (recovery.recovered) {
+    console.log(`${c.yellow}[crash-recovery]${c.reset} Resuming from crashed state at ${recovery.crashedAt}`);
   }
+  tasks = recovery.tasks;
 
   // Notify start
   harness("notify", "--event", "feature-started", "--msg",
