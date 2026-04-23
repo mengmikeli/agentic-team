@@ -914,7 +914,20 @@ async function _runSingleFeature(args, description) {
   function syncTaskState() {
     const s = readState(featureDir);
     if (s) {
-      s.tasks = tasks;
+      // Merge: harness updates task status via transition, so read those back.
+      // But in-memory tasks may have new entries from replan, so merge both.
+      const stateTaskMap = new Map((s.tasks || []).map(t => [t.id, t]));
+      for (const t of tasks) {
+        const existing = stateTaskMap.get(t.id);
+        if (existing) {
+          // Keep harness-updated fields (status, ticks, etc), but sync issueNumber from memory
+          if (t.issueNumber && !existing.issueNumber) existing.issueNumber = t.issueNumber;
+        } else {
+          // New task from replan — add it
+          stateTaskMap.set(t.id, { ...t });
+        }
+      }
+      s.tasks = [...stateTaskMap.values()];
       s.status = 'executing';
       s._last_modified = new Date().toISOString();
       writeState(featureDir, s);
