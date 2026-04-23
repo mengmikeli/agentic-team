@@ -32,3 +32,8 @@
 - Verdict: ✅ PASS (attempt 3)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 04:57:43
+**Task 2: A replacement task created by replan starts with `ticks` equal to the replaced task's `ticks + 1`, not 0**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
