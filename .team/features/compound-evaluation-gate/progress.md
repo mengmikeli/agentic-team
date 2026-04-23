@@ -114,3 +114,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 23:39:05
+**Task 11: 1–2 layers tripped produces `verdict: "WARN"` and is logged without blocking.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
