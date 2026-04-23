@@ -985,6 +985,119 @@ Add flow selection to agt run.
 
     assert.equal(executeCalled, false, "Execute must NOT run when approval.json is corrupt");
   });
+
+  it("shows pending issue number in message when Ctrl+C received during approval wait", async () => {
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+
+    // PROJECT.md needed so waitForApproval is actually invoked
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Project\nhttps://github.com/users/test/projects/1\n");
+
+    const logs = [];
+    const origLog = console.log;
+    console.log = (...args) => { logs.push(args.join(" ")); origLog(...args); };
+
+    let sleepCallCount = 0;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => 42,
+      addToProject: () => "item-id",
+      setProjectItemStatus: () => true,
+      getProjectItemStatus: () => "Pending Approval",
+      getIssueUrl: () => null,
+      sleep: () => {
+        sleepCallCount++;
+        if (sleepCallCount === 1) {
+          // Simulate Ctrl+C during approval wait
+          process.emit("SIGINT");
+        }
+        return Promise.resolve();
+      },
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        return { ok: true, output: "SPEC.md already exists." };
+      },
+      runSingleFeature: async () => "done",
+    };
+
+    try {
+      await outerLoop([], mockDeps);
+    } finally {
+      console.log = origLog;
+    }
+
+    const combined = logs.join("\n");
+    assert.ok(
+      combined.includes("#42"),
+      `Expected issue #42 in message after Ctrl+C, got:\n${combined}`
+    );
+  });
+
+  it("does not corrupt STATE.json when Ctrl+C received during approval wait", async () => {
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+
+    const initialState = {
+      version: "2.0",
+      feature: "flow-templates",
+      status: "active",
+      tasks: [],
+      gates: [],
+      transitionCount: 0,
+      transitionHistory: [],
+      createdAt: new Date().toISOString(),
+      _written_by: "at-harness",
+      _last_modified: "2024-01-01T00:00:00.000Z",
+      _write_nonce: "initial-nonce",
+    };
+    writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(initialState, null, 2));
+    writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Project\nhttps://github.com/users/test/projects/1\n");
+
+    let sleepCallCount = 0;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => 42,
+      addToProject: () => "item-id",
+      setProjectItemStatus: () => true,
+      getProjectItemStatus: () => "Pending Approval",
+      getIssueUrl: () => null,
+      sleep: () => {
+        sleepCallCount++;
+        if (sleepCallCount === 1) {
+          process.emit("SIGINT");
+        }
+        return Promise.resolve();
+      },
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        return { ok: true, output: "SPEC.md already exists." };
+      },
+      runSingleFeature: async () => "done",
+    };
+
+    await outerLoop([], mockDeps);
+
+    // STATE.json must still be parseable and unchanged (not corrupted)
+    const stateData = JSON.parse(readFileSync(join(featureDir, "STATE.json"), "utf8"));
+    assert.equal(stateData.version, "2.0", "STATE.json version must be preserved");
+    assert.equal(stateData.feature, "flow-templates", "STATE.json feature must be preserved");
+    assert.equal(stateData._write_nonce, "initial-nonce", "STATE.json nonce must be unchanged");
+    // approvalStatus should NOT be set (interrupted before approval)
+    assert.equal(stateData.approvalStatus, undefined, "approvalStatus must not be set after interruption");
+  });
 });
 
 // ── createApprovalIssue ─────────────────────────────────────────

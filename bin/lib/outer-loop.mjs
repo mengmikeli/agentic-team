@@ -545,11 +545,22 @@ export async function outerLoop(args, deps) {
 
   // Graceful SIGINT — finish current step, then stop
   let stopping = false;
-  process.on("SIGINT", () => {
-    if (stopping) process.exit(1);
+  let pendingApprovalIssueNumber = null;
+  const sigintHandler = () => {
+    if (stopping) {
+      if (pendingApprovalIssueNumber) {
+        console.log(`\n${c.yellow}Force quit. Pending approval: issue #${pendingApprovalIssueNumber}. Run \`agt run\` to resume.${c.reset}`);
+      }
+      process.exit(1);
+    }
     stopping = true;
-    console.log(`\n${c.yellow}Stopping after current step completes... (Ctrl+C again to force quit)${c.reset}`);
-  });
+    if (pendingApprovalIssueNumber) {
+      console.log(`\n${c.yellow}Ctrl+C received. Pending approval: issue #${pendingApprovalIssueNumber} — run \`agt run\` to resume.${c.reset}`);
+    } else {
+      console.log(`\n${c.yellow}Stopping after current step completes... (Ctrl+C again to force quit)${c.reset}`);
+    }
+  };
+  process.on("SIGINT", sigintHandler);
 
   let cycle = 0;
 
@@ -693,11 +704,13 @@ export async function outerLoop(args, deps) {
       }
 
       if (approvalIssueNumber && projectNumber) {
+        pendingApprovalIssueNumber = approvalIssueNumber;
         const approvalResult = await waitForApproval(
           approvalIssueNumber, featureDir, projectNumber, () => stopping, approvalDeps,
         );
+        pendingApprovalIssueNumber = null;
         if (approvalResult === "interrupted") {
-          console.log(`\n${c.yellow}Interrupted while waiting for approval (issue #${approvalIssueNumber}).${c.reset}`);
+          console.log(`\n${c.yellow}Interrupted while waiting for approval (issue #${approvalIssueNumber}). Run \`agt run\` to resume.${c.reset}`);
           break;
         }
         // Mark approved in approval.json and STATE.json
@@ -774,6 +787,8 @@ export async function outerLoop(args, deps) {
       break;
     }
   }
+
+  process.removeListener("SIGINT", sigintHandler);
 
   if (stopping) {
     console.log(`\n${c.yellow}Stopped after ${cycle} cycle(s).${c.reset}`);

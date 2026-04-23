@@ -123,3 +123,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 19:35:24
+**Task 9: Guard approvalStatus write so it never creates a structurally incomplete STATE.json**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

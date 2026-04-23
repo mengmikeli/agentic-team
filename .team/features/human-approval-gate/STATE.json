@@ -72,7 +72,7 @@
       "title": "Guard approvalStatus write so it never creates a structurally incomplete STATE.json",
       "description": "In outer-loop.mjs near line 672, defer the approvalStatus write until after runSingleFeature has run harness init (i.e. STATE.json already contains tasks/gates/version/status), OR add a structural completeness check (tasks !== undefined && version !== undefined) before writing so a fresh feature is never given a minimal STATE.json that causes run.mjs:796 to skip harness init and crash on state.tasks.find(...).",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 1,
       "ticks": 1,
       "replanSource": "task-5"
     },
@@ -292,9 +292,18 @@
       "stderr": "",
       "timestamp": "2026-04-23T19:30:06.461Z",
       "taskId": "task-5-s2"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (5.226833ms)\n  ✔ returns null and does not write approval.json when createIssue fails (1.003375ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (2.036291ms)\n  ✔ skips project board calls when projectNumber is null (1.677125ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (1.2355ms)\n  ✔ passes 'awaiting-approval' label to createIssue (1.009959ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.586083ms)\n✔ createApprovalIssue (14.851458ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.177666ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.307333ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.457ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.342083ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.74475ms)\n✔ readApprovalState (2.326208ms)\n▶ waitForApproval\n  ✔ prints issue URL before pausing when getIssueUrl returns a URL (0.580834ms)\n  ✔ prints 'Waiting for approval (issue #N)...' before pausing (0.292875ms)\n  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (726.409292ms)\n  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (705.07775ms)\n  ✔ polls multiple times before returning 'approved' (661.866958ms)\n  ✔ returns 'interrupted' after sleep when stopping flag becomes true (677.505ms)\n  ✔ uses APPROVAL_POLL_INTERVAL env var as sleep interval (0.234292ms)\n  ✔ defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set (0.564042ms)\n  ✔ uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid (0.178542ms)\n  ✔ prints elapsed tim",
+      "stderr": "",
+      "timestamp": "2026-04-23T19:42:23.446Z",
+      "taskId": "task-6"
     }
   ],
-  "transitionCount": 9,
+  "transitionCount": 10,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -358,10 +367,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T19:23:51.603Z"
+    },
+    {
+      "taskId": "task-6",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T19:35:24.817Z"
     }
   ],
   "createdAt": "2026-04-23T14:25:16.782Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T19:30:06.461Z",
-  "_write_nonce": "eeb7409a9be208d4"
+  "_last_modified": "2026-04-23T19:42:23.446Z",
+  "_write_nonce": "cb825fbe06b62032"
 }
