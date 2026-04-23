@@ -24,6 +24,20 @@ function sleep(ms) {
 }
 
 /**
+ * Returns true only if the parsed STATE.json object has the required structural
+ * fields produced by harness-init. Guards approvalStatus writes from creating
+ * or worsening an incomplete STATE.json.
+ */
+export function isStructurallyComplete(state) {
+  return (
+    state !== null &&
+    state !== undefined &&
+    typeof state.version === "string" &&
+    Array.isArray(state.tasks)
+  );
+}
+
+/**
  * Get or create the project-level approval signing key.
  * Stored at teamDir/.approval-secret (outside any feature directory).
  * Generated once on first use and persisted across process restarts.
@@ -656,7 +670,7 @@ export async function outerLoop(args, deps) {
       // Ensure approvalStatus is persisted in STATE.json even on re-entry (e.g. crash after approval write but before EXECUTE)
       // Only update STATE.json if it already has structure (avoid creating a minimal file that breaks harness init)
       const existingStateOnReentry = readState(featureDir);
-      if (existingStateOnReentry && existingStateOnReentry.approvalStatus !== "approved") {
+      if (isStructurallyComplete(existingStateOnReentry) && existingStateOnReentry.approvalStatus !== "approved") {
         writeState(featureDir, { ...existingStateOnReentry, approvalStatus: "approved" });
       }
     } else if (approvalState?.corrupt) {
@@ -689,7 +703,7 @@ export async function outerLoop(args, deps) {
         // Mark approved in approval.json and STATE.json
         writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" }, signingKey);
         const stateOnApproval = readState(featureDir);
-        if (stateOnApproval) {
+        if (isStructurallyComplete(stateOnApproval)) {
           writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
         }
         console.log(`  ${c.green}→ Approved! Proceeding to execute.${c.reset}`);
@@ -697,7 +711,7 @@ export async function outerLoop(args, deps) {
         console.log(`  ${c.yellow}⚠ No project board configured — skipping approval wait. Proceeding to execute.${c.reset}`);
         writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" }, signingKey);
         const stateNoBoard = readState(featureDir);
-        if (stateNoBoard) {
+        if (isStructurallyComplete(stateNoBoard)) {
           writeState(featureDir, { ...stateNoBoard, approvalStatus: "approved" });
         }
       }

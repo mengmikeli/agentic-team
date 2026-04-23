@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { createHmac } from "crypto";
-import { createApprovalIssue, waitForApproval, readApprovalState, getOrCreateApprovalSigningKey } from "../bin/lib/outer-loop.mjs";
+import { createApprovalIssue, waitForApproval, readApprovalState, getOrCreateApprovalSigningKey, isStructurallyComplete } from "../bin/lib/outer-loop.mjs";
 
 // ── createApprovalIssue ─────────────────────────────────────────
 
@@ -494,5 +494,45 @@ describe("getOrCreateApprovalSigningKey", () => {
     // Reading with a different key should return corrupt
     const stateWrongKey = readApprovalState(featureDir, "wrong-key");
     assert.deepEqual(stateWrongKey, { corrupt: true });
+  });
+});
+
+// ── isStructurallyComplete ──────────────────────────────────────
+
+describe("isStructurallyComplete", () => {
+  it("returns true for a well-formed STATE.json object", () => {
+    assert.ok(isStructurallyComplete({ version: "2.0", feature: "x", tasks: [] }));
+  });
+
+  it("returns true when tasks has entries", () => {
+    assert.ok(isStructurallyComplete({ version: "2.0", tasks: [{ id: "t1" }] }));
+  });
+
+  it("returns false for null", () => {
+    assert.ok(!isStructurallyComplete(null));
+  });
+
+  it("returns false for undefined", () => {
+    assert.ok(!isStructurallyComplete(undefined));
+  });
+
+  it("returns false for empty object", () => {
+    assert.ok(!isStructurallyComplete({}));
+  });
+
+  it("returns false when version is missing", () => {
+    assert.ok(!isStructurallyComplete({ tasks: [] }));
+  });
+
+  it("returns false when version is not a string", () => {
+    assert.ok(!isStructurallyComplete({ version: 2, tasks: [] }));
+  });
+
+  it("returns false when tasks is missing", () => {
+    assert.ok(!isStructurallyComplete({ version: "2.0" }));
+  });
+
+  it("returns false when tasks is not an array", () => {
+    assert.ok(!isStructurallyComplete({ version: "2.0", tasks: {} }));
   });
 });
