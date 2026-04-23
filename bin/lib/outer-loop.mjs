@@ -7,6 +7,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
+import { randomBytes } from "crypto";
 import { c, readState, writeState, atomicWriteSync, WRITER_SIG } from "./util.mjs";
 import {
   createIssue as ghCreateIssue,
@@ -22,8 +23,27 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Get or create the project-level approval signing key.
+ * Stored at teamDir/.approval-secret (outside any feature directory).
+ * Generated once on first use and persisted across process restarts.
+ */
+export function getOrCreateApprovalSigningKey(teamDir) {
+  const keyPath = join(teamDir, ".approval-secret");
+  if (existsSync(keyPath)) {
+    try {
+      const key = readFileSync(keyPath, "utf8").trim();
+      if (key.length >= 32) return key;
+    } catch { /* fall through to generate */ }
+  }
+  const key = randomBytes(32).toString("hex");
+  mkdirSync(teamDir, { recursive: true });
+  writeFileSync(keyPath, key, { mode: 0o600 });
+  return key;
+}
+
 /** Read approval sidecar (approval.json) — separate from STATE.json to avoid crash-recovery false triggers. */
-export function readApprovalState(featureDir) {
+export function readApprovalState(featureDir, signingKey = WRITER_SIG) {
   const approvalPath = join(featureDir, "approval.json");
   if (!existsSync(approvalPath)) return null;
   let parsed;
@@ -33,7 +53,7 @@ export function readApprovalState(featureDir) {
     console.warn(`  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).`);
     return { corrupt: true };
   }
-  if (parsed?._written_by !== WRITER_SIG) {
+  if (parsed?._written_by !== signingKey) {
     console.warn(`  ⚠ approval.json has no valid integrity signature (_written_by mismatch) — treating as corrupt to prevent gate bypass.`);
     return { corrupt: true };
   }
@@ -41,9 +61,9 @@ export function readApprovalState(featureDir) {
 }
 
 /** Write approval sidecar atomically to prevent corrupt file on crash. */
-function writeApprovalState(featureDir, data) {
+function writeApprovalState(featureDir, data, signingKey = WRITER_SIG) {
   mkdirSync(featureDir, { recursive: true });
-  const signed = { ...data, _written_by: WRITER_SIG, _last_modified: new Date().toISOString() };
+  const signed = { ...data, _written_by: signingKey, _last_modified: new Date().toISOString() };
   atomicWriteSync(join(featureDir, "approval.json"), JSON.stringify(signed, null, 2));
 }
 
@@ -74,6 +94,7 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
     createIssue = ghCreateIssue,
     addToProject = ghAddToProject,
     setProjectItemStatus = ghSetProjectItemStatus,
+    signingKey = WRITER_SIG,
   } = deps;
 
   const specContent = existsSync(specPath) ? readFileSync(specPath, "utf8") : "";
@@ -92,7 +113,7 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
   }
 
   mkdirSync(featureDir, { recursive: true });
-  writeApprovalState(featureDir, { issueNumber, status: "pending" });
+  writeApprovalState(featureDir, { issueNumber, status: "pending" }, signingKey);
 
   return issueNumber;
 }
@@ -136,7 +157,7 @@ export async function waitForApproval(issueNumber, featureDir, projectNumber, ge
     const elapsed = Math.round((Date.now() - startTime) / 1000);
     console.log(`  ${c.dim}Polling issue #${issueNumber} — status: ${status ?? "unknown"} (${elapsed}s elapsed)${c.reset}`);
 
-    if (status === "Ready") return "approved";
+    if (status?.trim().toLowerCase() === "ready") return "approved";
 
     await sleepFn(intervalMs);
 

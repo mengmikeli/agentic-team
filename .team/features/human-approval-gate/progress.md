@@ -98,3 +98,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 18:33:00
+**Task 7: When the project item is moved to `"Ready"`, the loop resumes EXECUTE and sets `approvalStatus: "approved"` in `STATE.json`**
+- Verdict: 🟡 Review FAIL (attempt 2)
+- Will retry with review feedback
+
