@@ -16,3 +16,8 @@
 
 ## Execution Log
 
+### 2026-04-23 03:50:01
+**Task 1: `agt run` on a feature with `status: "executing"` logs `[crash-recovery]` and resumes rather than resetting all tasks**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

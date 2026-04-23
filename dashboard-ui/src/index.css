@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * 7-3-1 color system
+ * Teenage Engineering × Marathon
+ *
+ * 70% — dark surfaces (zinc-950 / zinc-900)
+ * 30% — mid grays (zinc-800 / zinc-500)
+ * 10% — single accent: TE orange
+ */
+
+:root,
+.dark {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 24 100% 50%;
+  --primary-foreground: 0 0% 2%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 10%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --ring: 24 100% 50%;
+  --radius: 0.375rem;
+
+  /* Single accent + error only */
+  --ops-accent: #ff6a00;
+  --ops-accent-dim: #ff6a0066;
+  --ops-accent-subtle: #ff6a001a;
+  --ops-error: #ef4444;
+
+  /* Chart: accent at 3 opacity levels */
+  --chart-high: #ff6a00;
+  --chart-mid: #ff6a00aa;
+  --chart-low: #ff6a0044;
+}
+
+.light {
+  --background: 0 0% 98%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 24 100% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --accent: 0 0% 96%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 24 100% 45%;
+  --radius: 0.375rem;
+
+  --ops-accent: #ea580c;
+  --ops-accent-dim: #ea580c66;
+  --ops-accent-subtle: #ea580c1a;
+  --ops-error: #dc2626;
+
+  --chart-high: #ea580c;
+  --chart-mid: #ea580caa;
+  --chart-low: #ea580c44;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+@media (max-width: 640px) {
+  .container { padding-left: 1rem; padding-right: 1rem; }
+}

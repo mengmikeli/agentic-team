@@ -408,9 +408,11 @@ function appendProgress(featureDir, entry) {
 export function applyCrashRecovery(state, plannedTasks, featureDir) {
   if (state && state.status === "executing") {
     const crashedAt = state._last_modified;
-    for (const t of state.tasks) {
+    const recoveredTasks = Array.isArray(state.tasks) ? state.tasks : plannedTasks;
+    for (const t of recoveredTasks) {
       if (t.status === "in-progress") t.status = "pending";
     }
+    state.tasks = recoveredTasks;
     state._recovered_from = crashedAt;
     state._recovery_count = (state._recovery_count || 0) + 1;
     state.status = "executing";
@@ -680,7 +682,8 @@ async function _runSingleFeature(args, description) {
 
   // ── Initialize feature via harness ──
 
-  if (!existsSync(featureDir)) {
+  const statePath = join(featureDir, "STATE.json");
+  if (!existsSync(statePath)) {
     const initResult = harness("init", "--feature", featureName, "--dir", teamDir);
     if (!initResult.ok && !initResult.feature) {
       console.log(`${c.red}Failed to init feature:${c.reset} ${JSON.stringify(initResult)}`);
@@ -728,8 +731,10 @@ async function _runSingleFeature(args, description) {
   harness("notify", "--event", "feature-started", "--msg",
     `▶ Feature: ${featureName} (${tasks.length} tasks planned)`);
 
-  // Initialize progress log
-  initProgressLog(featureDir, featureName, tasks, tier);
+  // Initialize progress log (skip on recovery to preserve pre-crash history)
+  if (!recovery.recovered) {
+    initProgressLog(featureDir, featureName, tasks, tier);
+  }
 
   if (dryRun) {
     console.log(`${c.dim}Tasks:${c.reset}`);
@@ -751,6 +756,7 @@ async function _runSingleFeature(args, description) {
     } catch {}
     console.log(`${c.dim}Creating GitHub issues...${c.reset}`);
     for (const task of tasks) {
+      if (task.issueNumber) continue; // already has an issue (e.g. from crash recovery)
       const issueNum = createIssue(
         `[${featureName}] ${task.title}`,
         `Auto-created by \`agt run\` for feature **${featureName}**.\n\nTask: ${task.title}`,
@@ -876,7 +882,7 @@ async function _runSingleFeature(args, description) {
           execSync("git add -A", { cwd, shell: true, stdio: "pipe" });
           const hasChanges = execSync("git diff --cached --stat", { cwd, encoding: "utf8", shell: true, stdio: "pipe" }).trim();
           if (hasChanges) {
-            execSync(`git commit -m "feat: ${task.title.replace(/"/g, '\\"').slice(0, 72)}"`, { cwd, shell: true, stdio: "pipe" });
+            execFileSync("git", ["commit", "-m", `feat: ${task.title.slice(0, 72)}`], { cwd, stdio: "pipe" });
             console.log(`  ${c.green}✓ Committed${c.reset}`);
           }
         } catch { /* no changes to commit, or git not available */ }
