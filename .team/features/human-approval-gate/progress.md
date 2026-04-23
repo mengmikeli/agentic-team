@@ -103,3 +103,13 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-23 18:52:42
+**Task 7: When the project item is moved to `"Ready"`, the loop resumes EXECUTE and sets `approvalStatus: "approved"` in `STATE.json`**
+- Verdict: 🟡 Review FAIL (attempt 3)
+- Will retry with review feedback
+
+### 2026-04-23 18:53:02
+**Re-plan for task 7: When the project item is moved to `"Ready"`, the loop resumes EXECUTE and sets `approvalStatus: "approved"` in `STATE.json`**
+- Verdict: split
+- Rationale: The 6 findings split cleanly into two independent bugs: (1) the signing key is never wired in — getOrCreateApprovalSigningKey is dead code and WRITER_SIG is a static bypassable constant; (2) writing approvalStatus to STATE.json before runSingleFeature initializes the feature produces a structurally incomplete file that crashes the inner harness. These are orthogonal fixes that are cleaner and safer to land separately.
+
