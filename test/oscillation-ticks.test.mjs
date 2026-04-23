@@ -237,6 +237,40 @@ describe("tick-limit enforcement", () => {
 describe("oscillation detection", () => {
   before(() => { mkdirSync(testDir, { recursive: true }); });
 
+  it("warns and allows transition after 2 reps of K=2 pattern, logs to progress.md", () => {
+    const dir = setupFeature("osc-warn-k2", [
+      { id: "t1", status: "pending", title: "task one" },
+    ]);
+    const env = { ...process.env, TASK_MAX_TICKS: "20" };
+    const featureDir = join(testDir, "features", "osc-warn-k2");
+
+    function tr(status) {
+      const out = execFileSync("node", [harnessPath, "transition", "--task", "t1", "--status", status, "--dir", dir], {
+        encoding: "utf8", cwd: testDir, timeout: 10000, env,
+      });
+      const lines = out.trim().split("\n");
+      for (let i = lines.length - 1; i >= 0; i--) {
+        try { return JSON.parse(lines[i]); } catch {}
+      }
+    }
+
+    // Build 4-entry history: [in-progress, failed, in-progress, failed]
+    tr("in-progress");  // 1: pending→IP
+    tr("failed");       // 2: IP→F
+    tr("in-progress");  // 3: F→IP (retries=1)
+    tr("failed");       // 4: IP→F
+
+    // 5th transition: oscillation check sees 2 reps of [in-progress, failed] → warn only
+    const result = tr("in-progress");
+    assert.equal(result.allowed, true, "transition should be allowed at reps=2 (warn, not halt)");
+
+    // progress.md should have a warning entry
+    const progressPath = join(featureDir, "progress.md");
+    const progressContent = readFileSync(progressPath, "utf8");
+    assert.match(progressContent, /Oscillation warning/, "progress.md should contain oscillation warning");
+    assert.match(progressContent, /t1/, "progress.md warning should reference the task id");
+  });
+
   it("halts feature with exit code 1 after 3 reps of K=2 pattern", () => {
     const dir = setupFeature("osc-halt-k2", [
       { id: "t1", status: "pending", title: "task one" },
