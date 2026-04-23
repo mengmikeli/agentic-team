@@ -78,3 +78,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 17:41:22
+**Task 6: Outer loop polls the project board at an interval controlled by `APPROVAL_POLL_INTERVAL` env var (default: 30s) and prints elapsed wait time each poll**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
