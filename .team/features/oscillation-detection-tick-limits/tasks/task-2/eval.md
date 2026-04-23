@@ -1,44 +1,37 @@
 ## Parallel Review Findings
 
 ### [security]
----
+## Review: `oscillation-detection-tick-limits` — Replan Tick Inheritance
 
-**Security Review: `oscillation-detection-tick-limits` — replan tick inheritance**
-
-**Verdict: PASS** (2 warnings → backlog, 0 critical)
+**Verdict: PASS** (2 warnings for backlog, 0 critical)
 
 ---
 
-**Files read:** `bin/lib/replan.mjs`, `bin/lib/transition.mjs`, `bin/lib/run.mjs`, `test/oscillation-ticks.test.mjs`, `test/replan.test.mjs`, `task-2/artifacts/test-output.txt`
+### Files Read
+- `bin/lib/replan.mjs` — tick inheritance implementation
+- `bin/lib/run.mjs` — STATE.json sync + merge logic
+- `bin/lib/transition.mjs` — tick enforcement
+- `test/oscillation-ticks.test.mjs` — test coverage
+- `tasks/task-2/artifacts/test-output.txt` — 371/371 pass
 
 ---
 
-**Findings:**
+### What Was Verified
 
-🟡 `bin/lib/replan.mjs:126` — Type-unsafe ticks arithmetic: `(blockedTask.ticks || 0) + 1` yields `"31"` not `4` if `ticks` is a string; use `(Number.isIn
+The core invariant is implemented correctly. `replan.mjs
 
 ### [architect]
----
-
-**Verdict: PASS**
-
-Files actually read: `bin/lib/replan.mjs`, `bin/lib/transition.mjs`, `test/oscillation-ticks.test.mjs`, task-2 test artifact, SPEC.md.
-
----
-
 **Findings:**
 
-🔵 `bin/lib/replan.mjs:126,141,152` — `(blockedTask.ticks || 0) + 1` duplicated three times; extract as a local const at the top of each verdict branch to reduce repetition
+🟡 `bin/lib/run.mjs:977` — Sync-then-merge replan block is duplicated verbatim at lines 977–980 and 1019–1022; two-site maintenance means future changes to the sync pattern silently diverge; extract to a named helper
 
-🔵 `test/oscillation-ticks.test.mjs:296` — inject replan only tested with `ticks=2`; no test for inject when `blockedTask.ticks` is undefined; add
+🟡 `bin/lib/run.mjs:980` — No guard on `findIndex` returning -1: `splice(bi + 1, ...)` becomes `splice(0, ...)` and silently inserts replacement tasks at position 0 instead of after the blocked task; add `if (bi >= 0)` before splice (same at line 1022)
+
+🟡 `bin/lib/r
 
 ### [devil's-advocate]
----
+**Findings:**
 
-**Verdict: FAIL**
+🟡 `test/oscillation-ticks.test.mjs:326` — Sync+merge tests replicate the `run.mjs` pattern manually but never invoke `run.mjs`; if the sync lines at `run.mjs:977` and `run.mjs:1019` were deleted, all 371 tests would still pass; escalating from prior reviewer's 🔵 — the sync is the central fix of task-2 (task-2 was created specifically to add it) and it has no integration-level coverage
 
-Here are the findings:
-
-🔴 `bin/lib/run.mjs:976,1016` — `applyReplan(tasks, task, replanResult)` receives stale in-memory `task.ticks` (undefined for fresh runs); the harness subprocess increments `ticks` in STATE.json but never syncs back to the in-memory task object; replacement tasks always get `ticks: 1` via `(undefined || 0) + 1` instead of the correct `blockedTask.ticks + 1`; fix: read fresh ticks from STATE.json before calling applyReplan
-
-🔴 `bin/lib/run.mjs:977-9
+🔵 `test/oscillation-ticks.test.mjs:310` — Test title says "blocked task with ticks=0" but blo

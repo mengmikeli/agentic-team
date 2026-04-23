@@ -37,3 +37,13 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 05:12:54
+**Task 2: A replacement task created by replan starts with `ticks` equal to the replaced task's `ticks + 1`, not 0**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+
+### 2026-04-23 05:18:37
+**Task 3: `agt-harness transition` rejects `in-progress` for a task at or above `maxTaskTicks`, writing `reason: "tick-limit-exceeded"` and status `blocked` to STATE.json**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

@@ -7,7 +7,7 @@
       "id": "t1",
       "status": "in-progress",
       "title": "task one",
-      "lastTransition": "2026-04-23T05:02:08.992Z",
+      "lastTransition": "2026-04-23T05:19:55.806Z",
       "ticks": 2,
       "retries": 1
     }
@@ -20,24 +20,24 @@
       "from": "pending",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:08.896Z"
+      "timestamp": "2026-04-23T05:19:55.711Z"
     },
     {
       "taskId": "t1",
       "from": "in-progress",
       "status": "failed",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:08.945Z"
+      "timestamp": "2026-04-23T05:19:55.759Z"
     },
     {
       "taskId": "t1",
       "from": "failed",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:08.992Z"
+      "timestamp": "2026-04-23T05:19:55.806Z"
     }
   ],
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T05:02:08.992Z",
-  "_write_nonce": "83188bc9135f1d3b"
+  "_last_modified": "2026-04-23T05:19:55.806Z",
+  "_write_nonce": "3ff1f38cf3a2945d"
 }

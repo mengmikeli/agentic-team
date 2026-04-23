@@ -16,3 +16,7 @@
 {"ts":"2026-04-23T04:07:14.576Z","event":"task-started","msg":"▶ Task 1/9: Each task object in STATE.json has a `ticks` field that increments on every agent dispatch (including retries)"}
 {"ts":"2026-04-23T04:50:17.144Z","event":"task-passed","msg":"✓ Task 1/9: Each task object in STATE.json has a `ticks` field that increments on every agent dispatch (including retries)"}
 {"ts":"2026-04-23T04:50:25.251Z","event":"task-started","msg":"▶ Task 2/9: A replacement task created by replan starts with `ticks` equal to the replaced task's `ticks + 1`, not 0"}
+{"ts":"2026-04-23T05:12:54.038Z","event":"task-passed","msg":"✓ Task 2/9: A replacement task created by replan starts with `ticks` equal to the replaced task's `ticks + 1`, not 0"}
+{"ts":"2026-04-23T05:13:01.630Z","event":"task-started","msg":"▶ Task 3/9: `agt-harness transition` rejects `in-progress` for a task at or above `maxTaskTicks`, writing `reason: \"tick-limit-exceeded\"` and status `blocked` to STATE.json"}
+{"ts":"2026-04-23T05:18:37.551Z","event":"task-passed","msg":"✓ Task 3/9: `agt-harness transition` rejects `in-progress` for a task at or above `maxTaskTicks`, writing `reason: \"tick-limit-exceeded\"` and status `blocked` to STATE.json"}
+{"ts":"2026-04-23T05:18:44.881Z","event":"task-started","msg":"▶ Task 4/9: `maxTaskTicks` is configurable via `TASK_MAX_TICKS` env var (default: 6)"}

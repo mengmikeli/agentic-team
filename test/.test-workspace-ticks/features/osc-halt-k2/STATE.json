@@ -7,7 +7,7 @@
       "id": "t1",
       "status": "failed",
       "title": "task one",
-      "lastTransition": "2026-04-23T05:02:09.280Z",
+      "lastTransition": "2026-04-23T05:19:56.098Z",
       "ticks": 3,
       "retries": 2
     }
@@ -20,45 +20,45 @@
       "from": "pending",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:09.041Z"
+      "timestamp": "2026-04-23T05:19:55.855Z"
     },
     {
       "taskId": "t1",
       "from": "in-progress",
       "status": "failed",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:09.089Z"
+      "timestamp": "2026-04-23T05:19:55.902Z"
     },
     {
       "taskId": "t1",
       "from": "failed",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:09.136Z"
+      "timestamp": "2026-04-23T05:19:55.951Z"
     },
     {
       "taskId": "t1",
       "from": "in-progress",
       "status": "failed",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:09.183Z"
+      "timestamp": "2026-04-23T05:19:56.000Z"
     },
     {
       "taskId": "t1",
       "from": "failed",
       "status": "in-progress",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:09.232Z"
+      "timestamp": "2026-04-23T05:19:56.050Z"
     },
     {
       "taskId": "t1",
       "from": "in-progress",
       "status": "failed",
       "reason": null,
-      "timestamp": "2026-04-23T05:02:09.280Z"
+      "timestamp": "2026-04-23T05:19:56.098Z"
     }
   ],
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T05:02:09.327Z",
-  "_write_nonce": "df365930a51fc3b4"
+  "_last_modified": "2026-04-23T05:19:56.145Z",
+  "_write_nonce": "7ad92571c55badb7"
 }
