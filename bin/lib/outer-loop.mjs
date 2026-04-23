@@ -109,7 +109,11 @@ export async function waitForApproval(issueNumber, featureDir, projectNumber, ge
   } = deps;
 
   const rawInterval = parseInt(process.env.APPROVAL_POLL_INTERVAL ?? "30000", 10);
-  const intervalMs = isNaN(rawInterval) || rawInterval < 1000 || rawInterval > 3600000 ? 30000 : rawInterval;
+  const clamped = isNaN(rawInterval) || rawInterval < 1000 || rawInterval > 3600000;
+  if (clamped && process.env.APPROVAL_POLL_INTERVAL !== undefined) {
+    console.warn(`  ${c.yellow}⚠ APPROVAL_POLL_INTERVAL=${process.env.APPROVAL_POLL_INTERVAL} is out of range [1000, 3600000] — using default 30s.${c.reset}`);
+  }
+  const intervalMs = clamped ? 30000 : rawInterval;
   const startTime = Date.now();
 
   const issueUrl = getIssueUrl(issueNumber);
@@ -603,8 +607,12 @@ export async function outerLoop(args, deps) {
 
     if (approvalState?.status === "approved") {
       console.log(`  ${c.green}→ Already approved (issue #${approvalIssueNumber})${c.reset}\n`);
+    } else if (approvalState?.corrupt) {
+      console.error(`${c.red}✖ approval.json is corrupt — cannot verify approval status. Halting to prevent unauthorised execution.${c.reset}`);
+      console.error(`  Remove or repair ${join(featureDir, "approval.json")} and re-run.`);
+      break;
     } else {
-      if (!approvalIssueNumber && !approvalState?.corrupt) {
+      if (!approvalIssueNumber) {
         console.log(`${c.bold}Creating approval issue...${c.reset}`);
         approvalIssueNumber = await createApprovalIssue(
           featureDir, priority.name, specPath, projectNumber, approvalDeps,

@@ -818,6 +818,47 @@ Add flow selection to agt run.
     assert.equal(approvalData.issueNumber, 99);
     assert.equal(approvalData.status, "approved");
   });
+
+  it("halts without executing when approval.json is corrupt", async () => {
+    let executeCalled = false;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => 99,
+      addToProject: () => null,
+      setProjectItemStatus: () => false,
+      getProjectItemStatus: () => "Pending Approval",
+      getIssueUrl: () => null,
+      sleep: () => Promise.resolve(),
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+          mkdirSync(featureDir, { recursive: true });
+          writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+          return { ok: true, output: "SPEC.md written." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        return "done";
+      },
+    };
+
+    // Pre-write a corrupt approval.json for this feature
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(join(featureDir, "approval.json"), "{ invalid json !!!");
+
+    await outerLoop([], mockDeps);
+
+    assert.equal(executeCalled, false, "Execute must NOT run when approval.json is corrupt");
+  });
 });
 
 // ── createApprovalIssue ─────────────────────────────────────────
