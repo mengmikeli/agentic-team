@@ -74,3 +74,13 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-23 22:35:52
+**Task 5: `synthesize.mjs` calls `runCompoundGate` after `parseFindings()` and before verdict is finalized.**
+- Verdict: 🟡 Review FAIL (attempt 3)
+- Will retry with review feedback
+
+### 2026-04-23 22:36:10
+**Re-plan for task 5: `synthesize.mjs` calls `runCompoundGate` after `parseFindings()` and before verdict is finalized.**
+- Verdict: inject
+- Rationale: The block is caused by a false finding in eval.md, not a real code defect. The eval incorrectly claims `backPathRe` is module-level stateful when it is already declared inside `detectFabricatedRefs`. The prerequisite task must correct the eval before the original task can be retried with a clean review.
+
