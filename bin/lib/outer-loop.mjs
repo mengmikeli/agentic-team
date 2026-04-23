@@ -7,7 +7,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
-import { c, readState, writeState, atomicWriteSync } from "./util.mjs";
+import { c, readState, writeState, atomicWriteSync, WRITER_SIG } from "./util.mjs";
 import {
   createIssue as ghCreateIssue,
   addToProject as ghAddToProject,
@@ -26,18 +26,25 @@ function sleep(ms) {
 export function readApprovalState(featureDir) {
   const approvalPath = join(featureDir, "approval.json");
   if (!existsSync(approvalPath)) return null;
+  let parsed;
   try {
-    return JSON.parse(readFileSync(approvalPath, "utf8"));
+    parsed = JSON.parse(readFileSync(approvalPath, "utf8"));
   } catch {
     console.warn(`  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).`);
     return { corrupt: true };
   }
+  if (parsed?._written_by !== WRITER_SIG) {
+    console.warn(`  ⚠ approval.json has no valid integrity signature (_written_by mismatch) — treating as corrupt to prevent gate bypass.`);
+    return { corrupt: true };
+  }
+  return parsed;
 }
 
 /** Write approval sidecar atomically to prevent corrupt file on crash. */
 function writeApprovalState(featureDir, data) {
   mkdirSync(featureDir, { recursive: true });
-  atomicWriteSync(join(featureDir, "approval.json"), JSON.stringify(data, null, 2));
+  const signed = { ...data, _written_by: WRITER_SIG, _last_modified: new Date().toISOString() };
+  atomicWriteSync(join(featureDir, "approval.json"), JSON.stringify(signed, null, 2));
 }
 
 function readProjectNumber(teamDir) {
@@ -607,6 +614,11 @@ export async function outerLoop(args, deps) {
 
     if (approvalState?.status === "approved") {
       console.log(`  ${c.green}→ Already approved (issue #${approvalIssueNumber})${c.reset}\n`);
+      // Ensure approvalStatus is persisted in STATE.json even on re-entry (e.g. crash after approval write but before EXECUTE)
+      const existingStateOnReentry = readState(featureDir) ?? {};
+      if (existingStateOnReentry.approvalStatus !== "approved") {
+        writeState(featureDir, { ...existingStateOnReentry, approvalStatus: "approved" });
+      }
     } else if (approvalState?.corrupt) {
       console.error(`${c.red}✖ approval.json is corrupt — cannot verify approval status. Halting to prevent unauthorised execution.${c.reset}`);
       console.error(`  Remove or repair ${join(featureDir, "approval.json")} and re-run.`);
@@ -636,18 +648,14 @@ export async function outerLoop(args, deps) {
         }
         // Mark approved in approval.json and STATE.json
         writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
-        const stateOnApproval = readState(featureDir);
-        if (stateOnApproval) {
-          writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
-        }
+        const stateOnApproval = readState(featureDir) ?? {};
+        writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
         console.log(`  ${c.green}→ Approved! Proceeding to execute.${c.reset}`);
       } else if (approvalIssueNumber && !projectNumber) {
         console.log(`  ${c.yellow}⚠ No project board configured — skipping approval wait. Proceeding to execute.${c.reset}`);
         writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
-        const stateOnApproval = readState(featureDir);
-        if (stateOnApproval) {
-          writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
-        }
+        const stateNoBoard = readState(featureDir) ?? {};
+        writeState(featureDir, { ...stateNoBoard, approvalStatus: "approved" });
       }
     }
 

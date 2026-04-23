@@ -727,7 +727,7 @@ Add flow selection to agt run.
     // Pre-create approval.json with existing pending issue
     const featureDir = join(tmpDir, ".team", "features", "flow-templates");
     mkdirSync(featureDir, { recursive: true });
-    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 77, status: "pending" }));
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 77, status: "pending", _written_by: "at-harness" }));
     writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
 
     // Create PROJECT.md with a valid project number so waitForApproval is actually invoked

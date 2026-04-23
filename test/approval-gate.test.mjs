@@ -159,12 +159,19 @@ describe("readApprovalState", () => {
     assert.equal(result, null);
   });
 
-  it("returns parsed object when approval.json is valid JSON", () => {
+  it("returns parsed object when approval.json is valid JSON with correct signature", () => {
     const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
-    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 42, status: "pending" }));
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 42, status: "pending", _written_by: "at-harness" }));
     const result = readApprovalState(featureDir);
     assert.equal(result.issueNumber, 42);
     assert.equal(result.status, "pending");
+  });
+
+  it("returns { corrupt: true } when approval.json is valid JSON but missing _written_by signature", () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 42, status: "approved" }));
+    const result = readApprovalState(featureDir);
+    assert.deepEqual(result, { corrupt: true });
   });
 
   it("returns { corrupt: true } when approval.json contains invalid JSON", () => {
