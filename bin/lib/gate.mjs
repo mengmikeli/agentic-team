@@ -22,6 +22,20 @@ export function cmdGate(args) {
     process.exit(1);
   }
 
+  // Reject placeholder/fabricated gate commands that are not real quality gates.
+  // Builder agents sometimes substitute "echo gate-recorded" instead of running actual tests.
+  const PLACEHOLDER_GATE_RE = /^\s*echo\s+(["']?)gate-recorded\1\s*$/i;
+  if (PLACEHOLDER_GATE_RE.test(cmd)) {
+    console.log(JSON.stringify({
+      ok: false,
+      verdict: "FAIL",
+      exitCode: 1,
+      error: "Placeholder gate command rejected: 'echo gate-recorded' is not a valid quality gate. Run 'npm test' or the project's configured test command.",
+    }));
+    process.exit(1);
+    return;
+  }
+
   // Find STATE.json
   const state = readState(dir);
   if (!state) {

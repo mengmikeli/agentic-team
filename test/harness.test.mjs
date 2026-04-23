@@ -186,6 +186,25 @@ describe("at-harness", () => {
       assert.equal(state.gates[0].verdict, "PASS");
       assert.equal(state.gates[1].verdict, "FAIL");
     });
+
+    it("rejects placeholder gate command 'echo gate-recorded'", () => {
+      // Builder agents sometimes fabricate 'echo gate-recorded' instead of running real tests.
+      // gate.mjs must reject this and return ok:false with verdict FAIL.
+      let result;
+      try {
+        harnessJSON("gate", "--cmd", "echo gate-recorded", "--dir", join("features", "gate-test"));
+      } catch (err) {
+        const stdout = err.stdout || "";
+        const lines = stdout.trim().split("\n");
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try { result = JSON.parse(lines[i]); break; } catch {}
+        }
+      }
+      assert.ok(result, "should have JSON output even on rejection");
+      assert.equal(result.ok, false);
+      assert.equal(result.verdict, "FAIL");
+      assert.match(result.error, /placeholder gate command rejected/i);
+    });
   });
 
   describe("notify", () => {
