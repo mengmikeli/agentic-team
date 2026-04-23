@@ -125,3 +125,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 08:34:24
+**Task 9: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count**
+- Verdict: 🟡 Review FAIL (attempt 2)
+- Will retry with review feedback
+

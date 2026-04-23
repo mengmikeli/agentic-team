@@ -3,36 +3,28 @@
 ### [security]
 ---
 
-**Security Review — oscillation-detection-tick-limits**
+## Review Findings
 
-**Files read:** `bin/lib/transition.mjs` (full), `bin/lib/util.mjs` (full), `test/oscillation-ticks.test.mjs` (full), `task-7/handshake.json`, `task-6/eval.md`
+Ran `node --test test/oscillation-ticks.test.mjs` (20/20 pass) and `node --test test/smoke-terminates.test.mjs` (1/1 pass) to resolve the prior 🔴 about untested gates.
 
-**Overall verdict: PASS** (no criticals; 4 warnings → backlog)
+**Structured findings:**
 
----
-
-**Findings:**
-
-🟡 bin/lib/util.mjs:65 — `resolve(raw)` accepts any path; add containment check to restrict `--dir` to within the `.team/` tree (e.g., verify resolved path starts with `resolve(".team")`)
-
-🟡 b
+🟡 `bin/lib/transition.mjs:22-27` — `appendProgressInDir` does a non-atomic read-then-write on progress.md. `writeState` uses atomic `tmp+rename`; the audit log doesn't. A crash between read and write silently loses the file's prior history. Backlog: use `atomicWriteSync` patter
 
 ### [architect]
 ---
 
 ## Findings
 
-🟡 `bin/lib/transition.mjs:18` — `appendProgressInDir` duplicates `run.mjs:393`'s `appendProgress`; move to `util.mjs` as a shared export to prevent format drift between the two copies
+🟡 `bin/lib/transition.mjs:18` — `appendProgressInDir` duplicates `run.mjs:393` `appendProgress`; extract to `util.mjs` as a shared export to prevent format drift
 
-🟡 `bin/lib/run.mjs:836` — `appendProgress` call on oscillation halt is redundant; `transition.mjs:139` already wrote the entry inside the subprocess; remove this line to eliminate duplicate progress.md entries on every halt
-
-🔵 `bin/lib/transition.mjs:116` — Oscillation detection loop is inline
+🟡 `bin/lib/run.mjs:843` — Tick-limit rejection writes a second progress.md entry after `transition.mjs:175` already wrote one; add a guard matching the oscillation-halt comment at line 835 (`// Note: transition.mjs already wrote the progress.md entry`) to skip this `appendProgress` call when reason is `tick-limit-ex
 
 ### [devil's-advocate]
 **Verdict: FAIL**
 
 ---
 
-🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7/handshake.json:7` — Gate is `echo gate-recorded`, not `npm test`; the two new progress.md tests (commit `67ae293`) post-date the last real gate run (commit `4a55624`, 373/373) and have **never been executed in a gate**; re-gate with `npm test` before merge
+Findings (each on its own line per required format):
 
-🟡 `bin/lib/run.mjs:836` — Oscillation halt writes a second entry to the same `featureDir/progress.md` that `transition.mjs:139` already wrote inside th
+🔴 `.team/features/oscillation-detection-tick-limits/tasks/task-7/artifacts/test-output.txt:1` — Gate artifact contains only `gate-recorded` (literal echo output, not test results); gate command was `echo gate-recorded`; previous devil's-advocate already issued 🔴 on this; current eval downgraded it to a suggestion while admitting "oscillation detection… suites do not appear in the displayed output"; re-gate with `npm 

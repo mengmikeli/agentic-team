@@ -2,30 +2,17 @@
 // Writes with nonce + file lock. Returns JSON verdict.
 
 import { join } from "path";
-import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   getFlag, resolveDir, lockFile,
   readState, writeState,
   WRITER_SIG, ALLOWED_TRANSITIONS, VALID_TASK_STATUSES,
-  IDEMPOTENCY_WINDOW_MS,
+  IDEMPOTENCY_WINDOW_MS, appendProgress,
 } from "./util.mjs";
 
 const MAX_RETRIES_PER_TASK = 3;
 const MAX_TOTAL_TRANSITIONS = 100;
 const _rawMaxTicks = parseInt(process.env.TASK_MAX_TICKS ?? "6", 10);
 const maxTaskTicks = Number.isInteger(_rawMaxTicks) && _rawMaxTicks > 0 ? _rawMaxTicks : 6;
-
-function appendProgressInDir(dir, entry) {
-  const progressPath = join(dir, "progress.md");
-  const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
-  const line = `### ${timestamp}\n${entry}\n\n`;
-  try {
-    const existing = existsSync(progressPath) ? readFileSync(progressPath, "utf8") : "";
-    writeFileSync(progressPath, existing + line);
-  } catch {
-    try { writeFileSync(progressPath, line); } catch { /* best-effort */ }
-  }
-}
 
 export function cmdTransition(args) {
   const taskId = getFlag(args, "task");
@@ -136,7 +123,7 @@ export function cmdTransition(args) {
       if (oscillation.reps >= 3) {
         freshState.status = "oscillation-halted";
         writeState(dir, freshState);
-        appendProgressInDir(dir, `**Oscillation halted** on task \`${taskId}\`: pattern [${patStr}] repeated ${oscillation.reps}×. Feature stopped.`);
+        appendProgress(dir, `**Oscillation halted** on task \`${taskId}\`: pattern [${patStr}] repeated ${oscillation.reps}×. Feature stopped.`);
         console.log(JSON.stringify({
           allowed: false,
           halt: true,
@@ -147,7 +134,7 @@ export function cmdTransition(args) {
       } else {
         // reps == 2: warn
         process.stderr.write(`[at-harness warn] oscillation detected for task '${taskId}': [${patStr}] ×${oscillation.reps}\n`);
-        appendProgressInDir(dir, `**Oscillation warning** on task \`${taskId}\`: pattern [${patStr}] repeated ${oscillation.reps}×.`);
+        appendProgress(dir, `**Oscillation warning** on task \`${taskId}\`: pattern [${patStr}] repeated ${oscillation.reps}×.`);
       }
     }
 
@@ -172,7 +159,7 @@ export function cmdTransition(args) {
         task.lastReason = "tick-limit-exceeded";
         task.lastTransition = new Date().toISOString();
         writeState(dir, freshState);
-        appendProgressInDir(dir, `**Tick limit exceeded** for task \`${taskId}\`: ${currentTicks} ticks ≥ ${maxTaskTicks}. Task blocked.`);
+        appendProgress(dir, `**Tick limit exceeded** for task \`${taskId}\`: ${currentTicks} ticks ≥ ${maxTaskTicks}. Task blocked.`);
         console.log(JSON.stringify({
           allowed: false,
           reason: `tick-limit-exceeded: task '${taskId}' has ${currentTicks} ticks (limit: ${maxTaskTicks})`,

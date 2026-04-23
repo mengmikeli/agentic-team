@@ -8,7 +8,7 @@ import { createInterface } from "readline";
 import { fileURLToPath } from "url";
 import {
   c, getFlag, readState, writeState, generateNonce,
-  WRITER_SIG, ALLOWED_TRANSITIONS,
+  WRITER_SIG, ALLOWED_TRANSITIONS, appendProgress,
 } from "./util.mjs";
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
@@ -390,17 +390,6 @@ function initProgressLog(featureDir, featureName, tasks, tier) {
   writeFileSync(progressPath, content);
 }
 
-function appendProgress(featureDir, entry) {
-  const progressPath = join(featureDir, "progress.md");
-  const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
-  const line = `### ${timestamp}\n${entry}\n\n`;
-  try {
-    const existing = existsSync(progressPath) ? readFileSync(progressPath, "utf8") : "";
-    writeFileSync(progressPath, existing + line);
-  } catch {
-    writeFileSync(progressPath, line);
-  }
-}
 
 // ── Crash recovery helper ────────────────────────────────────────
 // Exported for testing. Mutates state in-place and returns tasks to use.
@@ -851,7 +840,10 @@ async function _runSingleFeature(args, description) {
       }
       // Tick-limit or other rejection — skip this task
       console.log(`  ${c.yellow}⊘ Transition rejected: ${transitionResult.reason}${c.reset}`);
-      appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Transition rejected: ${transitionResult.reason}`);
+      // Note: transition.mjs already wrote the progress.md entry for tick-limit-exceeded
+      if (!transitionResult.reason?.startsWith("tick-limit-exceeded")) {
+        appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Transition rejected: ${transitionResult.reason}`);
+      }
       blocked++;
       syncTaskState();
       continue;

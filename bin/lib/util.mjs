@@ -2,7 +2,7 @@
 // Nonce generation, file locking, atomic writes, CLI flag parsing.
 
 import { writeFileSync, readFileSync, renameSync, unlinkSync, existsSync } from "fs";
-import { resolve } from "path";
+import { resolve, join } from "path";
 import { createHash, randomBytes } from "crypto";
 
 // ── Constants ───────────────────────────────────────────────────
@@ -56,6 +56,20 @@ export function atomicWriteSync(filePath, data) {
   const tmp = `${filePath}.tmp.${process.pid}.${Date.now()}`;
   writeFileSync(tmp, data);
   renameSync(tmp, filePath);
+}
+
+// ── Progress log helper ─────────────────────────────────────────
+
+export function appendProgress(featureDir, entry) {
+  const progressPath = join(featureDir, "progress.md");
+  const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const line = `### ${timestamp}\n${entry}\n\n`;
+  try {
+    const existing = existsSync(progressPath) ? readFileSync(progressPath, "utf8") : "";
+    writeFileSync(progressPath, existing + line);
+  } catch {
+    try { writeFileSync(progressPath, line); } catch { /* best-effort */ }
+  }
 }
 
 // ── Safe directory resolution ───────────────────────────────────
