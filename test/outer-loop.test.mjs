@@ -819,6 +819,125 @@ Add flow selection to agt run.
     assert.equal(approvalData.status, "approved");
   });
 
+  it("sets approvalStatus: 'approved' in STATE.json when project item moves to Ready", async () => {
+    let executeCalled = false;
+    let dispatchCount = 0;
+
+    // Pre-create STATE.json for the feature (simulates harness having initialized it)
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+    const initialState = {
+      version: "2.0",
+      feature: "flow-templates",
+      status: "active",
+      tasks: [],
+      gates: [],
+      transitionCount: 0,
+      transitionHistory: [],
+      createdAt: new Date().toISOString(),
+      _written_by: "at-harness",
+      _last_modified: new Date().toISOString(),
+      _write_nonce: "test-nonce",
+    };
+    writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(initialState, null, 2));
+    writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+
+    // Also write PROJECT.md so waitForApproval is actually invoked
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Project\nhttps://github.com/users/test/projects/42\n");
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => 55,
+      addToProject: () => "item-id-123",
+      setProjectItemStatus: () => true,
+      getProjectItemStatus: () => "Ready",  // immediately approved
+      getIssueUrl: () => null,
+      sleep: () => Promise.resolve(),
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          return { ok: true, output: "SPEC.md already exists." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        const fd = join(tmpDir, ".team", "features", "flow-templates");
+        writeFileSync(join(fd, "progress.md"), "done\n");
+        return "exhausted";
+      },
+    };
+
+    await outerLoop([], mockDeps);
+
+    assert.ok(executeCalled, "Execute should proceed after approval");
+
+    const stateData = JSON.parse(readFileSync(join(featureDir, "STATE.json"), "utf8"));
+    assert.equal(stateData.approvalStatus, "approved",
+      "STATE.json should contain approvalStatus: 'approved' after project item moves to Ready");
+  });
+
+  it("sets approvalStatus: 'approved' in STATE.json when skipping approval wait (no project board)", async () => {
+    let executeCalled = false;
+    let dispatchCount = 0;
+
+    // Pre-create STATE.json
+    const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+    mkdirSync(featureDir, { recursive: true });
+    const initialState = {
+      version: "2.0",
+      feature: "flow-templates",
+      status: "active",
+      tasks: [],
+      gates: [],
+      transitionCount: 0,
+      transitionHistory: [],
+      createdAt: new Date().toISOString(),
+      _written_by: "at-harness",
+      _last_modified: new Date().toISOString(),
+      _write_nonce: "test-nonce-2",
+    };
+    writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(initialState, null, 2));
+    writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+
+    // No PROJECT.md → projectNumber is null → skips waitForApproval
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => 66,
+      addToProject: () => null,
+      setProjectItemStatus: () => false,
+      getProjectItemStatus: () => "Pending Approval",
+      sleep: () => Promise.resolve(),
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          return { ok: true, output: "SPEC.md already exists." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        const fd = join(tmpDir, ".team", "features", "flow-templates");
+        writeFileSync(join(fd, "progress.md"), "done\n");
+        return "exhausted";
+      },
+    };
+
+    await outerLoop([], mockDeps);
+
+    assert.ok(executeCalled, "Execute should proceed when no project board");
+
+    const stateData = JSON.parse(readFileSync(join(featureDir, "STATE.json"), "utf8"));
+    assert.equal(stateData.approvalStatus, "approved",
+      "STATE.json should contain approvalStatus: 'approved' even when skipping approval wait");
+  });
+
   it("halts without executing when approval.json is corrupt", async () => {
     let executeCalled = false;
     let dispatchCount = 0;

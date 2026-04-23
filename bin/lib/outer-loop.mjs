@@ -634,12 +634,20 @@ export async function outerLoop(args, deps) {
           console.log(`\n${c.yellow}Interrupted while waiting for approval (issue #${approvalIssueNumber}).${c.reset}`);
           break;
         }
-        // Mark approved in approval.json
+        // Mark approved in approval.json and STATE.json
         writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
+        const stateOnApproval = readState(featureDir);
+        if (stateOnApproval) {
+          writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
+        }
         console.log(`  ${c.green}→ Approved! Proceeding to execute.${c.reset}`);
       } else if (approvalIssueNumber && !projectNumber) {
         console.log(`  ${c.yellow}⚠ No project board configured — skipping approval wait. Proceeding to execute.${c.reset}`);
         writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
+        const stateOnApproval = readState(featureDir);
+        if (stateOnApproval) {
+          writeState(featureDir, { ...stateOnApproval, approvalStatus: "approved" });
+        }
       }
     }
 
