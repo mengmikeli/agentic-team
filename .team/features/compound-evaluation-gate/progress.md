@@ -49,3 +49,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 21:44:40
+**Task 3: `bin/lib/compound-gate.mjs` exists with `runCompoundGate(findings, repoRoot)` implementing all 5 layers.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

@@ -88,3 +88,5 @@
 {"ts":"2026-04-23T21:19:49.656Z","event":"task-started","msg":"▶ Task 2/13: Fix Layer 4 false-positives and document Layer 5 severity exclusion in compound-gate.mjs"}
 {"ts":"2026-04-23T21:36:51.104Z","event":"task-passed","msg":"✓ Task 2/13: Fix Layer 4 false-positives and document Layer 5 severity exclusion in compound-gate.mjs"}
 {"ts":"2026-04-23T21:36:51.201Z","event":"task-started","msg":"▶ Task 3/13: `bin/lib/compound-gate.mjs` exists with `runCompoundGate(findings, repoRoot)` implementing all 5 layers."}
+{"ts":"2026-04-23T21:44:40.385Z","event":"task-passed","msg":"✓ Task 3/13: `bin/lib/compound-gate.mjs` exists with `runCompoundGate(findings, repoRoot)` implementing all 5 layers."}
+{"ts":"2026-04-23T21:44:42.743Z","event":"task-started","msg":"▶ Task 4/13: Each layer has its own named export function and can be tested independently."}

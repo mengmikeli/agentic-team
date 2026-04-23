@@ -1,0 +1,20 @@
+{
+  "taskId": "task-2",
+  "nodeType": "gate",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-23T21:45:48.395Z",
+  "artifacts": [
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
+  ],
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
+}
