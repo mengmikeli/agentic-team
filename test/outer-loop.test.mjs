@@ -765,6 +765,54 @@ Add flow selection to agt run.
     assert.equal(createIssueCalled, false, "createIssue should NOT be called when issue already exists");
     assert.ok(executeCalled, "Execute should proceed after re-entry approval");
   });
+
+  it("skips waitForApproval and proceeds when projectNumber is null", async () => {
+    let waitForApprovalCalled = false;
+    let executeCalled = false;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      createIssue: () => 99, // issue created successfully
+      addToProject: () => null,
+      setProjectItemStatus: () => false,
+      // getProjectItemStatus would loop forever if called with null projectNumber
+      getProjectItemStatus: () => { waitForApprovalCalled = true; return null; },
+      sleep: () => { waitForApprovalCalled = true; return Promise.resolve(); },
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+          mkdirSync(featureDir, { recursive: true });
+          writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+          return { ok: true, output: "SPEC.md written." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async () => {
+        executeCalled = true;
+        const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+        mkdirSync(featureDir, { recursive: true });
+        writeFileSync(join(featureDir, "progress.md"), "done\n");
+        return "done";
+      },
+    };
+
+    // No PROJECT.md in tmpDir → projectNumber will be null
+    await outerLoop([], mockDeps);
+
+    assert.equal(waitForApprovalCalled, false, "Should not poll when projectNumber is null");
+    assert.ok(executeCalled, "Execute should proceed even without project board");
+
+    const approvalPath = join(tmpDir, ".team", "features", "flow-templates", "approval.json");
+    assert.ok(existsSync(approvalPath), "approval.json should exist");
+    const approvalData = JSON.parse(readFileSync(approvalPath, "utf8"));
+    assert.equal(approvalData.issueNumber, 99);
+    assert.equal(approvalData.status, "approved");
+  });
 });
 
 // ── createApprovalIssue ─────────────────────────────────────────

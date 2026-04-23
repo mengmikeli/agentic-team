@@ -101,7 +101,8 @@ export async function waitForApproval(issueNumber, featureDir, projectNumber, ge
     sleep: sleepFn = sleep,
   } = deps;
 
-  const intervalMs = parseInt(process.env.APPROVAL_POLL_INTERVAL ?? "30000", 10);
+  const rawInterval = parseInt(process.env.APPROVAL_POLL_INTERVAL ?? "30000", 10);
+  const intervalMs = isNaN(rawInterval) || rawInterval < 1000 ? 30000 : rawInterval;
   const startTime = Date.now();
 
   console.log(`  ${c.cyan}Waiting for approval (issue #${issueNumber})... (poll every ${intervalMs / 1000}s)${c.reset}`);
@@ -605,7 +606,7 @@ export async function outerLoop(args, deps) {
         console.log(`${c.bold}Resuming approval wait for issue #${approvalIssueNumber}...${c.reset}`);
       }
 
-      if (approvalIssueNumber) {
+      if (approvalIssueNumber && projectNumber) {
         const approvalResult = await waitForApproval(
           approvalIssueNumber, featureDir, projectNumber, () => stopping, approvalDeps,
         );
@@ -616,6 +617,9 @@ export async function outerLoop(args, deps) {
         // Mark approved in approval.json
         writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
         console.log(`  ${c.green}→ Approved! Proceeding to execute.${c.reset}`);
+      } else if (approvalIssueNumber && !projectNumber) {
+        console.log(`  ${c.yellow}⚠ No project board configured — skipping approval wait. Proceeding to execute.${c.reset}`);
+        writeApprovalState(featureDir, { issueNumber: approvalIssueNumber, status: "approved" });
       }
     }
 
