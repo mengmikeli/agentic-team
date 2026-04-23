@@ -140,23 +140,66 @@ function runGateInline(cmd, featureDir, taskId) {
 
 // ── Token usage tracking ───────────────────────────────────────
 
-const _runUsage = { dispatches: 0, inputTokens: 0, cacheRead: 0, cacheCreate: 0, outputTokens: 0, costUsd: 0, durationMs: 0 };
+// ── Token usage tracking ───────────────────────────────────────
+
+function _emptyBucket() {
+  return { dispatches: 0, inputTokens: 0, cacheRead: 0, cacheCreate: 0, outputTokens: 0, costUsd: 0, durationMs: 0 };
+}
+
+const _runUsage = _emptyBucket();
+const _phaseUsage = {};   // phase -> bucket ("brainstorm", "build", "review", "gate")
+const _taskUsage = {};    // taskId -> bucket
+let _currentPhase = "build";
+let _currentTask = null;
 
 function trackUsage(jsonResult) {
   if (!jsonResult) return;
+  const u = jsonResult.usage || {};
+  const entry = {
+    input: u.input_tokens || 0,
+    cacheRead: u.cache_read_input_tokens || 0,
+    cacheCreate: u.cache_creation_input_tokens || 0,
+    output: u.output_tokens || 0,
+    cost: jsonResult.total_cost_usd || 0,
+    duration: jsonResult.duration_ms || 0,
+  };
+
+  // Accumulate to run total
   _runUsage.dispatches++;
-  if (jsonResult.usage) {
-    _runUsage.inputTokens += jsonResult.usage.input_tokens || 0;
-    _runUsage.cacheRead += jsonResult.usage.cache_read_input_tokens || 0;
-    _runUsage.cacheCreate += jsonResult.usage.cache_creation_input_tokens || 0;
-    _runUsage.outputTokens += jsonResult.usage.output_tokens || 0;
+  _runUsage.inputTokens += entry.input;
+  _runUsage.cacheRead += entry.cacheRead;
+  _runUsage.cacheCreate += entry.cacheCreate;
+  _runUsage.outputTokens += entry.output;
+  _runUsage.costUsd += entry.cost;
+  _runUsage.durationMs += entry.duration;
+
+  // Accumulate to phase
+  if (!_phaseUsage[_currentPhase]) _phaseUsage[_currentPhase] = _emptyBucket();
+  const ph = _phaseUsage[_currentPhase];
+  ph.dispatches++; ph.inputTokens += entry.input; ph.cacheRead += entry.cacheRead;
+  ph.cacheCreate += entry.cacheCreate; ph.outputTokens += entry.output;
+  ph.costUsd += entry.cost; ph.durationMs += entry.duration;
+
+  // Accumulate to task
+  if (_currentTask) {
+    if (!_taskUsage[_currentTask]) _taskUsage[_currentTask] = _emptyBucket();
+    const tk = _taskUsage[_currentTask];
+    tk.dispatches++; tk.inputTokens += entry.input; tk.cacheRead += entry.cacheRead;
+    tk.cacheCreate += entry.cacheCreate; tk.outputTokens += entry.output;
+    tk.costUsd += entry.cost; tk.durationMs += entry.duration;
   }
-  _runUsage.costUsd += jsonResult.total_cost_usd || 0;
-  _runUsage.durationMs += jsonResult.duration_ms || 0;
 }
 
+export function setUsageContext(phase, taskId) { _currentPhase = phase; _currentTask = taskId; }
 export function getRunUsage() { return { ..._runUsage }; }
-export function resetRunUsage() { Object.assign(_runUsage, { dispatches: 0, inputTokens: 0, cacheRead: 0, cacheCreate: 0, outputTokens: 0, costUsd: 0, durationMs: 0 }); }
+export function getPhaseUsage() { return { ..._phaseUsage }; }
+export function getTaskUsage() { return { ..._taskUsage }; }
+export function resetRunUsage() {
+  Object.assign(_runUsage, _emptyBucket());
+  for (const k of Object.keys(_phaseUsage)) delete _phaseUsage[k];
+  for (const k of Object.keys(_taskUsage)) delete _taskUsage[k];
+  _currentPhase = "build"; _currentTask = null;
+}
 
 // ── Agent dispatch (exported for outer loop) ───────────────────
 
@@ -879,6 +922,7 @@ async function _runSingleFeature(args, description) {
   let brainstormOutput = null;
   if (agent && flow.phases.includes("brainstorm")) {
     console.log(`${c.cyan}▶ Brainstorming...${c.reset}`);
+    setUsageContext("brainstorm", null);
     const brainstormBrief = buildBrainstormBrief(featureName, featureDescription, cwd);
     const brainstormResult = dispatchToAgent(agent, brainstormBrief, cwd);
     if (brainstormResult.ok && brainstormResult.output) {
@@ -891,6 +935,7 @@ async function _runSingleFeature(args, description) {
     const task = tasks[i];
 
     console.log(`${c.bold}▶ Task ${i + 1}/${tasks.length}:${c.reset} ${task.title}`);
+    setUsageContext("build", task.id);
 
     // Create task directory structure before dispatch
     const taskDir = join(featureDir, "tasks", task.id);
@@ -1030,6 +1075,7 @@ async function _runSingleFeature(args, description) {
 
         if (agent && flow.phases.includes("multi-review")) {
           console.log(`  ${c.cyan}▶ Parallel review (${PARALLEL_REVIEW_ROLES.join(", ")})...${c.reset}`);
+          setUsageContext("review", task.id);
           const roleFindings = await runParallelReviews(
             agent, PARALLEL_REVIEW_ROLES, featureName, task.title, gateResult.stdout, cwd,
           );
@@ -1165,7 +1211,10 @@ async function _runSingleFeature(args, description) {
   // ── Completion report ──
 
   const usage = getRunUsage();
+  const phases = getPhaseUsage();
+  const taskCosts = getTaskUsage();
   const formatTokens = (n) => n >= 1e6 ? `${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `${(n/1e3).toFixed(1)}K` : String(n);
+  const totalTokens = (b) => b.inputTokens + b.cacheRead + b.outputTokens;
 
   console.log(`${"═".repeat(50)}`);
   console.log(`${c.bold}Feature complete: ${featureLabel ? `[${featureLabel}] ` : ''}${featureName}${c.reset}`);
@@ -1174,14 +1223,41 @@ async function _runSingleFeature(args, description) {
   console.log(`  ${c.dim}Duration: ${durationStr}${c.reset}`);
   if (usage.dispatches > 0) {
     console.log(`  ${c.dim}Dispatches: ${usage.dispatches}${c.reset}`);
-    console.log(`  ${c.dim}Tokens: ${formatTokens(usage.inputTokens + usage.cacheRead + usage.outputTokens)} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})${c.reset}`);
+    console.log(`  ${c.dim}Tokens: ${formatTokens(totalTokens(usage))} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})${c.reset}`);
     if (usage.costUsd > 0) console.log(`  ${c.dim}Cost: $${usage.costUsd.toFixed(2)}${c.reset}`);
+
+    // Phase breakdown
+    const phaseOrder = ["brainstorm", "build", "review"];
+    const activePhases = phaseOrder.filter(p => phases[p]);
+    if (activePhases.length > 0) {
+      console.log(`  ${c.dim}By phase:${c.reset}`);
+      for (const p of activePhases) {
+        const ph = phases[p];
+        console.log(`    ${c.dim}${p}: ${ph.dispatches} dispatches, ${formatTokens(totalTokens(ph))} tokens${ph.costUsd > 0 ? `, $${ph.costUsd.toFixed(2)}` : ''}${c.reset}`);
+      }
+    }
+
+    // Top expensive tasks
+    const taskEntries = Object.entries(taskCosts).sort((a, b) => b[1].costUsd - a[1].costUsd);
+    if (taskEntries.length > 0 && taskEntries[0][1].costUsd > 0) {
+      console.log(`  ${c.dim}Top tasks by cost:${c.reset}`);
+      for (const [tid, tu] of taskEntries.slice(0, 5)) {
+        const taskObj = tasks.find(t => t.id === tid);
+        const label = taskObj ? taskObj.title.slice(0, 40) : tid;
+        console.log(`    ${c.dim}${tid}: $${tu.costUsd.toFixed(2)} (${tu.dispatches} dispatches, ${formatTokens(totalTokens(tu))})${c.reset}`);
+      }
+    }
   }
   console.log(`${"═".repeat(50)}\n`);
 
   // Write usage to progress log
   if (usage.dispatches > 0) {
-    appendProgress(featureDir, `**Run Summary**\n- Tasks: ${completed}/${tasks.length} done, ${blocked} blocked\n- Duration: ${durationStr}\n- Dispatches: ${usage.dispatches}\n- Tokens: ${formatTokens(usage.inputTokens + usage.cacheRead + usage.outputTokens)} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})\n- Cost: $${usage.costUsd.toFixed(2)}`);
+    let summary = `**Run Summary**\n- Tasks: ${completed}/${tasks.length} done, ${blocked} blocked\n- Duration: ${durationStr}\n- Dispatches: ${usage.dispatches}\n- Tokens: ${formatTokens(totalTokens(usage))} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})\n- Cost: $${usage.costUsd.toFixed(2)}`;
+    const activePhases2 = ["brainstorm", "build", "review"].filter(p => phases[p]);
+    if (activePhases2.length > 0) {
+      summary += `\n- By phase: ${activePhases2.map(p => `${p} $${phases[p].costUsd.toFixed(2)}`).join(', ')}`;
+    }
+    appendProgress(featureDir, summary);
   }
 
   harness("notify", "--event", "feature-complete", "--msg",
