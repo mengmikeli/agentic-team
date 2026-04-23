@@ -3,42 +3,36 @@
 ### [security]
 ---
 
-**Verdict: PASS** (4 warnings → backlog, 1 suggestion)
+**Overall Verdict: PASS** (2 warnings → backlog, 2 suggestions)
 
-Both prior 🔴 findings from task-1 are **verified fixed**: approval fields now live in `approval.json` (not STATE.json), and all outerLoop tests use `NO_GH_APPROVAL_DEPS` mocks.
-
----
+Both prior 🔴 findings from task-1 are verified fixed in the code I read:
+- NaN spin-loop: `isNaN` guard + 1000ms floor at `outer-loop.mjs:104-105` ✅
+- null projectNumber infinite loop: explicit guard at `outer-loop.mjs:609` ✅
 
 **Findings:**
 
-🟡 `bin/lib/outer-loop.mjs:104` — `parseInt("abc", 10)` returns NaN; `setTimeout(resolve, NaN)` fires at 0ms, creating a spin loop hammering GitHub API; add `isNaN` guard with 30s floor
-
-🟡 `bin/lib/outer-loop.mjs:73` — `createIssue(...)` c
+🟡 `bin/lib/outer-loop.mjs:77` — `addToProject()` return value silently ignored; if it fails, `getProjectItemStatus` always returns null (never "Ready"), causing an indefinite poll loop t
 
 ### [architect]
-Now the structured findings output:
+**Verdict: PASS**
 
----
-
-**Files I actually read:**
-- `bin/lib/outer-loop.mjs` (full, 686 lines)
-- `bin/lib/github.mjs` (full, 192 lines)
-- `bin/agt.mjs` (full)
-- `test/outer-loop.test.mjs` (lines 494–768)
-- `.team/features/human-approval-gate/SPEC.md`
-- `.team/features/human-approval-gate/tasks/task-1/handshake.json`
-- `.team/features/human-approval-gate/tasks/task-1-s1/handshake.json`
-- `.team/features/human-approval-gate/tasks/task-1/artifacts/test-output.txt` (384 pass / 1 f
-
-### [devil's-advocate]
----
-
-**Verdict: ITERATE**
-
-Files read: `bin/lib/outer-loop.mjs`, `bin/lib/github.mjs`, `test/outer-loop.test.mjs` (approval sections), all task artifacts.
+386/386 tests pass. All prior critical findings are confirmed fixed by direct code inspection.
 
 ---
 
 **Findings:**
 
-🔴 `bin/lib/outer-loop.mjs:608` — When `createIssue` succeeds but `projectNumber` is null (gh is available, no PROJECT.md or no `/projects/N` URL), `waitForApproval` is called unconditionally with `null` project; `getProjectItemStatus(n, null)` returns `null` on every poll (github.mjs:99 early-guards on `!projectNumber`); 
+🟡 `bin/lib/outer-loop.mjs:77` — `addToProject(issueNumber, projectNumber)` return value silently discarded; if it returns null (auth error, project not found), the issue is never added to the board; `getProjectItemStatus` then returns null on every poll and `waitForApproval` blocks indefinitely until SIGINT; check return value and warn on null
+
+🟡 `bin/lib/outer
+
+### [devil's-advocate]
+**Verdict: PASS**
+
+---
+
+## Findings
+
+🟡 `test/outer-loop.test.mjs:726` — The "re-entry guard" test never exercises the resume-polling path. No PROJECT.md is created in `tmpDir`, so `projectNumber` is always null and the `getProjectItemStatus: () => "Ready"` mock at line 742 is dead code. The scenario "approval.json with pending status AND valid projectNumber → resume waitForApproval" (lines 609–619) is entirely untested. A mutation of `&&` → `||` at line 609 would still pass all tests.
+
+🟡 `bin/
