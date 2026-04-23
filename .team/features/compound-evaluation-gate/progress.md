@@ -99,3 +99,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 23:12:54
+**Task 9: `handshake.json` includes a `compoundGate` field with `tripped`, `layers`, and `verdict`.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
