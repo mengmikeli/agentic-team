@@ -65,3 +65,5 @@
 {"ts":"2026-04-23T17:23:57.780Z","event":"task-started","msg":"▶ Task 5/12: CLI prints the issue URL and \"Waiting for approval (issue #{N})...\" before pausing"}
 {"ts":"2026-04-23T17:31:22.792Z","event":"task-passed","msg":"✓ Task 5/12: CLI prints the issue URL and \"Waiting for approval (issue #{N})...\" before pausing"}
 {"ts":"2026-04-23T17:31:30.531Z","event":"task-started","msg":"▶ Task 6/12: Outer loop polls the project board at an interval controlled by `APPROVAL_POLL_INTERVAL` env var (default: 30s) and prints elapsed wait time each poll"}
+{"ts":"2026-04-23T18:00:52.054Z","event":"progress","msg":"Progress: 4/12 done, 1 blocked."}
+{"ts":"2026-04-23T18:00:54.784Z","event":"task-started","msg":"▶ Task 7/12: When the project item is moved to `\"Ready\"`, the loop resumes EXECUTE and sets `approvalStatus: \"approved\"` in `STATE.json`"}

@@ -88,3 +88,8 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-23 18:00:17
+**Task 6: Outer loop polls the project board at an interval controlled by `APPROVAL_POLL_INTERVAL` env var (default: 30s) and prints elapsed wait time each poll**
+- Verdict: 🟡 Review FAIL (attempt 3)
+- Will retry with review feedback
+

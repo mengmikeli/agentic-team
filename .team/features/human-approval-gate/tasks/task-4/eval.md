@@ -3,32 +3,38 @@
 ### [security]
 ---
 
-## Findings
+**Verdict: PASS** (2 warnings to backlog, 0 critical)
 
-🔴 `bin/lib/outer-loop.mjs:604` — Corrupt `approval.json` bypasses the approval gate. `approvalIssueNumber` is null (line 592), the create branch is correctly guarded by `!approvalState?.corrupt` (line 607), but neither `waitForApproval` branch (lines 621, 632) fires because both require a truthy `approvalIssueNumber`. Execution falls through to EXECUTE without human sign-off. Fix: add `if (approvalState?.corrupt) { console.error("approval.json is corrupt..."); break; }` before
+Files actually read: `bin/lib/outer-loop.mjs`, `bin/lib/util.mjs`, `bin/lib/github.mjs`, `tasks/task-4/handshake.json`, `tasks/task-4/artifacts/test-output.txt`
 
-### [architect]
 ---
 
+🟡 bin/lib/outer-loop.mjs:389 — `markRoadmapItemDone` writes PRODUCT.md with plain `writeFileSync`; a crash mid-write corrupts the roadmap and halts all future cycles; replace with `atomicWriteSync`
+
+🟡 bin/lib/outer-loop.mjs:622 — Approval gate silently skips when `gh` CL
+
+### [architect]
 **Verdict: PASS**
 
-Files read: `bin/lib/outer-loop.mjs`, `test/approval-gate.test.mjs`, `test/outer-loop.test.mjs`, `bin/lib/github.mjs` (partial), handshake + test-output + SPEC.md.
-
-Test evidence: 409/409 pass. Both core behaviors are directly traceable to code + passing tests.
+Files actually read: `bin/lib/outer-loop.mjs` (full), `test/approval-gate.test.mjs` (full), `test/outer-loop.test.mjs` (approval sections), `bin/lib/github.mjs` (partial, lines 1-80), `task-4/handshake.json`.
 
 ---
 
 **Findings:**
 
-🟡 `bin/lib/outer-loop.mjs:112` — Silent fallback when `APPROVAL_POLL_INTERVAL` is out of range `[1000, 3600000]`; user setting `500` silently gets 30s with no warning; add `console.warn` on cl
+🟡 `bin/lib/outer-loop.mjs:112` — `clamped` is a misleading variable name; the value is not clamped to a boundary — invalid values are fully replaced by the 30s default. Rename to `isInvalid` or `outOfRange`.
+
+🟡 `bin/lib/outer-loop.mjs:104` — `featur
 
 ### [devil's-advocate]
-**Verdict: PASS** (with 3 warnings to backlog)
+---
+
+**Verdict: PASS** (2 warnings to backlog, 3 suggestions)
+
+**Files actually read:** `outer-loop.mjs` (full, 710 lines), `github.mjs` (full), `util.mjs` (full), `approval-gate.test.mjs` (full), `outer-loop.test.mjs` (waitForApproval + approval integration sections), `handshake.json`, `test-output.txt`.
 
 ---
 
-Findings:
+### Findings
 
-🟡 bin/lib/outer-loop.mjs:618 — When `approval.json` is corrupt, `approvalIssueNumber` is null but the else-branch logs "Resuming approval wait for issue #null..." then silently skips the gate with no explanation; add an explicit `if (approvalState?.corrupt)` branch that logs clearly and skips
-
-🟡 bin/lib/outer-loop.mjs:112 — `APPROVAL_POLL_INTERVAL` values outside [1000, 3600000]ms silently fall back to 30s with no warning; `APPROV
+🟡 `bin/lib/outer-loop.mjs:128` — `waitForApproval` has no timeout or max-retry when `getProjectItemStatus` consistently returns null (API down / board misconfigured); the f

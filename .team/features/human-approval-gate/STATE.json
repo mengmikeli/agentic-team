@@ -47,7 +47,7 @@
       "id": "task-4",
       "title": "Outer loop polls the project board at an interval controlled by `APPROVAL_POLL_INTERVAL` env var (default: 30s) and prints elapsed wait time each poll",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 3,
       "issueNumber": 85
     },
     {
@@ -219,9 +219,18 @@
       "stderr": "",
       "timestamp": "2026-04-23T17:53:07.143Z",
       "taskId": "task-4"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (1.938666ms)\n  ✔ returns null and does not write approval.json when createIssue fails (1.031625ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (2.173417ms)\n  ✔ skips project board calls when projectNumber is null (1.147208ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (1.008084ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.746917ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (1.07775ms)\n✔ createApprovalIssue (10.577708ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (1.142375ms)\n  ✔ returns parsed object when approval.json is valid JSON (0.560375ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.956958ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.46ms)\n✔ readApprovalState (3.324125ms)\n▶ waitForApproval\n  ✔ prints issue URL before pausing when getIssueUrl returns a URL (0.932083ms)\n  ✔ prints 'Waiting for approval (issue #N)...' before pausing (0.3685ms)\n  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (1152.655584ms)\n  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (711.77575ms)\n  ✔ polls multiple times before returning 'approved' (708.522584ms)\n  ✔ returns 'interrupted' after sleep when stopping flag becomes true (685.045042ms)\n  ✔ uses APPROVAL_POLL_INTERVAL env var as sleep interval (0.403375ms)\n  ✔ defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set (0.351584ms)\n  ✔ uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid (0.99625ms)\n  ✔ prints elapsed time in each poll log message (0.137375ms)\n✔ waitForApproval (3261.478917ms)\n▶ CLI help text\n  ✔ shows review command in help (164.949875ms)\n  ✔ shows audit command in help (226.391708ms)\n  ✔ shows brainstorm command in help (140.335459ms)\n  ✔ help text includes all three new commands with descriptions (152.23175ms)\n✔ CLI help text (685.568084ms)\n▶ agt review\n  ✔ hand",
+      "stderr": "",
+      "timestamp": "2026-04-23T18:09:56.327Z",
+      "taskId": "task-5"
     }
   ],
-  "transitionCount": 6,
+  "transitionCount": 7,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -264,10 +273,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T17:31:28.013Z"
+    },
+    {
+      "taskId": "task-5",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T18:00:52.103Z"
     }
   ],
   "createdAt": "2026-04-23T14:25:16.782Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T17:53:07.143Z",
-  "_write_nonce": "d7e83985b35322ef"
+  "_last_modified": "2026-04-23T18:09:56.327Z",
+  "_write_nonce": "d23b10bc13959f71"
 }
