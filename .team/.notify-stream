@@ -45,3 +45,5 @@
 {"ts":"2026-04-23T13:04:39.417Z","event":"task-passed","msg":"✓ Task 3/7: `applyCrashRecovery()` writes `_recovered_from` (crash timestamp) and `_recovery_count` (incrementing) to state after recovery"}
 {"ts":"2026-04-23T13:04:44.400Z","event":"progress","msg":"Progress: 3/7 done, 0 blocked."}
 {"ts":"2026-04-23T13:04:47.198Z","event":"task-started","msg":"▶ Task 4/7: `applyCrashRecovery()` does not trigger for `status: \"paused\"` or `status: \"completed\"`"}
+{"ts":"2026-04-23T13:14:53.497Z","event":"task-passed","msg":"✓ Task 4/7: `applyCrashRecovery()` does not trigger for `status: \"paused\"` or `status: \"completed\"`"}
+{"ts":"2026-04-23T13:15:01.891Z","event":"task-started","msg":"▶ Task 5/7: `harness init` removes any `STATE.json.tmp.*` orphans from the feature dir before writing initial state"}

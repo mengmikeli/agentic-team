@@ -35,3 +35,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 13:14:53
+**Task 4: `applyCrashRecovery()` does not trigger for `status: "paused"` or `status: "completed"`**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
