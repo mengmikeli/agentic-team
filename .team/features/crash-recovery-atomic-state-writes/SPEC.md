@@ -1,31 +1,28 @@
 # Feature: Crash Recovery + Atomic State Writes
 
 ## Goal
-When `agt run` restarts a feature that crashed mid-execution, it resumes from the last good checkpoint instead of starting over.
-
-## Background
-Atomic writes (write-then-rename) and file locking are already implemented in `bin/lib/util.mjs`. The gap is crash *detection* and *recovery*: `agt run` currently overwrites the task list on restart (`run.mjs:697-702`), discarding all progress.
+STATE.json is always written atomically and any run interrupted mid-execution resumes from the last consistent checkpoint rather than losing progress or starting over.
 
 ## Scope
-- **Crash detection**: When `agt run` reads STATE.json and finds `status: "executing"`, treat it as a crashed run rather than a clean start. Log a warning: `[crash-recovery] Resuming from crashed state at <_last_modified>`.
-- **Checkpoint resume**: Preserve task statuses from the crashed run. Skip tasks already in `passed` or `skipped`; reset tasks stuck at `in-progress` back to `pending` so they re-run.
-- **Orphaned tmp cleanup**: On harness startup, scan the feature dir for `STATE.json.tmp.*` files (created by `atomicWriteSync` on crash between write and rename) and delete them.
-- **Recovery metadata**: Add `_recovered_from` (ISO timestamp of crashed state) and `_recovery_count` (int) to STATE.json when a recovery occurs.
+- **Atomic writes via write-then-rename**: All STATE.json writes go to a temp file (`STATE.json.tmp.<pid>.<ts>`) then `rename()` to the final path. STATE.json is never partially written.
+- **Crash detection**: When `agt run` reads STATE.json with `status: "executing"`, treat it as a crashed run. The harness sets status to `executing` before dispatching — finding it set on startup means the previous process never cleaned up.
+- **Checkpoint resume**: Reset tasks stuck at `in-progress` back to `pending` (safe to retry). Preserve `passed`, `failed`, `blocked`, and `skipped` tasks unchanged.
+- **Recovery metadata**: Write `_recovered_from` (ISO timestamp from `_last_modified` at crash time) and `_recovery_count` (incrementing int) to STATE.json on each recovery.
+- **Orphaned tmp cleanup**: On `harness init`, scan the feature dir for `STATE.json.tmp.*` files left by a crashed atomic write and delete them.
+- **Advisory file locking**: Before concurrent STATE.json writes (`agt-harness gate`, `transition`, `finalize`), acquire a `.lock` file. Evict stale locks from dead PIDs. Timeout after 5s returning `{ acquired: false }`.
 
 ## Out of Scope
-- Atomic writes — already done (`atomicWriteSync` in `util.mjs:55-59`)
-- File locking — already done (`lockFile` in `util.mjs:84-152`)
-- Oscillation detection / tick limits — separate roadmap item (#11)
-- Recovering from corrupted JSON (current behavior of returning `null` is sufficient)
-- Multi-process crash recovery across concurrent `agt run` invocations
-- Backups or STATE.json version history
+- STATE.json backup or version history (no `.bak` file)
+- Recovering from corrupted/unparseable STATE.json (returns `null`; caller starts fresh)
+- Automatic orphaned tmp cleanup on `agt run` (only on `init`)
+- Cross-machine or distributed locking (advisory, filesystem-local only)
+- Lock acquisition inside `writeState()` itself (callers that need concurrency safety acquire the lock externally)
 
 ## Done When
-- [ ] `agt run` on a feature with `status: "executing"` logs `[crash-recovery]` and resumes rather than resetting all tasks
-- [ ] Tasks with status `passed` or `skipped` in the crashed state are not re-executed
-- [ ] Tasks with status `in-progress` in the crashed state are reset to `pending` and re-run
-- [ ] STATE.json written after recovery includes `_recovered_from` (ISO timestamp) and `_recovery_count` fields
-- [ ] Orphaned `STATE.json.tmp.*` files in the feature dir are deleted on harness startup
-- [ ] `agt run` on a feature with `status: "paused"` is unchanged (not treated as a crash)
-- [ ] `agt run` on a feature with `status: "completed"` is unchanged (not treated as a crash)
-- [ ] Existing tests pass; at least one new test covers the crash-recovery path
+- [ ] `writeState()` uses `atomicWriteSync()` for every STATE.json write
+- [ ] `applyCrashRecovery()` detects `status: "executing"` and resets `in-progress` tasks to `pending`, preserving all other task statuses
+- [ ] `applyCrashRecovery()` writes `_recovered_from` (crash timestamp) and `_recovery_count` (incrementing) to state after recovery
+- [ ] `applyCrashRecovery()` does not trigger for `status: "paused"` or `status: "completed"`
+- [ ] `harness init` removes any `STATE.json.tmp.*` orphans from the feature dir before writing initial state
+- [ ] `lockFile()` acquires an exclusive `.lock` file with `{ flag: "wx" }`, evicts stale locks from dead PIDs, and returns `{ acquired: false }` after 5s timeout
+- [ ] All 7 tests in `test/crash-recovery.test.mjs` pass

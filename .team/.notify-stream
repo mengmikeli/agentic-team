@@ -36,3 +36,5 @@
 {"ts":"2026-04-23T10:41:03.091Z","event":"task-started","msg":"▶ Task 12/15: Diagnose and permanently fix gate command reset to `echo gate-recorded`"}
 {"ts":"2026-04-23T11:22:16.124Z","event":"task-passed","msg":"✓ Task 12/15: Diagnose and permanently fix gate command reset to `echo gate-recorded`"}
 {"ts":"2026-04-23T11:22:16.220Z","event":"task-started","msg":"▶ Task 13/15: `progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count"}
+{"ts":"2026-04-23T12:09:21.132Z","event":"feature-started","msg":"▶ Feature: crash-recovery-atomic-state-writes (7 tasks planned)"}
+{"ts":"2026-04-23T12:14:05.854Z","event":"task-started","msg":"▶ Task 1/7: `writeState()` uses `atomicWriteSync()` for every STATE.json write"}
