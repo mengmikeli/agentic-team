@@ -7,7 +7,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "fs";
 import { join } from "path";
-import { randomBytes } from "crypto";
+import { randomBytes, createHmac, timingSafeEqual } from "crypto";
 import { c, readState, writeState, atomicWriteSync, WRITER_SIG } from "./util.mjs";
 import {
   createIssue as ghCreateIssue,
@@ -53,8 +53,22 @@ export function readApprovalState(featureDir, signingKey = WRITER_SIG) {
     console.warn(`  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).`);
     return { corrupt: true };
   }
-  if (parsed?._written_by !== signingKey) {
-    console.warn(`  ⚠ approval.json has no valid integrity signature (_written_by mismatch) — treating as corrupt to prevent gate bypass.`);
+  const { _integrity, _last_modified, ...dataFields } = parsed;
+  if (!_integrity) {
+    console.warn(`  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.`);
+    return { corrupt: true };
+  }
+  try {
+    const canonicalPayload = JSON.stringify(dataFields);
+    const expectedHmac = createHmac("sha256", signingKey).update(canonicalPayload).digest("hex");
+    const actualBuf = Buffer.from(_integrity, "hex");
+    const expectedBuf = Buffer.from(expectedHmac, "hex");
+    if (actualBuf.length !== expectedBuf.length || !timingSafeEqual(actualBuf, expectedBuf)) {
+      console.warn(`  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.`);
+      return { corrupt: true };
+    }
+  } catch {
+    console.warn(`  ⚠ approval.json integrity check failed — treating as corrupt to prevent gate bypass.`);
     return { corrupt: true };
   }
   return parsed;
@@ -63,7 +77,9 @@ export function readApprovalState(featureDir, signingKey = WRITER_SIG) {
 /** Write approval sidecar atomically to prevent corrupt file on crash. */
 function writeApprovalState(featureDir, data, signingKey = WRITER_SIG) {
   mkdirSync(featureDir, { recursive: true });
-  const signed = { ...data, _written_by: signingKey, _last_modified: new Date().toISOString() };
+  const canonicalPayload = JSON.stringify(data);
+  const integrity = createHmac("sha256", signingKey).update(canonicalPayload).digest("hex");
+  const signed = { ...data, _integrity: integrity, _last_modified: new Date().toISOString() };
   atomicWriteSync(join(featureDir, "approval.json"), JSON.stringify(signed, null, 2));
 }
 

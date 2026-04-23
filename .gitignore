@@ -1,3 +1,4 @@
 test/.test-workspace/
 test/.test-workspace-ticks/
 node_modules/
+.team/.approval-secret

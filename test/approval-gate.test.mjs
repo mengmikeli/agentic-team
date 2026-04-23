@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { createHmac } from "crypto";
 import { createApprovalIssue, waitForApproval, readApprovalState, getOrCreateApprovalSigningKey } from "../bin/lib/outer-loop.mjs";
 
 // ── createApprovalIssue ─────────────────────────────────────────
@@ -161,13 +162,15 @@ describe("readApprovalState", () => {
 
   it("returns parsed object when approval.json is valid JSON with correct signature", () => {
     const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
-    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 42, status: "pending", _written_by: "at-harness" }));
+    const data = { issueNumber: 42, status: "pending" };
+    const integrity = createHmac("sha256", "at-harness").update(JSON.stringify(data)).digest("hex");
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ ...data, _integrity: integrity }));
     const result = readApprovalState(featureDir);
     assert.equal(result.issueNumber, 42);
     assert.equal(result.status, "pending");
   });
 
-  it("returns { corrupt: true } when approval.json is valid JSON but missing _written_by signature", () => {
+  it("returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature", () => {
     const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
     writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 42, status: "approved" }));
     const result = readApprovalState(featureDir);

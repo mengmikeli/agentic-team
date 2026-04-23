@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { createHmac } from "crypto";
 
 import {
   buildPrioritizeBrief,
@@ -728,10 +729,12 @@ Add flow selection to agt run.
     const knownKey = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
     writeFileSync(join(tmpDir, ".team", ".approval-secret"), knownKey);
 
-    // Pre-create approval.json with existing pending issue (signed with knownKey)
+    // Pre-create approval.json with existing pending issue (signed with knownKey via HMAC)
     const featureDir = join(tmpDir, ".team", "features", "flow-templates");
     mkdirSync(featureDir, { recursive: true });
-    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ issueNumber: 77, status: "pending", _written_by: knownKey }));
+    const approvalData = { issueNumber: 77, status: "pending" };
+    const integrity = createHmac("sha256", knownKey).update(JSON.stringify(approvalData)).digest("hex");
+    writeFileSync(join(featureDir, "approval.json"), JSON.stringify({ ...approvalData, _integrity: integrity }));
     writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Scope\n- stuff\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
 
     // Create PROJECT.md with a valid project number so waitForApproval is actually invoked
