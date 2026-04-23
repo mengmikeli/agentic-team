@@ -63,3 +63,5 @@
 {"ts":"2026-04-23T16:47:38.884Z","event":"task-started","msg":"▶ Task 4/12: Issue is added to the project board with status `\"Pending Approval\"` using the field option ID stored in `PROJECT.md`"}
 {"ts":"2026-04-23T17:23:50.672Z","event":"task-passed","msg":"✓ Task 4/12: Issue is added to the project board with status `\"Pending Approval\"` using the field option ID stored in `PROJECT.md`"}
 {"ts":"2026-04-23T17:23:57.780Z","event":"task-started","msg":"▶ Task 5/12: CLI prints the issue URL and \"Waiting for approval (issue #{N})...\" before pausing"}
+{"ts":"2026-04-23T17:31:22.792Z","event":"task-passed","msg":"✓ Task 5/12: CLI prints the issue URL and \"Waiting for approval (issue #{N})...\" before pausing"}
+{"ts":"2026-04-23T17:31:30.531Z","event":"task-started","msg":"▶ Task 6/12: Outer loop polls the project board at an interval controlled by `APPROVAL_POLL_INTERVAL` env var (default: 30s) and prints elapsed wait time each poll"}

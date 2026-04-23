@@ -73,3 +73,8 @@
 - Verdict: ✅ PASS (attempt 3)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 17:31:22
+**Task 5: CLI prints the issue URL and "Waiting for approval (issue #{N})..." before pausing**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

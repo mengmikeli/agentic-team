@@ -40,7 +40,7 @@
       "id": "task-3",
       "title": "CLI prints the issue URL and \"Waiting for approval (issue #{N})...\" before pausing",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 1,
       "issueNumber": 84
     },
     {
@@ -192,9 +192,18 @@
       "stderr": "",
       "timestamp": "2026-04-23T17:27:07.585Z",
       "taskId": "task-3"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (1.301042ms)\n  ✔ returns null and does not write approval.json when createIssue fails (0.679458ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (0.655542ms)\n  ✔ skips project board calls when projectNumber is null (0.282917ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.2845ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.198791ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.237625ms)\n✔ createApprovalIssue (4.290958ms)\n▶ waitForApproval\n  ✔ prints issue URL before pausing when getIssueUrl returns a URL (0.2365ms)\n  ✔ prints 'Waiting for approval (issue #N)...' before pausing (0.125292ms)\n  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (776.110875ms)\n  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (698.013083ms)\n  ✔ polls multiple times before returning 'approved' (719.333083ms)\n  ✔ returns 'interrupted' after sleep when stopping flag becomes true (674.380875ms)\n  ✔ uses APPROVAL_POLL_INTERVAL env var as sleep interval (0.234166ms)\n  ✔ defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set (0.168334ms)\n  ✔ uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid (0.131542ms)\n  ✔ prints elapsed time in each poll log message (0.13175ms)\n✔ waitForApproval (2869.109834ms)\n▶ CLI help text\n  ✔ shows review command in help (96.185042ms)\n  ✔ shows audit command in help (81.852166ms)\n  ✔ shows brainstorm command in help (82.58125ms)\n  ✔ help text includes all three new commands with descriptions (82.052291ms)\n✔ CLI help text (343.956167ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (122.413125ms)\n  ✔ prints review header (94.437875ms)\n✔ agt review (217.010917ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (63.356834ms)\n  ✔ runs audit with .team/ present and reports structure (157.161542ms)\n  ✔ detects missing required files (143.317459ms)\n  ✔ reports feature with issues (122.911417ms)\n  ✔ shows summary line (59.20325ms)\n✔ agt audit (546.236708ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20011.583459ms)\n✔ agt brainstorm (20011.783416ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (193.295042ms)\n  ✔ agt run with --dr",
+      "stderr": "",
+      "timestamp": "2026-04-23T17:34:31.352Z",
+      "taskId": "task-4"
     }
   ],
-  "transitionCount": 5,
+  "transitionCount": 6,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -230,10 +239,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T17:23:55.260Z"
+    },
+    {
+      "taskId": "task-4",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T17:31:28.013Z"
     }
   ],
   "createdAt": "2026-04-23T14:25:16.782Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T17:27:07.585Z",
-  "_write_nonce": "46888288895fc22b"
+  "_last_modified": "2026-04-23T17:34:31.352Z",
+  "_write_nonce": "f8097b8659c85b27"
 }
