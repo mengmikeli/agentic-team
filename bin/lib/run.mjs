@@ -613,6 +613,7 @@ async function _runSingleFeature(args, description) {
 
   let featureName;
   let featureDescription;
+  let featureLabel = '';  // e.g. "P3/#10" for roadmap display
 
   if (description) {
     // Mode 1: explicit feature
@@ -638,26 +639,45 @@ async function _runSingleFeature(args, description) {
       process.exit(1);
     }
 
-    // Find first uncompleted item
-    const items = [...roadmapSection[1].matchAll(/^\d+\.\s*\*\*(.+?)\*\*\s*[-—]\s*(.+)$/gm)];
+    // Find first uncompleted item (capture item number for labeling)
+    const roadmapText = roadmapSection[1];
+    const items = [...roadmapText.matchAll(/(\d+)\.\s*\*\*(.+?)\*\*\s*[-—]\s*(.+)$/gm)];
     if (items.length === 0) {
       console.log(`${c.yellow}Roadmap is empty. Nothing to run.${c.reset}`);
       return "exhausted";
     }
 
+    // Detect phase headers for labeling
+    const phaseMap = new Map(); // offset → phase number
+    for (const m of roadmapText.matchAll(/^###\s*Phase\s*(\d+)/gm)) {
+      phaseMap.set(m.index, m[1]);
+    }
+    const phaseOffsets = [...phaseMap.keys()].sort((a, b) => a - b);
+    function getPhase(offset) {
+      let phase = null;
+      for (const po of phaseOffsets) {
+        if (po <= offset) phase = phaseMap.get(po);
+        else break;
+      }
+      return phase;
+    }
+
     // Check which features already exist or are marked done in roadmap
     const featuresDir = join(teamDir, "features");
     for (const item of items) {
-      const fullText = item[2];
+      const fullText = item[3];
       // Skip items marked as done in the roadmap text
       if (/✅\s*done/i.test(fullText)) continue;
 
-      const name = item[1].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const itemNum = item[1];
+      const name = item[2].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
       const featureDir = join(featuresDir, name);
       const state = readState(featureDir);
       if (!state || state.status !== "completed") {
+        const phase = getPhase(item.index);
+        featureLabel = phase ? `P${phase}/#${itemNum}` : `#${itemNum}`;
         featureName = name;
-        featureDescription = `${item[1]} — ${item[2]}`;
+        featureDescription = `${item[2]} — ${item[3]}`;
         break;
       }
     }
@@ -675,7 +695,7 @@ async function _runSingleFeature(args, description) {
   // ── Print banner ──
 
   console.log(`\n${c.bold}${c.cyan}⚡ agt run${c.reset}\n`);
-  console.log(`${c.bold}Feature:${c.reset}  ${featureDescription}`);
+  console.log(`${c.bold}Feature:${c.reset}  ${featureLabel ? `[${featureLabel}] ` : ''}${featureDescription}`);
   console.log(`${c.bold}Gate:${c.reset}     ${c.dim}${gateCmd}${c.reset}`);
   console.log(`${c.bold}Agent:${c.reset}    ${agent ? c.green + agent + c.reset : c.yellow + "manual (no claude/codex found)" + c.reset}`);
   console.log(`${c.bold}Retries:${c.reset}  ${maxRetries} per task`);
@@ -777,8 +797,8 @@ async function _runSingleFeature(args, description) {
     for (const task of tasks) {
       if (task.issueNumber) continue; // already has an issue (e.g. from crash recovery)
       const issueNum = createIssue(
-        `[${featureName}] ${task.title}`,
-        `Auto-created by \`agt run\` for feature **${featureName}**.\n\nTask: ${task.title}`,
+        `${featureLabel ? `[${featureLabel}] ` : ''}[${featureName}] ${task.title}`,
+        `Auto-created by \`agt run\` for feature **${featureLabel ? `[${featureLabel}] ` : ''}${featureName}**.\n\nTask: ${task.title}`,
       );
       if (issueNum) {
         task.issueNumber = issueNum;
