@@ -49,3 +49,5 @@
 {"ts":"2026-04-23T13:15:01.891Z","event":"task-started","msg":"▶ Task 5/7: `harness init` removes any `STATE.json.tmp.*` orphans from the feature dir before writing initial state"}
 {"ts":"2026-04-23T13:26:52.398Z","event":"task-passed","msg":"✓ Task 5/7: `harness init` removes any `STATE.json.tmp.*` orphans from the feature dir before writing initial state"}
 {"ts":"2026-04-23T13:27:00.557Z","event":"task-started","msg":"▶ Task 6/7: `lockFile()` acquires an exclusive `.lock` file with `{ flag: \"wx\" }`, evicts stale locks from dead PIDs, and returns `{ acquired: false }` after 5s timeout"}
+{"ts":"2026-04-23T14:03:56.839Z","event":"task-passed","msg":"✓ Task 6/7: `lockFile()` acquires an exclusive `.lock` file with `{ flag: \"wx\" }`, evicts stale locks from dead PIDs, and returns `{ acquired: false }` after 5s timeout"}
+{"ts":"2026-04-23T14:04:04.970Z","event":"task-started","msg":"▶ Task 7/7: All 7 tests in `test/crash-recovery.test.mjs` pass"}

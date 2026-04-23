@@ -55,3 +55,8 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-23 14:03:56
+**Task 6: `lockFile()` acquires an exclusive `.lock` file with `{ flag: "wx" }`, evicts stale locks from dead PIDs, and returns `{ acquired: false }` after 5s timeout**
+- Verdict: ✅ PASS (attempt 3)
+- Gate: `npm test` — exit 0
+
