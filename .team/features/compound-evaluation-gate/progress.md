@@ -109,3 +109,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-23 23:31:01
+**Task 10: ≥3 layers tripped produces `verdict: "FAIL"` that overrides the reviewer's verdict.**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+

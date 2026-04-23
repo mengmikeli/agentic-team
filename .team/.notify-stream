@@ -102,3 +102,5 @@
 {"ts":"2026-04-23T23:01:48.031Z","event":"task-started","msg":"▶ Task 9/15: `handshake.json` includes a `compoundGate` field with `tripped`, `layers`, and `verdict`."}
 {"ts":"2026-04-23T23:12:54.376Z","event":"task-passed","msg":"✓ Task 9/15: `handshake.json` includes a `compoundGate` field with `tripped`, `layers`, and `verdict`."}
 {"ts":"2026-04-23T23:13:01.441Z","event":"task-started","msg":"▶ Task 10/15: ≥3 layers tripped produces `verdict: \"FAIL\"` that overrides the reviewer's verdict."}
+{"ts":"2026-04-23T23:31:01.214Z","event":"task-passed","msg":"✓ Task 10/15: ≥3 layers tripped produces `verdict: \"FAIL\"` that overrides the reviewer's verdict."}
+{"ts":"2026-04-23T23:31:08.036Z","event":"task-started","msg":"▶ Task 11/15: 1–2 layers tripped produces `verdict: \"WARN\"` and is logged without blocking."}
