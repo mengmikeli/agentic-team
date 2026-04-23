@@ -3,37 +3,28 @@
 ### [security]
 ---
 
-**Verdict: FAIL**
-
-The `lockFile()` implementation in `util.mjs` is mechanically correct. The failure is in its integration.
-
----
-
 **Findings:**
 
-🔴 `bin/lib/gate.mjs:53` — Lock acquired before `execSync` (line 64, `timeout: 120000`), released at line 184 in `finally`. During a gate run (~22s observed, up to 120s), every concurrent `transition`, `finalize`, or `stop` call exhausts its 5s lock timeout and silently drops its STATE.json write. Fix: move lock acquisition to just before `readSta
+🟡 `bin/lib/util.mjs:98` — `lockFile()` behavioral contract has no direct unit tests; exclusive-create, stale-PID eviction, and 5s-timeout are only covered implicitly. Add unit tests simulating each path.
+
+🟡 `bin/lib/gate.mjs:27` — Placeholder gate denylist only blocks `echo gate-recorded`; `true`, `exit 0`, `: `, and `echo ok` all bypass it. Broaden the denylist or require an allowlisted command.
+
+🔵 `bin/lib/util.mjs:55` — `atomicWriteSync()` leaks the temp file if `rename
 
 ### [architect]
 ---
 
+## Findings
+
 **Verdict: PASS**
 
-The implementation satisfies all SPEC "Done When" criteria. Direct evidence for each:
+All SPEC criteria are met. The critical lock-scope bug from attempt 1 (`gate.mjs` holding the lock across the entire `execSync`) is confirmed fixed — the lock is now acquired in the `finally` block after the gate command completes (`gate.mjs:82`).
 
-- `{ flag: "wx" }` → `util.mjs:134`
-- Stale-PID eviction → `util.mjs:115–117`
-- `{ acquired: false }` after 5s → `util.mjs:99,120–122,137–144`
-- All 7 crash-recovery tests pass → test-output.txt: 376 pass, 0 fail
-
----
-
-**Findings:**
-
-🟡 `bin/lib/gate.mjs:53` — Lock is acquired before `execSync` (line 64, timeout 120s). Any concurrent `agt stop`, `transition`, or `finalize` call will exh
+**Files actually read:** `util.mjs`, `gate.mjs`, `transition.mjs`, `finalize.mjs`, `harness-init.mjs`, `run.mjs`, `test/crash-recovery.test.mjs`, `SPEC.md`, all 6 handshake.json files, task-6 eval.md, test-output.t
 
 ### [devil's-advocate]
-**VERDICT: FAIL**
+Here are the findings:
 
 ---
 
-🔴 `bin/lib/gate.mjs:53` — Lock acquired before `execSync` (line 64) and held until after the command finishes (line 184). Gate commands can run for up to 120s; the test suite itself takes ~22s. Any concurrent `transition`/`finalize`/`stop` has a 5s lock timeout and returns `{ acquired: false }`, silently dropping the operation. Lock should be acquired only for the `readState`→`writeState` critical section inside the `finally` block (~lines 89–170), not the entire gate ex
+🔴 `bin/lib/run.mjs:119` — `runGateInline` calls `readState` → `writeState` (line 132) with no lock. This is the primary execution path for every `agt run` quality gate. All 4 harness subcommands (`gate.mjs`, `transition.mjs`, `finalize.mjs`, `stop.mjs`) correctly acquire `lockFile` before writing STATE.json, but `runGateInline` — the inline equivalent — does not. Any concurrent `agt-harness transition` or `finalize` (which do lock) races with this unlocked write and
