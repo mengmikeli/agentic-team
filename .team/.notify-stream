@@ -95,3 +95,6 @@
 {"ts":"2026-04-23T22:36:10.664Z","event":"task-started","msg":"▶ Task 6/15: Remove false finding from eval.md before retry"}
 {"ts":"2026-04-23T22:44:01.078Z","event":"task-passed","msg":"✓ Task 6/15: Remove false finding from eval.md before retry"}
 {"ts":"2026-04-23T22:44:01.177Z","event":"task-started","msg":"▶ Task 7/15: `synthesize.mjs` calls `runCompoundGate` after `parseFindings()` and before verdict is finalized."}
+{"ts":"2026-04-23T22:50:35.810Z","event":"task-passed","msg":"✓ Task 7/15: `synthesize.mjs` calls `runCompoundGate` after `parseFindings()` and before verdict is finalized."}
+{"ts":"2026-04-23T22:50:35.857Z","event":"progress","msg":"Progress: 5/15 done, 0 blocked."}
+{"ts":"2026-04-23T22:50:38.240Z","event":"task-started","msg":"▶ Task 8/15: A `## Compound Gate` section is appended to `eval.md` showing which layers tripped and why."}
