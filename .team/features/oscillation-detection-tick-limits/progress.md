@@ -47,3 +47,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 05:25:46
+**Task 4: `maxTaskTicks` is configurable via `TASK_MAX_TICKS` env var (default: 6)**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

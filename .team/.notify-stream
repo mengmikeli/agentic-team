@@ -20,3 +20,6 @@
 {"ts":"2026-04-23T05:13:01.630Z","event":"task-started","msg":"▶ Task 3/9: `agt-harness transition` rejects `in-progress` for a task at or above `maxTaskTicks`, writing `reason: \"tick-limit-exceeded\"` and status `blocked` to STATE.json"}
 {"ts":"2026-04-23T05:18:37.551Z","event":"task-passed","msg":"✓ Task 3/9: `agt-harness transition` rejects `in-progress` for a task at or above `maxTaskTicks`, writing `reason: \"tick-limit-exceeded\"` and status `blocked` to STATE.json"}
 {"ts":"2026-04-23T05:18:44.881Z","event":"task-started","msg":"▶ Task 4/9: `maxTaskTicks` is configurable via `TASK_MAX_TICKS` env var (default: 6)"}
+{"ts":"2026-04-23T05:25:46.696Z","event":"task-passed","msg":"✓ Task 4/9: `maxTaskTicks` is configurable via `TASK_MAX_TICKS` env var (default: 6)"}
+{"ts":"2026-04-23T05:25:51.514Z","event":"progress","msg":"Progress: 4/9 done, 0 blocked."}
+{"ts":"2026-04-23T05:25:53.886Z","event":"task-started","msg":"▶ Task 5/9: `transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`"}

@@ -1,13 +1,20 @@
 {
   "taskId": "task-5",
-  "nodeType": "build",
+  "nodeType": "gate",
   "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Verified and tested that transition.mjs detects a repeating pattern of length K ≥ 2 in a task's transitionHistory after the pattern repeats at least 2× and logs a warning to progress.md. The oscillation detection code was already in place; added a focused test that builds a [in-progress, failed] ×2 history and asserts the 5th transition is allowed (reps=2 warns, not halts) and that progress.md receives a timestamped warning entry.",
-  "timestamp": "2026-04-23T06:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-23T05:28:58.863Z",
   "artifacts": [
-    { "type": "code", "path": "test/oscillation-ticks.test.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
