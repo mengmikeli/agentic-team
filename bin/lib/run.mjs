@@ -828,7 +828,22 @@ async function _runSingleFeature(args, description) {
     mkdirSync(artifactsDir, { recursive: true });
 
     // Transition to in-progress
-    harness("transition", "--task", task.id, "--status", "in-progress", "--dir", featureDir);
+    const transitionResult = harness("transition", "--task", task.id, "--status", "in-progress", "--dir", featureDir);
+    if (transitionResult && transitionResult.allowed === false) {
+      if (transitionResult.halt === true) {
+        // Oscillation halt — stop the entire feature
+        console.log(`${c.red}${c.bold}⚠ Oscillation halt: ${transitionResult.reason}${c.reset}\n`);
+        appendProgress(featureDir, `**Oscillation halt**: ${transitionResult.reason}`);
+        harness("notify", "--event", "anomaly", "--msg",
+          `⚠ Oscillation halt in ${featureName}: ${transitionResult.reason}`);
+        break;
+      }
+      // Tick-limit or other rejection — skip this task
+      console.log(`  ${c.yellow}⊘ Transition rejected: ${transitionResult.reason}${c.reset}`);
+      appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Transition rejected: ${transitionResult.reason}`);
+      blocked++;
+      continue;
+    }
     if (useGitHub && task.issueNumber && projectNum) setProjectItemStatus(task.issueNumber, projectNum, "in-progress");
     harness("notify", "--event", "task-started", "--msg", `▶ Task ${i + 1}/${tasks.length}: ${task.title}`);
 
