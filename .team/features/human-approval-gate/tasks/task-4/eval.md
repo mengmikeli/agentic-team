@@ -3,30 +3,32 @@
 ### [security]
 ---
 
-**Verdict: PASS** (2 warnings flagged for backlog — no critical security issues block merge)
-
 ## Findings
 
-🟡 `bin/lib/outer-loop.mjs:112` — No upper bound on `APPROVAL_POLL_INTERVAL`; values > 2147483647 cause Node.js `setTimeout` to fire in 1ms (32-bit int overflow), silently removing all rate-limiting on GitHub API polling; add `|| rawInterval > 3600000` to the guard condition
-
-🟡 `bin/lib/outer-loop.mjs:32` — `console.warn` claims "will not re-create issue" but corrupt `approval.json` r
+🔴 `bin/lib/outer-loop.mjs:604` — Corrupt `approval.json` bypasses the approval gate. `approvalIssueNumber` is null (line 592), the create branch is correctly guarded by `!approvalState?.corrupt` (line 607), but neither `waitForApproval` branch (lines 621, 632) fires because both require a truthy `approvalIssueNumber`. Execution falls through to EXECUTE without human sign-off. Fix: add `if (approvalState?.corrupt) { console.error("approval.json is corrupt..."); break; }` before
 
 ### [architect]
-## Findings
+---
 
-🔴 `bin/lib/outer-loop.mjs:32` — Warning says "will not re-create issue" but corrupt `approval.json` returns `{ corrupt: true }`, causing `approvalIssueNumber` to be `null` at line 592; falls into `if (!approvalIssueNumber)` at line 607 and creates a duplicate issue; fix by guarding `!approvalState?.corrupt` in the create branch
+**Verdict: PASS**
 
-🟡 `bin/lib/outer-loop.mjs:37` — JSDoc says "Atomically write" but uses plain `writeFileSync`; replace with `atomicWriteSync` from `util.mjs` to match STAT
+Files read: `bin/lib/outer-loop.mjs`, `test/approval-gate.test.mjs`, `test/outer-loop.test.mjs`, `bin/lib/github.mjs` (partial), handshake + test-output + SPEC.md.
+
+Test evidence: 409/409 pass. Both core behaviors are directly traceable to code + passing tests.
+
+---
+
+**Findings:**
+
+🟡 `bin/lib/outer-loop.mjs:112` — Silent fallback when `APPROVAL_POLL_INTERVAL` is out of range `[1000, 3600000]`; user setting `500` silently gets 30s with no warning; add `console.warn` on cl
 
 ### [devil's-advocate]
-Here are the findings:
+**Verdict: PASS** (with 3 warnings to backlog)
 
 ---
 
-**Verdict: ITERATE** (1 red confirmed, 3 new warnings)
+Findings:
 
-Files actually read: `bin/lib/outer-loop.mjs` (full), `test/approval-gate.test.mjs` (full), `bin/lib/github.mjs` (grep), handshake.json, test-output.txt.
+🟡 bin/lib/outer-loop.mjs:618 — When `approval.json` is corrupt, `approvalIssueNumber` is null but the else-branch logs "Resuming approval wait for issue #null..." then silently skips the gate with no explanation; add an explicit `if (approvalState?.corrupt)` branch that logs clearly and skips
 
----
-
-🔴 `bin/lib/outer-loop.mjs:32` — Warning says "will not re-create issue" but `{ corrupt: true }` makes `approvalIssueNumber` null at line 592, which triggers `createApprovalIssue` at line 607; fix: `if (!approvalIssueNumber && !approvalState?.corrupt)` + 
+🟡 bin/lib/outer-loop.mjs:112 — `APPROVAL_POLL_INTERVAL` values outside [1000, 3600000]ms silently fall back to 30s with no warning; `APPROV
