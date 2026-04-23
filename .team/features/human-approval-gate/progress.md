@@ -113,3 +113,8 @@
 - Verdict: split
 - Rationale: The 6 findings split cleanly into two independent bugs: (1) the signing key is never wired in — getOrCreateApprovalSigningKey is dead code and WRITER_SIG is a static bypassable constant; (2) writing approvalStatus to STATE.json before runSingleFeature initializes the feature produces a structurally incomplete file that crashes the inner harness. These are orthogonal fixes that are cleaner and safer to land separately.
 
+### 2026-04-23 19:08:57
+**Task 8: Wire getOrCreateApprovalSigningKey into the approval read/write flow**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
