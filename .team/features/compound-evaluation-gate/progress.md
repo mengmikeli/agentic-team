@@ -84,3 +84,8 @@
 - Verdict: inject
 - Rationale: The block is caused by a false finding in eval.md, not a real code defect. The eval incorrectly claims `backPathRe` is module-level stateful when it is already declared inside `detectFabricatedRefs`. The prerequisite task must correct the eval before the original task can be retried with a clean review.
 
+### 2026-04-23 22:44:01
+**Task 6: Remove false finding from eval.md before retry**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
