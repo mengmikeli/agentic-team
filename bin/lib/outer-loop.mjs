@@ -13,6 +13,7 @@ import {
   addToProject as ghAddToProject,
   setProjectItemStatus as ghSetProjectItemStatus,
   getProjectItemStatus as ghGetProjectItemStatus,
+  getIssueUrl as ghGetIssueUrl,
 } from "./github.mjs";
 
 // ── Approval gate helpers ────────────────────────────────────────
@@ -101,6 +102,7 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
 export async function waitForApproval(issueNumber, featureDir, projectNumber, getStoppingFn, deps = {}) {
   const {
     getProjectItemStatus = ghGetProjectItemStatus,
+    getIssueUrl = ghGetIssueUrl,
     sleep: sleepFn = sleep,
   } = deps;
 
@@ -108,6 +110,10 @@ export async function waitForApproval(issueNumber, featureDir, projectNumber, ge
   const intervalMs = isNaN(rawInterval) || rawInterval < 1000 ? 30000 : rawInterval;
   const startTime = Date.now();
 
+  const issueUrl = getIssueUrl(issueNumber);
+  if (issueUrl) {
+    console.log(`  ${c.cyan}Approval required → ${issueUrl}${c.reset}`);
+  }
   console.log(`  ${c.cyan}Waiting for approval (issue #${issueNumber})... (poll every ${intervalMs / 1000}s)${c.reset}`);
 
   while (true) {
@@ -589,6 +595,7 @@ export async function outerLoop(args, deps) {
       addToProject: deps.addToProject,
       setProjectItemStatus: deps.setProjectItemStatus,
       getProjectItemStatus: deps.getProjectItemStatus,
+      getIssueUrl: deps.getIssueUrl,
       sleep: deps.sleep,
     };
 

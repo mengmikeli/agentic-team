@@ -114,6 +114,12 @@ export function getProjectItemStatus(issueNumber, projectNumber) {
   }
 }
 
+/** Get the URL for a GitHub issue by number. Returns the URL string or null. */
+export function getIssueUrl(issueNumber) {
+  if (!issueNumber) return null;
+  return runGh("issue", "view", String(issueNumber), "--json", "url", "--jq", ".url") || null;
+}
+
 /** Create a GitHub issue. Returns the issue number, or null on failure. */
 export function createIssue(title, body, labels = []) {
   if (!title) return null;
