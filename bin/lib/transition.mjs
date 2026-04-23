@@ -2,6 +2,7 @@
 // Writes with nonce + file lock. Returns JSON verdict.
 
 import { join } from "path";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   getFlag, resolveDir, lockFile,
   readState, writeState,
@@ -11,6 +12,19 @@ import {
 
 const MAX_RETRIES_PER_TASK = 3;
 const MAX_TOTAL_TRANSITIONS = 100;
+const maxTaskTicks = parseInt(process.env.TASK_MAX_TICKS ?? "6", 10);
+
+function appendProgressInDir(dir, entry) {
+  const progressPath = join(dir, "progress.md");
+  const timestamp = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const line = `### ${timestamp}\n${entry}\n\n`;
+  try {
+    const existing = existsSync(progressPath) ? readFileSync(progressPath, "utf8") : "";
+    writeFileSync(progressPath, existing + line);
+  } catch {
+    try { writeFileSync(progressPath, line); } catch { /* best-effort */ }
+  }
+}
 
 export function cmdTransition(args) {
   const taskId = getFlag(args, "task");
@@ -50,6 +64,7 @@ export function cmdTransition(args) {
     return;
   }
 
+  let haltCode = null;
   try {
     const freshState = readState(dir);
     if (!freshState) {
@@ -103,19 +118,65 @@ export function cmdTransition(args) {
       task.retries = retryCount + 1;
     }
 
-    // Oscillation detection (A→B→A pattern in recent history)
-    if (!freshState.transitionHistory) freshState.transitionHistory = [];
-    const recentHistory = freshState.transitionHistory.slice(-6);
-    const taskHistory = recentHistory.filter(h => h.taskId === taskId);
-    if (taskHistory.length >= 4) {
-      const lastFour = taskHistory.slice(-4).map(h => h.status);
-      // Check for A→B→A→B pattern
-      if (lastFour[0] === lastFour[2] && lastFour[1] === lastFour[3]) {
+    // Check tick limit (→ in-progress)
+    if (status === "in-progress") {
+      const currentTicks = Number.isInteger(task.ticks) ? task.ticks : 0;
+      if (currentTicks >= maxTaskTicks) {
+        task.status = "blocked";
+        task.lastReason = "tick-limit-exceeded";
+        writeState(dir, freshState);
+        appendProgressInDir(dir, `**Tick limit exceeded** for task \`${taskId}\`: ${currentTicks} ticks ≥ ${maxTaskTicks}. Task blocked.`);
         console.log(JSON.stringify({
           allowed: false,
-          reason: `oscillation detected for task '${taskId}': ${lastFour.join(" → ")} → ${status}`,
+          reason: `tick-limit-exceeded: task '${taskId}' has ${currentTicks} ticks (limit: ${maxTaskTicks})`,
         }));
         return;
+      }
+    }
+
+    // Oscillation detection — check for repeating K-length patterns in task history
+    if (!freshState.transitionHistory) freshState.transitionHistory = [];
+    const taskStatuses = freshState.transitionHistory
+      .filter(h => h.taskId === taskId)
+      .map(h => h.status);
+
+    let oscillation = null;
+    const N = taskStatuses.length;
+    for (let K = 2; K <= Math.floor(N / 2); K++) {
+      const first = taskStatuses.slice(N - 2 * K, N - K);
+      const second = taskStatuses.slice(N - K, N);
+      if (first.join(",") !== second.join(",")) continue;
+
+      // Pattern found — count consecutive trailing repetitions
+      const pat = first;
+      let reps = 2;
+      let pos = N - 2 * K;
+      while (pos - K >= 0) {
+        const seg = taskStatuses.slice(pos - K, pos);
+        if (seg.join(",") === pat.join(",")) { reps++; pos -= K; }
+        else break;
+      }
+      oscillation = { K, reps, pattern: pat };
+      break;
+    }
+
+    if (oscillation) {
+      const patStr = oscillation.pattern.join(" → ");
+      if (oscillation.reps >= 3) {
+        freshState.status = "oscillation-halted";
+        writeState(dir, freshState);
+        appendProgressInDir(dir, `**Oscillation halted** on task \`${taskId}\`: pattern [${patStr}] repeated ${oscillation.reps}×. Feature stopped.`);
+        console.log(JSON.stringify({
+          allowed: false,
+          halt: true,
+          reason: `oscillation-halted: task '${taskId}' pattern [${patStr}] repeated ${oscillation.reps}×`,
+        }));
+        haltCode = 1;
+        return;
+      } else {
+        // reps == 2: warn
+        process.stderr.write(`[at-harness warn] oscillation detected for task '${taskId}': [${patStr}] ×${oscillation.reps}\n`);
+        appendProgressInDir(dir, `**Oscillation warning** on task \`${taskId}\`: pattern [${patStr}] repeated ${oscillation.reps}×.`);
       }
     }
 
@@ -143,7 +204,7 @@ export function cmdTransition(args) {
 
     // Increment tick counter on every agent dispatch (→ in-progress)
     if (status === "in-progress") {
-      task.ticks = (task.ticks || 0) + 1;
+      task.ticks = (Number.isInteger(task.ticks) ? task.ticks : 0) + 1;
     }
 
     freshState.transitionCount++;
@@ -168,4 +229,5 @@ export function cmdTransition(args) {
   } finally {
     lock.release();
   }
+  if (haltCode !== null) process.exit(haltCode);
 }

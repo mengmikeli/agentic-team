@@ -123,6 +123,7 @@ export function applyReplan(tasks, blockedTask, replanResult) {
       description: t.description || "",
       status: "pending",
       attempts: 0,
+      ticks: (blockedTask.ticks || 0) + 1,
       replanSource: baseId,
     }));
 
@@ -137,6 +138,7 @@ export function applyReplan(tasks, blockedTask, replanResult) {
       description: prereq.description || "",
       status: "pending",
       attempts: 0,
+      ticks: (blockedTask.ticks || 0) + 1,
       replanSource: baseId,
     };
 
@@ -147,6 +149,7 @@ export function applyReplan(tasks, blockedTask, replanResult) {
       description: blockedTask.description || "",
       status: "pending",
       attempts: 0,
+      ticks: (blockedTask.ticks || 0) + 1,
       replanSource: baseId,
     };
 
