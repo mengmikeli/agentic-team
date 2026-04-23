@@ -273,4 +273,122 @@ describe("waitForApproval", () => {
 
     assert.equal(result, "interrupted");
   });
+
+  it("uses APPROVAL_POLL_INTERVAL env var as sleep interval", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    const origEnv = process.env.APPROVAL_POLL_INTERVAL;
+
+    const sleepArgs = [];
+    const deps = {
+      getProjectItemStatus: () => "Ready",
+      getIssueUrl: () => null,
+      sleep: (ms) => { sleepArgs.push(ms); return Promise.resolve(); },
+    };
+
+    // First poll returns "Ready" immediately (no sleep needed), but we need a
+    // second poll scenario. Let's test with 2 polls where first is "Pending".
+    let pollCount = 0;
+    deps.getProjectItemStatus = () => {
+      pollCount++;
+      return pollCount >= 2 ? "Ready" : "Pending Approval";
+    };
+
+    try {
+      process.env.APPROVAL_POLL_INTERVAL = "5000";
+      await waitForApproval(42, featureDir, 10, () => false, deps);
+    } finally {
+      if (origEnv === undefined) {
+        delete process.env.APPROVAL_POLL_INTERVAL;
+      } else {
+        process.env.APPROVAL_POLL_INTERVAL = origEnv;
+      }
+    }
+
+    assert.ok(sleepArgs.length >= 1, "sleep should have been called at least once");
+    assert.equal(sleepArgs[0], 5000, `Expected sleep(5000), got sleep(${sleepArgs[0]})`);
+  });
+
+  it("defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    const origEnv = process.env.APPROVAL_POLL_INTERVAL;
+
+    const sleepArgs = [];
+    let pollCount = 0;
+    const deps = {
+      getProjectItemStatus: () => {
+        pollCount++;
+        return pollCount >= 2 ? "Ready" : "Pending Approval";
+      },
+      getIssueUrl: () => null,
+      sleep: (ms) => { sleepArgs.push(ms); return Promise.resolve(); },
+    };
+
+    try {
+      delete process.env.APPROVAL_POLL_INTERVAL;
+      await waitForApproval(42, featureDir, 10, () => false, deps);
+    } finally {
+      if (origEnv !== undefined) {
+        process.env.APPROVAL_POLL_INTERVAL = origEnv;
+      }
+    }
+
+    assert.ok(sleepArgs.length >= 1, "sleep should have been called at least once");
+    assert.equal(sleepArgs[0], 30000, `Expected default sleep(30000), got sleep(${sleepArgs[0]})`);
+  });
+
+  it("uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    const origEnv = process.env.APPROVAL_POLL_INTERVAL;
+
+    const sleepArgs = [];
+    let pollCount = 0;
+    const deps = {
+      getProjectItemStatus: () => {
+        pollCount++;
+        return pollCount >= 2 ? "Ready" : "Pending Approval";
+      },
+      getIssueUrl: () => null,
+      sleep: (ms) => { sleepArgs.push(ms); return Promise.resolve(); },
+    };
+
+    try {
+      process.env.APPROVAL_POLL_INTERVAL = "not-a-number";
+      await waitForApproval(42, featureDir, 10, () => false, deps);
+    } finally {
+      if (origEnv === undefined) {
+        delete process.env.APPROVAL_POLL_INTERVAL;
+      } else {
+        process.env.APPROVAL_POLL_INTERVAL = origEnv;
+      }
+    }
+
+    assert.ok(sleepArgs.length >= 1, "sleep should have been called at least once");
+    assert.equal(sleepArgs[0], 30000, `Expected default sleep(30000) for invalid env var, got sleep(${sleepArgs[0]})`);
+  });
+
+  it("prints elapsed time in each poll log message", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+
+    const logs = [];
+    const origLog = console.log;
+    console.log = (...args) => logs.push(args.join(" "));
+
+    try {
+      const deps = {
+        getProjectItemStatus: () => "Ready",
+        getIssueUrl: () => null,
+        sleep: () => Promise.resolve(),
+      };
+
+      await waitForApproval(42, featureDir, 10, () => false, deps);
+    } finally {
+      console.log = origLog;
+    }
+
+    const combined = logs.join("\n");
+    assert.ok(
+      /\d+s elapsed/.test(combined),
+      `Expected "Xs elapsed" in poll output, got: ${combined}`
+    );
+  });
 });
