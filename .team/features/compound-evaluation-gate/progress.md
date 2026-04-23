@@ -94,3 +94,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-23 23:01:40
+**Task 8: A `## Compound Gate` section is appended to `eval.md` showing which layers tripped and why.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
