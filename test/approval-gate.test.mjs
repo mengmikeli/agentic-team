@@ -123,6 +123,29 @@ describe("createApprovalIssue", () => {
     assert.ok(Array.isArray(capturedLabels));
     assert.ok(capturedLabels.includes("awaiting-approval"));
   });
+
+  it("calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds", async () => {
+    const featureDir = mkdtempSync(join(tmpdir(), "approval-test-"));
+    const specPath = join(featureDir, "SPEC.md");
+    writeFileSync(specPath, "# Feature: test\n\n## Goal\nTest goal\n");
+
+    let capturedArgs = null;
+    const deps = {
+      createIssue: () => 42,
+      addToProject: () => "item-id-123",
+      setProjectItemStatus: (issueNum, projectNum, status) => {
+        capturedArgs = { issueNum, projectNum, status };
+        return true;
+      },
+    };
+
+    await createApprovalIssue(featureDir, "my-feature", specPath, 10, deps);
+
+    assert.ok(capturedArgs !== null, "setProjectItemStatus should be called");
+    assert.equal(capturedArgs.issueNum, 42);
+    assert.equal(capturedArgs.projectNum, 10);
+    assert.equal(capturedArgs.status, "pending-approval");
+  });
 });
 
 // ── waitForApproval ─────────────────────────────────────────────

@@ -25,7 +25,7 @@
       "title": "Write and pass unit tests for feature issue creation",
       "description": "In test/outer-loop.test.mjs (or a new test/human-approval-gate.test.mjs), add unit tests that mock the GitHub API calls and verify: (1) after BRAINSTORM phase, an issue is created with the correct title, body, and label, (2) approvalIssueNumber is written to STATE.json after creation, (3) re-entry guard skips issue creation when approvalIssueNumber already exists in STATE.json. Run `npm test` and confirm all tests pass including these new ones.",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 1,
       "ticks": 1,
       "replanSource": "task-1"
     },
@@ -156,9 +156,18 @@
       "stderr": "",
       "timestamp": "2026-04-23T16:35:25.439Z",
       "taskId": "task-1-s2"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (1.031042ms)\n  ✔ returns null and does not write approval.json when createIssue fails (0.692625ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (0.755959ms)\n  ✔ skips project board calls when projectNumber is null (0.437125ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.279084ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.2155ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.256583ms)\n✔ createApprovalIssue (4.596375ms)\n▶ waitForApproval\n  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (0.244125ms)\n  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (0.131209ms)\n  ✔ polls multiple times before returning 'approved' (0.169208ms)\n  ✔ returns 'interrupted' after sleep when stopping flag becomes true (0.152834ms)\n✔ waitForApproval (0.804667ms)\n▶ CLI help text\n  ✔ shows review command in help (93.017166ms)\n  ✔ shows audit command in help (94.729875ms)\n  ✔ shows brainstorm command in help (87.350125ms)\n  ✔ help text includes all three new commands with descriptions (89.174709ms)\n✔ CLI help text (365.71225ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (115.458584ms)\n  ✔ prints review header (93.110458ms)\n✔ agt review (208.796416ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (64.018375ms)\n  ✔ runs audit with .team/ present and reports structure (155.351875ms)\n  ✔ detects missing required files (122.324959ms)\n  ✔ reports feature with issues (125.142292ms)\n  ✔ shows summary line (55.765417ms)\n✔ agt audit (522.85775ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (14022.98425ms)\n✔ agt brainstorm (14023.027209ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (156.937334ms)\n  ✔ agt run with --dry-run shows tasks without executing (154.132542ms)\n✔ smart entry flow (agt run no args) (311.13125ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (50.531416ms)\n  ✔ agt help init shows usage and examples (48.884375ms)\n  ✔ agt help status shows usage and examples (50.256958ms)\n  ✔ agt help review shows usage and examples (50.56575ms)\n  ✔ agt help audit shows usage and examples (49.671375ms)\n  ✔ agt help brainstorm shows usage and examples (49.279375ms)\n  ✔ agt help doctor shows usage and examples (50.179958ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.226209ms)\n  ✔ agt help (no subcommand) lists all commands (50.582084ms)\n✔ agt help <command> (450.351541ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.446625ms)\n✔ audit-cmd module (3.469917ms)\n▶ review module\n  ✔ can be imported without errors (2.246541ms)\n✔ review module (2.267125ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.206417ms)\n✔ brainstorm-cmd module (0.223875ms)\n▶ buildContextBrief\n  ✔ returns fallback when no context files exist (30.760208ms)\n  ✔ includes SPEC.md content when present (24.367708ms)\n  ✔ includes project conventions from PROJECT.md (26.019959ms)\n  ✔ includes backlog as known issues (24.265375ms)\n  ✔ includes progress.md as known issues (23.438542ms)\n  ✔ includes git log when in a git repo (84",
+      "stderr": "",
+      "timestamp": "2026-04-23T16:57:55.116Z",
+      "taskId": "task-2"
     }
   ],
-  "transitionCount": 3,
+  "transitionCount": 4,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -180,10 +189,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-23T16:25:06.992Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T16:47:36.076Z"
     }
   ],
   "createdAt": "2026-04-23T14:25:16.782Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-23T16:35:25.439Z",
-  "_write_nonce": "fd04187965fb7177"
+  "_last_modified": "2026-04-23T16:57:55.116Z",
+  "_write_nonce": "5474501f3621d36b"
 }

@@ -557,4 +557,42 @@ describe("readTrackingConfig", () => {
     assert.equal(result.statusOptions["in-progress"], "inprog456");
     assert.equal(result.statusOptions.done, "done789");
   });
+
+  it("parses optional Pending Approval and Ready option IDs", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tracking-test-"));
+    const md = [
+      "# Project",
+      "",
+      "## Tracking",
+      "- Status Field ID: PVTSSF_abc123",
+      "- Todo Option ID: todo123",
+      "- In Progress Option ID: inprog456",
+      "- Done Option ID: done789",
+      "- Pending Approval Option ID: pending999",
+      "- Ready Option ID: ready777",
+    ].join("\n");
+    writeFileSync(join(dir, "PROJECT.md"), md);
+    const result = readTrackingConfig(join(dir, "PROJECT.md"));
+    assert.ok(result !== null);
+    assert.equal(result.statusOptions["pending-approval"], "pending999");
+    assert.equal(result.statusOptions["ready"], "ready777");
+  });
+
+  it("returns null for pending-approval key when Pending Approval Option ID is absent", () => {
+    const dir = mkdtempSync(join(tmpdir(), "tracking-test-"));
+    const md = [
+      "# Project",
+      "",
+      "## Tracking",
+      "- Status Field ID: PVTSSF_abc123",
+      "- Todo Option ID: todo123",
+      "- In Progress Option ID: inprog456",
+      "- Done Option ID: done789",
+    ].join("\n");
+    writeFileSync(join(dir, "PROJECT.md"), md);
+    const result = readTrackingConfig(join(dir, "PROJECT.md"));
+    assert.ok(result !== null);
+    assert.equal(result.statusOptions["pending-approval"], undefined);
+    assert.equal(result.statusOptions["ready"], undefined);
+  });
 });
