@@ -1,38 +1,36 @@
 ## Parallel Review Findings
 
 ### [security]
-## Security Review: `human-approval-gate`
+## Review Complete
 
-**Files read:** `bin/lib/outer-loop.mjs`, `bin/lib/github.mjs`, `test/approval-gate.test.mjs`, `task-2/handshake.json`, `task-2/artifacts/test-output.txt`
+**Overall Verdict: PASS** (2 warnings for backlog)
 
 ---
 
 ### Findings
 
-🟡 `bin/lib/outer-loop.mjs:81` — `setProjectItemStatus` is called unconditionally even when `addToProject` returns null; gate it with `if (itemId) setProjectItemStatus(...)` to prevent unintended GitHub API calls with user credentials in a failure path
+🟡 `outer-loop.mjs:82` — `setProjectItemStatus` called unconditionally even when `addToProject` returned null; add `if (itemId)` guard to prevent spurious gh API calls (item-list + project-view + item-edit) on partial failure
 
-🟡 `bin/lib/outer-loop.mjs:3
+🟡 `outer-loop.mjs:30-32` — `JSON.parse` error silently returns `null`, making corrupted `approval.json` indistinguishable from "file not found"; caller re-invokes `createApprovalIss
 
 ### [architect]
+**Verdict: PASS** (2 warnings flagged for backlog; 2 suggestions)
+
 ---
 
-## Verdict: PASS (with backlog items)
+**Findings:**
 
-**Files read:** `outer-loop.mjs`, `github.mjs`, `test/approval-gate.test.mjs`, `tasks/task-2/handshake.json`, `tasks/task-2/artifacts/test-output.txt`, `.team/PROJECT.md`
+🟡 `outer-loop.mjs:82` — `setProjectItemStatus` called unconditionally even when `addToProject` returns null; guard with `if (itemId)` to prevent 3 spurious `gh` API calls that silently no-op. The "addToProject returns null" test uses an uncounted stub — add a call-count spy to catch regressions.
 
-### Findings
-
-🟡 `bin/lib/outer-loop.mjs:81` — `setProjectItemStatus` is called unconditionally even when `addToProject` returns `null`; gate it behind `if (itemId)` to avoid wasted API calls and contradicting the warning message
-
-🟡 `test/approval-gate.test.mjs:53` — "still writes a
+🟡 `outer-loop.mjs:30–32` — parse failure in `readApprovalState` is swallowed and returns `null`, indistinguishabl
 
 ### [devil's-advocate]
+**Verdict: PASS** — 399/399 tests pass, core feature verified end-to-end. No critical findings.
+
 ---
 
-**Verdict: FAIL** — 2 critical findings
+**Findings:**
 
-## Findings
+🟡 `bin/lib/outer-loop.mjs:82` — `setProjectItemStatus` called unconditionally even when `addToProject` returns null; fires 3 wasted `gh` CLI calls that all silently fail; gate with `if (itemId) { setProjectItemStatus(...) }` [carried unfixed from task-1-s1 and task-1-s2]
 
-🔴 `bin/lib/outer-loop.mjs:604` — Issue URL never printed; the human operator has no URL to navigate to for approval — add a `gh issue view` call and print the URL before entering the polling loop
-
-🔴 `.team/PROJECT.md` — Missing `Status Field ID`, `Pending Approval Option ID`, `Ready Option ID` entries; `setProjectItemStatus("pending-approval")` silently no-ops on every call for this project — Done When criterion #8 unmet; populate the 
+🟡 `test/approval-gate.test.mjs:53` — "still writes approval.json when addToProject returns null" test uses `

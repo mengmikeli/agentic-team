@@ -1,14 +1,20 @@
 {
   "taskId": "task-2",
-  "nodeType": "build",
-  "runId": "run_3",
+  "nodeType": "gate",
+  "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Fixed two issues: (1) added `if (itemId)` guard so `setProjectItemStatus` is only called when `addToProject` succeeds, preventing spurious gh API calls on partial failure; (2) updated `readApprovalState` to log a warning on JSON parse failure instead of silently returning null, distinguishing a corrupted file from a missing one. Updated the corresponding test to use a call-count spy verifying `setProjectItemStatus` is NOT called when `addToProject` returns null.",
-  "timestamp": "2026-04-24T00:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-23T17:18:25.614Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/outer-loop.mjs" },
-    { "type": "code", "path": "test/approval-gate.test.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
