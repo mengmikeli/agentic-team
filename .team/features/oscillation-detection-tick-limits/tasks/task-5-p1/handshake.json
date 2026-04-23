@@ -1,13 +1,20 @@
 {
   "taskId": "task-5-p1",
-  "nodeType": "build",
+  "nodeType": "gate",
   "runId": "run_2",
   "status": "completed",
-  "verdict": null,
-  "summary": "Fixed run.mjs to capture and act on the return value of the harness transition call. When the transition result has allowed===false and halt===true, the feature loop breaks with an oscillation-halt log; when allowed===false without halt, the task is skipped and counted as blocked. All 373 npm tests pass.",
-  "timestamp": "2026-04-23T08:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: echo gate-recorded — exit code 0",
+  "timestamp": "2026-04-23T06:28:59.115Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/run.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
