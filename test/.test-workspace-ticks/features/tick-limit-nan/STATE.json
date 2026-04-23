@@ -1,0 +1,43 @@
+{
+  "version": "2.0",
+  "feature": "ticks-test",
+  "status": "active",
+  "tasks": [
+    {
+      "id": "t1",
+      "status": "in-progress",
+      "title": "task one",
+      "lastTransition": "2026-04-23T04:41:20.721Z",
+      "ticks": 2,
+      "retries": 1
+    }
+  ],
+  "gates": [],
+  "transitionCount": 3,
+  "transitionHistory": [
+    {
+      "taskId": "t1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T04:41:20.627Z"
+    },
+    {
+      "taskId": "t1",
+      "from": "in-progress",
+      "status": "failed",
+      "reason": null,
+      "timestamp": "2026-04-23T04:41:20.674Z"
+    },
+    {
+      "taskId": "t1",
+      "from": "failed",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T04:41:20.721Z"
+    }
+  ],
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-23T04:41:20.721Z",
+  "_write_nonce": "1994184f6477b975"
+}

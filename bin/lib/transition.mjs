@@ -12,7 +12,8 @@ import {
 
 const MAX_RETRIES_PER_TASK = 3;
 const MAX_TOTAL_TRANSITIONS = 100;
-const maxTaskTicks = parseInt(process.env.TASK_MAX_TICKS ?? "6", 10);
+const _rawMaxTicks = parseInt(process.env.TASK_MAX_TICKS ?? "6", 10);
+const maxTaskTicks = Number.isInteger(_rawMaxTicks) && _rawMaxTicks > 0 ? _rawMaxTicks : 6;
 
 function appendProgressInDir(dir, entry) {
   const progressPath = join(dir, "progress.md");
@@ -64,7 +65,6 @@ export function cmdTransition(args) {
     return;
   }
 
-  let haltCode = null;
   try {
     const freshState = readState(dir);
     if (!freshState) {
@@ -105,36 +105,7 @@ export function cmdTransition(args) {
       return;
     }
 
-    // Check retry limits (failed → in-progress count)
-    if (currentStatus === "failed" && status === "in-progress") {
-      const retryCount = (task.retries || 0);
-      if (retryCount >= MAX_RETRIES_PER_TASK) {
-        console.log(JSON.stringify({
-          allowed: false,
-          reason: `max retries (${MAX_RETRIES_PER_TASK}) reached for task '${taskId}'`,
-        }));
-        return;
-      }
-      task.retries = retryCount + 1;
-    }
-
-    // Check tick limit (→ in-progress)
-    if (status === "in-progress") {
-      const currentTicks = Number.isInteger(task.ticks) ? task.ticks : 0;
-      if (currentTicks >= maxTaskTicks) {
-        task.status = "blocked";
-        task.lastReason = "tick-limit-exceeded";
-        writeState(dir, freshState);
-        appendProgressInDir(dir, `**Tick limit exceeded** for task \`${taskId}\`: ${currentTicks} ticks ≥ ${maxTaskTicks}. Task blocked.`);
-        console.log(JSON.stringify({
-          allowed: false,
-          reason: `tick-limit-exceeded: task '${taskId}' has ${currentTicks} ticks (limit: ${maxTaskTicks})`,
-        }));
-        return;
-      }
-    }
-
-    // Oscillation detection — check for repeating K-length patterns in task history
+    // Oscillation detection — runs before retry check so [failed, in-progress] pattern is detectable
     if (!freshState.transitionHistory) freshState.transitionHistory = [];
     const taskStatuses = freshState.transitionHistory
       .filter(h => h.taskId === taskId)
@@ -171,12 +142,41 @@ export function cmdTransition(args) {
           halt: true,
           reason: `oscillation-halted: task '${taskId}' pattern [${patStr}] repeated ${oscillation.reps}×`,
         }));
-        haltCode = 1;
-        return;
+        lock.release();
+        process.exit(1);
       } else {
         // reps == 2: warn
         process.stderr.write(`[at-harness warn] oscillation detected for task '${taskId}': [${patStr}] ×${oscillation.reps}\n`);
         appendProgressInDir(dir, `**Oscillation warning** on task \`${taskId}\`: pattern [${patStr}] repeated ${oscillation.reps}×.`);
+      }
+    }
+
+    // Check retry limits (failed → in-progress count)
+    if (currentStatus === "failed" && status === "in-progress") {
+      const retryCount = (task.retries || 0);
+      if (retryCount >= MAX_RETRIES_PER_TASK) {
+        console.log(JSON.stringify({
+          allowed: false,
+          reason: `max retries (${MAX_RETRIES_PER_TASK}) reached for task '${taskId}'`,
+        }));
+        return;
+      }
+      task.retries = retryCount + 1;
+    }
+
+    // Check tick limit (→ in-progress)
+    if (status === "in-progress") {
+      const currentTicks = Number.isInteger(task.ticks) ? task.ticks : 0;
+      if (currentTicks >= maxTaskTicks) {
+        task.status = "blocked";
+        task.lastReason = "tick-limit-exceeded";
+        writeState(dir, freshState);
+        appendProgressInDir(dir, `**Tick limit exceeded** for task \`${taskId}\`: ${currentTicks} ticks ≥ ${maxTaskTicks}. Task blocked.`);
+        console.log(JSON.stringify({
+          allowed: false,
+          reason: `tick-limit-exceeded: task '${taskId}' has ${currentTicks} ticks (limit: ${maxTaskTicks})`,
+        }));
+        return;
       }
     }
 
@@ -229,5 +229,4 @@ export function cmdTransition(args) {
   } finally {
     lock.release();
   }
-  if (haltCode !== null) process.exit(haltCode);
 }

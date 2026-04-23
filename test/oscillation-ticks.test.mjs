@@ -2,10 +2,11 @@
 
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "child_process";
+import { execFileSync, spawnSync } from "child_process";
 import { mkdirSync, writeFileSync, readFileSync, rmSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import { applyReplan } from "../bin/lib/replan.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const harnessPath = join(__dirname, "..", "bin", "agt-harness.mjs");
@@ -19,8 +20,26 @@ function harness(...args) {
   });
 }
 
+function harnessWithEnv(env, ...args) {
+  return execFileSync("node", [harnessPath, ...args], {
+    encoding: "utf8",
+    cwd: testDir,
+    timeout: 10000,
+    env: { ...process.env, ...env },
+  });
+}
+
 function harnessJSON(...args) {
   const out = harness(...args);
+  const lines = out.trim().split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try { return JSON.parse(lines[i]); } catch {}
+  }
+  return JSON.parse(out.trim());
+}
+
+function harnessWithEnvJSON(env, ...args) {
+  const out = harnessWithEnv(env, ...args);
   const lines = out.trim().split("\n");
   for (let i = lines.length - 1; i >= 0; i--) {
     try { return JSON.parse(lines[i]); } catch {}
@@ -174,5 +193,131 @@ describe("ticks field", () => {
     const t2 = state.tasks.find(t => t.id === "t2");
     assert.equal(t1.ticks, 1);
     assert.equal(t2.ticks, 1);
+  });
+});
+
+describe("tick-limit enforcement", () => {
+  before(() => { mkdirSync(testDir, { recursive: true }); });
+
+  it("rejects in-progress when ticks >= TASK_MAX_TICKS", () => {
+    const dir = setupFeature("tick-limit-reject", [
+      { id: "t1", status: "pending", title: "task one" },
+    ]);
+    const env = { TASK_MAX_TICKS: "2" };
+    // dispatch 1: ticks 0→1
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "failed", "--dir", dir);
+    // dispatch 2: ticks 1→2
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "failed", "--dir", dir);
+    // dispatch 3 attempt: ticks=2 >= 2 → blocked
+    const result = harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
+    assert.equal(result.allowed, false);
+    assert.match(result.reason, /tick-limit-exceeded/);
+    const state = readState("tick-limit-reject");
+    assert.equal(state.tasks[0].status, "blocked");
+    assert.equal(state.tasks[0].lastReason, "tick-limit-exceeded");
+  });
+
+  it("invalid TASK_MAX_TICKS falls back to default of 6", () => {
+    const dir = setupFeature("tick-limit-nan", [
+      { id: "t1", status: "pending", title: "task one" },
+    ]);
+    const env = { TASK_MAX_TICKS: "abc" };
+    // ticks=0 → 1: should be allowed (limit is 6, not 2)
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
+    harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "failed", "--dir", dir);
+    // ticks=1 → 2: still allowed (1 < 6)
+    const result = harnessWithEnvJSON(env, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir);
+    assert.equal(result.allowed, true, "should be allowed: NaN falls back to 6, ticks=1 < 6");
+  });
+});
+
+describe("oscillation detection", () => {
+  before(() => { mkdirSync(testDir, { recursive: true }); });
+
+  it("halts feature with exit code 1 after 3 reps of K=2 pattern", () => {
+    const dir = setupFeature("osc-halt-k2", [
+      { id: "t1", status: "pending", title: "task one" },
+    ]);
+    const env = { ...process.env, TASK_MAX_TICKS: "20" };
+
+    function tr(status) {
+      const out = execFileSync("node", [harnessPath, "transition", "--task", "t1", "--status", status, "--dir", dir], {
+        encoding: "utf8", cwd: testDir, timeout: 10000, env,
+      });
+      const lines = out.trim().split("\n");
+      for (let i = lines.length - 1; i >= 0; i--) {
+        try { return JSON.parse(lines[i]); } catch {}
+      }
+    }
+
+    // Build 6-entry history: [IP, F, IP, F, IP, F]
+    tr("in-progress");  // 1: pending→IP
+    tr("failed");       // 2: IP→F
+    tr("in-progress");  // 3: F→IP (retries=1)
+    tr("failed");       // 4: IP→F
+    tr("in-progress");  // 5: F→IP (retries=2) — warns at reps=2
+    tr("failed");       // 6: IP→F
+
+    // 7th transition: oscillation check sees 3 reps of [in-progress, failed] → exit(1)
+    const result = spawnSync("node", [harnessPath, "transition", "--task", "t1", "--status", "in-progress", "--dir", dir], {
+      encoding: "utf8", cwd: testDir, timeout: 10000, env,
+    });
+    assert.equal(result.status, 1, "expected exit code 1 for oscillation halt");
+    const lines = result.stdout.trim().split("\n");
+    let out;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      try { out = JSON.parse(lines[i]); break; } catch {}
+    }
+    assert.equal(out.allowed, false);
+    assert.equal(out.halt, true);
+    assert.match(out.reason, /oscillation-halted/);
+  });
+});
+
+describe("replan tick inheritance", () => {
+  it("split replan: new tasks inherit ticks = blockedTask.ticks + 1", () => {
+    const blockedTask = { id: "t1", title: "original", status: "blocked", ticks: 3, attempts: 2 };
+    const tasks = [blockedTask];
+    applyReplan(tasks, blockedTask, {
+      verdict: "split",
+      rationale: "split into pieces",
+      tasks: [
+        { title: "sub 1", description: "first part" },
+        { title: "sub 2", description: "second part" },
+      ],
+    });
+    assert.equal(tasks.length, 3);
+    assert.equal(tasks[1].ticks, 4, "split task 1 should inherit ticks+1");
+    assert.equal(tasks[2].ticks, 4, "split task 2 should inherit ticks+1");
+  });
+
+  it("inject replan: prereq and retry tasks inherit ticks = blockedTask.ticks + 1", () => {
+    const blockedTask = { id: "t2", title: "original", status: "blocked", ticks: 2, attempts: 1 };
+    const tasks = [blockedTask];
+    applyReplan(tasks, blockedTask, {
+      verdict: "inject",
+      rationale: "inject a prereq",
+      tasks: [{ title: "prereq task", description: "prerequisite" }],
+    });
+    assert.equal(tasks.length, 3);
+    assert.equal(tasks[1].ticks, 3, "prereq task should inherit ticks+1");
+    assert.equal(tasks[2].ticks, 3, "retry task should inherit ticks+1");
+  });
+
+  it("split replan: blocked task with ticks=0 produces ticks=1 in new tasks", () => {
+    const blockedTask = { id: "t3", title: "original", status: "blocked", attempts: 1 };
+    const tasks = [blockedTask];
+    applyReplan(tasks, blockedTask, {
+      verdict: "split",
+      rationale: "split with no prior ticks",
+      tasks: [
+        { title: "sub 1", description: "" },
+        { title: "sub 2", description: "" },
+      ],
+    });
+    assert.equal(tasks[1].ticks, 1);
+    assert.equal(tasks[2].ticks, 1);
   });
 });
