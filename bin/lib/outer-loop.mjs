@@ -29,7 +29,8 @@ function readApprovalState(featureDir) {
   try {
     return JSON.parse(readFileSync(approvalPath, "utf8"));
   } catch {
-    return null;
+    console.warn(`  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).`);
+    return { corrupt: true };
   }
 }
 
@@ -78,8 +79,9 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
     const itemId = addToProject(issueNumber, projectNumber);
     if (!itemId) {
       console.warn(`  ${c.yellow}⚠ Could not add issue #${issueNumber} to project board — approval polling may not work.${c.reset}`);
+    } else {
+      setProjectItemStatus(issueNumber, projectNumber, "pending-approval");
     }
-    setProjectItemStatus(issueNumber, projectNumber, "pending-approval");
   }
 
   mkdirSync(featureDir, { recursive: true });

@@ -55,10 +55,11 @@ describe("createApprovalIssue", () => {
     const specPath = join(featureDir, "SPEC.md");
     writeFileSync(specPath, "# Feature: test\n\n## Goal\nTest goal\n");
 
+    let setStatusCallCount = 0;
     const deps = {
       createIssue: () => 99,
       addToProject: () => null,
-      setProjectItemStatus: () => true,
+      setProjectItemStatus: () => { setStatusCallCount++; return true; },
     };
 
     const result = await createApprovalIssue(featureDir, "my-feature", specPath, 5, deps);
@@ -67,6 +68,7 @@ describe("createApprovalIssue", () => {
     const approval = JSON.parse(readFileSync(join(featureDir, "approval.json"), "utf8"));
     assert.equal(approval.issueNumber, 99);
     assert.equal(approval.status, "pending");
+    assert.equal(setStatusCallCount, 0, "setProjectItemStatus should NOT be called when addToProject returns null");
   });
 
   it("skips project board calls when projectNumber is null", async () => {
