@@ -80,3 +80,13 @@
 - Gate: `npm test` — exit 0 (373 tests)
 - Fix: Added `task.lastTransition` timestamp on tick-limit-exceeded block path (devil's-advocate finding); corrected handshake nodeType from "gate" to "build"
 
+### 2026-04-23 06:14:15
+**Task 5: `transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`**
+- Verdict: 🟡 Review FAIL (attempt 3)
+- Will retry with review feedback
+
+### 2026-04-23 06:14:32
+**Re-plan for task 5: `transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`**
+- Verdict: inject
+- Rationale: The oscillation detection in transition.mjs works correctly, but run.mjs discards the harness() return value so the halt signal is never acted upon. A focused prerequisite fix to run.mjs unblocks the original task without needing to split the detection logic itself.
+

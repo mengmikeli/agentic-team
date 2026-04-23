@@ -5,70 +5,123 @@
   "tasks": [
     {
       "id": "task-1",
-      "title": "Each task object in STATE.json has a ticks field that increments on every agent dispatch",
+      "title": "Each task object in STATE.json has a `ticks` field that increments on every agent dispatch (including retries)",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 3,
       "issueNumber": 66
     },
     {
       "id": "task-2",
-      "title": "A replacement task created by replan starts with ticks equal to replaced task ticks + 1",
+      "title": "A replacement task created by replan starts with `ticks` equal to the replaced task's `ticks + 1`, not 0",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 2,
       "issueNumber": 67
     },
     {
       "id": "task-3",
-      "title": "agt-harness transition rejects in-progress for task at or above maxTaskTicks",
+      "title": "`agt-harness transition` rejects `in-progress` for a task at or above `maxTaskTicks`, writing `reason: \"tick-limit-exceeded\"` and status `blocked` to STATE.json",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 1,
       "issueNumber": 68
     },
     {
       "id": "task-4",
-      "title": "maxTaskTicks is configurable via TASK_MAX_TICKS env var (default: 6)",
+      "title": "`maxTaskTicks` is configurable via `TASK_MAX_TICKS` env var (default: 6)",
       "status": "pending",
-      "attempts": 0,
+      "attempts": 1,
       "issueNumber": 69
     },
     {
       "id": "task-5",
-      "title": "transition.mjs detects repeating pattern of length K >= 2 in transitionHistory",
+      "title": "`transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`",
+      "status": "pending",
+      "attempts": 3,
+      "issueNumber": 70,
+      "replan": "inject"
+    },
+    {
+      "id": "task-5-p1",
+      "title": "Fix `run.mjs` to capture and act on harness transition result",
+      "description": "At bin/lib/run.mjs line ~831, the call `harness('transition', '--task', task.id, '--status', 'in-progress')` discards its return value. Capture it: `const result = await harness(...)`. Then, before dispatching the agent, check `if (!result.allowed) { continue; }` (or equivalent skip logic) so that when oscillation halt fires and the wrapper returns `{ allowed: false, halt: true }`, the agent dispatch is skipped. Also verify that a halt: true result propagates correctly to terminate the feature run loop rather than continuing to other tasks.",
+      "status": "passed",
+      "attempts": 0,
+      "replanSource": "task-5",
+      "lastTransition": "2026-04-23T06:14:32.790Z",
+      "ticks": 1,
+      "lastGate": {
+        "command": "echo gate-recorded",
+        "exitCode": 0,
+        "verdict": "PASS",
+        "stdout": "gate-recorded\n",
+        "stderr": "",
+        "timestamp": "2026-04-23T06:17:47.514Z",
+        "taskId": "task-5-p1",
+        "warnings": 0,
+        "newWarnings": 0
+      }
+    },
+    {
+      "id": "task-5-r1",
+      "title": "`transition.mjs` detects a repeating pattern of length K ≥ 2 in the task's `transitionHistory` after the pattern repeats at least 2× and logs a warning to `progress.md`",
+      "description": "",
       "status": "pending",
       "attempts": 0,
-      "issueNumber": 70
+      "replanSource": "task-5"
     },
     {
       "id": "task-6",
-      "title": "On 3rd repetition of same oscillation pattern, harness exits non-zero",
+      "title": "On the 3rd repetition of the same oscillation pattern for a single task, the harness exits non-zero and sets feature `status: \"oscillation-halted\"` in STATE.json",
       "status": "pending",
       "attempts": 0,
       "issueNumber": 71
     },
     {
       "id": "task-7",
-      "title": "progress.md contains timestamped entry whenever tick limit or oscillation halt fires",
+      "title": "`progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count",
       "status": "pending",
       "attempts": 0,
       "issueNumber": 72
     },
     {
       "id": "task-8",
-      "title": "Unit tests pass for tick increment, replan inheritance, tick-limit rejection, oscillation detection",
+      "title": "Unit tests pass for: tick increment, replan inheritance, tick-limit rejection, oscillation detection (length-2 cycle), feature halt condition",
       "status": "pending",
       "attempts": 0,
       "issueNumber": 73
     },
     {
       "id": "task-9",
-      "title": "Manual smoke test with mock task that always fails confirms run terminates cleanly",
+      "title": "A manual smoke test with a mock task that always fails confirms the run terminates cleanly (not via `MAX_TOTAL_TRANSITIONS`) within `maxTaskTicks × 2` transitions",
       "status": "pending",
       "attempts": 0,
       "issueNumber": 74
     }
   ],
-  "gates": [],
-  "transitionCount": 0,
-  "transitionHistory": [],
-  "createdAt": "2026-04-23T03:57:41.972Z"
+  "gates": [
+    {
+      "command": "echo gate-recorded",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "gate-recorded\n",
+      "stderr": "",
+      "timestamp": "2026-04-23T06:17:47.514Z",
+      "taskId": "task-5-p1",
+      "warnings": 0,
+      "newWarnings": 0
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-5-p1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-23T06:14:32.790Z"
+    }
+  ],
+  "createdAt": "2026-04-23T03:57:41.972Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-23T06:17:47.514Z",
+  "_write_nonce": "c76cce48ec8ac8ec"
 }
