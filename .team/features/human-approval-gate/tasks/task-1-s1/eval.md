@@ -1,38 +1,30 @@
 ## Parallel Review Findings
 
 ### [security]
+**Verdict: PASS**
+
 ---
 
-**Overall Verdict: PASS** (2 warnings → backlog, 2 suggestions)
+Findings:
 
-Both prior 🔴 findings from task-1 are verified fixed in the code I read:
-- NaN spin-loop: `isNaN` guard + 1000ms floor at `outer-loop.mjs:104-105` ✅
-- null projectNumber infinite loop: explicit guard at `outer-loop.mjs:609` ✅
+🟡 `bin/lib/outer-loop.mjs:38` — Comment says "atomically write" but uses plain `writeFileSync`; crash mid-write corrupts approval.json, bypasses re-entry guard, and creates duplicate GitHub issues on next run; replace with the existing `atomicWriteSync` from util.mjs
 
-**Findings:**
-
-🟡 `bin/lib/outer-loop.mjs:77` — `addToProject()` return value silently ignored; if it fails, `getProjectItemStatus` always returns null (never "Ready"), causing an indefinite poll loop t
+🟡 `bin/lib/outer-loop.mjs:78` — When `addToProject` returns null (item not added to board), code warns but still calls `setProjectItemStatus` and proceeds into `waitForApproval`; item is never o
 
 ### [architect]
 **Verdict: PASS**
 
-386/386 tests pass. All prior critical findings are confirmed fixed by direct code inspection.
+---
+
+**Files read:** `bin/lib/outer-loop.mjs` (692 lines), `bin/lib/github.mjs` (191 lines), test excerpts (approval gate sections), test-output.txt, handshake.json, SPEC.md.
 
 ---
 
 **Findings:**
 
-🟡 `bin/lib/outer-loop.mjs:77` — `addToProject(issueNumber, projectNumber)` return value silently discarded; if it returns null (auth error, project not found), the issue is never added to the board; `getProjectItemStatus` then returns null on every poll and `waitForApproval` blocks indefinitely until SIGINT; check return value and warn on null
+🟡 `bin/lib/outer-loop.mjs:587` — `approvalDeps` manually re-packs keys from `deps` into a new object before passing to `createApprovalIssue`/`waitForApproval`; pass `deps` directly to avoid key-mismatch drift when dep names change
 
-🟡 `bin/lib/outer
+🟡 `bin/lib/outer-loop.mjs:81` — `setProjectItemStat
 
 ### [devil's-advocate]
-**Verdict: PASS**
-
----
-
-## Findings
-
-🟡 `test/outer-loop.test.mjs:726` — The "re-entry guard" test never exercises the resume-polling path. No PROJECT.md is created in `tmpDir`, so `projectNumber` is always null and the `getProjectItemStatus: () => "Ready"` mock at line 742 is dead code. The scenario "approval.json with pending status AND valid projectNumber → resume waitForApproval" (lines 609–619) is entirely untested. A mutation of `&&` → `||` at line 609 would still pass all tests.
-
-🟡 `bin/
+Now I have all the evidence I need. Let me write the eval.md.

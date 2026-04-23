@@ -57,3 +57,5 @@
 {"ts":"2026-04-23T14:33:39.385Z","event":"task-started","msg":"▶ Task 1/10: After BRAINSTORM, outer loop creates a GitHub issue titled `[Feature] {name}` with SPEC.md as the body and label `awaiting-approval`, and records `approvalIssueNumber` in `STATE.json`"}
 {"ts":"2026-04-23T15:22:52.466Z","event":"task-blocked","msg":"✗ Task 1/10: After BRAINSTORM, outer loop creates a GitHub issue titled `[Feature] {name}` with SPEC.md as the body and label `awaiting-approval`, and records `approvalIssueNumber` in `STATE.json` — failed after 3 attempts"}
 {"ts":"2026-04-23T15:23:19.020Z","event":"task-started","msg":"▶ Task 2/12: Implement feature issue creation in outer-loop.mjs"}
+{"ts":"2026-04-23T16:25:06.938Z","event":"task-passed","msg":"✓ Task 2/12: Implement feature issue creation in outer-loop.mjs"}
+{"ts":"2026-04-23T16:25:07.048Z","event":"task-started","msg":"▶ Task 3/12: Write and pass unit tests for feature issue creation"}
