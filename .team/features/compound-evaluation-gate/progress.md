@@ -29,3 +29,13 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-23 21:19:40
+**Task 1: `bin/lib/compound-gate.mjs` exists with `runCompoundGate(findings, repoRoot)` implementing all 5 layers.**
+- Verdict: 🟡 Review FAIL (attempt 3)
+- Will retry with review feedback
+
+### 2026-04-23 21:19:49
+**Re-plan for task 1: `bin/lib/compound-gate.mjs` exists with `runCompoundGate(findings, repoRoot)` implementing all 5 layers.**
+- Verdict: inject
+- Rationale: The two findings are small, targeted fixes: add a heuristic to skip 'missing file' findings in Layer 4, and add a comment in Layer 5 explaining the intentional exclusion of critical-severity findings. A single focused fix task before a retry is the right scope.
+

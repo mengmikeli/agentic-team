@@ -1,28 +1,34 @@
 ## Parallel Review Findings
 
 ### [security]
+---
+
 ## Findings
 
-🔴 bin/lib/run.mjs:15 — `runCompoundGate` is never imported; both review paths at lines 1078–1079 (single-review) and 1108–1109 (multi-review) call `parseFindings`+`computeVerdict` directly, bypassing the compound gate entirely — a shallow review that trips ≥3 layers still returns PASS in production; import `runCompoundGate` and call it between `parseFindings()` and `computeVerdict()` in both paths
+Files read: `compound-gate.mjs` (full), `synthesize.mjs` (full), `run.mjs` lines 1–30 + 1060–1169, `test/compound-gate.test.mjs` lines 1–80, `handshake.json`.
 
-🟡 bin/lib/compound-gate.mjs:81 — `FILE_EXT_PATTERN` omits `.cjs`, `.jsx`, `.tsx`, `
+Edge cases checked: path traversal with absolute path, path traversal with `../` escape, URL fragments triggering Layer 4, suggestions-only input vs. Layer 3 behavior, WARN handling in both `run.mjs` and `cmdSynthesize`.
+
+---
+
+🟡 bin/lib/synthesize.mjs:119 — WARN verdict from compound gate is silently dropped in `cmdSynt
 
 ### [architect]
 ---
 
 ## Findings
 
-🔴 bin/lib/run.mjs:15 — `runCompoundGate` not imported; both live review synthesis paths at lines 1078–1079 and 1108–1109 call `parseFindings`+`computeVerdict` directly, bypassing the compound gate entirely — the gate is dead code in production; introduce a `synthesizeFindings(text, repoRoot)` composite in `synthesize.mjs` that sequences `parseFindings → runCompoundGate → computeVerdict` and have `run.mjs` import that instead of the primitives
+🟡 `bin/lib/compound-gate.mjs:87` — Layer 4 (detectFabricatedRefs) false-positives on valid "missing file" findings: a reviewer writing `🔴 bin/lib/missing-module.mjs:1 — file is absent but imported` will trip this layer because the cited file doesn't exist on disk; add a heuristic to skip paths whose surrounding text contains "does not exist", "is absent", "missing file", or similar
 
-🔴 bin/lib/run.mjs:99 — `createHa
+🟡 `bin/lib/compound-gate.mjs:61` — Layer 3 (detectLowUniqueness) implements only half of SPEC
 
 ### [devil's-advocate]
+---
+
 ## Findings
 
-**Files read:** `compound-gate.mjs`, `synthesize.mjs`, `run.mjs` (targeted sections), `test/compound-gate.test.mjs`, `SPEC.md`, `handshake.json`.
+**Files actually read:** `compound-gate.mjs` (full), `synthesize.mjs` (full), `run.mjs` (grep — lines 13–19, 1077–1164), `test/compound-gate.test.mjs` (lines 1–175), `handshake.json`, `test-output.txt` (lines 1–260), `SPEC.md`, `handshake.mjs` (grep).
 
 ---
 
-🔴 `bin/lib/run.mjs:15` — `runCompoundGate` is never imported; both review paths (lines 1078–1079 and 1108–1109) call `parseFindings`+`computeVerdict` directly, bypassing the gate entirely; add import and call it between `parseFindings()` and `computeVerdict()` in both paths
-
-🔴 `bin/lib/synthesize.mjs:118` — `gateResult.section` is 
+🟡 bin/lib/compound-gate.mjs:61 — `detectLowUniqueness` has no `context` param; SPEC requires detecting "content that largely mirrors the spec/task description" but implementation only checks intra-findings Jaccard similarit
