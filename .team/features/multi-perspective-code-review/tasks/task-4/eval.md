@@ -1,37 +1,41 @@
-## Parallel Review Findings
+# Architect Review — task-4
 
-### [security]
----
+## Overall Verdict: PASS
 
-## Security Review Summary
-
-**Overall verdict: PASS** (2 backlog warnings, no criticals)
-
-### Files read
-- `bin/lib/flows.mjs:85–195` — `mergeReviewFindings`, `buildReviewBrief`, `PARALLEL_REVIEW_ROLES`
-- `bin/lib/run.mjs:272–322, 1126–1186` — `dispatchToAgentAsync`, `runParallelReviews`, multi-review dispatch
-- `bin/lib/synthesize.mjs:1–145` — `parseFindings`
-- `test/flows.test.mjs:193–244` — `mergeReviewFindings` tests
-- All 4 handshake.json files + task-4 test-output.txt + task-3 eval.md
-
-### [architect]
-**Verdict: PASS** (3 backlog warnings, no blockers)
+Core requirement is implemented correctly and verified by 5 passing unit tests. Two maintainability warnings should go to backlog.
 
 ---
 
-**Findings:**
+## Files Read
 
-🟡 bin/lib/flows.mjs:155 — `getRoleFocus()` hardcodes inline focus strings that duplicate role content already injected by `loadRoleFile()` from `roles/*.md`; both sources appear in the same brief. Future edits to `roles/*.md` won't update `getRoleFocus()`. Remove `getRoleFocus()` and move its unique focus text into each role file, or drop the duplicate `## Review Focus` section from the brief template.
-
-🟡 bin/lib/flows.mj
-
-### [devil's-advocate]
----
-
-**Verdict: PASS** (3 backlog warnings flagged)
+- `bin/lib/flows.mjs:170–201` — `PARALLEL_REVIEW_ROLES`, `mergeReviewFindings` implementation
+- `bin/lib/run.mjs:1153–1218` — multi-review phase, eval.md construction, verdict computation
+- `test/flows.test.mjs:193–245` — `mergeReviewFindings` unit tests
+- `.team/features/multi-perspective-code-review/tasks/task-4/artifacts/test-output.txt` — 513 pass, 0 fail
+- All 4 `handshake.json` files + `STATE.json` + `SPEC.md`
 
 ---
 
-### Findings
+## Per-Criterion Results
 
-🟡 `bin/lib/run.mjs:1161` — `eval.md` is written before the compound gate runs; if compound gate FAIL injects a synthetic `🔴 compound-gate.mjs:0 — Shallow review detected…` into `findings` (line 1167), that critical does NOT appear as a parseable finding line in `eval.md` — re-running `agt-harness synthesize --input eval.md` yields a more lenient verdict than what the run computed; write `eval.md` after verdict is fully ass
+### Severity ordering in merged eval.md
+**PASS** — `mergeReviewFindings` (flows.mjs:196) sorts `allFindings` using `SEVERITY_ORDER = { critical: 0, warning: 1, suggestion: 2 }` before joining. Unit test at flows.test.mjs:209–221 explicitly verifies `criticalIdx < warningIdx < suggestionIdx`.
+
+### Role prefix on each finding
+**PASS** — For each parsed finding, the emoji is extracted and re-emitted as `${emoji} [${f.role}] ${rest}` (flows.mjs:188–190). Unit test at flows.test.mjs:223–229 asserts the pattern `🔴 [engineer]`.
+
+### Integration: merged content written to eval.md
+**PASS** — `run.mjs:1195` writes `evalContent` (which begins with `merged`) via `writeFileSync`. The `merged` string is the `## Parallel Review Findings` block with all findings sorted and prefixed.
+
+### Tests pass
+**PASS** — 513/513 tests pass. The `mergeReviewFindings` suite (5 tests) covers: multi-role combination, severity sort, role prefix, empty output, and heading presence.
+
+---
+
+## Findings
+
+🟡 bin/lib/run.mjs:1192 — Compound-gate synthetic lines are appended *after* the severity-sorted `merged` block without re-sorting. If role reviewers produce only suggestions but the compound gate fires a critical (`🔴 compound-gate.mjs:0 — Shallow review detected…`), eval.md will show a critical line after lower-severity findings, violating the spec's severity-order guarantee for the document. Fix: collect synthetic lines before building `merged`, or sort them into the final eval.md output.
+
+🟡 bin/lib/run.mjs:1161 — `mergeReviewFindings` internally calls `parseFindings` per role (flows.mjs:183), then immediately after, `parseFindings(allText)` is called again on concatenated raw output for verdict computation (run.mjs:1162). Two independent parse passes over the same finding data with no structural link. If either parse call changes in isolation (e.g., a prefix-aware change to `parseFindings`), eval.md content and computed verdict could silently diverge. Fix: expose the parsed findings list from `mergeReviewFindings` or unify into a single parse pass.
+
+🔵 bin/lib/flows.mjs:178 — `SEVERITY_ORDER` object is reconstructed on every call to `mergeReviewFindings`; promote to module-level constant to avoid unnecessary allocation per invocation.
