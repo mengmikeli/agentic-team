@@ -30,10 +30,10 @@
     {
       "id": "task-2",
       "title": "`agt brainstorm` (interactive mode) prompts the user for Requirements, Acceptance Criteria, Technical Approach, and Testing Strategy in addition to the existing prompts.",
-      "status": "in-progress",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 127,
-      "lastTransition": "2026-04-24T04:22:50.532Z",
+      "lastTransition": "2026-04-24T04:46:25.712Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -41,8 +41,15 @@
           "layers": [
             "fabricated-refs"
           ]
+        },
+        {
+          "iteration": 2,
+          "layers": [
+            "fabricated-refs"
+          ]
         }
-      ]
+      ],
+      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
     },
     {
       "id": "task-3",
@@ -139,7 +146,7 @@
       "taskId": "task-2"
     }
   ],
-  "transitionCount": 3,
+  "transitionCount": 4,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -161,12 +168,19 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T04:22:50.532Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-24T04:46:25.712Z"
     }
   ],
   "createdAt": "2026-04-24T04:07:53.067Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T04:33:10.821Z",
-  "_write_nonce": "611b27dc99cd1726",
-  "pausedAt": "2026-04-24T04:23:39.942Z",
+  "_last_modified": "2026-04-24T04:46:25.716Z",
+  "_write_nonce": "5d1f0a6af812c201",
+  "pausedAt": "2026-04-24T04:46:25.716Z",
   "_pause_reason": "agt stop"
 }

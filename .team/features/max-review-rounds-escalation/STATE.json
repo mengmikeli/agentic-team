@@ -1,0 +1,77 @@
+{
+  "version": "2.0",
+  "feature": "max-review-rounds-escalation",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`task.reviewRounds` field exists in STATE.json and increments by 1 each time a review phase produces a FAIL verdict (critical findings > 0 or compound gate FAIL).",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 148
+    },
+    {
+      "id": "task-2",
+      "title": "When `task.reviewRounds` reaches 3, the task is immediately blocked (no further retry attempts) with `lastReason = \"review-escalation: 3 rounds exceeded\"`.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 149
+    },
+    {
+      "id": "task-3",
+      "title": "A GitHub comment is posted to the task's linked issue containing: task title, rounds attempted, and deduplicated critical findings from each round's handshake.json.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 150
+    },
+    {
+      "id": "task-4",
+      "title": "If no GitHub issue is linked, escalation is logged to `progress.md` only (no crash or unhandled error).",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 151
+    },
+    {
+      "id": "task-5",
+      "title": "`progress.md` receives a dated escalation entry for every task that hits the cap.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 152
+    },
+    {
+      "id": "task-6",
+      "title": "Existing behavior is unchanged when `reviewRounds < 3` — tasks still retry normally up to the attempt budget.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 153
+    },
+    {
+      "id": "task-7",
+      "title": "Tick-limit enforcement, oscillation detection, and iteration-escalation all continue to fire independently (no regression).",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 154
+    },
+    {
+      "id": "task-8",
+      "title": "Unit tests cover: counter increment on review FAIL, no increment on build/gate FAIL, block fires at round 3, summary generation with deduplication.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 155
+    },
+    {
+      "id": "task-9",
+      "title": "Integration test: a task that FAILs review 3 times ends up blocked with correct `lastReason` and a GitHub comment (or progress.md fallback) containing findings from all 3 rounds.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 156
+    }
+  ],
+  "gates": [],
+  "transitionCount": 0,
+  "transitionHistory": [],
+  "createdAt": "2026-04-24T04:55:17.113Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T04:55:59.329Z",
+  "_write_nonce": "d39cc2f35887a26b"
+}

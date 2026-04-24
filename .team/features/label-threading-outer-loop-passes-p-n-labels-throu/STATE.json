@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "label-threading-outer-loop-passes-p-n-labels-throu",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -15,10 +15,10 @@
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 137,
-      "lastTransition": "2026-04-24T04:44:18.882Z",
+      "lastTransition": "2026-04-24T04:45:30.390Z",
       "ticks": 1
     }
   ],
@@ -42,7 +42,7 @@
       "taskId": "task-2"
     }
   ],
-  "transitionCount": 3,
+  "transitionCount": 4,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -64,10 +64,27 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T04:44:18.882Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-24T04:45:30.390Z"
     }
   ],
   "createdAt": "2026-04-24T04:29:41.362Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T04:45:30.292Z",
-  "_write_nonce": "1f977c3e0bc6fc92"
+  "_last_modified": "2026-04-24T04:45:35.045Z",
+  "_write_nonce": "66c630504fd52111",
+  "completedAt": "2026-04-24T04:45:35.045Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 4,
+    "gates": 2,
+    "duration": "16m"
+  }
 }

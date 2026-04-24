@@ -38,9 +38,9 @@ Run six specialist reviewers (architect, engineer, product, tester, security, si
 
 ## Done When
 
-- [ ] `roles/architect.md`, `roles/engineer.md`, `roles/product.md`, `roles/tester.md`, `roles/security.md`, and `roles/simplicity.md` all exist with substantive focus descriptions.
-- [ ] `PARALLEL_REVIEW_ROLES` in `flows.mjs` contains all six roles: `["architect", "engineer", "product", "tester", "security", "simplicity"]`.
-- [ ] `buildReviewBrief()` injects the content of `roles/<role>.md` into each reviewer's brief.
+- [x] `roles/architect.md`, `roles/engineer.md`, `roles/product.md`, `roles/tester.md`, `roles/security.md`, and `roles/simplicity.md` all exist with substantive focus descriptions.
+- [x] `PARALLEL_REVIEW_ROLES` in `flows.mjs` contains all six roles: `["architect", "engineer", "product", "tester", "security", "simplicity"]`.
+- [x] `buildReviewBrief()` injects the content of `roles/<role>.md` into each reviewer's brief.
 - [ ] The merged `eval.md` produced by a multi-review run lists findings in severity order (all criticals before warnings before suggestions) with role prefix on each finding.
 - [ ] The merged `eval.md` includes a per-role summary section at the top showing verdict and finding counts for each of the six roles.
 - [ ] A unit test verifies that findings from multiple roles are merged and sorted correctly by severity.

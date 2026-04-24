@@ -165,3 +165,9 @@
 {"ts":"2026-04-24T04:29:54.901Z","event":"task-started","msg":"▶ Task 1/2: Label threading — Outer loop passes `[P#/#N]` labels through to inner loop's `runSingleFeature`. GitHub issues and CLI banner show roadmap position."}
 {"ts":"2026-04-24T04:44:14.149Z","event":"task-passed","msg":"✓ Task 1/2: Label threading — Outer loop passes `[P#/#N]` labels through to inner loop's `runSingleFeature`. GitHub issues and CLI banner show roadmap position."}
 {"ts":"2026-04-24T04:44:21.370Z","event":"task-started","msg":"▶ Task 2/2: Quality gate passes"}
+{"ts":"2026-04-24T04:45:30.439Z","event":"task-passed","msg":"✓ Task 2/2: Quality gate passes"}
+{"ts":"2026-04-24T04:45:38.573Z","event":"feature-complete","msg":"Feature complete: label-threading-outer-loop-passes-p-n-labels-throu — 2/2 done, 0 blocked, 15m 46s, $3.77"}
+{"ts":"2026-04-24T04:48:29.358Z","event":"feature-started","msg":"▶ Feature: dashboard-token-breakdown-feature-detail-view-clic (2 tasks planned)"}
+{"ts":"2026-04-24T04:50:32.280Z","event":"feature-started","msg":"▶ Feature: multi-perspective-code-review (8 tasks planned)"}
+{"ts":"2026-04-24T04:51:04.770Z","event":"task-started","msg":"▶ Task 1/2: Dashboard token breakdown — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline."}
+{"ts":"2026-04-24T04:55:17.162Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (9 tasks planned)"}
