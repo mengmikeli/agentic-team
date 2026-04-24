@@ -3,6 +3,22 @@
 // build-verify: build + gate + review
 // full-stack: brainstorm + build + multi-role review + gate
 
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+function loadRoleFile(role) {
+  if (!role) return null;
+  try {
+    const filePath = resolve(__dirname, "../../roles", `${role}.md`);
+    return readFileSync(filePath, "utf8").trim();
+  } catch {
+    return null;
+  }
+}
+
 export const FLOWS = {
   "light-review": {
     name: "light-review",
@@ -63,8 +79,12 @@ Output a concise markdown plan. Do NOT write any code yet.`;
 }
 
 export function buildReviewBrief(featureName, taskTitle, gateOutput, cwd, role) {
-  const rolePrefix = role ? `You are acting as a ${role} reviewer.` : "You are doing a code review.";
-  return `${rolePrefix} Review the recent implementation for feature "${featureName}".
+  const roleFileContent = loadRoleFile(role);
+  const rolePrefix = roleFileContent
+    ?? (role ? `You are acting as a ${role} reviewer.` : "You are doing a code review.");
+  return `${rolePrefix}
+
+Review the recent implementation for feature "${featureName}".
 
 ## Task That Was Implemented
 ${taskTitle}
