@@ -223,3 +223,5 @@
 {"ts":"2026-04-24T11:58:12.464Z","event":"feature-complete","msg":"Feature complete: execution-report — 0/7 done, 3 blocked, 51m 49s, $231.90"}
 {"ts":"2026-04-24T12:01:39.537Z","event":"feature-started","msg":"▶ Feature: runbook-system (9 tasks planned)"}
 {"ts":"2026-04-24T12:06:36.604Z","event":"task-started","msg":"▶ Task 1/9: `.team/runbooks/` directory is created by `agt init` (or lazily on first `agt run`)"}
+{"ts":"2026-04-24T12:47:49.040Z","event":"feature-started","msg":"▶ Feature: dashboard-token-breakdown-feature-detail-view-clic (2 tasks planned)"}
+{"ts":"2026-04-24T12:52:27.387Z","event":"task-started","msg":"▶ Task 1/2: Dashboard token breakdown — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline."}

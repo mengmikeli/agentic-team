@@ -1,12 +1,12 @@
 {
   "version": "2.0",
   "feature": "runbook-system",
-  "status": "executing",
+  "status": "paused",
   "tasks": [
     {
       "id": "task-1",
       "title": "`.team/runbooks/` directory is created by `agt init` (or lazily on first `agt run`)",
-      "status": "in-progress",
+      "status": "pending",
       "attempts": 0,
       "issueNumber": 198,
       "lastTransition": "2026-04-24T12:06:34.177Z",
@@ -93,5 +93,7 @@
   "createdAt": "2026-04-24T12:01:39.487Z",
   "_written_by": "at-harness",
   "_last_modified": "2026-04-24T12:14:09.160Z",
-  "_write_nonce": "2132ac6efdded641"
+  "_write_nonce": "2132ac6efdded641",
+  "_stale_reason": "no agt run process detected",
+  "_reconciled_at": "2026-04-24T12:17:31.210Z"
 }

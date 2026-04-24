@@ -112,7 +112,7 @@
       "id": "task-7-r1-r1",
       "title": "`progress.md` contains a timestamped entry whenever a tick limit or oscillation halt fires, including the task ID and the triggering pattern or count",
       "description": "",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "replanSource": "task-7-r1",
       "lastTransition": "2026-04-23T11:22:16.171Z",

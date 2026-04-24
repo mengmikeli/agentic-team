@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "parent-issue-subtask-lifecycle",
-  "status": "paused",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -105,7 +105,7 @@
     {
       "id": "task-6",
       "title": "No extra project board columns or config changes are required — existing status flow is sufficient",
-      "status": "pending",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 164,
       "lastTransition": "2026-04-24T07:17:43.338Z",
@@ -128,7 +128,7 @@
     {
       "id": "task-7",
       "title": "All existing tests still pass after changes to `run.mjs` and `finalize.mjs`",
-      "status": "pending",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 165
     }
@@ -299,5 +299,7 @@
   "createdAt": "2026-04-24T05:56:40.878Z",
   "_written_by": "at-harness",
   "_last_modified": "2026-04-24T07:36:24.325Z",
-  "_write_nonce": "77544ff79c77f64b"
+  "_write_nonce": "77544ff79c77f64b",
+  "completedAt": "2026-04-24T12:15:44.700Z",
+  "_reconciled_at": "2026-04-24T12:15:44.700Z"
 }

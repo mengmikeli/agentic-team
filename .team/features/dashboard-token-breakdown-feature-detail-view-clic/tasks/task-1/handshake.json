@@ -1,27 +1,24 @@
 {
   "taskId": "task-1",
-  "nodeType": "review",
+  "nodeType": "gate",
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (12 critical, 15 warning, 16 suggestion). Compound gate: WARN",
-  "timestamp": "2026-04-24T05:11:39.384Z",
+  "summary": "Gate command: npm test — exit code 1",
+  "timestamp": "2026-04-24T13:02:50.234Z",
   "artifacts": [
     {
-      "type": "evaluation",
-      "path": "eval.md"
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    },
+    {
+      "type": "cli-output",
+      "path": "artifacts/gate-stderr.txt"
     }
   ],
   "findings": {
-    "critical": 12,
-    "warning": 15,
-    "suggestion": 16
-  },
-  "compoundGate": {
-    "tripped": 1,
-    "layers": [
-      "fabricated-refs"
-    ],
-    "verdict": "WARN"
+    "critical": 1,
+    "warning": 0,
+    "suggestion": 0
   }
 }
