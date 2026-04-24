@@ -1,0 +1,1304 @@
+
+> @mengmikeli/agentic-team@2.1.0 test
+> node --test test/*.test.mjs
+
+  [33m⚠ Could not add issue #99 to project board — approval polling may not work.[0m
+  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.
+  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).
+  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Ready (1s elapsed)[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (1s elapsed)[0m
+  [2mPolling issue #42 — status: Pending Approval (1s elapsed)[0m
+  [2mPolling issue #42 — status: Ready (1s elapsed)[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (1s elapsed)[0m
+  [36mWaiting for approval (issue #42)... (poll every 5s)[0m
+  [2mPolling issue #42 — status: Pending Approval (0s elapsed)[0m
+  [2mPolling issue #42 — status: Ready (0s elapsed)[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (0s elapsed)[0m
+  [2mPolling issue #42 — status: Ready (0s elapsed)[0m
+  [33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (0s elapsed)[0m
+  [2mPolling issue #42 — status: Ready (0s elapsed)[0m
+  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.
+▶ createApprovalIssue
+  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (1.976292ms)
+  ✔ returns null and does not write approval.json when createIssue fails (0.690875ms)
+  ✔ still writes approval.json when addToProject returns null (board warning only) (0.874625ms)
+  ✔ skips project board calls when projectNumber is null (0.4435ms)
+  ✔ reads SPEC.md content and passes it to createIssue as the body (0.363875ms)
+  ✔ passes 'awaiting-approval' label to createIssue (0.268916ms)
+  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.4315ms)
+✔ createApprovalIssue (5.702041ms)
+▶ readApprovalState
+  ✔ returns null when approval.json does not exist (0.192292ms)
+  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.325459ms)
+  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.500292ms)
+  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.251166ms)
+  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.229167ms)
+✔ readApprovalState (1.650083ms)
+▶ waitForApproval
+  ✔ prints issue URL before pausing when getIssueUrl returns a URL (0.226542ms)
+  ✔ prints 'Waiting for approval (issue #N)...' before pausing (0.1035ms)
+  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (799.362042ms)
+  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (717.628917ms)
+  ✔ polls multiple times before returning 'approved' (815.268625ms)
+  ✔ returns 'interrupted' after sleep when stopping flag becomes true (693.352125ms)
+  ✔ uses APPROVAL_POLL_INTERVAL env var as sleep interval (0.306791ms)
+  ✔ defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set (0.177416ms)
+  ✔ uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid (0.209083ms)
+  ✔ prints elapsed time in each poll log message (0.173875ms)
+✔ waitForApproval (3027.028417ms)
+▶ getOrCreateApprovalSigningKey
+  ✔ generates a new hex key when .approval-secret does not exist (0.537958ms)
+  ✔ writes the key to <teamDir>/.approval-secret (0.231209ms)
+  ✔ returns the same key on subsequent calls (0.212ms)
+  ✔ generates a fresh key when existing file has short/invalid key (0.274041ms)
+  ✔ approval.json written with custom signingKey is accepted by readApprovalState with same key (0.528125ms)
+✔ getOrCreateApprovalSigningKey (1.844417ms)
+▶ isStructurallyComplete
+  ✔ returns true for a well-formed STATE.json object (0.067ms)
+  ✔ returns true when tasks has entries (0.029333ms)
+  ✔ returns false for null (0.02325ms)
+  ✔ returns false for undefined (0.024083ms)
+  ✔ returns false for empty object (0.026791ms)
+  ✔ returns false when version is missing (0.023792ms)
+  ✔ returns false when version is not a string (0.027709ms)
+  ✔ returns false when tasks is missing (0.024875ms)
+  ✔ returns false when tasks is not an array (0.028667ms)
+✔ isStructurallyComplete (0.355041ms)
+▶ CLI help text
+  ✔ shows review command in help (104.57425ms)
+  ✔ shows audit command in help (89.463834ms)
+  ✔ shows brainstorm command in help (84.540166ms)
+  ✔ help text includes all three new commands with descriptions (91.231208ms)
+✔ CLI help text (370.505083ms)
+▶ agt review
+  ✔ handles review gracefully (with or without agent) (117.275791ms)
+  ✔ prints review header (104.785583ms)
+✔ agt review (222.217792ms)
+▶ agt audit
+  ✔ runs audit and reports missing .team/ (68.133166ms)
+  ✔ runs audit with .team/ present and reports structure (154.399042ms)
+  ✔ detects missing required files (147.760917ms)
+  ✔ reports feature with issues (131.292792ms)
+  ✔ shows summary line (57.962167ms)
+✔ agt audit (559.746291ms)
+▶ agt brainstorm
+  ✔ prints brainstorm header with idea (16720.632583ms)
+✔ agt brainstorm (16720.678292ms)
+▶ smart entry flow (agt run no args)
+  ✔ agt run with explicit description still works with .team/ (162.079458ms)
+  ✔ agt run with --dry-run shows tasks without executing (158.552416ms)
+✔ smart entry flow (agt run no args) (320.689584ms)
+▶ agt help <command>
+  ✔ agt help run shows usage, flags, and examples (52.998959ms)
+  ✔ agt help init shows usage and examples (51.657042ms)
+  ✔ agt help status shows usage and examples (50.361083ms)
+  ✔ agt help review shows usage and examples (49.471083ms)
+  ✔ agt help audit shows usage and examples (50.378209ms)
+  ✔ agt help brainstorm shows usage and examples (51.421625ms)
+  ✔ agt help doctor shows usage and examples (50.684458ms)
+  ✔ agt help <unknown> exits non-zero and shows error (50.026167ms)
+  ✔ agt help (no subcommand) lists all commands (49.579791ms)
+  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (49.70975ms)
+  ✔ agt help run shows Prerequisites section for board setup (51.773416ms)
+✔ agt help <command> (558.273542ms)
+▶ audit-cmd module
+  ✔ can be imported without errors (3.472708ms)
+✔ audit-cmd module (3.49525ms)
+▶ review module
+  ✔ can be imported without errors (2.91425ms)
+✔ review module (2.937667ms)
+▶ brainstorm-cmd module
+  ✔ can be imported without errors (0.216166ms)
+✔ brainstorm-cmd module (0.236167ms)
+▶ detectThinContent
+  ✔ trips when >50% of non-suggestion findings have generic phrases (0.505667ms)
+  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.079625ms)
+  ✔ does not trip when all findings are suggestions (0.594333ms)
+  ✔ does not trip for empty findings (0.114542ms)
+  ✔ trips on 'seems correct' phrase (0.097667ms)
+✔ detectThinContent (2.054708ms)
+▶ detectMissingCodeRefs
+  ✔ trips when no non-suggestion finding has a file:line reference (0.633958ms)
+  ✔ does not trip when at least one non-suggestion finding has a code ref (0.374708ms)
+  ✔ does not trip when all findings are suggestions (0.121917ms)
+  ✔ does not trip for empty findings (0.112875ms)
+✔ detectMissingCodeRefs (1.638875ms)
+▶ detectLowUniqueness
+  ✔ trips when >40% of sentences are near-duplicates (1.129875ms)
+  ✔ does not trip when all sentences are distinct (0.118ms)
+  ✔ does not trip for fewer than 2 sentences (0.053042ms)
+  ✔ does not trip for empty findings (0.032125ms)
+✔ detectLowUniqueness (1.475084ms)
+▶ detectFabricatedRefs
+  ✔ trips when a cited file does not exist in repoRoot (0.422833ms)
+  ✔ does not trip when all cited files exist in repoRoot (0.390708ms)
+  ✔ does not trip when no file paths are cited in findings (0.085375ms)
+  ✔ trips on the first non-existent path even if others exist (0.160666ms)
+  ✔ does not trip when finding text says the file is absent (false-positive guard) (0.078333ms)
+  ✔ does not trip when finding says file does not exist (0.077916ms)
+  ✔ trips on absent path even when 'not found' appears near a different path in the same finding (0.14175ms)
+  ✔ does not trip when finding says file is missing (0.068458ms)
+  ✔ handles nested directory paths (0.247083ms)
+  ✔ returns false when repoRoot is not a string (type guard) (0.024417ms)
+  ✔ does not trip when 'not found' precedes the filename in the text (0.085584ms)
+✔ detectFabricatedRefs (1.8895ms)
+▶ detectAspirationalClaims
+  ✔ trips when a non-critical finding contains 'should work' (0.068ms)
+  ✔ trips when a suggestion contains 'will handle' (0.039542ms)
+  ✔ does not trip when aspirational phrases only appear in critical findings (0.0205ms)
+  ✔ does not trip when no aspirational phrases are present (0.049333ms)
+  ✔ does not trip for empty findings (0.027584ms)
+  ✔ trips on 'is designed to' phrase (0.029125ms)
+✔ detectAspirationalClaims (0.293667ms)
+▶ runCompoundGate
+  ✔ returns PASS when no layers trip (0.761459ms)
+  ✔ returns WARN when exactly 1 layer trips (0.096125ms)
+  ✔ returns WARN when exactly 2 layers trip (0.08525ms)
+  ✔ returns FAIL when 3 layers trip (0.085584ms)
+  ✔ section contains verdict and layer names (0.080125ms)
+  ✔ section says 'All layers passed' when no layers trip (0.218125ms)
+  ✔ returns correct structure shape (0.113458ms)
+  ✔ handles null findings gracefully (non-array guard) (0.085417ms)
+✔ runCompoundGate (1.600084ms)
+▶ Integration: runCompoundGate with eval.md fixtures
+  ✔ returns FAIL for thin/fabricated eval.md content (trips ≥3 layers) (0.282875ms)
+  ✔ returns PASS for clean eval.md content with real file references (0.742458ms)
+✔ Integration: runCompoundGate with eval.md fixtures (1.05625ms)
+▶ buildContextBrief
+  ✔ returns fallback when no context files exist (28.826459ms)
+  ✔ includes SPEC.md content when present (27.900583ms)
+  ✔ includes project conventions from PROJECT.md (24.296375ms)
+  ✔ includes backlog as known issues (21.045458ms)
+  ✔ includes progress.md as known issues (24.159375ms)
+  ✔ includes git log when in a git repo (81.815875ms)
+  ✔ combines multiple context sources (26.541792ms)
+  ✔ truncates long SPEC.md content (23.670792ms)
+✔ buildContextBrief (261.225625ms)
+[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.12345.1234567890
+[crash-recovery] Removed orphaned tmp file: STATE.json.tmp.99999.9999999999
+▶ crash-recovery
+  ▶ applyCrashRecovery — status: executing
+    ✔ detects crashed state and preserves tasks (2.162083ms)
+    ✔ writes _recovered_from and _recovery_count to state (0.493958ms)
+    ✔ increments _recovery_count on repeated crashes (0.473625ms)
+  ✔ applyCrashRecovery — status: executing (3.919875ms)
+  ▶ applyCrashRecovery — status: paused (no recovery)
+    ✔ does not recover for paused state (0.330791ms)
+  ✔ applyCrashRecovery — status: paused (no recovery) (0.490125ms)
+  ▶ applyCrashRecovery — status: completed (no recovery)
+    ✔ does not recover for completed state (0.380375ms)
+  ✔ applyCrashRecovery — status: completed (no recovery) (0.528458ms)
+  ▶ harness init — orphaned tmp cleanup
+    ✔ removes orphaned STATE.json.tmp.* files on init --force (165.497583ms)
+    ✔ leaves non-tmp files untouched (0.090708ms)
+  ✔ harness init — orphaned tmp cleanup (165.774542ms)
+✔ crash-recovery (173.415833ms)
+▶ doctor: checkNodeVersion
+  ✔ passes on current Node.js (≥18) (0.472167ms)
+✔ doctor: checkNodeVersion (0.979792ms)
+▶ doctor: checkGhCli
+  ✔ passes when gh is installed and authenticated (0.279625ms)
+  ✔ warns when gh is installed but not authenticated (0.12425ms)
+  ✔ fails when gh is not installed (0.176292ms)
+✔ doctor: checkGhCli (1.274167ms)
+▶ doctor: checkCodingAgent
+  ✔ passes when claude is available (0.111416ms)
+  ✔ passes when codex is available (no claude) (0.066084ms)
+  ✔ fails when neither is available (0.057375ms)
+✔ doctor: checkCodingAgent (0.330667ms)
+▶ doctor: checkPew
+  ✔ passes when pew is available (0.072958ms)
+  ✔ warns (not fails) when pew is missing (0.043417ms)
+✔ doctor: checkPew (0.174542ms)
+▶ doctor: checkTeamDir
+  ✔ passes when .team/ exists (0.636792ms)
+  ✔ fails when .team/ is missing (0.292083ms)
+✔ doctor: checkTeamDir (0.984709ms)
+▶ doctor: checkTeamFile
+  ✔ passes when file exists (0.549792ms)
+  ✔ fails for required file when missing (0.250417ms)
+  ✔ warns for optional file when missing (0.292833ms)
+✔ doctor: checkTeamFile (1.135875ms)
+▶ doctor: checkQualityGate
+  ✔ passes when Quality Gate section has a code block (0.578792ms)
+  ✔ fails when Quality Gate section exists but no code block (0.409167ms)
+  ✔ fails when no Quality Gate section (0.324875ms)
+  ✔ fails when PROJECT.md is missing (0.243ms)
+✔ doctor: checkQualityGate (1.602708ms)
+▶ doctor: checkProjectBoard
+  ✔ passes when Tracking section has a URL (1.096584ms)
+  ✔ fails when Tracking section has no URL (0.449667ms)
+  ✔ fails when no Tracking section (0.402625ms)
+  ✔ fails when PROJECT.md is missing (0.342458ms)
+✔ doctor: checkProjectBoard (2.342417ms)
+▶ e2e: simulated agt run 'add a LICENSE file'
+  ✔ 1. init — creates feature state (91.326667ms)
+  ✔ 2. task dir — created with artifacts subdirectory (0.474792ms)
+  ✔ 3. spec — written for the feature (0.535334ms)
+  ✔ 4. progress.md — initialized (1.36575ms)
+  ✔ 5. transition — pending → in-progress (76.921584ms)
+  ✔ 6. builder handshake — written and validates (70.020417ms)
+  ✔ 7. gate — captures test output as artifact (86.556042ms)
+  ✔ 8. validate — gate handshake passes validation (0.505833ms)
+  ✔ 9. reviewer eval.md — structured findings (0.400958ms)
+  ✔ 10. synthesize — parses findings and computes PASS verdict (77.799084ms)
+  ✔ 11. verify format — review has proper file:line references (0.365292ms)
+  ✔ 12. transition — state reflects passed after gate (0.113542ms)
+  ✔ 13. progress.md — updated with task result (0.217458ms)
+  ✔ 14. context brief — includes spec, progress, and known issues (22.209583ms)
+  ✔ 15. finalize — feature marked complete (71.7595ms)
+  ✔ 16. file structure — all expected files exist (0.811167ms)
+✔ e2e: simulated agt run 'add a LICENSE file' (503.79425ms)
+▶ e2e: tier integration with builder and reviewer briefs
+  ✔ polished tier baseline appears in builder brief context (0.083875ms)
+  ✔ delightful tier has more items and stricter severity (0.04475ms)
+  ✔ functional tier has empty baseline (0.026125ms)
+  ✔ reviewer brief includes evidence verification instructions (0.065291ms)
+  ✔ flow selection matches task complexity (0.059542ms)
+✔ e2e: tier integration with builder and reviewer briefs (0.332042ms)
+▶ e2e: anti-rationalization enforcement
+  ✔ builder brief contains anti-rationalization table (0.046416ms)
+  ✔ reviewer brief warns against rubber-stamping (0.030125ms)
+✔ e2e: anti-rationalization enforcement (0.105292ms)
+▶ FLOWS
+  ✔ defines light-review with gate only (1.898292ms)
+  ✔ defines build-verify with review phase (0.376042ms)
+  ✔ defines full-stack with brainstorm and multi-review (0.075125ms)
+✔ FLOWS (3.425625ms)
+▶ selectFlow
+  ✔ returns light-review for simple 1-task feature (0.145291ms)
+  ✔ returns light-review for 2-task simple feature (0.97ms)
+  ✔ returns build-verify for 3+ tasks (1.030125ms)
+  ✔ returns build-verify for 5 tasks (0.274042ms)
+  ✔ returns full-stack for 6+ tasks (0.216375ms)
+  ✔ returns build-verify when description includes 'review' (0.085917ms)
+  ✔ returns build-verify when description includes 'api' (0.077875ms)
+  ✔ returns full-stack when description includes 'architecture' (0.043792ms)
+  ✔ returns full-stack when description includes 'refactor' (0.031583ms)
+  ✔ handles null/empty description gracefully (0.030792ms)
+  ✔ handles empty task array gracefully (0.026375ms)
+  ✔ returns full-stack for 'migration' keyword (0.023834ms)
+✔ selectFlow (4.5025ms)
+▶ buildBrainstormBrief
+  ✔ includes feature name and description (0.049208ms)
+  ✔ instructs not to write code yet (0.059666ms)
+✔ buildBrainstormBrief (1.021958ms)
+▶ buildReviewBrief
+  ✔ includes feature name and task title (0.094375ms)
+  ✔ includes role-specific focus for architect (0.039291ms)
+  ✔ includes role-specific focus for security (0.028958ms)
+  ✔ includes role-specific focus for pm (0.026084ms)
+  ✔ works without a role (generic review) (0.023083ms)
+  ✔ handles null gate output (0.0295ms)
+✔ buildReviewBrief (0.312792ms)
+▶ PARALLEL_REVIEW_ROLES
+  ✔ is an array with 2-5 roles (0.039333ms)
+  ✔ includes security and architect (0.020625ms)
+  ✔ includes devil's-advocate (0.019125ms)
+✔ PARALLEL_REVIEW_ROLES (0.111667ms)
+▶ mergeReviewFindings
+  ✔ combines findings from multiple roles into a single report (0.059666ms)
+  ✔ handles empty output gracefully (0.028125ms)
+  ✔ returns a string with a heading (0.023416ms)
+✔ mergeReviewFindings (0.138917ms)
+▶ buildReviewBrief — devil's-advocate role
+  ✔ includes devil's-advocate focus on risks and edge cases (0.030292ms)
+✔ buildReviewBrief — devil's-advocate role (0.054084ms)
+▶ createHandshake
+  ✔ fills in defaults for minimal input (2.8185ms)
+  ✔ includes compoundGate field when provided (0.227625ms)
+  ✔ omits compoundGate field when not provided (0.095292ms)
+  ✔ preserves explicit fields (0.090375ms)
+✔ createHandshake (4.034708ms)
+▶ validateHandshake
+  ✔ accepts a valid build handshake (0.293333ms)
+  ✔ rejects null input (0.050667ms)
+  ✔ rejects missing required fields (0.054042ms)
+  ✔ rejects invalid nodeType (0.071792ms)
+  ✔ rejects invalid status (0.078833ms)
+  ✔ rejects invalid verdict (0.076875ms)
+  ✔ accepts null and undefined verdict (2.949917ms)
+  ✔ rejects empty summary (0.329083ms)
+  ✔ rejects invalid timestamp (0.084917ms)
+  ✔ rejects non-array artifacts (0.065542ms)
+  ✔ rejects artifact with invalid type (0.123ms)
+  ✔ rejects artifact with missing path (0.515917ms)
+  ✔ rejects build without code artifact (0.258667ms)
+  ✔ rejects gate without test-result or cli-output artifact (0.12875ms)
+  ✔ accepts gate with test-result artifact (0.065167ms)
+  ✔ accepts gate with cli-output artifact (0.039292ms)
+  ✔ rejects review without evaluation artifact (0.040375ms)
+  ✔ accepts review with evaluation artifact (0.029208ms)
+  ✔ rejects PASS verdict with critical findings (0.035375ms)
+  ✔ accepts FAIL verdict with critical findings (0.025916ms)
+  ✔ accepts PASS verdict with zero critical findings (0.182667ms)
+  ✔ rejects when artifact file does not exist (basePath given) (1.304125ms)
+  ✔ accepts when artifact file exists (basePath given) (1.260667ms)
+  ✔ skips file existence check when no basePath (0.062583ms)
+  ✔ resolves project-root-relative paths correctly (builder pattern) (1.540916ms)
+  ✔ resolves task-dir-relative paths correctly (gate pattern) (0.454709ms)
+  ✔ accepts absolute paths regardless of basePath (0.413958ms)
+✔ validateHandshake (11.479667ms)
+▶ agt-harness validate CLI
+  ✔ validates a correct handshake file (81.92725ms)
+  ✔ rejects handshake with missing fields via CLI (72.04525ms)
+  ✔ rejects handshake with findings/verdict mismatch via CLI (81.829292ms)
+  ✔ reports file not found for bad path (74.816208ms)
+✔ agt-harness validate CLI (311.010125ms)
+▶ at-harness
+  ▶ init
+    ✔ creates feature STATE.json (79.49975ms)
+    ✔ refuses duplicate init without --force (86.582542ms)
+    ✔ allows --force to overwrite (81.245708ms)
+  ✔ init (247.833583ms)
+  ▶ transition
+    ✔ allows pending → in-progress (76.347875ms)
+    ✔ allows in-progress → passed (78.742ms)
+    ✔ rejects invalid transition (passed → pending) (70.212792ms)
+    ✔ rejects invalid status (63.265917ms)
+    ✔ rejects unknown task (65.937166ms)
+  ✔ transition (356.264167ms)
+  ▶ gate
+    ✔ PASS for successful command (64.240208ms)
+    ✔ FAIL for failing command (68.659625ms)
+    ✔ writes gate result to STATE.json (0.286542ms)
+    ✔ rejects placeholder gate command 'echo gate-recorded' (57.802417ms)
+  ✔ gate (191.497459ms)
+  ▶ notify
+    ✔ outputs notification JSON to stdout (55.266917ms)
+    ✔ rejects invalid event (57.046791ms)
+    ✔ writes event to .team/.notify-stream (54.801541ms)
+  ✔ notify (167.2225ms)
+  ▶ finalize
+    ✔ rejects when tasks not all done (53.888792ms)
+    ✔ succeeds when all tasks passed/skipped (54.471917ms)
+  ✔ finalize (108.428333ms)
+  ▶ metrics
+    ✔ computes metrics from STATE.json (74.5615ms)
+  ✔ metrics (74.615125ms)
+  ▶ tamper detection
+    ✔ rejects manually edited STATE.json (53.485791ms)
+  ✔ tamper detection (53.542334ms)
+✔ at-harness (1201.618292ms)
+▶ backlog
+  ▶ extractWarnings
+    ✔ returns empty array for empty input (0.619459ms)
+    ✔ extracts lines containing 'warning' (0.113625ms)
+    ✔ extracts lines containing 'warn' (0.035042ms)
+    ✔ deduplicates identical warning lines (0.032708ms)
+    ✔ ignores lines over 500 chars (0.028917ms)
+  ✔ extractWarnings (0.884916ms)
+  ▶ readBacklog
+    ✔ returns empty lists when backlog.md does not exist (0.193083ms)
+    ✔ parses unchecked items as unresolved and documented (0.269541ms)
+  ✔ readBacklog (0.499459ms)
+  ▶ documentWarnings
+    ✔ creates backlog.md if absent (0.285291ms)
+    ✔ appends to existing backlog.md (0.340625ms)
+    ✔ does nothing when warnings list is empty (0.071834ms)
+  ✔ documentWarnings (0.747167ms)
+  ▶ findNewWarnings
+    ✔ returns all warnings when backlog is empty (0.095166ms)
+    ✔ excludes warnings already in backlog (0.220583ms)
+  ✔ findNewWarnings (0.336042ms)
+  ▶ carryForward
+    ✔ copies unresolved warnings to new feature dir (0.313916ms)
+    ✔ returns 0 when no unresolved warnings (0.168209ms)
+  ✔ carryForward (0.503791ms)
+  ▶ gate integration
+    ✔ gate documents warnings in backlog.md (59.373583ms)
+    ✔ init --prev carries warnings forward (55.167209ms)
+  ✔ gate integration (114.601458ms)
+✔ backlog (117.678583ms)
+▶ github integration
+  ✔ ghAvailable returns a boolean (1004.049417ms)
+  ✔ createIssue returns null for empty title (0.079792ms)
+  ✔ closeIssue returns false for null number (0.048417ms)
+  ✔ commentIssue returns false for null number (0.027083ms)
+  ✔ commentIssue returns false for empty body (0.018917ms)
+✔ github integration (1004.292625ms)
+▶ readTrackingConfig
+  ✔ returns null for nonexistent path (0.115833ms)
+  ✔ returns null when tracking fields are missing (0.291375ms)
+  ✔ parses complete tracking section (0.259542ms)
+  ✔ parses optional Pending Approval and Ready option IDs (0.190041ms)
+  ✔ returns null for pending-approval key when Pending Approval Option ID is absent (0.151833ms)
+✔ readTrackingConfig (1.051709ms)
+▶ core loop integration
+  ▶ full chain: init → build → validate → gate → review → synthesize
+    ✔ initializes feature via harness (82.838084ms)
+    ✔ creates task directory structure (0.396125ms)
+    ✔ builder writes valid handshake.json (1.767584ms)
+    ✔ validates handshake via CLI (76.796375ms)
+    ✔ gate captures evidence artifacts (88.339292ms)
+    ✔ gate handshake validates correctly (0.267333ms)
+    ✔ reviewer writes eval.md (0.432ms)
+    ✔ synthesizes review findings mechanically (0.20475ms)
+    ✔ context brief includes spec and known issues (24.185208ms)
+    ✔ tier baseline integrates with build brief (0.166125ms)
+  ✔ full chain: init → build → validate → gate → review → synthesize (276.294208ms)
+  ▶ failing gate creates proper artifacts
+    ✔ captures stderr and writes FAIL handshake (82.404541ms)
+  ✔ failing gate creates proper artifacts (82.525417ms)
+  ▶ handshake findings/verdict contract enforcement
+    ✔ rejects PASS with critical findings in full chain (0.117083ms)
+  ✔ handshake findings/verdict contract enforcement (0.182ms)
+✔ core loop integration (360.704833ms)
+▶ recordWarningIteration
+  ✔ initializes gateWarningHistory and appends first entry (0.9555ms)
+  ✔ appends to existing gateWarningHistory (0.062ms)
+  ✔ does not mutate the original layers array (0.049958ms)
+  ✔ records multiple iterations on same task (0.054916ms)
+✔ recordWarningIteration (1.691084ms)
+▶ checkEscalation
+  ✔ returns null for empty history (0.126667ms)
+  ✔ returns null for single-entry history (0.040666ms)
+  ✔ returns null for undefined input (0.032083ms)
+  ✔ returns null for null input (0.044542ms)
+  ✔ returns null when layers differ across all iterations (0.051125ms)
+  ✔ returns null when a layer appears only in iteration 1 (0.063375ms)
+  ✔ returns escalation when same layer appears in iterations 1 and 2 (0.081625ms)
+  ✔ returns escalation when same layer appears in non-consecutive iterations (1 and 3) (0.049916ms)
+  ✔ returns only the recurring layers, not all layers (0.05275ms)
+  ✔ returns iterations sorted numerically ascending (0.040333ms)
+  ✔ handles entries with empty layers array without error (0.045542ms)
+  ✔ returns multiple escalating layers when several recur (0.042458ms)
+✔ checkEscalation (1.329583ms)
+▶ Integration: iteration escalation in simulated run loop
+  ✔ blocks task after same thin-content layer trips in 2 iterations, builder never invoked a third time (0.786792ms)
+  ✔ does not escalate when different layers trip each iteration (0.096042ms)
+  ✔ escalates on non-consecutive iterations (1 and 3) (0.042541ms)
+  ✔ writeFileSync-backed state: gateWarningHistory persists across calls (0.349792ms)
+✔ Integration: iteration escalation in simulated run loop (1.334458ms)
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [failed → in-progress] ×2
+[at-harness warn] oscillation detected for task 't1': [in-progress → failed] ×2
+[at-harness warn] oscillation detected for task 't1': [failed → in-progress] ×2
+▶ ticks field
+  ✔ ticks starts undefined on a new task (no ticks field) (2.25325ms)
+  ✔ ticks is 1 after first pending → in-progress (82.190917ms)
+  ✔ ticks is 2 after failed → in-progress retry (227.463083ms)
+  ✔ ticks is 2 after blocked → in-progress (188.108875ms)
+  ✔ ticks does NOT increment on in-progress → passed (126.369167ms)
+  ✔ ticks does NOT increment on in-progress → failed (119.057166ms)
+  ✔ ticks accumulates across multiple retries (278.791792ms)
+  ✔ ticks is backward-compatible — old tasks without ticks start from 0 (55.030833ms)
+  ✔ ticks are per-task — other tasks unaffected (165.973208ms)
+✔ ticks field (1248.38475ms)
+▶ tick-limit enforcement
+  ✔ rejects in-progress when ticks >= TASK_MAX_TICKS (264.99975ms)
+  ✔ invalid TASK_MAX_TICKS falls back to default of 6 (144.353167ms)
+  ✔ tick-limit exceeded writes timestamped progress.md entry with task ID and count (147.843208ms)
+✔ tick-limit enforcement (557.359375ms)
+▶ oscillation detection
+  ✔ warns and allows transition after 2 reps of K=2 pattern, logs to progress.md (239.551125ms)
+  ✔ halts feature with exit code 1 after 3 reps of K=2 pattern (350.671083ms)
+  ✔ oscillation halt writes timestamped progress.md entry with task ID and pattern (337.113375ms)
+✔ oscillation detection (927.453167ms)
+▶ replan tick inheritance
+  ✔ split replan: new tasks inherit ticks = blockedTask.ticks + 1 (0.130125ms)
+  ✔ inject replan: prereq and retry tasks inherit ticks = blockedTask.ticks + 1 (0.040667ms)
+  ✔ split replan: blocked task with ticks=0 produces ticks=1 in new tasks (0.034667ms)
+✔ replan tick inheritance (0.249542ms)
+▶ replan tick inheritance — STATE.json sync
+  ✔ syncing ticks from STATE.json before applyReplan gives correct ticks to replacement tasks (0.564584ms)
+  ✔ merging new tasks into STATE.json does not overwrite harness-updated ticks on blocked task (0.400708ms)
+✔ replan tick inheritance — STATE.json sync (1.136083ms)
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mHighest impact on execution quality.[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [33m⚠ Could not create approval issue (gh not available). Skipping gate.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Flow templates directly advance autonomous execution by enabling smart flow selection.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 2[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Parallel reviewers"[0m
+  [2mFallback: next undone roadmap item (Parallel reviewers)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [33m⚠ Could not create approval issue (gh not available). Skipping gate.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 2 complete: "Parallel reviewers" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 3[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Backlog enforcement"[0m
+  [2mFallback: next undone roadmap item (Backlog enforcement)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [33m⚠ Could not create approval issue (gh not available). Skipping gate.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 3 complete: "Backlog enforcement" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 4[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [31m✗ Prioritization failed: Agent crashed[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Parallel reviewers"[0m
+  [2mNeeded for quality.[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [33m⚠ Could not create approval issue (gh not available). Skipping gate.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Good progress.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Parallel reviewers" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 2[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mFallback: next undone roadmap item (Flow templates)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [33m⚠ Could not create approval issue (gh not available). Skipping gate.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 2 complete: "Flow templates" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 3[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Backlog enforcement"[0m
+  [2mFallback: next undone roadmap item (Backlog enforcement)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [33m⚠ Could not create approval issue (gh not available). Skipping gate.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 3 complete: "Backlog enforcement" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 4[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #99: [Feature] Flow templates[0m
+  [33m⚠ No project board configured — skipping approval wait. Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 2[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Parallel reviewers"[0m
+  [2mFallback: next undone roadmap item (Parallel reviewers)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #99: [Feature] Parallel reviewers[0m
+  [33m⚠ No project board configured — skipping approval wait. Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 2 complete: "Parallel reviewers" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 3[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Backlog enforcement"[0m
+  [2mFallback: next undone roadmap item (Backlog enforcement)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #99: [Feature] Backlog enforcement[0m
+  [33m⚠ No project board configured — skipping approval wait. Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 3 complete: "Backlog enforcement" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 4[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mResuming approval wait for issue #77...[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/77[0m
+  [36mWaiting for approval (issue #77)... (poll every 30s)[0m
+  [2mPolling issue #77 — status: Ready (1s elapsed)[0m
+  [32m→ Approved! Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[32m[1mAll roadmap items completed after 1 cycle(s)![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mResuming approval wait for issue #55...[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/55[0m
+  [36mWaiting for approval (issue #55)... (poll every 30s)[0m
+  [2mPolling issue #55 — status: Ready (1s elapsed)[0m
+  [32m→ Approved! Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[32m[1mAll roadmap items completed after 1 cycle(s)![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #66: [Feature] Flow templates[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/66[0m
+  [36mWaiting for approval (issue #66)... (poll every 30s)[0m
+  [2mPolling issue #66 — status: Ready (1s elapsed)[0m
+  [32m→ Approved! Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[32m[1mAll roadmap items completed after 1 cycle(s)![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #99: [Feature] Flow templates[0m
+  [33m⚠ No project board configured — skipping approval wait. Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 2[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Parallel reviewers"[0m
+  [2mFallback: next undone roadmap item (Parallel reviewers)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #99: [Feature] Parallel reviewers[0m
+  [33m⚠ No project board configured — skipping approval wait. Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 2 complete: "Parallel reviewers" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 3[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [33m⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.[0m
+  [32m→ Selected: "Backlog enforcement"[0m
+  [2mFallback: next undone roadmap item (Backlog enforcement)[0m
+
+[1mBrainstorming...[0m
+  [33m⚠ SPEC.md not written by agent. Creating minimal spec.[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #99: [Feature] Backlog enforcement[0m
+  [33m⚠ No project board configured — skipping approval wait. Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 3 complete: "Backlog enforcement" shipped.[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 4[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+
+[32m[1mAll roadmap items completed![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #55: [Feature] Flow templates[0m
+  [36mWaiting for approval (issue #55)... (poll every 30s)[0m
+  [2mPolling issue #55 — status: Ready (0s elapsed)[0m
+  [32m→ Approved! Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[32m[1mAll roadmap items completed after 1 cycle(s)![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #66: [Feature] Flow templates[0m
+  [33m⚠ No project board configured — skipping approval wait. Proceeding to execute.[0m
+
+[1mExecuting...[0m
+
+[1mReviewing outcome...[0m
+  [32m→ done.[0m
+  [32m→ Roadmap updated: ✅ Done[0m
+
+[32m[1mCycle 1 complete: "Flow templates" shipped.[0m
+
+[32m[1mAll roadmap items completed after 1 cycle(s)![0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).
+[31m✖ approval.json is corrupt — cannot verify approval status. Halting to prevent unauthorised execution.[0m
+  Remove or repair /var/folders/qn/nypd37y566lfhd5w1bkl6m4r0000gn/T/outer-loop-test-1776992020814-eima03/.team/features/flow-templates/approval.json and re-run.
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #42: [Feature] Flow templates[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (0s elapsed)[0m
+
+[33mCtrl+C received. Pending approval: issue #42 — run `agt run` to resume.[0m
+
+[33mInterrupted while waiting for approval (issue #42). Run `agt run` to resume.[0m
+
+[33mStopped after 1 cycle(s).[0m
+
+[1m[36m══════════════════════════════════════════════════[0m
+[1m[36mCYCLE 1[0m
+[1m[36m══════════════════════════════════════════════════[0m
+
+[1mPrioritizing...[0m
+  [32m→ Selected: "Flow templates"[0m
+  [2mtest[0m
+
+[1mBrainstorming...[0m
+  [32m→ SPEC.md written: 4 sections[0m
+
+[1mCreating approval issue...[0m
+  [32m→ Created issue #42: [Feature] Flow templates[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (0s elapsed)[0m
+
+[33mCtrl+C received. Pending approval: issue #42 — run `agt run` to resume.[0m
+
+[33mInterrupted while waiting for approval (issue #42). Run `agt run` to resume.[0m
+
+[33mStopped after 1 cycle(s).[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Ready (1s elapsed)[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (1s elapsed)[0m
+  [2mPolling issue #42 — status: Pending Approval (1s elapsed)[0m
+  [2mPolling issue #42 — status: Ready (1s elapsed)[0m
+  [36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42[0m
+  [36mWaiting for approval (issue #42)... (poll every 30s)[0m
+  [2mPolling issue #42 — status: Pending Approval (1s elapsed)[0m
+  [2mPolling issue #42 — status: Pending Approval (1s elapsed)[0m
+▶ buildPrioritizeBrief
+  ✔ includes product content in the brief (1.022834ms)
+  ✔ lists completed features (0.129042ms)
+  ✔ shows 'None yet' when no features completed (0.087834ms)
+  ✔ includes working directory (0.399875ms)
+  ✔ includes required output format instructions (0.118958ms)
+  ✔ instructs not to write code (0.099ms)
+✔ buildPrioritizeBrief (3.320416ms)
+▶ buildOuterBrainstormBrief
+  ✔ includes product context (0.252333ms)
+  ✔ includes the priority item description (0.286667ms)
+  ✔ includes completed features (0.320541ms)
+  ✔ includes SPEC.md path with feature name (0.283084ms)
+  ✔ requires Goal, Scope, Out of Scope, Done When sections (0.669375ms)
+  ✔ instructs not to implement (0.099625ms)
+✔ buildOuterBrainstormBrief (2.953958ms)
+▶ buildOutcomeReviewBrief
+  ✔ includes feature name (0.120584ms)
+  ✔ includes product content for metric comparison (0.032875ms)
+  ✔ includes progress content (0.028958ms)
+  ✔ handles empty progress gracefully (0.025792ms)
+  ✔ includes OUTCOME output format requirement (0.024875ms)
+  ✔ instructs to update PRODUCT.md roadmap (0.022291ms)
+✔ buildOutcomeReviewBrief (0.313083ms)
+▶ parsePriorityOutput
+  ✔ extracts PRIORITY and REASONING from well-formed output (0.132125ms)
+  ✔ handles PRIORITY with no REASONING (0.072833ms)
+  ✔ returns null for empty output (0.021208ms)
+  ✔ returns null when PRIORITY line is missing (0.024416ms)
+  ✔ returns null when PRIORITY value is empty (0.020042ms)
+  ✔ handles multiline agent output with PRIORITY embedded (0.024792ms)
+✔ parsePriorityOutput (0.352ms)
+▶ validateSpecFile
+  ✔ validates a complete SPEC.md (1.089542ms)
+  ✔ detects missing sections (0.941083ms)
+  ✔ returns all missing for non-existent file (0.293833ms)
+  ✔ is case-insensitive for section headings (0.333042ms)
+  ✔ handles empty file (0.274625ms)
+✔ validateSpecFile (3.025458ms)
+▶ markRoadmapItemDone
+  ✔ marks an item as done in PRODUCT.md (0.494917ms)
+  ✔ does not double-mark already done items (0.365083ms)
+  ✔ returns false for non-existent file (0.184333ms)
+  ✔ returns false for non-matching item (0.332667ms)
+  ✔ is case-insensitive for matching (0.416667ms)
+✔ markRoadmapItemDone (1.8605ms)
+▶ parseRoadmap
+  ✔ parses roadmap items with done status (0.207542ms)
+  ✔ returns empty array for content without roadmap (0.581333ms)
+  ✔ returns empty array for empty roadmap section (0.060084ms)
+✔ parseRoadmap (0.883875ms)
+▶ slugify
+  ✔ converts spaces and special chars to hyphens (0.169125ms)
+  ✔ removes leading and trailing hyphens (0.02875ms)
+  ✔ truncates to 50 chars (0.025333ms)
+  ✔ handles version numbers (0.041667ms)
+  ✔ collapses multiple special chars (0.018917ms)
+✔ slugify (0.326833ms)
+▶ getCompletedFeatures
+  ✔ returns empty array when features dir doesn't exist (0.218709ms)
+  ✔ returns completed features only (2.421416ms)
+  ✔ ignores directories without STATE.json (0.866083ms)
+✔ getCompletedFeatures (3.593ms)
+▶ outerLoop
+  ✔ runs one full cycle with mocked deps (5.700542ms)
+  ✔ stops when all roadmap items are exhausted (0.485791ms)
+  ✔ handles prioritize failure gracefully (0.421916ms)
+  ✔ creates minimal SPEC.md when agent doesn't write one (2.08775ms)
+  ✔ creates approval issue and proceeds after approval (3.655416ms)
+  ✔ re-entry guard: skips issue creation when approval.json already exists (668.909375ms)
+  ✔ re-entry guard: polls existing issue when approvalIssueNumber is in STATE.json but approval.json is absent (671.8405ms)
+  ✔ persists approvalIssueNumber to STATE.json after issue creation (658.609916ms)
+  ✔ skips waitForApproval and proceeds when projectNumber is null (3.335333ms)
+  ✔ sets approvalStatus: 'approved' in STATE.json when project item moves to Ready (2.010667ms)
+  ✔ sets approvalStatus: 'approved' in STATE.json when skipping approval wait (no project board) (1.825417ms)
+  ✔ halts without executing when approval.json is corrupt (1.037541ms)
+  ✔ shows pending issue number in message when Ctrl+C received during approval wait (1.151708ms)
+  ✔ does not corrupt STATE.json when Ctrl+C received during approval wait (2.057833ms)
+✔ outerLoop (2023.398791ms)
+▶ createApprovalIssue
+  ✔ writes issueNumber and status:pending to approval.json (0.561875ms)
+  ✔ returns null and does not write approval.json when createIssue fails (0.237334ms)
+  ✔ does not write to STATE.json (no crash-recovery interference) (0.458875ms)
+✔ createApprovalIssue (1.288875ms)
+▶ waitForApproval
+  ✔ returns 'approved' immediately when status is already 'Ready' (775.776875ms)
+  ✔ returns 'interrupted' when stopping flag is set before first poll (686.915583ms)
+  ✔ polls until status changes to Ready (762.992584ms)
+  ✔ returns 'interrupted' when stopping flag set after several polls (769.280125ms)
+✔ waitForApproval (2995.3145ms)
+▶ parseReplanOutput
+  ✔ parses valid split output (0.612709ms)
+  ✔ parses valid inject output (0.095417ms)
+  ✔ parses valid abandon output (0.068542ms)
+  ✔ returns null for missing JSON block (0.049666ms)
+  ✔ returns null for invalid verdict (0.046791ms)
+  ✔ returns null for split with too few tasks (0.049292ms)
+  ✔ returns null for split with too many tasks (0.044333ms)
+  ✔ returns null for inject with wrong task count (0.039083ms)
+  ✔ returns null for null input (0.043625ms)
+  ✔ returns null for empty string (0.265375ms)
+  ✔ returns null for task with missing title (0.141875ms)
+✔ parseReplanOutput (3.085125ms)
+▶ buildReplanBrief
+  ✔ includes feature name (0.318125ms)
+  ✔ includes task id and title (0.094875ms)
+  ✔ includes failure context (0.0625ms)
+  ✔ includes remaining tasks (0.097334ms)
+  ✔ includes spec content (0.130583ms)
+  ✔ handles null failure context gracefully (0.074625ms)
+  ✔ shows (none) for empty remaining tasks (0.052709ms)
+✔ buildReplanBrief (1.037125ms)
+▶ applyReplan
+  ✔ split injects sub-tasks after blocked task (0.251042ms)
+  ✔ split annotates blocked task with replan field (0.068166ms)
+  ✔ split sets replanSource on new tasks (0.058542ms)
+  ✔ inject inserts prereq and retry clone after blocked task (0.069709ms)
+  ✔ inject annotates blocked task with replan field (0.056541ms)
+  ✔ inject sets replanSource on new tasks (0.056417ms)
+  ✔ new tasks from inject start with pending status and zero attempts (0.078417ms)
+  ✔ abandon leaves tasks unchanged (0.055958ms)
+  ✔ no-ops when replanResult is null (0.065334ms)
+  ✔ no-ops when blocked task is not in tasks array (0.063083ms)
+✔ applyReplan (0.984667ms)
+▶ smoke test — always-failing task terminates cleanly
+  ✔ terminates via tick-limit-exceeded (not MAX_TOTAL_TRANSITIONS) within maxTaskTicks × 2 transitions (467.922708ms)
+✔ smoke test — always-failing task terminates cleanly (469.496167ms)
+▶ parseDateRange
+  ✔ parses 'Apr 14–18' (1.571209ms)
+  ✔ parses 'Apr 1–14' (0.144ms)
+  ✔ parses single-day 'Apr 14' (0.096667ms)
+  ✔ returns null for invalid input (0.052708ms)
+  ✔ parses hyphen separator 'Apr 14-18' (0.052ms)
+✔ parseDateRange (3.211ms)
+▶ parseSprints
+  ✔ parses sprint table from SPRINTS.md (1.566584ms)
+  ✔ returns empty array if file doesn't exist (1.302833ms)
+✔ parseSprints (3.073625ms)
+▶ computeCycleTime
+  ✔ computes cycle time from transitionHistory + lastGate (0.4495ms)
+  ✔ skips tasks without in-progress transition (0.130375ms)
+  ✔ skips pending/in-progress tasks (0.091417ms)
+  ✔ handles multiple features and tasks (0.07575ms)
+✔ computeCycleTime (0.930875ms)
+▶ computeFailureRate
+  ✔ returns 0 when all tasks pass (0.07525ms)
+  ✔ returns correct failure fraction (0.037834ms)
+  ✔ returns null when no terminal tasks (0.027ms)
+  ✔ returns null when no tasks (0.025625ms)
+✔ computeFailureRate (0.206959ms)
+▶ computeGatePassRate
+  ✔ returns 1 when all gates pass (0.0555ms)
+  ✔ computes correct rate (0.046709ms)
+  ✔ returns null when no gates (0.024791ms)
+✔ computeGatePassRate (0.159208ms)
+▶ computeFlowUsage
+  ✔ classifies by task count (0.069833ms)
+✔ computeFlowUsage (0.089917ms)
+▶ computeReplanRate
+  ✔ returns 0 when no replanned tasks (0.044083ms)
+  ✔ computes correct re-plan fraction (0.025666ms)
+  ✔ returns null when no tasks (0.024584ms)
+✔ computeReplanRate (0.121417ms)
+▶ computeSprintMetrics integration
+  ✔ returns noData when no features match sprint (1.57075ms)
+  ✔ computes metrics for matching features (1.098ms)
+  ✔ persists analytics.json to .team/sprints/{sprint}/ (0.974542ms)
+  ✔ accepts sprintName override to target a specific sprint (1.231708ms)
+  ✔ handles team dir with no SPRINTS.md gracefully (0.43275ms)
+✔ computeSprintMetrics integration (5.36875ms)
+▶ synthesize + compound gate integration
+  ✔ thin/fabricated eval.md → compound gate FAIL (≥3 layers tripped) (1.82225ms)
+  ✔ thin eval.md trips thin-content, missing-code-refs, and aspirational-claims layers (0.173541ms)
+  ✔ detailed eval.md with real file refs → compound gate PASS (0 layers tripped) (0.344458ms)
+  ✔ detailed eval.md — fabricated-refs does not trip when cited files exist (0.10125ms)
+  ✔ thin eval.md — fabricated-refs does not trip when no file paths cited (0.46975ms)
+  ✔ fabricated eval.md with nonexistent file paths → fabricated-refs trips (0.218417ms)
+  ✔ path traversal in cited paths is blocked by fabricated-refs (0.135792ms)
+  ✔ detailed eval.md — thin-content layer does not trip (no generic phrases) (0.089417ms)
+  ✔ detailed eval.md — missing-code-refs layer does not trip (file:line refs present) (0.084292ms)
+  ✔ detailed eval.md — low-uniqueness layer does not trip (distinct findings) (0.118ms)
+  ✔ detailed eval.md — aspirational-claims layer does not trip (concrete language only) (0.080125ms)
+  ✔ detailed eval.md — section output confirms PASS with 'All layers passed' (0.076875ms)
+✔ synthesize + compound gate integration (4.350042ms)
+▶ parseFindings
+  ✔ finds critical (🔴) findings (0.483709ms)
+  ✔ finds warning (🟡) findings (0.053375ms)
+  ✔ finds suggestion (🔵) findings (0.053625ms)
+  ✔ finds multiple findings across lines (0.052167ms)
+  ✔ returns empty array for text with no findings (0.049916ms)
+  ✔ returns empty array for empty input (0.502875ms)
+  ✔ ignores lines without severity emoji (0.038208ms)
+✔ parseFindings (1.848541ms)
+▶ computeVerdict
+  ✔ returns FAIL when there are critical findings (0.097125ms)
+  ✔ returns PASS with backlog=true when only warnings (0.046084ms)
+  ✔ returns PASS with backlog=false when only suggestions (0.064625ms)
+  ✔ returns PASS with backlog=false when no findings (0.041375ms)
+  ✔ FAIL trumps warnings — any red = FAIL (0.032375ms)
+  ✔ counts severities correctly (0.033625ms)
+  ✔ backlog=true only when no critical but has warnings (0.026833ms)
+✔ computeVerdict (0.466583ms)
+▶ verifyFormat
+  ✔ accepts valid finding with emoji + file:line + fix (0.186541ms)
+  ✔ accepts multiple valid findings (0.079666ms)
+  ✔ flags missing file:line reference (0.052875ms)
+  ✔ flags missing fix suggestion (0.039875ms)
+  ✔ returns valid=true and findings=0 for no findings (0.028292ms)
+  ✔ returns ok=true always (it's a format check, not a verdict) (0.030791ms)
+✔ verifyFormat (0.487542ms)
+▶ agt-harness synthesize CLI
+  ✔ synthesize --input returns FAIL for critical findings (69.1705ms)
+  ✔ synthesize --input returns PASS with backlog for warnings only (60.450542ms)
+  ✔ synthesize --input returns PASS for no findings (58.958167ms)
+  ✔ synthesize verify --input accepts valid format (62.05325ms)
+  ✔ synthesize verify --input rejects format without file:line (64.781458ms)
+  ✔ synthesize includes findings array in output (57.617292ms)
+  ✔ thin/aspirational review → compound gate FAIL via CLI (61.384416ms)
+✔ agt-harness synthesize CLI (434.713417ms)
+▶ TIERS
+  ✔ defines functional, polished, and delightful tiers (0.424709ms)
+  ✔ functional has no baseline items (0.053792ms)
+  ✔ polished has baseline items (0.051666ms)
+  ✔ delightful has more baseline items than polished (0.042334ms)
+  ✔ delightful includes polished items plus extras (0.056708ms)
+  ✔ all baseline items have key and text (0.057792ms)
+✔ TIERS (1.238584ms)
+▶ selectTier
+  ✔ returns explicit tier when flag is provided (0.08075ms)
+  ✔ ignores invalid tier flag and falls through to auto-detect (0.056791ms)
+  ✔ selects functional for CLI/API descriptions (0.183375ms)
+  ✔ selects polished for UI/frontend descriptions (0.154167ms)
+  ✔ selects delightful for showcase/demo descriptions (0.095334ms)
+  ✔ defaults to functional for ambiguous descriptions (0.104458ms)
+✔ selectTier (1.5575ms)
+▶ formatTierBaseline
+  ✔ formats functional tier with no checklist (0.101125ms)
+  ✔ formats polished tier with checklist items (0.049333ms)
+  ✔ formats delightful tier with all items (0.034375ms)
+  ✔ includes builder and reviewer guidance (0.040042ms)
+  ✔ handles null tier gracefully (0.026917ms)
+✔ formatTierBaseline (0.313208ms)
+▶ getMissingSeverity
+  ✔ returns null for functional tier (0.045708ms)
+  ✔ returns warning for most polished items (0.027667ms)
+  ✔ returns critical for key polished items (0.025708ms)
+  ✔ returns critical for all delightful items (0.021958ms)
+✔ getMissingSeverity (0.161875ms)
+ℹ tests 508
+ℹ suites 110
+ℹ pass 508
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18845.0545

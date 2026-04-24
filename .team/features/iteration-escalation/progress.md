@@ -21,3 +21,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 00:51:33
+**Task 1: `STATE.json` task entries include a `gateWarningHistory` array (`[{iteration: N, layers: [...]}]`) written after each WARN verdict**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+
