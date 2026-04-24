@@ -49,7 +49,7 @@ function harness(...args) {
 
 // ── Inline gate runner (bypasses harness subprocess issues on Windows) ──
 
-function runGateInline(cmd, featureDir, taskId, cwd = process.cwd()) {
+export function runGateInline(cmd, featureDir, taskId, cwd = process.cwd()) {
   let exitCode = 0;
   let stdout = "";
   let stderr = "";
@@ -156,27 +156,23 @@ export function slugToBranch(slug) {
     .slice(0, 72);
 }
 
-export function createWorktreeIfNeeded(slug, mainCwd) {
+export function createWorktreeIfNeeded(slug, mainCwd, _execFn = execFileSync) {
   const worktreePath = join(mainCwd, ".team", "worktrees", slug);
   const branchName = "feature/" + slugToBranch(slug);
   if (existsSync(worktreePath)) {
     console.log(`  ${c.dim}Reusing existing worktree: ${worktreePath}${c.reset}`);
     return worktreePath;
   }
-  execSync(`git worktree add "${worktreePath}" -b "${branchName}"`, { cwd: mainCwd, shell: true, stdio: "pipe" });
+  _execFn("git", ["worktree", "add", worktreePath, "-b", branchName], { cwd: mainCwd, stdio: "pipe" });
   console.log(`  ${c.green}✓ Worktree created: ${worktreePath} (${branchName})${c.reset}`);
   return worktreePath;
 }
 
-export function removeWorktree(worktreePath, mainCwd) {
+export function removeWorktree(worktreePath, mainCwd, _execFn = execFileSync) {
   try {
-    execSync(`git worktree remove --force "${worktreePath}"`, { cwd: mainCwd, shell: true, stdio: "pipe" });
+    _execFn("git", ["worktree", "remove", "--force", worktreePath], { cwd: mainCwd, stdio: "pipe" });
   } catch { /* already gone or not a worktree — not fatal */ }
 }
-
-// ── Agent dispatch ──────────────────────────────────────────────
-
-// ── Token usage tracking ───────────────────────────────────────
 
 // ── Token usage tracking ───────────────────────────────────────
 
@@ -891,14 +887,6 @@ async function _runSingleFeature(args, description, providedLabel = '') {
 
   // ── Create git worktree for isolated execution ──
 
-  let worktreePath = null;
-  try {
-    worktreePath = createWorktreeIfNeeded(featureName, mainCwd);
-    cwd = worktreePath;
-  } catch (err) {
-    console.log(`  ${c.yellow}⚠ Could not create worktree — running in main repo: ${err.message}${c.reset}`);
-  }
-
   // ── Read or create spec ──
 
   const specPath = join(featureDir, "SPEC.md");
@@ -948,6 +936,16 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     tasks.forEach((t, i) => console.log(`  ${i + 1}. ${t.title}`));
     console.log(`\n${c.yellow}Dry run complete. No tasks executed.${c.reset}`);
     return;
+  }
+
+  // ── Create git worktree for isolated execution ──
+
+  let worktreePath = null;
+  try {
+    worktreePath = createWorktreeIfNeeded(featureName, mainCwd);
+    cwd = worktreePath;
+  } catch (err) {
+    throw new Error(`Cannot create worktree for "${featureName}": ${err.message}`);
   }
 
   // ── Create GitHub issues ──
@@ -1464,20 +1462,16 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     } catch { /* best-effort */ }
   }
 
-  // Auto-push if there are commits to push
+  // Auto-push feature branch commits
   try {
-    const ahead = execSync("git rev-list --count @{u}..HEAD", { cwd, encoding: "utf8", shell: true, stdio: "pipe" }).trim();
-    if (parseInt(ahead) > 0) {
-      console.log(`${c.dim}Pushing ${ahead} commit(s)...${c.reset}`);
-      execSync("git push", { cwd, shell: true, stdio: "pipe" });
-      console.log(`${c.green}✓ Pushed${c.reset}`);
-    }
-  } catch { /* no upstream or push failed — not fatal */ }
+    console.log(`${c.dim}Pushing feature branch...${c.reset}`);
+    execFileSync("git", ["push", "--set-upstream", "origin", "HEAD"], { cwd, stdio: "pipe" });
+    console.log(`${c.green}✓ Pushed${c.reset}`);
+  } catch { /* push failed — not fatal */ }
 
   // Remove worktree now that execution is complete
   if (worktreePath) {
     removeWorktree(worktreePath, mainCwd);
-    cwd = mainCwd;
   }
 
   const duration = Math.round((Date.now() - startTime) / 1000);

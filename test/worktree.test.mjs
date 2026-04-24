@@ -1,13 +1,13 @@
 // Tests for git worktree helpers in bin/lib/run.mjs
 // Uses Node.js built-in test runner (node --test)
 
-import { describe, it, mock, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, rmSync, existsSync } from "fs";
+import { mkdirSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
-import { slugToBranch, createWorktreeIfNeeded, removeWorktree } from "../bin/lib/run.mjs";
+import { slugToBranch, createWorktreeIfNeeded, removeWorktree, runGateInline } from "../bin/lib/run.mjs";
 
 // ── slugToBranch ─────────────────────────────────────────────────
 
@@ -42,53 +42,63 @@ describe("slugToBranch", () => {
 
 describe("createWorktreeIfNeeded", () => {
   let tmpDir;
-  let execSyncCalls;
 
   beforeEach(() => {
     tmpDir = join(tmpdir(), `worktree-test-${Date.now()}`);
     mkdirSync(tmpDir, { recursive: true });
-    execSyncCalls = [];
   });
 
   afterEach(() => {
     try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   });
 
-  it("calls git worktree add when directory does not exist", () => {
-    // Mock child_process.execSync by testing through the exported function
-    // We verify the returned path without actually running git
-    const worktreePath = join(tmpDir, ".team", "worktrees", "my-slug");
+  it("calls execFileSync with correct git worktree add arguments when directory does not exist", () => {
+    const calls = [];
+    const mockExec = (cmd, args, opts) => calls.push({ cmd, args, opts });
 
-    // Create the directory to simulate what git would do
-    const fakePath = join(tmpDir, ".team", "worktrees", "already-there");
-    mkdirSync(fakePath, { recursive: true });
+    const result = createWorktreeIfNeeded("new-slug", tmpDir, mockExec);
 
-    // Verify the function returns the correct path for an existing worktree
-    // (reuse path when exists)
-    const result = createWorktreeIfNeeded("already-there", tmpDir);
-    assert.equal(result, fakePath);
+    const expectedPath = join(tmpDir, ".team", "worktrees", "new-slug");
+    assert.equal(result, expectedPath);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].cmd, "git");
+    assert.deepEqual(calls[0].args, ["worktree", "add", expectedPath, "-b", "feature/new-slug"]);
+    assert.equal(calls[0].opts.cwd, tmpDir);
+    assert.equal(calls[0].opts.stdio, "pipe");
   });
 
-  it("returns existing worktree path without re-running git (crash recovery)", () => {
+  it("reuses existing worktree without calling execFileSync (crash recovery)", () => {
     const slug = "existing-feature";
     const worktreePath = join(tmpDir, ".team", "worktrees", slug);
     mkdirSync(worktreePath, { recursive: true });
 
-    // Should reuse the existing directory, not call git worktree add
-    // (we test this by confirming no error is thrown even though git is not set up)
-    const result = createWorktreeIfNeeded(slug, tmpDir);
+    const calls = [];
+    const mockExec = (cmd, args, opts) => calls.push({ cmd, args, opts });
+
+    const result = createWorktreeIfNeeded(slug, tmpDir, mockExec);
     assert.equal(result, worktreePath);
+    assert.equal(calls.length, 0, "should not call execFileSync when worktree already exists");
     assert.ok(existsSync(result));
   });
 
   it("computed path uses .team/worktrees/{slug}", () => {
     const slug = "my-feature";
     const expected = join(tmpDir, ".team", "worktrees", slug);
-    // Pre-create so no git call is made
     mkdirSync(expected, { recursive: true });
 
     const result = createWorktreeIfNeeded(slug, tmpDir);
     assert.equal(result, expected);
+  });
+
+  it("branch name is feature/{slugToBranch(slug)}", () => {
+    const calls = [];
+    const mockExec = (cmd, args) => calls.push(args);
+
+    createWorktreeIfNeeded("my_slug", tmpDir, mockExec);
+
+    assert.equal(calls.length, 1);
+    const branchArg = calls[0][calls[0].length - 1];
+    assert.equal(branchArg, "feature/my-slug");
   });
 });
 
@@ -96,10 +106,68 @@ describe("createWorktreeIfNeeded", () => {
 
 describe("removeWorktree", () => {
   it("does not throw if git worktree remove fails (already gone)", () => {
-    // Should be a no-op / silent failure for missing path
     assert.doesNotThrow(() => {
       removeWorktree("/nonexistent/path/xyz", "/tmp");
     });
+  });
+
+  it("calls execFileSync with correct git worktree remove --force arguments", () => {
+    const calls = [];
+    const mockExec = (cmd, args, opts) => calls.push({ cmd, args, opts });
+
+    removeWorktree("/some/worktree", "/main/repo", mockExec);
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].cmd, "git");
+    assert.deepEqual(calls[0].args, ["worktree", "remove", "--force", "/some/worktree"]);
+    assert.equal(calls[0].opts.cwd, "/main/repo");
+    assert.equal(calls[0].opts.stdio, "pipe");
+  });
+
+  it("lifecycle: removeWorktree is called on completion (mock-based)", () => {
+    let removeCalled = false;
+    const mockExec = () => { removeCalled = true; };
+    removeWorktree("/path/to/worktree", "/main", mockExec);
+    assert.ok(removeCalled, "removeWorktree should invoke execFn to remove the worktree");
+  });
+
+  it("lifecycle: removeWorktree swallows errors (blocked/already-gone path)", () => {
+    const mockExec = () => { throw new Error("worktree not found"); };
+    assert.doesNotThrow(() => removeWorktree("/gone/path", "/main", mockExec));
+  });
+});
+
+// ── runGateInline cwd injection ───────────────────────────────────
+
+describe("runGateInline cwd injection", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "gate-cwd-test-"));
+  });
+
+  afterEach(() => {
+    try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+  });
+
+  it("uses the provided cwd, not process.cwd()", () => {
+    // Run `pwd` — on POSIX its stdout will be the cwd. On Windows, `cd` does the same.
+    const cmd = process.platform === "win32" ? "cd" : "pwd";
+    const result = runGateInline(cmd, tmpDir, null, tmpDir);
+    assert.ok(
+      result.stdout.trim().includes(tmpDir.split("/").pop()),
+      `Expected stdout to reflect cwd ${tmpDir}, got: ${result.stdout}`
+    );
+  });
+
+  it("returns PASS verdict when command succeeds", () => {
+    const result = runGateInline("node --version", tmpDir, null, tmpDir);
+    assert.equal(result.verdict, "PASS");
+  });
+
+  it("returns FAIL verdict when command fails", () => {
+    const result = runGateInline("node -e 'process.exit(1)'", tmpDir, null, tmpDir);
+    assert.equal(result.verdict, "FAIL");
   });
 });
 
