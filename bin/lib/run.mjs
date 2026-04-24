@@ -554,6 +554,22 @@ export function applyCrashRecovery(state, plannedTasks, featureDir) {
   if (state && state.status === "executing") {
     const crashedAt = state._last_modified;
     const recoveredTasks = Array.isArray(state.tasks) ? state.tasks : plannedTasks;
+
+    // Check if all tasks are terminal (blocked/failed) — this isn't a crash, it's a failed run
+    const pendingOrInProgress = recoveredTasks.filter(t => ["pending", "in-progress"].includes(t.status));
+    const allTerminal = recoveredTasks.length > 0 && pendingOrInProgress.length === 0;
+
+    if (allTerminal) {
+      // Previous run failed completely — start fresh with new planned tasks
+      state.tasks = plannedTasks;
+      state.status = "executing";
+      state._previous_run_failed = crashedAt;
+      state._recovery_count = (state._recovery_count || 0) + 1;
+      writeState(featureDir, state);
+      return { tasks: plannedTasks, recovered: false, previousRunFailed: true };
+    }
+
+    // Normal crash recovery — reset in-progress to pending, keep passed/skipped
     for (const t of recoveredTasks) {
       if (t.status === "in-progress") t.status = "pending";
     }
@@ -926,6 +942,8 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   const recovery = applyCrashRecovery(state, tasks, featureDir);
   if (recovery.recovered) {
     console.log(`${c.yellow}[crash-recovery]${c.reset} Resuming from crashed state at ${recovery.crashedAt}`);
+  } else if (recovery.previousRunFailed) {
+    console.log(`${c.yellow}[fresh-start]${c.reset} Previous run failed (all tasks blocked). Starting with fresh task plan.`);
   }
   tasks = recovery.tasks;
 

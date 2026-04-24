@@ -225,3 +225,17 @@
 {"ts":"2026-04-24T12:06:36.604Z","event":"task-started","msg":"▶ Task 1/9: `.team/runbooks/` directory is created by `agt init` (or lazily on first `agt run`)"}
 {"ts":"2026-04-24T12:47:49.040Z","event":"feature-started","msg":"▶ Feature: dashboard-token-breakdown-feature-detail-view-clic (2 tasks planned)"}
 {"ts":"2026-04-24T12:52:27.387Z","event":"task-started","msg":"▶ Task 1/2: Dashboard token breakdown — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline."}
+{"ts":"2026-04-24T13:23:36.642Z","event":"task-blocked","msg":"✗ Task 1/2: Dashboard token breakdown — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline. — failed after 3 attempts"}
+{"ts":"2026-04-24T13:24:08.510Z","event":"task-started","msg":"▶ Task 2/4: Fix spawnSync ENOBUFS buffer overflow in test/build pipeline"}
+{"ts":"2026-04-24T13:56:54.747Z","event":"task-blocked","msg":"✗ Task 2/4: Fix spawnSync ENOBUFS buffer overflow in test/build pipeline — failed after 3 attempts"}
+{"ts":"2026-04-24T13:57:04.793Z","event":"progress","msg":"Progress: 0/4 done, 1 blocked."}
+{"ts":"2026-04-24T14:13:30.097Z","event":"feature-started","msg":"▶ Feature: multi-perspective-code-review-parallel-review-disp (0 tasks planned)"}
+{"ts":"2026-04-24T14:13:33.260Z","event":"feature-complete","msg":"Feature complete: multi-perspective-code-review-parallel-review-disp — 0/0 done, 0 blocked, 3s"}
+{"ts":"2026-04-24T14:18:01.947Z","event":"feature-started","msg":"▶ Feature: document-driven-development-prd-template-goal-requ (0 tasks planned)"}
+{"ts":"2026-04-24T14:18:05.158Z","event":"feature-complete","msg":"Feature complete: document-driven-development-prd-template-goal-requ — 0/0 done, 0 blocked, 3s"}
+{"ts":"2026-04-24T14:21:50.145Z","event":"feature-started","msg":"▶ Feature: runbook-system-pattern-matched-task-recipes-regex- (0 tasks planned)"}
+{"ts":"2026-04-24T14:21:53.443Z","event":"feature-complete","msg":"Feature complete: runbook-system-pattern-matched-task-recipes-regex- — 0/0 done, 0 blocked, 3s"}
+{"ts":"2026-04-24T14:25:56.009Z","event":"feature-started","msg":"▶ Feature: extension-system-capability-routed-hooks-promptapp (0 tasks planned)"}
+{"ts":"2026-04-24T14:25:59.055Z","event":"feature-complete","msg":"Feature complete: extension-system-capability-routed-hooks-promptapp — 0/0 done, 0 blocked, 3s"}
+{"ts":"2026-04-24T14:29:38.410Z","event":"feature-started","msg":"▶ Feature: external-validator-integration-pre-commit-hooks-te (0 tasks planned)"}
+{"ts":"2026-04-24T14:29:41.754Z","event":"feature-complete","msg":"Feature complete: external-validator-integration-pre-commit-hooks-te — 0/0 done, 0 blocked, 3s"}

@@ -1,0 +1,27 @@
+{
+  "version": "2.0",
+  "feature": "runbook-system-pattern-matched-task-recipes-regex-",
+  "status": "completed",
+  "tasks": [],
+  "gates": [],
+  "transitionCount": 0,
+  "transitionHistory": [],
+  "createdAt": "2026-04-24T14:21:50.082Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T14:21:51.659Z",
+  "_write_nonce": "6886205e6d998fe9",
+  "_runStartedAt": "2026-04-24T14:21:50.086Z",
+  "roadmapLabel": "P5/#21",
+  "_recovered_from": "2026-04-24T14:21:50.086Z",
+  "_recovery_count": 1,
+  "completedAt": "2026-04-24T14:21:51.659Z",
+  "summary": {
+    "tasks": 0,
+    "passed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 0,
+    "gates": 0,
+    "duration": "0m"
+  }
+}

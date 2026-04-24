@@ -43,22 +43,22 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 
 ### Phase 3.5 — Stabilization
 27. **Label threading** — ✅ Done. Outer loop passes `[P#/#N]` labels through to inner loop's `runSingleFeature`. GitHub issues and CLI banner show roadmap position.
-28. **Dashboard token breakdown** — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline.
+28. **Dashboard token breakdown** — ✅ Done. Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline.
 29. **Dashboard active task indicator** — ✅ Done. Show which specific task is executing with name and attempt number, not just "N/M done".
 30. **Finalize auto-close validation** — ✅ Done. Integration test: `agt finalize` marks feature completed and closes all its GitHub issues. Verify end-to-end.
 
 ### Phase 4 — Productive Execution
-15. **Simplicity reviewer with veto** — Dedicated review pass that checks for dead code, premature abstraction, unnecessary indirection, gold-plating. Simplicity REQUEST_CHANGES = overall REQUEST_CHANGES. 🔴 simplicity findings tagged `[simplicity veto]` in merged output and force overall FAIL verdict.
-16. **Multi-perspective code review** — Parallel review dispatch: architect, engineer, product, tester, security, simplicity. Role-specific reference docs. Synthesis with severity ranking.
-17. **Document-driven development** — PRD template (Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope). No code without approved spec.
+15. **Simplicity reviewer with veto** — Dedicated review pass that checks for dead code, premature abstraction, unnecessary indirection, gold-plating. Simplicity REQUEST_CHANGES = overall REQUEST_CHANGES. 🔴 simplicity findings tagged `[simplicity veto]` in merged output and force overall FAIL verdict. ✅ Done
+16. **Multi-perspective code review** — Parallel review dispatch: architect, engineer, product, tester, security, simplicity. Role-specific reference docs. Synthesis with severity ranking. ✅ Done
+17. **Document-driven development** — PRD template (Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope). No code without approved spec. ✅ Done
 18. **Parent issue + subtask lifecycle** — ✅ Done. Feature gets parent GitHub issue (PRD in body), subtasks as child issues with checklist. Full lifecycle sync on project board.
-19. **Max review rounds + escalation** — Cap at 3 review rounds. After round 3, produce summary and escalate to human. Prevents infinite review loops.
+19. **Max review rounds + escalation** — Cap at 3 review rounds. After round 3, produce summary and escalate to human. Prevents infinite review loops. ✅ Done
 
 ### Phase 5 — Advanced
-20. **Git worktree isolation** — Each feature runs in its own git worktree + branch. Parallel features never interfere. Feature-slug as namespace for all artifacts. `cwd` injected into agent dispatches and gate commands; worktree created before task dispatch and cleaned up on completion.
-21. **Runbook system** — Pattern-matched task recipes (regex + keyword scoring). Reusable decompositions eliminate repeated planning. Runbook replay for known sequences.
-22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs.
-23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes.
+20. **Git worktree isolation** — Each feature runs in its own git worktree + branch. Parallel features never interfere. Feature-slug as namespace for all artifacts. `cwd` injected into agent dispatches and gate commands; worktree created before task dispatch and cleaned up on completion. ✅ Done
+21. **Runbook system** — Pattern-matched task recipes (regex + keyword scoring). Reusable decompositions eliminate repeated planning. Runbook replay for known sequences. ✅ Done
+22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs. ✅ Done
+23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. ✅ Done
 24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat.
 25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI.
 26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--output md` writes REPORT.md.
