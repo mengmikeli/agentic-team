@@ -214,6 +214,77 @@ Code is correct and functional. Minor style suggestion only.`;
     });
   });
 
+  describe("finalize closes approval issue", () => {
+    it("finalize marks state completed and reports issuesClosed when approvalIssueNumber is set", () => {
+      const featureDir = join(testDir, "features", "finalize-test");
+      mkdirSync(featureDir, { recursive: true });
+
+      const state = {
+        version: "2.0",
+        feature: "finalize-test",
+        status: "active",
+        approvalIssueNumber: 999,
+        tasks: [
+          { id: "task-1", status: "passed", lastGate: { verdict: "PASS" } },
+          { id: "task-2", status: "skipped" },
+        ],
+        gates: [],
+        transitionCount: 0,
+        transitionHistory: [],
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "finalize0test0a1b2",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      const result = harnessJSON("finalize", "--dir", join("features", "finalize-test"));
+
+      assert.equal(result.finalized, true);
+      assert.equal(result.feature, "finalize-test");
+      assert.ok(typeof result.issuesClosed === "number");
+
+      // Verify STATE.json was updated to completed
+      const finalState = JSON.parse(readFileSync(join(featureDir, "STATE.json"), "utf8"));
+      assert.equal(finalState.status, "completed");
+      assert.ok(finalState.completedAt);
+      assert.ok(finalState.summary);
+      assert.equal(finalState.summary.tasks, 2);
+      assert.equal(finalState.summary.passed, 1);
+      assert.equal(finalState.summary.skipped, 1);
+    });
+
+    it("finalize is idempotent — reports already finalized on second call", () => {
+      const result = harnessJSON("finalize", "--dir", join("features", "finalize-test"));
+      assert.equal(result.finalized, true);
+      assert.equal(result.note, "already finalized");
+    });
+
+    it("finalize rejects when tasks are not in terminal status", () => {
+      const featureDir = join(testDir, "features", "finalize-reject");
+      mkdirSync(featureDir, { recursive: true });
+
+      const state = {
+        version: "2.0",
+        feature: "finalize-reject",
+        status: "active",
+        approvalIssueNumber: 42,
+        tasks: [{ id: "task-1", status: "in-progress" }],
+        gates: [],
+        transitionCount: 0,
+        transitionHistory: [],
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "finalize0reject0nonce",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      const result = harnessJSON("finalize", "--dir", join("features", "finalize-reject"));
+      assert.equal(result.finalized, false);
+      assert.ok(Array.isArray(result.errors));
+      assert.ok(result.errors.some(e => e.includes("task-1")));
+    });
+  });
+
   describe("handshake findings/verdict contract enforcement", () => {
     it("rejects PASS with critical findings in full chain", () => {
       const hs = createHandshake({

@@ -1,0 +1,13 @@
+{
+  "taskId": "task-5",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "`agt finalize` already closes the parent approval issue at finalize.mjs:133-138 via `closeIssue(freshState.approvalIssueNumber, ...)`. Added three tests to integration.test.mjs covering: successful finalize with approvalIssueNumber set (verifies state becomes 'completed', summary metrics, issuesClosed is a number), idempotency on second call, and rejection when tasks are not in terminal status.",
+  "timestamp": "2026-04-24T07:15:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "test/integration.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
