@@ -213,3 +213,7 @@
 {"ts":"2026-04-24T10:02:29.350Z","event":"task-started","msg":"▶ Task 1/9: `agt cron-tick` queries the GitHub Project board and dispatches the first \"Ready\" issue to `runSingleFeature`"}
 {"ts":"2026-04-24T10:26:38.991Z","event":"task-started","msg":"▶ Task 2/9: `agt cron-tick` transitions the board item from \"Ready\" → \"In Progress\" before execution and → \"Done\" on success"}
 {"ts":"2026-04-24T10:45:10.015Z","event":"task-started","msg":"▶ Task 3/9: `agt cron-tick` transitions the board item back to \"Ready\" on failure, with a GitHub comment explaining the error"}
+{"ts":"2026-04-24T11:02:31.258Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in cron-based-outer-loop — stopping execution"}
+{"ts":"2026-04-24T11:02:33.670Z","event":"feature-complete","msg":"Feature complete: cron-based-outer-loop — 0/9 done, 3 blocked, 63m 13s, $206.04"}
+{"ts":"2026-04-24T11:05:49.341Z","event":"feature-started","msg":"▶ Feature: execution-report (7 tasks planned)"}
+{"ts":"2026-04-24T11:08:41.971Z","event":"task-started","msg":"▶ Task 1/7: `agt report <feature>` prints a readable report to stdout for a completed feature"}

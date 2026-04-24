@@ -60,5 +60,5 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs.
 23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes.
 24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat.
-25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI.
+25. **Cron-based outer loop** — ✅ Done. Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI.
 26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations.

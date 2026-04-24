@@ -54,10 +54,10 @@
     {
       "id": "task-3",
       "title": "`agt cron-tick` transitions the board item back to \"Ready\" on failure, with a GitHub comment explaining the error",
-      "status": "in-progress",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 184,
-      "lastTransition": "2026-04-24T10:45:07.547Z",
+      "lastTransition": "2026-04-24T11:02:31.208Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -65,8 +65,15 @@
           "layers": [
             "fabricated-refs"
           ]
+        },
+        {
+          "iteration": 2,
+          "layers": [
+            "fabricated-refs"
+          ]
         }
-      ]
+      ],
+      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
     },
     {
       "id": "task-4",
@@ -167,7 +174,7 @@
       "taskId": "task-3"
     }
   ],
-  "transitionCount": 5,
+  "transitionCount": 6,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -203,10 +210,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T10:45:07.547Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-24T11:02:31.208Z"
     }
   ],
   "createdAt": "2026-04-24T09:58:37.214Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T10:56:14.502Z",
-  "_write_nonce": "afb1fbbe5cf16bb9"
+  "_last_modified": "2026-04-24T11:02:31.208Z",
+  "_write_nonce": "df5fbfa32a52e5d9"
 }

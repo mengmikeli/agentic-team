@@ -459,3 +459,196 @@ Lines 105 and 110 are lower severity: execution proceeds regardless of board upd
 🔵 bin/lib/cron.mjs:105 — `_setProjectItemStatus` return value discarded on "in-progress" pre-execution transition; failed board update goes unlogged
 🔵 bin/lib/cron.mjs:110 — `_setProjectItemStatus` return value discarded on "done" transition; failed board update goes unlogged
 🔵 bin/lib/github.mjs:266 — `readTrackingConfig()` called with no args causes redundant PROJECT.md read per transition; thread the caller's already-loaded config
+
+---
+
+# Product Manager Review — cron-based-outer-loop (run_3, post-fix)
+
+**Reviewer:** PM
+**Feature:** `agt cron-tick` transitions board item back to "Ready" on failure, with a GitHub comment explaining the error
+**Date:** 2026-04-24
+**Files read (directly verified):**
+- `bin/lib/cron.mjs` — full, 145 lines (current state)
+- `test/cron-tick.test.mjs` — lines 140–212 (failure path and guard tests)
+- `task-3/artifacts/test-output.txt` — lines 232–247 (cmdCronTick test block)
+- `task-1/handshake.json`, `task-2/handshake.json`, `task-3/handshake.json`
+- Prior eval.md reviews (Simplicity, Security, Engineer, Architect, PM run_2)
+
+---
+
+## Overall Verdict: PASS
+
+The core requirement — revert to "Ready" and post a failure comment — is implemented at `cron.mjs:114–115` and directly tested by test #4 (passes, test-output.txt line 243). The previously-blocking 🔴 dead guard (`if (lock.release)`) is **confirmed resolved**: `cron.mjs:119` now reads `lock.release();` directly. Four 🟡 backlog items remain; none block merge.
+
+---
+
+## Per-Criterion Results
+
+### Requirement: revert to "Ready" on failure — PASS
+
+`cron.mjs:114` calls `_setProjectItemStatus(issueNumber, projectNumber, "ready")` inside the `catch` block. Test #4 (`cron-tick.test.mjs:186`) asserts `.some(t => t.status === "ready")`. Confirmed passing in test-output.txt line 243.
+
+### Requirement: post GitHub comment explaining the error — PASS
+
+`cron.mjs:115` calls `_commentIssue(issueNumber, \`cron-tick failed: ${err.message || String(err)}\`)`. Test #4 (`cron-tick.test.mjs:188`) asserts comment body includes `"agent exploded"`. Confirmed passing in test-output.txt line 243.
+
+### Prior 🔴 blocker (dead guard) — RESOLVED
+
+`cron.mjs:119` in the current code is `lock.release();` — no `if (lock.release)` guard. Commit `c43016a` resolved the Simplicity veto that caused the run_2 ITERATE verdict. The `finally` block is now a single unconditional call.
+
+### Failure path ordering — PARTIAL (🟡)
+
+Test #4 (`cron-tick.test.mjs:184–187`) uses `.some()` for both "in-progress" and "ready" assertions. A regression that records "ready" before "in-progress", or skips "in-progress" entirely, passes undetected. The success path at lines 153–157 uses `findIndex`-based ordering — the failure path should match.
+
+### `_setProjectItemStatus` return on revert — UNGUARDED (🟡)
+
+`cron.mjs:114`: return value discarded. If the GitHub API revert call returns `false`, the board item is permanently stuck in "in-progress". Future cron-tick runs filter for `status === "ready"` at line 89 — the item silently falls out of the queue with no warning to the operator.
+
+### Error message disclosure — RISK (🟡)
+
+`cron.mjs:115`: raw `err.message` posted verbatim to a public GitHub issue comment. ENOENT errors expose local absolute paths (e.g. `/Users/mikeli/...`). No strip/truncate applied before posting. User-visible behavior: internal machine paths appear in public issue comments.
+
+### "First item only" contract — PARTIAL (🟡)
+
+`test/cron-tick.test.mjs:125`: `runCalled` is a boolean, not a call count. Test presents two ready items (issues #7 and #8) but cannot detect a regression that dispatches both. No assertion that issue #8 transitions were NOT recorded.
+
+---
+
+## Edge Cases Checked
+
+| Path | Evidence |
+|---|---|
+| No ready items | ✅ test #1, test-output.txt line 240 |
+| Lock already held | ✅ test #2, test-output.txt line 241 |
+| in-progress → done (success, ordered) | ✅ test #3, `findIndex` assertion |
+| Revert to ready + comment (failure) | ✅ test #4 — ordering: ⚠ `.some()` only |
+| Missing tracking config | ✅ test #5, test-output.txt line 244 |
+| Missing project number | ✅ test #6, test-output.txt line 245 |
+| Missing Ready option ID | ✅ test #7, test-output.txt line 246 |
+| `_setProjectItemStatus` returns false on revert | ❌ no test, no log |
+| Multiple ready items — only first dispatched | ⚠ partial (boolean flag only) |
+
+---
+
+## Findings
+
+🟡 test/cron-tick.test.mjs:184 — Failure path ordering not enforced; `.some()` passes even if "ready" is recorded before "in-progress" or "in-progress" is skipped; apply `findIndex`-based ordering (`inProgressIdx < readyIdx`) mirroring the success path at lines 153–157
+
+🟡 bin/lib/cron.mjs:114 — `_setProjectItemStatus` return discarded on failure revert; a `false` return leaves board item permanently stuck in "in-progress" and silently drops it from all future runs (line 89 filters `status === "ready"` only); log a warning at minimum
+
+🟡 bin/lib/cron.mjs:115 — Raw `err.message` posted verbatim to public GitHub issue comment; ENOENT errors expose local absolute paths; strip paths (`.replace(/\/[^\s:'"]+/g, "<path>")`) and truncate to ≤300 chars before posting
+
+🟡 test/cron-tick.test.mjs:125 — "First item only" contract not fully enforced; `runCalled` is a boolean, not a count; no assertion that issue #8 transitions were NOT recorded; add call-count assertion and verify no status entries for issueNumber 8
+
+---
+
+# Security Review — cron-based-outer-loop (run_3, standalone)
+
+**Reviewer:** Security
+**Date:** 2026-04-24
+**Files read (directly verified):**
+- `bin/lib/cron.mjs` — full, 145 lines (current state)
+- `bin/lib/github.mjs` — lines 1–21 (`runGh` implementation), lines 209–213 (`commentIssue`)
+- `test/cron-tick.test.mjs` — full, 324 lines
+- `task-3/artifacts/test-output.txt` — lines 230–254 (cron-tick + cron-setup results)
+- `task-1/eval.md` — prior security review (lines 239–330)
+
+---
+
+## Overall Verdict: PASS
+
+No critical (🔴) findings. One 🟡 warning (raw error message disclosure). One 🔵 suggestion (bidi overrides). The prior Simplicity 🔴 blocker (`if (lock.release)` dead guard) is **confirmed resolved** in the current code: `cron.mjs:119` calls `lock.release()` unconditionally.
+
+---
+
+## Threat Model
+
+**Adversaries considered:**
+- Attacker crafting a malicious GitHub issue title to inject newline-based content into the Claude agent prompt
+- Passive observer reading public GitHub issue comments to harvest local filesystem paths or internal state from error messages
+- Attacker controlling `--interval` CLI arg to inject into the generated crontab line
+
+**Out of scope:** GitHub API auth (delegated to `gh` CLI), OS-level lock-file races, SSRF (no JS-layer HTTP from `cron.mjs`).
+
+---
+
+## Per-Criterion Results
+
+### Shell Injection (cron-setup) — PASS
+
+`cron.mjs:138` — all variable content in the crontab template wrapped with `quotePath()`:
+- `cwd` → `quotePath(cwd)` ✓
+- `PATH` → `quotePath(process.env.PATH ?? "")` ✓ (undefined handled by `?? ""`)
+- `agtPath` → `quotePath(agtPath)` ✓
+- log path → `quotePath(cwd + "/.team/cron.log")` ✓
+
+`interval` produced by `parseInt(...)` clamped to `≥1` at line 132 — a bare integer in the cron expression, not user-controlled string content.
+
+`quotePath` at line 137: `'${p.replace(/'/g, "'\\''")}'` — correct POSIX single-quote escaping.
+
+### Shell Injection via Error Message — PASS (confirmed safe)
+
+`cron.mjs:115` calls `_commentIssue(issueNumber, \`cron-tick failed: ${err.message || String(err)}\`)`.
+
+Direct evidence from `github.mjs:212`:
+```js
+return runGh("issue", "comment", String(number), "--body", body) !== null;
+```
+`runGh` at line 10 calls `spawnSync("gh", args, ...)` with `args` as an **array** and no `shell: true`. The body is never interpreted by a shell — no secondary injection regardless of error message content (including shell metacharacters, newlines, or backticks). Risk is data disclosure only.
+
+### Information Disclosure via Error Message — WARN
+
+`cron.mjs:115` posts raw `err.message` verbatim to a GitHub issue comment. Error messages from `_runSingleFeature` and transitive deps include local absolute paths (ENOENT: `/Users/…`), and can include `gh` CLI auth error text or internal state. On a public repo this comment is world-readable.
+
+Fix: strip absolute paths and truncate before posting:
+```js
+const safeMsg = (err.message || String(err))
+  .replace(/\/[^\s:'"]+/g, "<path>")
+  .slice(0, 300);
+_commentIssue(issueNumber, `cron-tick failed: ${safeMsg}`);
+```
+
+### Prompt Injection via Issue Title — PASS
+
+`cron.mjs:100`:
+```js
+(item.title || "").replace(/[\r\n\x00-\x1f\x7f]/g, " ").trim().slice(0, 200)
+```
+- Null/undefined title: `|| ""` ✓
+- Newline injection (primary prompt-stuffing vector): stripped ✓
+- Length cap at 200 chars ✓
+- Unicode bidi overrides (U+202A–U+202E, U+2066–U+2069): not filtered — 🔵 minor terminal spoofing only
+
+### Argument Forwarding — PASS
+
+`issueNumber` and `projectNumber` reach `gh` as `String(number)` in `spawnSync` array args, no `shell: true`. Status strings are hardcoded literals. No injection path.
+
+### Secrets Management — PASS
+
+No credentials or tokens in `cron.mjs`. GitHub auth delegated to `gh` CLI. Error comments post only runtime error text (see WARN above), not tokens or keys.
+
+### Lock File Path — PASS
+
+`cron.mjs:77`: `join(teamDir, ".cron-lock")` — derived from `process.cwd()`, not user input. `finally` block at line 118–120 calls `lock.release()` unconditionally. Dead guard removed in commit `c43016a`.
+
+---
+
+## Edge Cases Checked
+
+| Path | Security relevance | Result |
+|---|---|---|
+| Error message with absolute path | Disclosure to public issue comment | ⚠ WARN — no stripping |
+| Error message with shell metacharacters | Secondary shell injection via `commentIssue` | ✅ safe — array args, no `shell:true` |
+| Issue title with newlines | Prompt injection | ✅ stripped at line 100 |
+| Issue title with Unicode bidi overrides | Terminal spoofing | 🔵 not filtered |
+| `--interval abc` | Crontab expression injection | ✅ `parseInt` → NaN → clamped to 30 |
+| `PATH=undefined` | Crontab injection via empty PATH | ✅ `?? ""` guard + `quotePath` |
+| `issueNumber` non-numeric | `gh` arg injection | ✅ `String()` + array args |
+
+---
+
+## Findings
+
+🟡 bin/lib/cron.mjs:115 — Raw `err.message` posted verbatim to public GitHub issue comment; ENOENT and `gh` auth errors expose local absolute paths and internal state; strip paths with `.replace(/\/[^\s:'"]+/g, "<path>")` and truncate to ≤300 chars before posting.
+
+🔵 bin/lib/cron.mjs:100 — Title sanitization omits Unicode bidi overrides (U+202A–U+202E, U+2066–U+2069); terminal-display spoofing risk only; extend regex if terminal integrity matters in your threat model.
