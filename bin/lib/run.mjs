@@ -151,6 +151,7 @@ export function runGateInline(cmd, featureDir, taskId, cwd = process.cwd()) {
 
 export function slugToBranch(slug) {
   return slug
+    .toLowerCase()
     .replace(/[\s_]+/g, "-")
     .replace(/[^a-z0-9\-\.]/g, "")
     .slice(0, 72);
@@ -163,7 +164,7 @@ export function createWorktreeIfNeeded(slug, mainCwd, _execFn = execFileSync) {
     console.log(`  ${c.dim}Reusing existing worktree: ${worktreePath}${c.reset}`);
     return worktreePath;
   }
-  _execFn("git", ["worktree", "add", worktreePath, "-b", branchName], { cwd: mainCwd, stdio: "pipe" });
+  _execFn("git", ["worktree", "add", worktreePath, "-B", branchName], { cwd: mainCwd, stdio: "pipe" });
   console.log(`  ${c.green}✓ Worktree created: ${worktreePath} (${branchName})${c.reset}`);
   return worktreePath;
 }

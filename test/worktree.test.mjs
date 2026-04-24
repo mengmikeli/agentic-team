@@ -62,7 +62,7 @@ describe("createWorktreeIfNeeded", () => {
     assert.equal(result, expectedPath);
     assert.equal(calls.length, 1);
     assert.equal(calls[0].cmd, "git");
-    assert.deepEqual(calls[0].args, ["worktree", "add", expectedPath, "-b", "feature/new-slug"]);
+    assert.deepEqual(calls[0].args, ["worktree", "add", expectedPath, "-B", "feature/new-slug"]);
     assert.equal(calls[0].opts.cwd, tmpDir);
     assert.equal(calls[0].opts.stdio, "pipe");
   });
@@ -88,6 +88,34 @@ describe("createWorktreeIfNeeded", () => {
 
     const result = createWorktreeIfNeeded(slug, tmpDir);
     assert.equal(result, expected);
+  });
+
+  it("uses -B flag (not -b) so re-runs with existing branch name succeed", () => {
+    const calls = [];
+    const mockExec = (cmd, args, opts) => calls.push({ cmd, args, opts });
+
+    createWorktreeIfNeeded("re-run-slug", tmpDir, mockExec);
+
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0].args.includes("-B"), "must use -B to force-create-or-reset the branch");
+    assert.ok(!calls[0].args.includes("-b"), "must not use -b which would fail if branch already exists");
+  });
+
+  it("calls git worktree add with -B when directory absent but branch may exist (re-run scenario)", () => {
+    // Simulate: removeWorktree deleted the directory but not the branch.
+    // The directory is gone so existsSync returns false. We expect -B to be used.
+    const calls = [];
+    const mockExec = (cmd, args) => calls.push(args);
+    const slug = "previously-run-feature";
+    // Confirm the directory does NOT exist
+    const worktreePath = join(tmpDir, ".team", "worktrees", slug);
+    assert.ok(!existsSync(worktreePath), "pre-condition: directory must not exist");
+
+    createWorktreeIfNeeded(slug, tmpDir, mockExec);
+
+    assert.equal(calls.length, 1);
+    const branchFlagIdx = calls[0].indexOf("-B");
+    assert.ok(branchFlagIdx !== -1, "-B must be present in git worktree add args for re-run scenario");
   });
 
   it("branch name is feature/{slugToBranch(slug)}", () => {
