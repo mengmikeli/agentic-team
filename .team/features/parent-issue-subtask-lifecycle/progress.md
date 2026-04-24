@@ -24,3 +24,8 @@
 **Task 1: After `agt run` creates task issues, the parent (approval) issue body gains a `## Tasks` checklist with each task title and `(#N)` issue reference**
 - 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
 
+### 2026-04-24 06:44:34
+**Task 2: When a task gate passes, its checklist line updates from `- [ ]` to `- [x]`**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

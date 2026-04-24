@@ -120,10 +120,11 @@ export function getIssueUrl(issueNumber) {
   return runGh("issue", "view", String(issueNumber), "--json", "url", "--jq", ".url") || null;
 }
 
-/** Get the body of a GitHub issue. Returns string or null on failure. */
+/** Get the body of a GitHub issue. Returns string (may be "") on success, null on CLI failure. */
 export function getIssueBody(number) {
   if (!number) return null;
-  return runGh("issue", "view", String(number), "--json", "body", "--jq", ".body") || null;
+  const result = runGh("issue", "view", String(number), "--json", "body", "--jq", ".body");
+  return result === null ? null : result;
 }
 
 /** Edit a GitHub issue body. Returns true on success. */
@@ -140,9 +141,10 @@ export function editIssue(number, body) {
 export function tickChecklistItem(body, title, issueNumber) {
   if (!body || !title || !issueNumber) return body;
   const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const replacement = `- [x] ${title} (#${issueNumber})`;
   return body.replace(
     new RegExp(`- \\[ \\] ${escaped} \\(#${issueNumber}\\)`),
-    `- [x] ${title} (#${issueNumber})`,
+    () => replacement,
   );
 }
 
