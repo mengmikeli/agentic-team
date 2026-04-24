@@ -23,3 +23,7 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 09:07:23
+**Task 1: `_runSingleFeature()` calls `git worktree add .team/worktrees/{slug} -b feature/{slug}` before dispatching any task**
+- 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
+
