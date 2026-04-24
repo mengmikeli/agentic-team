@@ -122,3 +122,6 @@
 {"ts":"2026-04-24T01:01:14.082Z","event":"task-started","msg":"▶ Task 3/8: A retried task that received the same WARN layer twice is never retried a third time"}
 {"ts":"2026-04-24T01:10:30.039Z","event":"task-passed","msg":"✓ Task 3/8: A retried task that received the same WARN layer twice is never retried a third time"}
 {"ts":"2026-04-24T01:10:36.806Z","event":"task-started","msg":"▶ Task 4/8: A task with different WARN layers in each iteration is still retried normally up to the existing retry limit"}
+{"ts":"2026-04-24T01:21:46.722Z","event":"task-passed","msg":"✓ Task 4/8: A task with different WARN layers in each iteration is still retried normally up to the existing retry limit"}
+{"ts":"2026-04-24T01:21:51.247Z","event":"progress","msg":"Progress: 4/8 done, 0 blocked."}
+{"ts":"2026-04-24T01:21:53.524Z","event":"task-started","msg":"▶ Task 5/8: The escalation event appears in `progress.md`"}

@@ -96,3 +96,11 @@ body {
 @media (max-width: 640px) {
   .container { padding-left: 1rem; padding-right: 1rem; }
 }
+
+/* Two dots orbiting each other — active run indicator */
+@keyframes orbit {
+  0%, 100% { transform: translate(0, 0); opacity: 1; }
+  25% { transform: translate(3px, -1px); opacity: 0.6; }
+  50% { transform: translate(0, 0); opacity: 0.3; }
+  75% { transform: translate(-3px, 1px); opacity: 0.6; }
+}

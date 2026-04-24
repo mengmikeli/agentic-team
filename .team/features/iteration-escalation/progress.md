@@ -36,3 +36,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 01:21:46
+**Task 4: A task with different WARN layers in each iteration is still retried normally up to the existing retry limit**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

@@ -79,15 +79,16 @@ export function Navigation({
           </div>
 
           <div className="flex items-center gap-2.5">
-            {isExecuting && (
-              <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
-                <div className="size-2 rounded-full bg-primary animate-pulse" />
-                <span className="hidden sm:inline">Running</span>
+            {(isExecuting || sseConnected) && (
+              <div className="flex items-center gap-1.5 text-xs font-medium" title={isExecuting ? 'Running' : 'Connected'}>
+                <div className="relative size-2">
+                  <div className={`absolute inset-0 rounded-full bg-primary ${isExecuting ? 'animate-[orbit_1.8s_ease-in-out_infinite]' : ''}`} />
+                  {isExecuting && (
+                    <div className="absolute inset-0 rounded-full bg-primary animate-[orbit_1.8s_ease-in-out_infinite_0.9s]" />
+                  )}
+                </div>
+                {isExecuting && <span className="hidden sm:inline text-primary">Running</span>}
               </div>
-            )}
-
-            {sseConnected && (
-              <div className="size-2 rounded-full bg-primary" title="Live updates connected" />
             )}
 
             <button
