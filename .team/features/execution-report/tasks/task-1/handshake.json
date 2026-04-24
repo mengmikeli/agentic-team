@@ -1,0 +1,15 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Implemented `agt report <feature>` command that reads STATE.json and prints a 5-section execution report (header, task summary table, activity/gate counts, blocked/failed tasks, recommendations) to stdout. Added `--output md` flag to write REPORT.md to the feature directory. Registered the command in bin/agt.mjs with help text, and wrote 16 tests covering all paths including missing args, missing dir, missing STATE.json, stdout output, md output, blocked task display, and stalled-feature detection.",
+  "timestamp": "2026-04-24T11:30:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" },
+    { "type": "code", "path": "bin/agt.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

@@ -16,6 +16,7 @@ import { cmdBrainstorm } from "./lib/brainstorm-cmd.mjs";
 import { daemonStart, daemonStop, daemonStatus } from "./lib/daemon.mjs";
 import { cmdDoctor } from "./lib/doctor.mjs";
 import { cmdCronTick, cmdCronSetup } from "./lib/cron.mjs";
+import { cmdReport } from "./lib/report.mjs";
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -70,6 +71,8 @@ switch (command) {
 
   case "cron-tick":  await cmdCronTick(args);  break;
   case "cron-setup": cmdCronSetup(args); break;
+
+  case "report": cmdReport(args); break;
 
   case "help": {
     const sub = args[0];
@@ -182,6 +185,14 @@ switch (command) {
         ],
         examples: ["agt cron-setup", "agt cron-setup --interval 15"],
       },
+      report: {
+        usage: "agt report <feature> [--output md]",
+        description: "Print a readable execution report for a feature. Shows status, task summary, gate results, blocked tasks, and recommendations. Reads from STATE.json in .team/features/<feature>/.",
+        flags: [
+          "--output md   Write report to REPORT.md in the feature directory instead of stdout",
+        ],
+        examples: ["agt report my-feature", "agt report my-feature --output md"],
+      },
       version: {
         usage: "agt version",
         description: "Print the installed agt version.",
@@ -234,6 +245,7 @@ switch (command) {
       console.log("  version                  Show version");
       console.log("  cron-tick                Dispatch next Ready board item");
       console.log("  cron-setup [--interval]  Print crontab entry for cron-tick");
+      console.log("  report <feature>         Execution report for a feature");
       console.log();
       console.log("Run 'agt help <command>' for detailed usage, flags, and examples.");
       console.log();
@@ -651,6 +663,7 @@ switch (command) {
     console.log("  version                  Show version");
     console.log("  cron-tick                Dispatch next Ready board item");
     console.log("  cron-setup [--interval]  Print crontab entry for cron-tick");
+    console.log("  report <feature>         Execution report for a feature");
     console.log();
     console.log("Run 'agt help <command>' for detailed usage, flags, and examples.");
     console.log();
