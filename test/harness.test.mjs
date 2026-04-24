@@ -504,6 +504,54 @@ describe("at-harness", () => {
         rmSync(fakeBinDir, { recursive: true, force: true });
       }
     });
+
+    it("does not re-close issues when feature is already completed (idempotent)", () => {
+      const fakeBinDir = mkdtempSync(join(tmpdir(), "fake-gh-"));
+      const ghLogFile = join(fakeBinDir, "gh-calls.log");
+      writeFileSync(
+        join(fakeBinDir, "gh"),
+        `#!/bin/sh\necho "$@" >> "${ghLogFile}"\necho ok\nexit 0\n`,
+        { mode: 0o755 },
+      );
+
+      const featureDir = join(testDir, "features", "already-done-test");
+      mkdirSync(featureDir, { recursive: true });
+      const state = {
+        version: "2.0",
+        feature: "already-done-test",
+        status: "completed",
+        tasks: [
+          { id: "t1", status: "passed", issueNumber: 601 },
+        ],
+        approvalIssueNumber: 700,
+        gates: [],
+        transitionCount: 1,
+        transitionHistory: [],
+        createdAt: new Date().toISOString(),
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "abcd1234abcd1234",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      try {
+        const out = execFileSync("node", [harnessPath, "finalize", "--dir", join("features", "already-done-test")], {
+          encoding: "utf8",
+          cwd: testDir,
+          timeout: 10000,
+          env: { ...process.env, PATH: `${fakeBinDir}:${process.env.PATH}` },
+        });
+        const lines = out.trim().split("\n").filter(Boolean);
+        const result = JSON.parse(lines[lines.length - 1]);
+        assert.equal(result.finalized, true);
+        assert.equal(result.note, "already finalized");
+
+        const noGhCalls = !existsSync(ghLogFile) || readFileSync(ghLogFile, "utf8").trim() === "";
+        assert.ok(noGhCalls, `finalize on already-completed feature should not make any gh calls, got:\n${existsSync(ghLogFile) ? readFileSync(ghLogFile, "utf8") : "(no log file)"}`);
+      } finally {
+        rmSync(fakeBinDir, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("metrics", () => {
