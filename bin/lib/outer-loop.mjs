@@ -509,7 +509,7 @@ export function slugify(name) {
  * @returns {Array<{ name: string, description: string, done: boolean }>}
  */
 export function parseRoadmap(productContent) {
-  const roadmapSection = productContent.match(/## Roadmap\n([\s\S]*?)(?=\n##|$)/);
+  const roadmapSection = productContent.match(/## Roadmap\n([\s\S]*?)(?=\n## [^#]|$)/);
   if (!roadmapSection) return [];
 
   const items = [...roadmapSection[1].matchAll(/^\d+\.\s*\*\*(.+?)\*\*\s*[-—]\s*(.+)$/gm)];

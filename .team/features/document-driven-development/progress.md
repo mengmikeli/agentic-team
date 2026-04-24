@@ -23,3 +23,7 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 04:22:50
+**Task 1: `templates/SPEC.md` contains all seven sections: Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope, Done When — each with a brief comment explaining what to write there.**
+- 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
+

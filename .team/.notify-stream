@@ -160,3 +160,4 @@
 {"ts":"2026-04-24T04:03:59.612Z","event":"feature-complete","msg":"Feature complete: finalize-auto-close-validation — 7/7 done, 0 blocked, 45m 15s, $28.64"}
 {"ts":"2026-04-24T04:07:53.116Z","event":"feature-started","msg":"▶ Feature: document-driven-development (10 tasks planned)"}
 {"ts":"2026-04-24T04:11:14.957Z","event":"task-started","msg":"▶ Task 1/10: `templates/SPEC.md` contains all seven sections: Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope, Done When — each with a brief comment explaining what to write there."}
+{"ts":"2026-04-24T04:22:52.792Z","event":"task-started","msg":"▶ Task 2/10: `agt brainstorm` (interactive mode) prompts the user for Requirements, Acceptance Criteria, Technical Approach, and Testing Strategy in addition to the existing prompts."}
