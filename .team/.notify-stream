@@ -120,3 +120,5 @@
 {"ts":"2026-04-24T00:51:41.548Z","event":"task-started","msg":"▶ Task 2/8: When the same compound-gate layer name appears in `gateWarningHistory` for ≥2 distinct iterations, the task is marked `blocked` with a synthetic critical finding naming the repeated layers and iteration numbers"}
 {"ts":"2026-04-24T01:01:07.263Z","event":"task-passed","msg":"✓ Task 2/8: When the same compound-gate layer name appears in `gateWarningHistory` for ≥2 distinct iterations, the task is marked `blocked` with a synthetic critical finding naming the repeated layers and iteration numbers"}
 {"ts":"2026-04-24T01:01:14.082Z","event":"task-started","msg":"▶ Task 3/8: A retried task that received the same WARN layer twice is never retried a third time"}
+{"ts":"2026-04-24T01:10:30.039Z","event":"task-passed","msg":"✓ Task 3/8: A retried task that received the same WARN layer twice is never retried a third time"}
+{"ts":"2026-04-24T01:10:36.806Z","event":"task-started","msg":"▶ Task 4/8: A task with different WARN layers in each iteration is still retried normally up to the existing retry limit"}

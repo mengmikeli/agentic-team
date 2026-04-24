@@ -31,3 +31,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 01:10:30
+**Task 3: A retried task that received the same WARN layer twice is never retried a third time**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
