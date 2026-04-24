@@ -756,6 +756,9 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     process.exit(1);
   }
 
+  // Lazily ensure .team/runbooks/ exists (may not be present in older projects)
+  mkdirSync(join(teamDir, "runbooks"), { recursive: true });
+
   // ── Determine what to run ──
 
   let featureName;

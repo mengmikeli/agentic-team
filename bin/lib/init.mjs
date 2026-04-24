@@ -42,6 +42,7 @@ export function cmdInit(args) {
     // Scaffold .team/
     const teamDir = join(dir, ".team");
     mkdirSync(join(teamDir, "features"), { recursive: true });
+    mkdirSync(join(teamDir, "runbooks"), { recursive: true });
 
     // Create GitHub Project board if requested
     let trackingSection = "";
