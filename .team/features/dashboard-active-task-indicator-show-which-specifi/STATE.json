@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "dashboard-active-task-indicator-show-which-specifi",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -15,10 +15,10 @@
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 158,
-      "lastTransition": "2026-04-24T05:35:36.566Z",
+      "lastTransition": "2026-04-24T05:36:59.345Z",
       "ticks": 1
     }
   ],
@@ -42,7 +42,7 @@
       "taskId": "task-2"
     }
   ],
-  "transitionCount": 3,
+  "transitionCount": 4,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -64,10 +64,27 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T05:35:36.566Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-24T05:36:59.345Z"
     }
   ],
   "createdAt": "2026-04-24T05:29:02.316Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T05:36:59.246Z",
-  "_write_nonce": "8494f0b6b87465f9"
+  "_last_modified": "2026-04-24T05:37:03.883Z",
+  "_write_nonce": "55c768cc76b5d22b",
+  "completedAt": "2026-04-24T05:37:03.883Z",
+  "summary": {
+    "tasks": 2,
+    "passed": 2,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 4,
+    "gates": 2,
+    "duration": "8m"
+  }
 }

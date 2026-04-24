@@ -180,3 +180,5 @@
 {"ts":"2026-04-24T05:35:31.304Z","event":"task-passed","msg":"✓ Task 1/2: Dashboard active task indicator — Show which specific task is executing with name and attempt number, not just \"N/M done\"."}
 {"ts":"2026-04-24T05:35:38.965Z","event":"task-started","msg":"▶ Task 2/2: Quality gate passes"}
 {"ts":"2026-04-24T05:36:29.323Z","event":"task-started","msg":"▶ Task 3/9: A GitHub comment is posted to the task's linked issue containing: task title, rounds attempted, and deduplicated critical findings from each round's handshake.json."}
+{"ts":"2026-04-24T05:36:59.393Z","event":"task-passed","msg":"✓ Task 2/2: Quality gate passes"}
+{"ts":"2026-04-24T05:37:07.508Z","event":"feature-complete","msg":"Feature complete: dashboard-active-task-indicator-show-which-specifi — 2/2 done, 0 blocked, 7m 55s, $30.09"}
