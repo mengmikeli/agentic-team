@@ -387,9 +387,9 @@ export function checkOrphanedIssues(cwd = process.cwd()) {
 /**
  * Check test suite passes.
  */
-export function checkTests(cwd = process.cwd()) {
+export function checkTests(cwd = process.cwd(), _spawnFn = spawnSync) {
   try {
-    const result = spawnSync("npm", ["test"], { encoding: "utf8", timeout: 120000, stdio: ["pipe", "pipe", "pipe"], cwd });
+    const result = _spawnFn("npm", ["test"], { encoding: "utf8", timeout: 120000, maxBuffer: 50 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"], cwd });
     const failMatch = (result.stdout || "").match(/ℹ fail (\d+)/);
     const passMatch = (result.stdout || "").match(/ℹ pass (\d+)/);
     const failures = failMatch ? parseInt(failMatch[1]) : -1;

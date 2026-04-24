@@ -17,6 +17,7 @@ import {
   checkTeamFile,
   checkQualityGate,
   checkProjectBoard,
+  checkTests,
 } from "../bin/lib/doctor.mjs";
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -249,5 +250,30 @@ describe("doctor: checkProjectBoard", () => {
   it("fails when PROJECT.md is missing", () => {
     const result = checkProjectBoard(tmpDir);
     assert.equal(result.status, "fail");
+  });
+});
+
+describe("doctor: checkTests", () => {
+  it("passes when npm test exits 0 with 0 failures", () => {
+    const fakeSpawn = (_cmd, _args, opts) => {
+      assert.ok(opts.maxBuffer >= 50 * 1024 * 1024, "maxBuffer must be ≥50MB to prevent ENOBUFS");
+      return { status: 0, stdout: "ℹ pass 580\nℹ fail 0\n", stderr: "" };
+    };
+    const result = checkTests(process.cwd(), fakeSpawn);
+    assert.equal(result.status, "pass");
+    assert.ok(result.message.includes("580"));
+  });
+
+  it("fails when npm test exits non-zero", () => {
+    const fakeSpawn = () => ({ status: 1, stdout: "ℹ pass 579\nℹ fail 1\n", stderr: "" });
+    const result = checkTests(process.cwd(), fakeSpawn);
+    assert.equal(result.status, "fail");
+    assert.ok(result.message.includes("1 failure"));
+  });
+
+  it("warns when spawnSync throws (npm not available)", () => {
+    const fakeSpawn = () => { throw new Error("ENOENT"); };
+    const result = checkTests(process.cwd(), fakeSpawn);
+    assert.equal(result.status, "warn");
   });
 });
