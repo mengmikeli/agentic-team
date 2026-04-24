@@ -99,8 +99,8 @@ body {
 
 /* Two dots orbiting each other — active run indicator */
 @keyframes orbit {
-  0%, 100% { transform: translate(0, 0); opacity: 1; }
-  25% { transform: translate(3px, -1px); opacity: 0.6; }
-  50% { transform: translate(0, 0); opacity: 0.3; }
-  75% { transform: translate(-3px, 1px); opacity: 0.6; }
+  0%, 100% { transform: translateX(0); opacity: 1; }
+  25% { transform: translateX(3px); opacity: 0.6; }
+  50% { transform: translateX(0); opacity: 0.3; }
+  75% { transform: translateX(-3px); opacity: 0.6; }
 }

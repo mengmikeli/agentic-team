@@ -157,9 +157,9 @@ describe("buildReviewBrief", () => {
 });
 
 describe("PARALLEL_REVIEW_ROLES", () => {
-  it("is an array with 2-5 roles", () => {
+  it("is an array with 6 roles", () => {
     assert.ok(Array.isArray(PARALLEL_REVIEW_ROLES));
-    assert.ok(PARALLEL_REVIEW_ROLES.length >= 2 && PARALLEL_REVIEW_ROLES.length <= 5);
+    assert.ok(PARALLEL_REVIEW_ROLES.length === 6);
   });
 
   it("includes security and architect", () => {
@@ -167,8 +167,11 @@ describe("PARALLEL_REVIEW_ROLES", () => {
     assert.ok(PARALLEL_REVIEW_ROLES.includes("architect"));
   });
 
-  it("includes devil's-advocate", () => {
-    assert.ok(PARALLEL_REVIEW_ROLES.includes("devil's-advocate"));
+  it("includes engineer, product, tester, and simplicity", () => {
+    assert.ok(PARALLEL_REVIEW_ROLES.includes("engineer"));
+    assert.ok(PARALLEL_REVIEW_ROLES.includes("product"));
+    assert.ok(PARALLEL_REVIEW_ROLES.includes("tester"));
+    assert.ok(PARALLEL_REVIEW_ROLES.includes("simplicity"));
   });
 });
 

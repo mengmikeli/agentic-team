@@ -131,16 +131,20 @@ A criterion PASSES only when you have direct evidence it works. If you cannot re
 
 function getRoleFocus(role) {
   switch (role) {
-    case "architect":        return "Code structure, design patterns, modularity, and long-term maintainability.";
-    case "security":         return "Security vulnerabilities, input validation, error handling, and safe defaults.";
-    case "pm":               return "Whether the implementation matches the intended requirements and delivers user value.";
+    case "architect":   return "Code structure, design patterns, modularity, and long-term maintainability.";
+    case "engineer":    return "Implementation correctness, code quality, error handling, and performance.";
+    case "product":     return "Whether the implementation matches the intended requirements and delivers user value.";
+    case "tester":      return "Test coverage, edge cases, failure modes, and testability of the implementation.";
+    case "security":    return "Security vulnerabilities, input validation, error handling, and safe defaults.";
+    case "simplicity":  return "Unnecessary complexity, over-engineering, cognitive load, and deletability.";
+    case "pm":          return "Whether the implementation matches the intended requirements and delivers user value.";
     case "devil's-advocate": return "Challenge assumptions, identify edge cases, surface hidden risks, and find what could go wrong.";
-    default:                 return "Overall code quality, correctness, and adherence to project conventions.";
+    default:            return "Overall code quality, correctness, and adherence to project conventions.";
   }
 }
 
 // Roles dispatched in parallel for the multi-review phase
-export const PARALLEL_REVIEW_ROLES = ["security", "architect", "devil's-advocate"];
+export const PARALLEL_REVIEW_ROLES = ["architect", "engineer", "product", "tester", "security", "simplicity"];
 
 /**
  * Merge findings from parallel reviewers into a single markdown report.
