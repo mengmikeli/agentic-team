@@ -219,3 +219,6 @@
 {"ts":"2026-04-24T11:08:41.971Z","event":"task-started","msg":"▶ Task 1/7: `agt report <feature>` prints a readable report to stdout for a completed feature"}
 {"ts":"2026-04-24T11:29:56.177Z","event":"task-started","msg":"▶ Task 2/7: Report includes all five sections: header, task summary, cost breakdown, blocked/failed tasks, recommendations"}
 {"ts":"2026-04-24T11:44:29.806Z","event":"task-started","msg":"▶ Task 3/7: `agt report <feature> --output md` writes `REPORT.md` to `.team/features/<feature>/REPORT.md`"}
+{"ts":"2026-04-24T11:58:10.068Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in execution-report — stopping execution"}
+{"ts":"2026-04-24T11:58:12.464Z","event":"feature-complete","msg":"Feature complete: execution-report — 0/7 done, 3 blocked, 51m 49s, $231.90"}
+{"ts":"2026-04-24T12:01:39.537Z","event":"feature-started","msg":"▶ Feature: runbook-system (9 tasks planned)"}

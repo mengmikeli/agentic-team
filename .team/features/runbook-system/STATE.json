@@ -1,0 +1,77 @@
+{
+  "version": "2.0",
+  "feature": "runbook-system",
+  "status": "paused",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`.team/runbooks/` directory is created by `agt init` (or lazily on first `agt run`)",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 198
+    },
+    {
+      "id": "task-2",
+      "title": "At least 2 built-in runbooks ship as defaults and are present after init",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 199
+    },
+    {
+      "id": "task-3",
+      "title": "`matchRunbook(description, spec)` returns the correct runbook for a description that matches a built-in pattern, and `null` when no pattern matches",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 200
+    },
+    {
+      "id": "task-4",
+      "title": "`planTasks()` uses runbook tasks when `matchRunbook` returns a non-null result, confirmed by unit test",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 201
+    },
+    {
+      "id": "task-5",
+      "title": "`progress.md` contains a `[runbook: <name>]` line when a runbook is applied to a feature run",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 202
+    },
+    {
+      "id": "task-6",
+      "title": "`agt runbook list` prints all runbooks in `.team/runbooks/` with name, description, and patterns",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 203
+    },
+    {
+      "id": "task-7",
+      "title": "`agt runbook add <feature-slug>` creates a valid runbook JSON file from a completed feature's task titles",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 204
+    },
+    {
+      "id": "task-8",
+      "title": "`agt runbook show <name>` prints the full runbook definition",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 205
+    },
+    {
+      "id": "task-9",
+      "title": "All new code has passing unit tests; existing test suite remains green",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 206
+    }
+  ],
+  "gates": [],
+  "transitionCount": 0,
+  "transitionHistory": [],
+  "createdAt": "2026-04-24T12:01:39.487Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T12:02:23.531Z",
+  "_write_nonce": "a45c00b6fcba18b5"
+}
