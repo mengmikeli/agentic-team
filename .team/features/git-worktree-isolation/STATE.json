@@ -54,10 +54,10 @@
     {
       "id": "task-3",
       "title": "Gate commands (`runGateInline`) receive and use the worktree path as their working directory",
-      "status": "in-progress",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 174,
-      "lastTransition": "2026-04-24T09:29:09.688Z",
+      "lastTransition": "2026-04-24T09:54:11.425Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -65,8 +65,15 @@
           "layers": [
             "fabricated-refs"
           ]
+        },
+        {
+          "iteration": 2,
+          "layers": [
+            "fabricated-refs"
+          ]
         }
-      ]
+      ],
+      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
     },
     {
       "id": "task-4",
@@ -174,7 +181,7 @@
       "taskId": "task-3"
     }
   ],
-  "transitionCount": 5,
+  "transitionCount": 6,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -210,10 +217,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T09:29:09.688Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-24T09:54:11.425Z"
     }
   ],
   "createdAt": "2026-04-24T08:35:21.300Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T09:47:41.493Z",
-  "_write_nonce": "c4435f66589acd2f"
+  "_last_modified": "2026-04-24T09:54:11.425Z",
+  "_write_nonce": "c445f1248e7edf57"
 }

@@ -207,3 +207,7 @@
 {"ts":"2026-04-24T08:40:13.618Z","event":"task-started","msg":"▶ Task 1/10: `_runSingleFeature()` calls `git worktree add .team/worktrees/{slug} -b feature/{slug}` before dispatching any task"}
 {"ts":"2026-04-24T09:07:25.742Z","event":"task-started","msg":"▶ Task 2/10: Agent dispatches pass `cwd: worktreePath` to `spawnSync`/`spawn`"}
 {"ts":"2026-04-24T09:29:12.243Z","event":"task-started","msg":"▶ Task 3/10: Gate commands (`runGateInline`) receive and use the worktree path as their working directory"}
+{"ts":"2026-04-24T09:54:11.475Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in git-worktree-isolation — stopping execution"}
+{"ts":"2026-04-24T09:54:13.991Z","event":"feature-complete","msg":"Feature complete: git-worktree-isolation — 0/10 done, 3 blocked, 78m 3s, $178.13"}
+{"ts":"2026-04-24T09:58:37.264Z","event":"feature-started","msg":"▶ Feature: cron-based-outer-loop (9 tasks planned)"}
+{"ts":"2026-04-24T10:02:29.350Z","event":"task-started","msg":"▶ Task 1/9: `agt cron-tick` queries the GitHub Project board and dispatches the first \"Ready\" issue to `runSingleFeature`"}

