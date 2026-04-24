@@ -1,0 +1,30 @@
+## Parallel Review Findings
+
+🟡 [engineer] `test/flows.test.mjs:283` — `parseFindings(merged)` does not exercise the production verdict path. In production (`run.mjs:1222`), the verdict is computed from `parseFindings(allText)` where `allText` is the raw outputs joined — `mergeReviewFindings`'s output is never fed to `parseFindings` in production. Both paths produce FAIL for this input (the 🔴 emoji survives in both), so there is no functional bug today. But a refactor to how raw outputs are joined or filtered would silently break the production FAIL path without this test catching it. (Independently flagged by Architect, Tester, and Security reviewers.)
+🔵 [engineer] `test/flows.test.mjs:280` — `ok: false` on the simplicity finding is misleading. `mergeReviewFindings` ignores `ok` entirely (only `f.output` is used at `flows.mjs:183`); the FAIL is driven by the `🔴` emoji in `output`, not by the `ok` flag. Use `ok: true` for consistency with the rest of the fixture.
+[product] - Gate stdout (STATE.json, task-3 run) — `✔ simplicity 🔴 causes FAIL even when all other roles pass with no criticals (1.742ms)`, exit 0
+[product] The test correctly exercises the full production code path end-to-end. The only 🔴 in the merged output comes from simplicity; the other two roles contribute no criticals. Assertion directly maps to the spec criterion.
+🟡 [tester] `test/flows.test.mjs:276` — Test derives verdict via `parseFindings(merged)` but production uses `parseFindings(allText)` at `run.mjs:1222`; does not guard the actual FAIL-triggering code path — add an assertion using `roleFindings.map(f => f.output).join("\n")` to mirror the production call, or add an outer-loop integration test that injects a simplicity 🔴 and confirms the task ends in `failed` state
+🔵 [tester] `test/flows.test.mjs:247` — No test exercises mixed simplicity severity in a single review output (🔴 + 🟡 together); existing tests prove each in isolation but not that the per-finding label logic handles both in one pass
+[tester] The test exists, passes, and correctly proves that a simplicity 🔴 finding causes FAIL when no other role produces criticals. The implementation is functionally correct in both the unit path and the production path.
+[security] 2. **Verdict manipulation** — The `[simplicity veto]` label change at `flows.mjs:188` preserves the `🔴` emoji before the bracket, so `parseFindings` still classifies it as `critical` and `computeVerdict` returns FAIL. The label cannot suppress a critical finding.
+🟡 [architect] test/flows.test.mjs:276 — Test exercises `mergeReviewFindings → parseFindings(merged) → computeVerdict` but production verdict uses `parseFindings(allText)` (`run.mjs:1222`) — test does not guard the actual production FAIL path; add a companion assertion on raw joined outputs or document the intentional split
+[architect] **Key architectural concern:** The test title says "causes FAIL" but it tests `parseFindings(merged)` — a path production does not use for the verdict. Production verdict is computed from `parseFindings(allText)` (raw joined outputs). Both paths agree on FAIL for this case, but the test doesn't directly cover the live code path. Flagged as 🟡 for backlog.
+[engineer] The test is logically correct and passes. The production FAIL behavior works correctly through both the `parseFindings(merged)` path (tested) and the `parseFindings(allText)` path (production). The 🟡 is a coverage gap, not a functional bug — the implementation is correct. Both the test and the implementation are straightforward, readable, and well-named.
+[tester] The 🟡 finding is a real coverage gap: the test exercises `parseFindings(merged)` while production uses `parseFindings(allText)` — they currently agree, but a regression in the production path would not be caught. This goes to backlog. The two 🔵 findings are optional improvements with no blocking impact.
+🔵 [architect] bin/lib/run.mjs:1219 — `mergeReviewFindings` calls `parseFindings` internally per role, then `parseFindings(allText)` re-parses the same raw data at line 1222 — dual-parse of identical inputs; consider unifying the verdict source with the already-parsed data
+🔵 [architect] bin/lib/flows.mjs:188 — `[simplicity veto]` label in merged output has no effect on verdict logic (verdict derives from raw `allText` at `run.mjs:1222`); add a comment noting the label is display-only in `eval.md` to prevent future drift
+🔵 [product] test/flows.test.mjs:277 — Test uses only 3 of 6 parallel roles (architect, engineer, simplicity); consider adding product, tester, security with no criticals to more faithfully represent the "all other roles" wording in the spec
+🔵 [tester] `bin/lib/synthesize.mjs:55` — `verifyFormat` not tested with `[simplicity veto]`-labeled output; the label sits between emoji and `file:line` ref — confirm `fileLinePattern` and fix-suggestion heuristic still report `valid: true` for this format
+🔵 [security] `test/flows.test.mjs:283` — Test verifies `parseFindings(merged)` but production at `run.mjs:1222` uses `parseFindings(allText)`. Both paths produce FAIL correctly, but the test doesn't directly exercise the live verdict path. Outcomes are identical; no security gap.
+🔵 [simplicity] `bin/lib/flows.mjs:186` — `emojiRe` regex created inside nested loop on every finding; hoist to module scope to avoid per-iteration object allocation
+🔵 [simplicity] `bin/lib/flows.mjs:178` — `SEVERITY_ORDER` static object recreated on every `mergeReviewFindings` call; hoist to module scope as a constant
+🔵 [simplicity] `test/flows.test.mjs:280` — `ok: false` on the simplicity finding is inconsistent with other fixtures that use `ok: true` even when findings exist; `mergeReviewFindings` ignores `ok` entirely, so this is misleading — align to `ok: true`
+
+🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
+
+## Compound Gate
+
+**Verdict:** WARN
+**Layers tripped:** 1/5
+**Tripped layers:** fabricated-refs

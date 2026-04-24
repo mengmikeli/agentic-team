@@ -277,10 +277,13 @@ describe("mergeReviewFindings", () => {
     const findings = [
       { role: "architect",  ok: true, output: "🔵 a.mjs:1 — minor suggestion" },
       { role: "engineer",   ok: true, output: "No findings." },
-      { role: "simplicity", ok: false, output: "🔴 lib/unused.mjs:5 — dead code: remove unused export" },
+      { role: "simplicity", ok: true,  output: "🔴 lib/unused.mjs:5 — dead code: remove unused export" },
     ];
-    const merged = mergeReviewFindings(findings);
-    const parsed = parseFindings(merged);
+    // Mirror the production verdict path from run.mjs:1221-1222:
+    // const allText = roleFindings.map(f => f.output || "").join("\n");
+    // let findings = parseFindings(allText);
+    const allText = findings.map(f => f.output || "").join("\n");
+    const parsed = parseFindings(allText);
     const result = computeVerdict(parsed);
     assert.equal(result.verdict, "FAIL", "any 🔴 finding (including simplicity veto) must produce FAIL verdict");
   });
