@@ -15,3 +15,8 @@
 
 ## Execution Log
 
+### 2026-04-24 06:27:22
+**Task 1: After `agt run` creates task issues, the parent (approval) issue body gains a `## Tasks` checklist with each task title and `(#N)` issue reference**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

@@ -952,7 +952,8 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     if (state?.approvalIssueNumber) {
       const checklist = buildTasksChecklist(tasks);
       if (checklist) {
-        const currentBody = getIssueBody(state.approvalIssueNumber) || "";
+        const currentBody = getIssueBody(state.approvalIssueNumber);
+        if (currentBody === null) return;
         if (!currentBody.includes("## Tasks")) {
           editIssue(state.approvalIssueNumber, currentBody + checklist);
         }
