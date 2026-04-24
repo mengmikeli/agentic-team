@@ -264,6 +264,15 @@ describe("mergeReviewFindings", () => {
     assert.equal(result.backlog, true, "simplicity 🟡 must appear in backlog");
   });
 
+  it("labels simplicity 🔵 as plain [simplicity] (not veto)", () => {
+    const findings = [
+      { role: "simplicity", ok: true, output: "🔵 lib/util.mjs:30 — minor style suggestion" },
+    ];
+    const merged = mergeReviewFindings(findings);
+    assert.ok(merged.includes("[simplicity]"), "suggestion simplicity finding should be plain [simplicity]");
+    assert.ok(!merged.includes("[simplicity veto]"), "suggestion must not be labeled [simplicity veto]");
+  });
+
   it("simplicity 🔴 causes FAIL even when all other roles pass with no criticals", () => {
     const findings = [
       { role: "architect",  ok: true, output: "🔵 a.mjs:1 — minor suggestion" },
