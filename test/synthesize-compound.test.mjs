@@ -89,4 +89,51 @@ describe("synthesize + compound gate integration", () => {
     // Traversal paths should trip fabricated-refs (treated as fabricated)
     assert.ok(result.layers.includes("fabricated-refs"), "Expected traversal path to be treated as fabricated ref");
   });
+
+  // ── Task-10: detailed, code-referencing eval.md → PASS (per-layer verification) ──
+
+  it("detailed eval.md — thin-content layer does not trip (no generic phrases)", () => {
+    const findings = parseFindings(DETAILED_EVAL_MD);
+    const result = runCompoundGate(findings, repoRoot);
+    assert.ok(
+      !result.layers.includes("thin-content"),
+      "Expected thin-content NOT to trip: detailed findings contain no generic phrases"
+    );
+  });
+
+  it("detailed eval.md — missing-code-refs layer does not trip (file:line refs present)", () => {
+    const findings = parseFindings(DETAILED_EVAL_MD);
+    const result = runCompoundGate(findings, repoRoot);
+    assert.ok(
+      !result.layers.includes("missing-code-refs"),
+      "Expected missing-code-refs NOT to trip: every finding has a file:line reference"
+    );
+  });
+
+  it("detailed eval.md — low-uniqueness layer does not trip (distinct findings)", () => {
+    const findings = parseFindings(DETAILED_EVAL_MD);
+    const result = runCompoundGate(findings, repoRoot);
+    assert.ok(
+      !result.layers.includes("low-uniqueness"),
+      "Expected low-uniqueness NOT to trip: each finding describes a distinct issue"
+    );
+  });
+
+  it("detailed eval.md — aspirational-claims layer does not trip (concrete language only)", () => {
+    const findings = parseFindings(DETAILED_EVAL_MD);
+    const result = runCompoundGate(findings, repoRoot);
+    assert.ok(
+      !result.layers.includes("aspirational-claims"),
+      "Expected aspirational-claims NOT to trip: findings use concrete, observed language"
+    );
+  });
+
+  it("detailed eval.md — section output confirms PASS with 'All layers passed'", () => {
+    const findings = parseFindings(DETAILED_EVAL_MD);
+    const result = runCompoundGate(findings, repoRoot);
+    assert.ok(result.section.includes("## Compound Gate"), "section must include header");
+    assert.ok(result.section.includes("All layers passed"), "section must confirm all layers passed");
+    assert.ok(!result.section.includes("FAIL"), "section must not mention FAIL verdict");
+    assert.ok(!result.section.includes("WARN"), "section must not mention WARN verdict");
+  });
 });
