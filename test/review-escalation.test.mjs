@@ -175,10 +175,10 @@ describe("buildEscalationComment", () => {
       { severity: "warning", text: "🟡 bar:2 — minor issue" },
     ];
     const comment = buildEscalationComment("My Task", 3, findings);
-    assert.ok(comment.includes("🔴 critical"));
-    assert.ok(comment.includes("🟡 warning"));
-    assert.ok(comment.includes("foo:1 — bad thing"));
-    assert.ok(comment.includes("bar:2 — minor issue"));
+    assert.ok(comment.includes("| critical |"));
+    assert.ok(comment.includes("| warning |"));
+    assert.ok(comment.includes("🔴 foo:1 — bad thing"));
+    assert.ok(comment.includes("🟡 bar:2 — minor issue"));
     assert.ok(comment.includes("| Severity | Finding |"));
   });
 

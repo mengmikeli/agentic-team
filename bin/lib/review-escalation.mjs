@@ -51,8 +51,7 @@ export function deduplicateFindings(allFindings) {
  */
 export function buildEscalationComment(taskTitle, reviewRounds, findings) {
   const rows = findings.map(f => {
-    const icon = f.severity === "critical" ? "🔴" : f.severity === "warning" ? "🟡" : "🔵";
-    return `| ${icon} ${f.severity} | ${f.text.replace(/\|/g, "\\|")} |`;
+    return `| ${f.severity} | ${f.text.replace(/\|/g, "\\|")} |`;
   });
   const table = rows.length > 0
     ? `| Severity | Finding |\n|---|---|\n${rows.join("\n")}`
