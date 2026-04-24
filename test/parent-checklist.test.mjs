@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildTasksChecklist } from "../bin/lib/github.mjs";
+import { buildTasksChecklist, tickChecklistItem } from "../bin/lib/github.mjs";
 
 describe("buildTasksChecklist", () => {
   it("returns empty string when task list is empty", () => {
@@ -53,6 +53,44 @@ describe("buildTasksChecklist", () => {
   it("handles null/undefined tasks gracefully", () => {
     assert.equal(buildTasksChecklist(null), "");
     assert.equal(buildTasksChecklist(undefined), "");
+  });
+});
+
+describe("tickChecklistItem", () => {
+  it("replaces - [ ] with - [x] for the matching title and issue number", () => {
+    const body = "## Tasks\n- [ ] Build the widget (#42)\n- [ ] Write tests (#43)";
+    const result = tickChecklistItem(body, "Build the widget", 42);
+    assert.ok(result.includes("- [x] Build the widget (#42)"));
+    assert.ok(result.includes("- [ ] Write tests (#43)"));
+  });
+
+  it("leaves body unchanged when title not found", () => {
+    const body = "## Tasks\n- [ ] Build the widget (#42)";
+    const result = tickChecklistItem(body, "Other task", 42);
+    assert.equal(result, body);
+  });
+
+  it("leaves body unchanged when issue number does not match", () => {
+    const body = "## Tasks\n- [ ] Build the widget (#42)";
+    const result = tickChecklistItem(body, "Build the widget", 99);
+    assert.equal(result, body);
+  });
+
+  it("returns body unchanged when already checked", () => {
+    const body = "## Tasks\n- [x] Build the widget (#42)";
+    const result = tickChecklistItem(body, "Build the widget", 42);
+    assert.equal(result, body);
+  });
+
+  it("returns body unchanged when body is falsy", () => {
+    assert.equal(tickChecklistItem(null, "Title", 1), null);
+    assert.equal(tickChecklistItem("", "Title", 1), "");
+  });
+
+  it("returns body unchanged when title or issueNumber is falsy", () => {
+    const body = "- [ ] Task (#1)";
+    assert.equal(tickChecklistItem(body, null, 1), body);
+    assert.equal(tickChecklistItem(body, "Task", null), body);
   });
 });
 

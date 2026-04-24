@@ -132,6 +132,20 @@ export function editIssue(number, body) {
   return runGh("issue", "edit", String(number), "--body", body || "") !== null;
 }
 
+/**
+ * Mark a checklist item as checked in an issue body.
+ * Replaces `- [ ] title (#N)` with `- [x] title (#N)`.
+ * Returns the updated body string (unchanged if not found).
+ */
+export function tickChecklistItem(body, title, issueNumber) {
+  if (!body || !title || !issueNumber) return body;
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return body.replace(
+    new RegExp(`- \\[ \\] ${escaped} \\(#${issueNumber}\\)`),
+    `- [x] ${title} (#${issueNumber})`,
+  );
+}
+
 /** Build the ## Tasks checklist markdown from a list of tasks. Returns empty string if no tasks have issue numbers. */
 export function buildTasksChecklist(tasks) {
   const lines = (tasks || [])
