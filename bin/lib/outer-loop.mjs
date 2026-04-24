@@ -9,6 +9,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 import { join } from "path";
 import { randomBytes, createHmac, timingSafeEqual } from "crypto";
 import { c, readState, writeState, atomicWriteSync, WRITER_SIG } from "./util.mjs";
+import { runPhaseChecks } from "./doctor.mjs";
 import {
   createIssue as ghCreateIssue,
   addToProject as ghAddToProject,
@@ -890,7 +891,12 @@ export async function outerLoop(args, deps) {
         console.log(`  Next: Phase ${nextPhase} \u2014 ${nextUndone.name}`);
         console.log(`  ${c.dim}Cycles: ${cycle}${c.reset}`);
         console.log(`${"\u2550".repeat(50)}`);
-        console.log(`\n${c.yellow}Dogfood mode: pausing for reflection.${c.reset}`);
+        // Run automated phase health checks before pausing
+        const healthResult = runPhaseChecks(cwd, { skipTests: false, skipGitHub: false });
+        if (healthResult.failed > 0) {
+          console.log(`${c.red}${c.bold}\u26a0 Phase check found ${healthResult.failed} blocking issue(s). Fix before proceeding.${c.reset}`);
+        }
+        console.log(`${c.yellow}Dogfood mode: pausing for reflection.${c.reset}`);
         console.log(`Run ${c.bold}agt run --dogfood${c.reset} to continue.\n`);
         break;
       }

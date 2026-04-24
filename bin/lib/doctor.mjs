@@ -1,9 +1,9 @@
 // agt doctor — health check for agentic-team setup
 // Verifies Node.js, tools, project structure, and configuration.
 
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import { resolve, dirname, join } from "path";
-import { execSync } from "child_process";
+import { execSync, spawnSync } from "child_process";
 import { fileURLToPath } from "url";
 import { c } from "./util.mjs";
 
@@ -212,6 +212,15 @@ export function checkProjectBoard(cwd = process.cwd()) {
 export function cmdDoctor(args = []) {
   const cwd = process.cwd();
 
+  // Phase-level checks
+  if (args.includes("--phase")) {
+    const result = runPhaseChecks(cwd, {
+      skipTests: args.includes("--skip-tests"),
+      skipGitHub: args.includes("--skip-github"),
+    });
+    process.exit(result.ok ? 0 : 1);
+  }
+
   console.log(`\n${c.bold}agt doctor${c.reset}\n`);
 
   const checks = [
@@ -261,4 +270,167 @@ export function cmdDoctor(args = []) {
     (errors ? `, ${errors} error${errors > 1 ? "s" : ""}` : "")
   );
   console.log();
+}
+
+// ── Phase-level integrity checks ────────────────────────────────
+
+
+/**
+ * Check roadmap integrity: no items marked Done with 0 tasks passed.
+ */
+export function checkRoadmapIntegrity(cwd = process.cwd()) {
+  const productPath = join(cwd, ".team", "PRODUCT.md");
+  if (!existsSync(productPath)) return { status: "warn", message: "No PRODUCT.md found" };
+  
+  const content = readFileSync(productPath, "utf8");
+  const doneItems = [...content.matchAll(/(\d+)\.\s*\*\*(.+?)\*\*\s*[—-]\s*✅\s*Done/gm)];
+  const featDir = join(cwd, ".team", "features");
+  const fakes = [];
+
+  for (const [, num, name] of doneItems) {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+    // Find matching feature dir
+    if (!existsSync(featDir)) continue;
+    for (const d of readdirSync(featDir, { withFileTypes: true })) {
+      if (!d.isDirectory() || !d.name.includes(slug.slice(0, 15))) continue;
+      const sp = join(featDir, d.name, "STATE.json");
+      if (!existsSync(sp)) continue;
+      try {
+        const state = JSON.parse(readFileSync(sp, "utf8"));
+        const passed = (state.tasks || []).filter(t => t.status === "passed").length;
+        const total = (state.tasks || []).length;
+        if (total > 0 && passed === 0) {
+          fakes.push(`#${num} ${name} (0/${total} passed)`);
+        }
+      } catch {}
+      break;
+    }
+  }
+
+  if (fakes.length > 0) {
+    return { status: "fail", message: `Roadmap has ${fakes.length} fake-done item(s): ${fakes.join("; ")}` };
+  }
+  return { status: "pass", message: `Roadmap integrity: ${doneItems.length} done items verified` };
+}
+
+/**
+ * Check for stale executing features with no live process.
+ */
+export function checkStaleExecuting(cwd = process.cwd()) {
+  const featDir = join(cwd, ".team", "features");
+  if (!existsSync(featDir)) return { status: "pass", message: "No features to check" };
+
+  const stale = [];
+  for (const d of readdirSync(featDir, { withFileTypes: true })) {
+    if (!d.isDirectory()) continue;
+    const sp = join(featDir, d.name, "STATE.json");
+    if (!existsSync(sp)) continue;
+    try {
+      const state = JSON.parse(readFileSync(sp, "utf8"));
+      if (["active", "executing"].includes(state.status)) {
+        stale.push(d.name);
+      }
+    } catch {}
+  }
+
+  if (stale.length === 0) return { status: "pass", message: "No stale executing features" };
+
+  // Check if agt run is alive
+  try {
+    const result = spawnSync("pgrep", ["-f", "agt.mjs run"], { encoding: "utf8", timeout: 2000, stdio: ["pipe", "pipe", "pipe"] });
+    if (result.status === 0 && result.stdout.trim()) {
+      return { status: "pass", message: `${stale.length} executing feature(s) — agt run is alive` };
+    }
+  } catch {}
+
+  return { status: "fail", message: `${stale.length} feature(s) stuck as executing with no agt process: ${stale.join(", ")}` };
+}
+
+/**
+ * Check for orphaned GitHub issues (open issues for completed features).
+ */
+export function checkOrphanedIssues(cwd = process.cwd()) {
+  try {
+    const result = spawnSync("gh", ["issue", "list", "--state", "open", "--json", "number,title", "--limit", "50"],
+      { encoding: "utf8", timeout: 15000, stdio: ["pipe", "pipe", "pipe"], cwd });
+    if (result.status !== 0) return { status: "warn", message: "Could not check GitHub issues (gh not available)" };
+    
+    const issues = JSON.parse(result.stdout);
+    const featDir = join(cwd, ".team", "features");
+    if (!existsSync(featDir)) return { status: "pass", message: `${issues.length} open issue(s)` };
+
+    const orphaned = [];
+    for (const issue of issues) {
+      // Extract feature name from issue title: [feature-name] task title
+      const match = issue.title.match(/^\[([^\]]+)\]/);
+      if (!match) continue;
+      const featName = match[1];
+      const sp = join(featDir, featName, "STATE.json");
+      if (!existsSync(sp)) continue;
+      try {
+        const state = JSON.parse(readFileSync(sp, "utf8"));
+        if (state.status === "completed") {
+          orphaned.push(`#${issue.number}`);
+        }
+      } catch {}
+    }
+
+    if (orphaned.length > 0) {
+      return { status: "warn", message: `${orphaned.length} orphaned issue(s) for completed features: ${orphaned.join(", ")}` };
+    }
+    return { status: "pass", message: `${issues.length} open issue(s), none orphaned` };
+  } catch {
+    return { status: "warn", message: "Could not check GitHub issues" };
+  }
+}
+
+/**
+ * Check test suite passes.
+ */
+export function checkTests(cwd = process.cwd()) {
+  try {
+    const result = spawnSync("npm", ["test"], { encoding: "utf8", timeout: 120000, stdio: ["pipe", "pipe", "pipe"], cwd });
+    const failMatch = (result.stdout || "").match(/ℹ fail (\d+)/);
+    const passMatch = (result.stdout || "").match(/ℹ pass (\d+)/);
+    const failures = failMatch ? parseInt(failMatch[1]) : -1;
+    const passes = passMatch ? parseInt(passMatch[1]) : 0;
+    
+    if (result.status === 0 && failures === 0) {
+      return { status: "pass", message: `Test suite: ${passes} tests passing` };
+    }
+    return { status: "fail", message: `Test suite: ${failures} failure(s) out of ${passes} tests` };
+  } catch {
+    return { status: "warn", message: "Could not run test suite" };
+  }
+}
+
+/**
+ * Run phase-level checks. Called by dogfood mode at phase boundaries.
+ * Returns { passed, failed, warnings, checks }.
+ */
+export function runPhaseChecks(cwd = process.cwd(), opts = {}) {
+  console.log(`\n${c.bold}Phase Health Check${c.reset}\n`);
+
+  const checks = [
+    checkRoadmapIntegrity(cwd),
+    checkStaleExecuting(cwd),
+    ...(opts.skipTests ? [] : [checkTests(cwd)]),
+    ...(opts.skipGitHub ? [] : [checkOrphanedIssues(cwd)]),
+  ];
+
+  let passed = 0, warnings = 0, failed = 0;
+  for (const check of checks) {
+    const icon = check.status === "pass" ? "✅" : check.status === "warn" ? "⚠️" : "❌";
+    const color = check.status === "pass" ? c.green : check.status === "warn" ? c.yellow : c.red;
+    console.log(`${color}${icon} ${check.message}${c.reset}`);
+    if (check.status === "pass") passed++;
+    else if (check.status === "warn") warnings++;
+    else failed++;
+  }
+
+  console.log(`\n${c.bold}Phase check:${c.reset} ${passed}/${checks.length} passed` +
+    (warnings ? `, ${warnings} warning(s)` : "") +
+    (failed ? `, ${failed} BLOCKING` : "") + "\n");
+
+  return { passed, failed, warnings, checks, ok: failed === 0 };
 }
