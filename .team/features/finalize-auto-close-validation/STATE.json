@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "finalize-auto-close-validation",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -108,11 +108,19 @@
     {
       "id": "task-7",
       "title": "All existing finalize tests continue to pass",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 125,
-      "lastTransition": "2026-04-24T03:59:11.908Z",
-      "ticks": 1
+      "lastTransition": "2026-04-24T04:03:46.936Z",
+      "ticks": 1,
+      "gateWarningHistory": [
+        {
+          "iteration": 1,
+          "layers": [
+            "fabricated-refs"
+          ]
+        }
+      ]
     }
   ],
   "gates": [
@@ -180,7 +188,7 @@
       "taskId": "task-7"
     }
   ],
-  "transitionCount": 13,
+  "transitionCount": 14,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -272,10 +280,27 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T03:59:11.908Z"
+    },
+    {
+      "taskId": "task-7",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-24T04:03:46.936Z"
     }
   ],
   "createdAt": "2026-04-24T03:18:11.199Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T04:00:30.745Z",
-  "_write_nonce": "b8a425d86f2cd5e2"
+  "_last_modified": "2026-04-24T04:03:52.091Z",
+  "_write_nonce": "5df10691f2d8a934",
+  "completedAt": "2026-04-24T04:03:52.091Z",
+  "summary": {
+    "tasks": 7,
+    "passed": 7,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 14,
+    "gates": 7,
+    "duration": "46m"
+  }
 }

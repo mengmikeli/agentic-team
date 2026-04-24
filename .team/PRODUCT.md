@@ -45,7 +45,7 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 27. **Label threading** — Outer loop passes `[P#/#N]` labels through to inner loop's `runSingleFeature`. GitHub issues and CLI banner show roadmap position.
 28. **Dashboard token breakdown** — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline.
 29. **Dashboard active task indicator** — Show which specific task is executing with name and attempt number, not just "N/M done".
-30. **Finalize auto-close validation** — Integration test: `agt finalize` marks feature completed and closes all its GitHub issues. Verify end-to-end.
+30. **Finalize auto-close validation** — ✅ Done. Integration test: `agt finalize` marks feature completed and closes all its GitHub issues. Verify end-to-end.
 
 ### Phase 4 — Productive Execution
 15. **Simplicity reviewer with veto** — Dedicated review pass that checks for dead code, premature abstraction, unnecessary indirection, gold-plating. Simplicity REQUEST_CHANGES = overall REQUEST_CHANGES.
