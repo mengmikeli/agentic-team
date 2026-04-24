@@ -213,4 +213,12 @@ describe("buildReviewBrief — devil's-advocate role", () => {
     const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "devil's-advocate");
     assert.ok(brief.toLowerCase().includes("risk") || brief.toLowerCase().includes("edge case") || brief.toLowerCase().includes("wrong"));
   });
+  it("injects role file content unique to devil-advocate.md", () => {
+    const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "devil's-advocate");
+    // "blast radius" and "stress-test" are only in the role file, not in the getRoleFocus fallback
+    assert.ok(
+      brief.toLowerCase().includes("blast radius") || brief.toLowerCase().includes("stress-test"),
+      "Expected role file content (blast radius / stress-test) to be injected into brief"
+    );
+  });
 });

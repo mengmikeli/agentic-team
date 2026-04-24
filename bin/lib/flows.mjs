@@ -12,7 +12,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 function loadRoleFile(role) {
   if (!role) return null;
   try {
-    const filePath = resolve(__dirname, "../../roles", `${role}.md`);
+    const slug = role.replace(/[^a-z0-9-]/g, "-");
+    const filePath = resolve(__dirname, "../../roles", `${slug}.md`);
     return readFileSync(filePath, "utf8").trim();
   } catch {
     return null;
