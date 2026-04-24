@@ -44,13 +44,14 @@ export function buildReport(state) {
   }
   lines.push("");
 
-  // Section 3: Activity
-  lines.push("## Activity");
+  // Section 3: Cost Breakdown
+  lines.push("## Cost Breakdown");
   const passGates = gates.filter(g => g.verdict === "PASS").length;
   const failGates = gates.filter(g => g.verdict === "FAIL").length;
+  lines.push(`  Total cost (USD):         N/A (see \`agt metrics\`)`);
   lines.push(`  Dispatches (transitions): ${state.transitionCount ?? 0}`);
   lines.push(`  Gate runs:                ${gates.length}  (${passGates} pass / ${failGates} fail)`);
-  lines.push(`  Token cost:               see \`agt metrics\``);
+  lines.push(`  Per-phase split:          N/A (see \`agt metrics\`)`);
   lines.push("");
 
   // Section 4: Blocked / Failed Tasks
@@ -58,7 +59,7 @@ export function buildReport(state) {
   if (problem.length > 0) {
     lines.push("## Blocked / Failed Tasks");
     for (const task of problem) {
-      lines.push(`  [${task.status.toUpperCase()}] ${task.id}: ${task.title || "(no title)"}`);
+      lines.push(`  [${(task.status || "unknown").toUpperCase()}] ${task.id}: ${task.title || "(no title)"}`);
       if (task.lastReason) lines.push(`    Reason: ${task.lastReason}`);
     }
     lines.push("");
@@ -66,9 +67,15 @@ export function buildReport(state) {
 
   // Section 5: Recommendations
   const recs = [];
-  const highAttempts = tasks.filter(t => (t.attempts ?? 0) > 1);
+  const highAttempts = tasks.filter(t => (t.attempts ?? 0) >= 3);
   for (const t of highAttempts) {
     recs.push(`Consider simplifying task ${t.id} (${t.attempts} attempts)`);
+  }
+  const gateWarnings = tasks.filter(t => t.gateWarningHistory && t.gateWarningHistory.length > 0);
+  for (const t of gateWarnings) {
+    const layers = t.gateWarningHistory.flatMap(e => e.layers || []);
+    const unique = [...new Set(layers)];
+    recs.push(`Task ${t.id} has repeated gate warnings: ${unique.join(", ")}`);
   }
   if (problem.length > 0 && problem.length === tasks.length) {
     recs.push("Feature is stalled — all tasks are blocked or failed");

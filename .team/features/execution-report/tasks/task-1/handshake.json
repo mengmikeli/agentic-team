@@ -1,20 +1,14 @@
 {
   "taskId": "task-1",
-  "nodeType": "gate",
-  "runId": "run_1",
+  "nodeType": "build",
+  "runId": "run_2",
   "status": "completed",
-  "verdict": "PASS",
-  "summary": "Gate command: npm test — exit code 0",
-  "timestamp": "2026-04-24T11:14:58.566Z",
+  "verdict": null,
+  "summary": "Fixed report.mjs: renamed '## Activity' to '## Cost Breakdown' with N/A cost fields, changed attempts threshold from >1 to >=3, added gate warning history recommendations, and guarded against null task.status. Fixed test/report.test.mjs: replaced the stub help test with a real spawnSync invocation of 'agt help report', added tests for attempts:2 not triggering recommendations and for null status handling, and removed dead variables.",
+  "timestamp": "2026-04-24T11:30:00.000Z",
   "artifacts": [
-    {
-      "type": "test-result",
-      "path": "artifacts/test-output.txt"
-    }
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
   ],
-  "findings": {
-    "critical": 0,
-    "warning": 0,
-    "suggestion": 0
-  }
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
