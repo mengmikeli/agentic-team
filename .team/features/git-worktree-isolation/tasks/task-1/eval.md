@@ -1,44 +1,37 @@
-## Parallel Review Findings
+## Simplicity Review — git-worktree-isolation
+**Task:** Agent dispatches pass `cwd: worktreePath` to `spawnSync`/`spawn`
+**Verdict:** PASS
 
-🔴 [architect] `bin/lib/run.mjs:888` — Orphaned `// ── Create git worktree for isolated execution ──` section header with no code beneath it; implementation was moved to line 941 but this placeholder was left behind. Delete it.
-[architect] **Verdict: PASS** (one 🔴 dead-comment finding, but it's non-functional — does not affect runtime behavior or the isolation contract. The core task requirement is fully met: `createWorktreeIfNeeded` is called at line 945, before the task dispatch loop at line 1043, using safe `execFileSync` array args, re-throwing on failure, and correctly positioned after the dry-run guard. All prior critical findings from the previous eval have been resolved.)
-🔴 [engineer] bin/lib/run.mjs:162 — After a completed run, `removeWorktree` removes the directory but preserves the branch `feature/{slug}`. On re-run, `existsSync(worktreePath)` is false (dir gone), so `createWorktreeIfNeeded` calls `git worktree add -b feature/{slug}` — git rejects with "fatal: A branch named '...' already exists." Fix: use `-B` instead of `-b`, or detect and reuse the existing branch without `-b`.
-[engineer] **Verdict: FAIL** — the 🔴 critical is a real reproducible bug: re-running any completed feature crashes at worktree creation because `git worktree add -b` fails when the branch already exists. All other findings from the prior parallel review that cited shell injection, silent catch fallback, or wrong line numbers were verified false by direct code read.
-🔴 [product] `bin/lib/run.mjs:162–166` — Second-run regression: after `removeWorktree` completes, branch `feature/{slug}` persists while the directory is gone; the next run calls `git worktree add -b feature/{slug}` and git fails with "fatal: A branch named '...' already exists" — every user who retries a completed feature hits this crash; fix by detecting the branch-exists case and using `git worktree add <path> feature/{slug}` (no `-b`) or `-B`
-🔴 [product] `bin/lib/run.mjs:1056` — `return "paused"` exits `_runSingleFeature` without calling `removeWorktree`; the pause→resume worktree lifecycle is undefined in the SPEC and untested — either document that the worktree is intentionally preserved on pause and add crash-recovery tests for resume, or remove it on pause; undefined behavior is not shippable
-[product] The core isolation contract (SPEC items 1–8) is implemented correctly and the test gate passes 644/644. However two 🔴 user-facing scenarios were not covered by the SPEC and will fail at runtime:
-🔴 [tester] `bin/lib/run.mjs:162–166` — `createWorktreeIfNeeded` checks `existsSync(worktreePath)` for the directory but not whether the git branch already exists. After a completed run, `removeWorktree` (via `git worktree remove --force`) removes the directory but leaves the branch `feature/{slug}` in the repo. A second run then attempts `git worktree add -b feature/{slug}` and fails hard: "fatal: A branch named 'feature/...' already exists." No test covers re-running a feature after a completed run.
-🔴 [tester] `bin/lib/run.mjs:1056` — `return "paused"` exits `_runSingleFeature` without calling `removeWorktree`. Pause lifecycle (preserve worktree for resume vs. remove) is undefined and untested. No test verifies: (a) worktree is preserved after pause, or (b) subsequent run correctly reuses it via `createWorktreeIfNeeded`.
-[security] The parallel-review eval.md (which gates this) contained 5 🔴 findings that directly misrepresent the code:
-🔴 [simplicity] `bin/lib/run.mjs:888` — Dead code: orphaned `// ── Create git worktree for isolated execution ──` section header left behind when the block was moved to line 941 by the fix commit; delete this comment
-[simplicity] **Verdict: FAIL** — one 🔴 dead code finding (orphaned section header at `run.mjs:888`) blocks merge.
-🟡 [architect] `bin/lib/run.mjs:155` — `slugToBranch` strips uppercase A-Z without `.toLowerCase()` first; `"MyFeature"` → `"yeature"` (branch name corruption). Current callers pre-lowercase the slug so it's safe today, but the exported function is a trap for future callers. Add `.toLowerCase()` as first chain operation.
-🟡 [architect] `bin/lib/run.mjs:945` — No `try/finally` around the task execution body (lines 951–1451); an uncaught exception anywhere in that range permanently leaks the worktree directory. Wrap with `try/finally { if (worktreePath) removeWorktree(worktreePath, mainCwd); }`.
-🟡 [engineer] bin/lib/run.mjs:944 — No `try/finally` around task execution body; any uncaught exception after worktree creation (line 945) leaks the directory and branch. Wrap with `try/finally { if (worktreePath) removeWorktree(worktreePath, mainCwd); }`.
-🟡 [engineer] bin/lib/run.mjs:162 — `createWorktreeIfNeeded` treats any pre-existing directory as a valid worktree without checking for a `.git` file; a stale plain directory (e.g., from a mid-`git worktree add` crash) silently bypasses isolation.
-🟡 [product] `test/worktree.test.mjs:1` — SPEC item 10 requires "cwd injection into agent briefs" coverage; no test verifies `_runSingleFeature` passes `worktreePath` to `dispatchToAgent`; backlog: add mock-based test for dispatch cwd injection
-🟡 [product] `bin/lib/run.mjs:888` — Orphaned `// ── Create git worktree for isolated execution ──` comment (implementation moved to line 941); flagged by simplicity and architect across four review rounds; delete it
-🟡 [tester] `bin/lib/run.mjs:888` — Orphaned `// ── Create git worktree for isolated execution ──` comment appears 53 lines before the actual worktree creation at line 941. This is the fourth review — still unaddressed.
-🟡 [tester] `bin/lib/run.mjs:943–949` — No `try/finally` wrapping task execution. Exception thrown after worktree creation but before cleanup at line 1473 leaves orphaned directory with no cleanup path. Carryover — still unaddressed.
-🟡 [tester] `test/worktree.test.mjs:127` — "lifecycle: removeWorktree is called on completion (mock-based)" only exercises the helper directly. No integration or e2e test verifies `_runSingleFeature` calls `removeWorktree` on normal completion. The e2e test does not exercise `_runSingleFeature` at all.
-🟡 [security] `bin/lib/run.mjs:944-1474` — No try/finally around worktree lifecycle; exception or SIGTERM between worktree creation (line 944) and removal (line 1473) permanently orphans the directory and `feature/{slug}` branch; wrap in try/finally with `removeWorktree` in the finally block
-🟡 [security] `bin/lib/run.mjs:1156` — `git add -A` stages all worktree changes before push; an agent running with `--permission-mode bypassPermissions` could write secrets/credentials as side effects and they'd be committed and pushed to origin; scope staging to declared handshake artifacts or add a pre-stage diff check
-🟡 [security] `bin/lib/run.mjs:152-156` — `slugToBranch` strips uppercase A-Z without `.toLowerCase()` first; `"MyFeature"` → `"yeature"` (branch name corruption); exported function is a trap for future callers; prepend `.toLowerCase()` before first replace
-🟡 [simplicity] `bin/lib/run.mjs:155` — `slugToBranch` strips uppercase A-Z silently (`"MyFeature"` → `"yeature"`); prepend `.toLowerCase()` before the first replace
-🟡 [simplicity] `test/worktree.test.mjs:176` — `createWorktreeIfNeeded branch naming` describe block never calls `createWorktreeIfNeeded` — it tests `slugToBranch` directly and duplicates existing coverage; remove or replace with a real integration test
-🟡 [simplicity] `bin/lib/run.mjs:943` — No `try/finally` around the task-execution body; an uncaught exception between worktree creation (line 943) and removal (line 1474) leaks the worktree directory permanently
-🔵 [architect] `bin/lib/run.mjs:154` — `slugToBranch` permits consecutive dots (`..`); `git-check-ref-format` rejects branch names containing `..`. Add `.replace(/\.{2,}/g, ".")` before `.slice(0, 72)`.
-🔵 [engineer] bin/lib/run.mjs:888 — Orphaned `// ── Create git worktree for isolated execution ──` section comment with no code beneath it; actual worktree block is at line 941. Delete it.
-🔵 [engineer] bin/lib/run.mjs:154 — `slugToBranch` regex `[^a-z0-9\-\.]` silently strips uppercase characters; add `.toLowerCase()` as first transform.
-🔵 [tester] `bin/lib/run.mjs:152–157` — `slugToBranch` strips uppercase silently (regex `[^a-z0-9\-\.]`). Callers pre-normalize today so production is safe, but the exported function has no test for uppercase input. Carryover — still unaddressed.
-🔵 [security] `bin/lib/run.mjs:155` — `slugToBranch` allows dots; consecutive dots (`..`) produce a git-invalid ref name per `git-check-ref-format`; add `.replace(/\.{2,}/g, "-")` before `slice`
-🔵 [simplicity] `test/worktree.test.mjs:158` — cwd assertion checks only the last path component (`tmpDir.split("/").pop()`); use full path equality for stronger verification
+### Files Read
+- `tasks/task-1/handshake.json`, `tasks/task-2/handshake.json`
+- `tasks/task-2/eval.md`, `tasks/task-2/artifacts/test-output.txt`
+- `bin/lib/run.mjs` (lines 145–350, 882–950, 1045–1180, 1450–1530)
+- `test/worktree.test.mjs` (full, 236 lines)
 
-🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
-🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2
+### Claim Verification
+**Claimed:** `dispatchToAgent` and `dispatchToAgentAsync` forward `cwd: worktreePath` to `spawnSync`/`spawn`.
 
-## Compound Gate
+Direct code trace:
+- `dispatchToAgent(agent, brief, cwd, _spawnFn)` at `run.mjs:279` ✓
+- Claude `spawnSync(..., { cwd, ... })` at `run.mjs:284` ✓
+- Codex `spawnSync(..., { cwd, ... })` at `run.mjs:307` ✓
+- `dispatchToAgentAsync` `spawn(..., { cwd, ... })` at `run.mjs:333` ✓
+- Caller: `cwd = worktreePath` at `run.mjs:944`; passed to `dispatchToAgent(agent, brief, cwd)` at `run.mjs:1115` ✓
+- Tests at `worktree.test.mjs:190–235`: mock `_spawnFn`, assert `opts.cwd === worktreePath` for claude and codex ✓
+- Gate: npm test exit 0 ✓
 
-**Verdict:** WARN
-**Layers tripped:** 1/5
-**Tripped layers:** fabricated-refs
+Previous 🔴 status:
+- `run.mjs:888` orphaned comment — FIXED (commit ef5290a) ✓
+- `run.mjs:1055` `return "paused"` without cleanup — FIXED by `try/finally` at line 1472; JS `finally` executes before function return ✓
+
+### Per-Criterion Results
+- **Dead code**: No unused imports/vars introduced. `dispatchToAgent` import at test line 10 is used. PASS
+- **Premature abstraction**: No new abstractions. `slugToBranch` (1 production call site) was prior-task scope. PASS
+- **Unnecessary indirection**: `cwd` flows directly `worktreePath → cwd → dispatchToAgent arg → spawnSync option`. PASS
+- **Gold-plating**: No config options, flags, or speculative extension points. PASS
+
+### Findings
+
+🟡 test/worktree.test.mjs:221 — "cwd is distinct from process.cwd()" test asserts a tautology: hardcoded `/worktrees/my-feature` will never equal `process.cwd()`; the only non-trivial assertion (`calls[0].opts.cwd === worktreePath`) is already covered by the test at line 193; remove this test
+🟡 test/worktree.test.mjs:176 — `describe("slugToBranch normalization")` never calls `createWorktreeIfNeeded`; both tests (lines 177–187) call `slugToBranch` directly, duplicating the `describe("slugToBranch")` suite at line 14; remove or replace with a `createWorktreeIfNeeded` mock-based test
+🔵 test/worktree.test.mjs:158 — `tmpDir.split("/").pop()` checks only the last path segment; use `assert.equal(result.stdout.trim(), tmpDir)` for a stronger assertion
