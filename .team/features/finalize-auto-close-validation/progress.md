@@ -35,3 +35,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 03:54:05
+**Task 5: Test: calling `finalize` on an already-completed feature does not re-close issues**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

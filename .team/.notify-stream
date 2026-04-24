@@ -152,3 +152,5 @@
 {"ts":"2026-04-24T03:42:24.753Z","event":"task-started","msg":"▶ Task 4/7: Test: tasks without `issueNumber` are skipped silently and do not affect the count"}
 {"ts":"2026-04-24T03:48:01.834Z","event":"task-passed","msg":"✓ Task 4/7: Test: tasks without `issueNumber` are skipped silently and do not affect the count"}
 {"ts":"2026-04-24T03:48:08.544Z","event":"task-started","msg":"▶ Task 5/7: Test: calling `finalize` on an already-completed feature does not re-close issues"}
+{"ts":"2026-04-24T03:54:05.621Z","event":"task-passed","msg":"✓ Task 5/7: Test: calling `finalize` on an already-completed feature does not re-close issues"}
+{"ts":"2026-04-24T03:54:12.519Z","event":"task-started","msg":"▶ Task 6/7: Implementation: `finalize.mjs` closes `state.approvalIssueNumber` in addition to task issues"}
