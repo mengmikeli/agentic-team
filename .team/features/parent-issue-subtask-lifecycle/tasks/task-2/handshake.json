@@ -1,15 +1,20 @@
 {
   "taskId": "task-2",
-  "nodeType": "build",
+  "nodeType": "gate",
   "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Added `tickChecklistItem` helper to `bin/lib/github.mjs` that replaces `- [ ] title (#N)` with `- [x] title (#N)` in a parent issue body. Wired it into `bin/lib/run.mjs` so it fires on gate pass alongside the existing `closeIssue` call. Added 6 unit tests in `test/parent-checklist.test.mjs`; all 608 tests pass.",
-  "timestamp": "2026-04-24T07:00:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-24T06:39:11.161Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/github.mjs" },
-    { "type": "code", "path": "bin/lib/run.mjs" },
-    { "type": "code", "path": "test/parent-checklist.test.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
