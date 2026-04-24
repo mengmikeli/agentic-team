@@ -1,115 +1,217 @@
-## Architect Review — execution-report
+## Architect Review — execution-report (post-fix pass)
 
-**Verdict: FAIL**
+**Verdict: PASS**
 
 ### Files actually read
-- `bin/lib/report.mjs` (150 lines)
-- `test/report.test.mjs` (309 lines)
-- `bin/agt.mjs` (help registry only)
-- `bin/lib/run.mjs` (tokenUsage write path, line 1460)
+- `bin/lib/report.mjs` (all 161 lines)
+- `test/report.test.mjs` (all 293 lines)
 - `.team/features/execution-report/tasks/task-1/handshake.json`
-- `.team/features/execution-report/tasks/task-2/artifacts/test-output.txt` (full test run)
+- `.team/features/execution-report/tasks/task-2/handshake.json`
+- `.team/features/execution-report/tasks/task-1/eval.md` (prior security review)
+- `.team/features/execution-report/tasks/task-2/eval.md` (parallel review findings)
+- `.team/features/execution-report/tasks/task-2/artifacts/test-output.txt` (first 100 lines)
 
 ---
 
 ### Per-criterion results
 
-#### 1. All five report sections present — PASS
-Direct evidence in `bin/lib/report.mjs`:
-- Section 1 Header: lines 26–34
-- Section 2 Task Summary: lines 36–45
-- Section 3 Cost Breakdown: lines 47–55
-- Section 4 Blocked/Failed Tasks: lines 57–66
-- Section 5 Recommendations: lines 68–92
+#### 1. All five report sections — PASS
+Verified directly in `bin/lib/report.mjs`:
+- Section 1 Header: lines 15–36 (always rendered)
+- Section 2 Task Summary: lines 38–47 (always rendered; empty tasks → header-only table)
+- Section 3 Cost Breakdown: lines 49–65 (always rendered; reads `state.tokenUsage?.total?.costUsd` with `!= null` guard, falls back to N/A)
+- Section 4 Blocked/Failed Tasks: lines 67–76 (conditional on `problem.length > 0` — correct behavior, not a missing section)
+- Section 5 Recommendations: lines 78–102 (conditional on `recs.length > 0` — correct behavior)
 
-All five sections confirmed in source and exercised by test suite.
+#### 2. Prior critical blocker — dead test variables — RESOLVED
+Prior parallel review cited `state` and `state2` at `test/report.test.mjs:133–149` as unused dead variables (🔴). In the current file the `it()` block at line 133 declares exactly one variable: `state3` (line 134), used in `assert.doesNotThrow(() => buildReport(state3), ...)` at line 139. Dead code is absent.
 
-#### 2. Tests pass — PASS (21 report tests + full suite)
-task-2 gate: `npm test` exit 0. `buildReport` suite: 11/11. `cmdReport` suite: 8/8. Full suite: all passing. No fabrication — verified against actual test output lines 1327–1351.
+#### 3. Prior critical blocker — tokenUsage hardcoded N/A — RESOLVED
+Prior review flagged `bin/lib/report.mjs:51` as always emitting `"N/A"`. Current lines 53–60 read `state.tokenUsage?.total?.costUsd` and `state.tokenUsage?.byPhase` with optional chaining, falling back to N/A only when fields are absent. Fix is correct and minimal.
 
-#### 3. Dead code in test file — FAIL (blocks merge)
-`test/report.test.mjs` lines 134–139 (`state`) and 142–146 (`state2`) are created inside a single `it()` block but never passed to any assertion. Only `state3` (line 150) is used in `assert.doesNotThrow(...)`. These two variables are confirmed dead code. This is a signal that the null-status guard test was written, revised mid-draft, and the discarded drafts were never cleaned up. The test still passes because the live assertion uses `state3`.
+#### 4. Prior issue — formatDuration premature abstraction — RESOLVED
+The parallel simplicity review flagged a `formatDuration` function as a single-callsite abstraction. No such function exists in the current file; duration logic is inlined in `buildReport` (lines 18–30). Resolved.
 
-#### 4. Path traversal boundary — FAIL (must go to backlog)
-`bin/lib/report.mjs:126` — `featureName` from raw `args` is concatenated into `path.join(_cwd(), ".team", "features", featureName)` with no prefix assertion. `path.join(".", ".team", "features", "../../../../tmp/x")` resolves to `/tmp/x` on macOS — outside the `.team` tree. In `--output md` mode this becomes a write primitive. Verified by reading the join call directly; no guard present. Low-exploitability for a local CLI but the pattern is wrong and should be caught before this abstraction is reused.
+#### 5. Component boundaries — PASS
+`buildReport` is a pure function (state → string, zero I/O side effects). `cmdReport` handles all I/O and injects all dependencies: `readState`, `existsSync`, `writeFileSync`, `stdout`, `exit`, `cwd`. The boundary is clean and fully testable. Gate: `npm test` exit 0; 11 `buildReport` unit tests + 8 `cmdReport` integration tests all pass.
 
-#### 5. tokenUsage not surfaced — FAIL (must go to backlog)
-`bin/lib/report.mjs:51,54` hardcode `"N/A (see \`agt metrics\`)"` without reading `state.tokenUsage`. `run.mjs:1460` confirms `s.tokenUsage = buildTokenUsage()` is written into STATE.json on each run. The data is present; `cmdReport` ignores it. The SPEC intent is to surface total cost and per-phase split. This is an architectural gap in the report module — it doesn't read the field its parent module writes.
+#### 6. Path traversal — backlog 🟡
+`report.mjs:117` extracts `featureName` from raw CLI args (no sanitization). `report.mjs:136` passes it to `path.join(_cwd(), ".team", "features", featureName)` without prefix assertion. Verified: `path.join("/proj", ".team", "features", "../../../../tmp/x")` resolves to `/tmp/x`. Two I/O surfaces: read (`readState`, line 144) and write (`writeFileSync`, line 155 in `--output md` mode). Does not block merge for a local CLI (no privilege escalation) but must go to backlog.
 
-#### 6. writeFileSync unhandled exception — FAIL (must go to backlog)
-`bin/lib/report.mjs:143–146` — `_writeFileSync(outPath, report + "\n")` is called with no try/catch. If the injected or real `writeFileSync` throws (permissions error, ENOSPC, etc.), the process unwinds with an unhandled exception instead of a clean `exit(1)` + message. The dependency injection pattern was used correctly for testability but the error path is incomplete.
+#### 7. writeFileSync unguarded — backlog 🟡
+`report.mjs:155` — `_writeFileSync(outPath, report + "\n")` has no try/catch. A permissions error or ENOSPC propagates as an unhandled exception with a Node.js stack trace rather than a clean `exit(1)` + readable message.
 
-#### 7. Component boundaries — PASS
-`buildReport` is a pure function (state → string). `cmdReport` handles I/O and delegates to it. Dependencies are injected. This is clean and testable by design. No cross-module coupling concerns.
+#### 8. NaN date propagation — backlog 🟡
+`report.mjs:18–30` — the guard `if (state.createdAt)` filters falsy values only. A truthy but malformed value (e.g. `"bad-date"`) passes through: `new Date("bad-date").getTime()` → `NaN` → propagates to `Math.round(NaN)` → `NaN < 60` false → `Math.floor(NaN/60)` → `NaN` → `duration = "NaNh"` in the header. Add `if (isNaN(startMs)) { duration = "N/A"; }` after line 19.
 
-#### 8. Compound gate — WARN
-`fabricated-refs` tripped in both iteration 1 and iteration 2 (iteration-escalation). The prior parallel review's architect-role file:line citations (`report.mjs:126`, `report.mjs:51`, `report.mjs:12`, `report.mjs:109`) are all real — I verified each line. The compound gate warning likely originated from another role's findings. The iteration-escalation is logged and goes to backlog.
+#### 9. Unknown --output value — suggestion 🔵
+`report.mjs:153–158` — `--output <anything-except-md>` silently falls through to stdout. A warning for unrecognized format values would prevent silent misconfiguration.
 
 ---
 
-### Findings summary
+### Findings
 
-🔴 `test/report.test.mjs:133` — Dead variable `state` (lines 134–139) created but never used in any assertion; delete lines 134–139
-🔴 `test/report.test.mjs:142` — Dead variable `state2` (lines 142–146) created but never used in any assertion; delete lines 142–146 and the comment block at 140–149
-🟡 `bin/lib/report.mjs:126` — `featureName` from CLI args piped directly to `path.join` with no prefix-clamping; assert resolved path starts with `resolve(_cwd(), ".team", "features") + sep` before use
-🟡 `bin/lib/report.mjs:51` — `state.tokenUsage?.total?.costUsd` and `state.tokenUsage?.byPhase` written by `run.mjs:1460` but never read here; read and display when present, fall back to "N/A" when absent
-🟡 `bin/lib/report.mjs:145` — `_writeFileSync` called with no try/catch in `--output md` path; wrap in try/catch and call `_exit(1)` with a readable message on failure
-🔵 `bin/lib/report.mjs:109` — `--output <anything-but-md>` is silently ignored; add a warning branch for unrecognized format values
+🟡 `bin/lib/report.mjs:136` — `featureName` from raw CLI args passed to `path.join` with no prefix-clamp; assert `resolve(featureDir).startsWith(resolve(_cwd(), ".team", "features") + sep)` and call `_exit(1)` if not
+🟡 `bin/lib/report.mjs:155` — `_writeFileSync` in `--output md` branch not wrapped in try/catch; wrap and call `_exit(1)` with a readable message on failure
+🟡 `bin/lib/report.mjs:19` — `new Date(state.createdAt).getTime()` returns `NaN` for malformed ISO strings; add `if (isNaN(startMs)) { duration = "N/A"; }` guard after the assignment
+🔵 `bin/lib/report.mjs:153` — `--output <unknown-value>` silently falls through to stdout; add a warning branch for unrecognized format values
 
 ### Actionable feedback
 
-1. **Before merge**: Delete the two dead variables in `test/report.test.mjs`. This is the only hard blocker — a two-line delete.
-2. **Backlog — path traversal**: Add the prefix-clamping guard to `cmdReport` before `featureDir` is used for any I/O.
-3. **Backlog — tokenUsage**: Wire `state.tokenUsage` into the Cost Breakdown section with a `?.` fallback to "N/A".
-4. **Backlog — writeFileSync error**: Wrap the `--output md` write in try/catch.
+1. All prior 🔴 blockers confirmed resolved. Dead test variables cleaned up; tokenUsage wired; formatDuration inlined. No new critical findings.
+2. **Backlog** (🟡): path traversal guard in `cmdReport` before any I/O.
+3. **Backlog** (🟡): wrap `--output md` write in try/catch.
+4. **Backlog** (🟡): add `isNaN(startMs)` guard to prevent `"NaNh"` in report header.
+5. **Suggestion** (🔵): warn on unrecognized `--output` values.
 
 ---
 
-## Security Review (standalone)
+## Tester Review — execution-report
 
-**Reviewer role:** Security specialist
-**Files read:** `bin/lib/report.mjs` (all 151 lines), `test/report.test.mjs` (all 308 lines), `bin/lib/util.mjs:188–198`
-**Overall verdict:** PASS (security lens)
+**Reviewer role:** Test strategist
+**Overall verdict: PASS**
 
-### Criterion 1: Input validation — `featureName` path traversal — backlog 🟡
+### Files actually read
+- `bin/lib/report.mjs` (all 161 lines)
+- `test/report.test.mjs` (all 293 lines)
+- `.team/features/execution-report/tasks/task-1/handshake.json`
+- `.team/features/execution-report/tasks/task-2/handshake.json`
+- `.team/features/execution-report/tasks/task-1/eval.md` (previous architect/security reviews)
+- `.team/features/execution-report/tasks/task-1/artifacts/test-output.txt` (lines 1–280)
 
-**Evidence:**
-- `report.mjs:107`: `featureName = args.find(a => !a.startsWith("-"))` — raw CLI arg, no sanitization
-- `report.mjs:126`: `featureDir = join(_cwd(), ".team", "features", featureName)` — passed directly to `path.join`
-- Verified empirically: `path.join("/Users/user/project", ".team", "features", "../../../../tmp/x")` → `/Users/tmp/x` (escapes intended directory)
-- Two surfaces: (1) **read** — `readState(featureDir)` reads any `STATE.json` the process user can access; (2) **write** — `writeFileSync(join(featureDir, "REPORT.md"), ...)` in `--output md` mode writes to traversal target
-- Calibration: local CLI, user's own credentials, no privilege escalation → 🟡, not 🔴
+---
 
-### Criterion 2: Content injection from STATE.json fields — 🔵 suggestion
+### Per-criterion results
 
-**Evidence:**
-- `report.mjs:62-63`: `task.title` and `task.lastReason` rendered verbatim into output
-- STATE.json is written exclusively by the harness (`_written_by: "at-harness"`), not direct user input
-- Embedded newlines could inject fake Markdown headings in `--output md`; ANSI sequences pass to terminal
-- No privilege escalation or exfiltration vector — 🔵 only
+#### 1. All five sections present and tested — PASS
+- Section 1 Header: `report.mjs:15–36` — tested by `it("includes feature name in header")`, `it("marks completed/in-progress")`
+- Section 2 Task Summary: `report.mjs:38–47` — tested by `it("includes Task Summary section with task rows")`
+- Section 3 Cost Breakdown: `report.mjs:49–65` — tested by `it("includes Cost Breakdown section")`
+- Section 4 Blocked/Failed: `report.mjs:67–76` — tested by `it("includes Blocked section with lastReason")`
+- Section 5 Recommendations: `report.mjs:78–102` — tested by 3 separate tests (attempts, gate warnings, stalled)
 
-### Criterion 3: `writeFileSync` error handling — 🟡 (already flagged by tester)
+#### 2. Dead code (previous FAIL) — RESOLVED
+`state` and `state2` dead variables are absent from current `test/report.test.mjs`. Line 133's `it(...)` block defines and immediately uses only `state3`. Fixed.
 
-**Evidence:**
-- `report.mjs:143-145`: `_writeFileSync` unguarded; unhandled exception on write failure
-- Already flagged by architect and tester reviewers; no additional security surface
+#### 3. tokenUsage surfacing (previous FAIL) — RESOLVED
+`report.mjs:53–64` reads `state.tokenUsage?.total?.costUsd` and `byPhase` with proper fallbacks. Fixed.
 
-### Criterion 4: `--output` argument injection — PASS
+**Coverage gap (backlog):** No test exercises the tokenUsage-present path. Every test uses `makeState()` which omits `tokenUsage`; only the N/A fallback is asserted. The `$${totalCostUsd.toFixed(4)}` path at `report.mjs:55` is untested.
 
-**Evidence:**
-- `report.mjs:108-109`: strict equality `=== "md"`; unrecognized values silently ignored, not passed to shell
+#### 4. `status === "failed"` branch untested — backlog
+`report.mjs:68`: filters `t.status === "blocked" || t.status === "failed"`. All Section 4 tests use `status: "blocked"`. The `"failed"` branch and its `FAILED` label are never exercised.
 
-### Criterion 5: Secrets / credentials in output — PASS
+#### 5. Duration hours+remainder branch untested — backlog
+`report.mjs:27`: `${hours}h ${rem}m` fires when `rem > 0`. No test covers a 90-min or 125-min gap. The hours-only branch is implicitly triggered by `makeState()` (60 min gap → `rem=0`) but no assertion checks the output contains any duration string.
 
-**Evidence:**
-- Report renders feature/status/tasks/gates/timestamps only — no token, key, or credential fields surfaced
+#### 6. `failGates > 0 && passGates === 0` recommendation untested — backlog
+`report.mjs:95–97` fires when no gate ever passed. No test provides an all-FAIL gates state and asserts "review quality gate command" appears.
+
+#### 7. Arg parsing bug — backlog
+`report.mjs:117`: `args.find(a => !a.startsWith("-"))` picks the first non-flag token. For `["--output", "md", "my-feature"]` it returns `"md"` (the flag value) not `"my-feature"`. Users placing `--output md` before the feature name get "feature directory not found: .../md". No test covers this ordering.
+
+---
+
+### Findings
+
+🟡 `test/report.test.mjs` — No test exercises `tokenUsage` present path; add a `buildReport` test with `state.tokenUsage = { total: { costUsd: 0.0123 }, byPhase: { build: { costUsd: 0.005 } } }` and assert the formatted cost appears
+🟡 `test/report.test.mjs` — No test for `status: "failed"` tasks in Section 4; add a task with `status: "failed"` and assert `FAILED` label renders
+🟡 `bin/lib/report.mjs:27` — `${hours}h ${rem}m` branch (rem > 0) has no test; add a test with a 90-min gap and assert `"1h 30m"` appears
+🟡 `test/report.test.mjs` — No test for `failGates > 0 && passGates === 0` recommendation at `report.mjs:95`; add a state with only FAIL gates and assert "review quality gate command" appears
+🟡 `bin/lib/report.mjs:117` — Arg-ordering bug: `["--output", "md", "my-feature"]` resolves featureName to `"md"`; skip the value following `--output` when resolving the positional, and add a test for this ordering
+🔵 `test/report.test.mjs` — No test for `buildReport({ tasks: [], gates: [] })`; verify empty state renders without throwing
+🔵 `test/report.test.mjs` — No test for multiple gates per task (FAIL then PASS); verify `lastVerdict` reflects the final gate only
+🔵 `test/report.test.mjs` — No test for `["my-feature", "--output"]` (flag with no value); `outputMd` silently stays false — document the behavior
+
+**Tester verdict: PASS** — no 🔴 critical findings. Five 🟡 coverage gaps to backlog; three 🔵 suggestions. Does not block merge.
+
+---
+
+## Engineer Review — execution-report
+
+**Reviewer role:** Software engineer
+**Overall verdict: PASS**
+
+### Files actually read
+- `bin/lib/report.mjs` (161 lines — full read)
+- `test/report.test.mjs` (293 lines — full read)
+- `.team/features/execution-report/tasks/task-1/handshake.json`
+- `.team/features/execution-report/tasks/task-2/handshake.json`
+- `.team/features/execution-report/tasks/task-1/eval.md` (architect and tester reviews)
+- `.team/features/execution-report/tasks/task-2/artifacts/test-output.txt` (full run, buildReport lines 1327–1341, cmdReport lines 1342–1351)
+- `bin/lib/run.mjs` lines 1458–1461 (tokenUsage write path)
+
+---
+
+### Per-criterion results
+
+#### 1. All five sections present and correctly implemented — PASS
+
+Verified directly in `bin/lib/report.mjs`:
+- Section 1 Header: lines 16–36 (feature, status label, duration calculation, start/end timestamps)
+- Section 2 Task Summary: lines 39–47 (Markdown table; `lastVerdict` via final gate for each task)
+- Section 3 Cost Breakdown: lines 50–65 (`state.tokenUsage?.total?.costUsd` read with `!= null` guard; `byPhase` rendered per-phase; dispatch + gate counts)
+- Section 4 Blocked/Failed Tasks: lines 68–76 (conditional on `problem.length > 0`; renders `lastReason` when present)
+- Section 5 Recommendations: lines 79–102 (high attempts ≥3, gate warning history, all-blocked stall, no gate passes)
+
+All five confirmed in source. 13 `buildReport` + 8 `cmdReport` tests, all passing (task-2 gate exit 0).
+
+#### 2. Arg-ordering functional bug — confirmed 🟡 backlog
+
+`report.mjs:117`: `args.find(a => !a.startsWith("-"))` returns the first non-flag token. For `["--output", "md", "my-feature"]` this returns `"md"` because `"md"` does not start with `-`. The feature name is never found; the command exits with "feature directory not found: .../md". Independently confirmed by tracing the find logic.
+
+Fix: skip the token immediately following `--output` when resolving the positional:
+```js
+const featureName = args.find((a, i) => !a.startsWith("-") && args[i - 1] !== "--output");
+```
+
+#### 3. NaN date propagation in header — confirmed 🟡 backlog
+
+`report.mjs:18`: `if (state.createdAt)` is a truthy check only. A non-empty invalid ISO string (e.g. `"bad-date"`) passes the guard. `new Date("bad-date").getTime()` → `NaN`. `Math.round(NaN / 60000)` → `NaN`. `NaN < 60` → `false`. `Math.floor(NaN / 60)` → `NaN`. Result: `duration = "NaNh"` in the report header. Fix: add `if (isNaN(startMs)) { duration = "N/A"; }` after `report.mjs:19`.
+
+#### 4. byPhase null-entry crash — new 🟡 backlog
+
+`report.mjs:59`: `Object.entries(byPhase).map(([k, v]) => \`${k}: $${v.costUsd?.toFixed(4) ?? "N/A"}\`)`. The optional chain (`?.`) is placed on `.toFixed`, not on `v`. If any entry value in `byPhase` is `null` or `undefined`, accessing `v.costUsd` throws `TypeError: Cannot read properties of null`. The harness-written `buildTokenUsage()` likely never produces null entries, but the guard is absent. Fix: `v?.costUsd?.toFixed(4)`.
+
+#### 5. writeFileSync unguarded — confirmed 🟡 backlog
+
+`report.mjs:155`: `_writeFileSync(outPath, report + "\n")` has no try/catch. Permission errors, ENOSPC, or read-only filesystem propagate as an unhandled Node.js exception with full stack trace instead of a clean `_exit(1)` + message.
+
+#### 6. Path traversal — confirmed 🟡 backlog
+
+`report.mjs:136`: `path.join(_cwd(), ".team", "features", featureName)` with no prefix assertion. Verified: `path.join("/proj", ".team", "features", "../../../../tmp/x")` → `/tmp/x`. Two I/O surfaces: `readState` (line 144) and `writeFileSync` in `--output md` mode (line 155). Local CLI with no privilege escalation; backlog only.
+
+#### 7. Component boundaries — PASS
+
+`buildReport` is a pure function (state → string, no I/O). `cmdReport` injects all side-effecting dependencies. Boundary is clean and testable by design.
+
+---
+
+### Findings
+
+🟡 `bin/lib/report.mjs:117` — Arg-ordering bug: `args.find(a => !a.startsWith("-"))` returns `"md"` for `["--output", "md", "my-feature"]`; skip the token following `--output` when resolving the positional feature name
+🟡 `bin/lib/report.mjs:19` — Truthy guard allows malformed `createdAt` strings; add `if (isNaN(startMs)) { duration = "N/A"; }` after the `getTime()` call to prevent `"NaNh"` in the header
+🟡 `bin/lib/report.mjs:59` — `v.costUsd?.toFixed(4)` does not guard `v` itself; change to `v?.costUsd?.toFixed(4)` to avoid TypeError when a `byPhase` entry is null/undefined
+🟡 `bin/lib/report.mjs:155` — `_writeFileSync` in `--output md` path is unguarded; wrap in try/catch and call `_exit(1)` with a readable message on write failure
+🟡 `bin/lib/report.mjs:136` — `featureName` from CLI args flows to `path.join` with no prefix-clamp; assert resolved path starts within `.team/features/` before any I/O
+🔵 `test/report.test.mjs:133` — Test description says "null/undefined task.status" but the task has `status: "blocked"`; rename to describe what is actually tested (blocked task without a title)
+🔵 `test/report.test.mjs:70` — Only the N/A fallback is asserted for cost; add a `buildReport` test with `tokenUsage: { total: { costUsd: 0.0123 }, byPhase: { run: { costUsd: 0.005 } } }` and assert the `$0.0123` formatted value appears
+
+---
+
+### Verdict table
 
 | Criterion | Verdict | Severity |
 |---|---|---|
-| `featureName` path traversal | backlog | 🟡 |
-| Content injection (`lastReason`/`title`) | pass | 🔵 |
-| `writeFileSync` error handling | pass | 🟡 (tester) |
-| `--output` injection | pass | — |
-| Secrets in output | pass | — |
+| All five sections present | pass | — |
+| Tests pass (21 report tests, exit 0) | pass | — |
+| Arg-ordering functional bug | backlog | 🟡 |
+| NaN date propagation in header | backlog | 🟡 |
+| `byPhase` null-entry crash | backlog | 🟡 |
+| `writeFileSync` error path | backlog | 🟡 |
+| Path traversal (`featureName`) | backlog | 🟡 |
+| Component boundaries | pass | — |
+| Test description mismatch | suggestion | 🔵 |
+| Missing positive tokenUsage test | suggestion | 🔵 |
 
-**Security verdict: PASS** — no 🔴 security findings. Path traversal (🟡) must go to backlog; does not block merge.
+**Engineer verdict: PASS** — No 🔴 critical blockers. Five 🟡 backlog items (arg-ordering bug, NaN date, byPhase null guard, writeFileSync error path, path traversal). Two 🔵 suggestions. Implementation is correct for all five sections and all tests pass. Does not block merge.
