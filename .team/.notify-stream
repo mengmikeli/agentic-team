@@ -171,3 +171,4 @@
 {"ts":"2026-04-24T04:50:32.280Z","event":"feature-started","msg":"▶ Feature: multi-perspective-code-review (8 tasks planned)"}
 {"ts":"2026-04-24T04:51:04.770Z","event":"task-started","msg":"▶ Task 1/2: Dashboard token breakdown — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline."}
 {"ts":"2026-04-24T04:55:17.162Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (9 tasks planned)"}
+{"ts":"2026-04-24T04:59:18.526Z","event":"task-started","msg":"▶ Task 1/9: `task.reviewRounds` field exists in STATE.json and increments by 1 each time a review phase produces a FAIL verdict (critical findings > 0 or compound gate FAIL)."}

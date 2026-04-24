@@ -15,6 +15,7 @@ import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REV
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
 import { recordWarningIteration, checkEscalation } from "./iteration-escalation.mjs";
+import { incrementReviewRounds } from "./review-escalation.mjs";
 import { cmdInit } from "./init.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
@@ -1155,6 +1156,12 @@ async function _runSingleFeature(args, description, providedLabel = '') {
             console.log(`  ${c.dim}Review verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
             if (synth.critical > 0) {
               reviewFailed = true;
+              incrementReviewRounds(task);
+              const rrState = readState(featureDir);
+              if (rrState) {
+                const rrTask = rrState.tasks?.find(t => t.id === task.id);
+                if (rrTask) { rrTask.reviewRounds = task.reviewRounds; writeState(featureDir, rrState); }
+              }
               console.log(`  ${c.red}✗ Review FAIL — ${synth.critical} critical finding(s)${c.reset}`);
               findings.filter(f => f.severity === "critical").forEach(f =>
                 console.log(`    ${c.red}${f.text}${c.reset}`)
@@ -1228,6 +1235,12 @@ async function _runSingleFeature(args, description, providedLabel = '') {
           console.log(`  ${c.dim}Synthesized verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
           if (synth.critical > 0) {
             reviewFailed = true;
+            incrementReviewRounds(task);
+            const rrStateP = readState(featureDir);
+            if (rrStateP) {
+              const rrTaskP = rrStateP.tasks?.find(t => t.id === task.id);
+              if (rrTaskP) { rrTaskP.reviewRounds = task.reviewRounds; writeState(featureDir, rrStateP); }
+            }
             console.log(`  ${c.red}✗ Review FAIL — ${synth.critical} critical finding(s)${c.reset}`);
             findings.filter(f => f.severity === "critical").forEach(f =>
               console.log(`    ${c.red}${f.text}${c.reset}`)

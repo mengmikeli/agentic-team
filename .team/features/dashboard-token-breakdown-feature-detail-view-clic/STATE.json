@@ -10,7 +10,15 @@
       "attempts": 0,
       "issueNumber": 138,
       "lastTransition": "2026-04-24T04:51:02.627Z",
-      "ticks": 1
+      "ticks": 1,
+      "gateWarningHistory": [
+        {
+          "iteration": 1,
+          "layers": [
+            "fabricated-refs"
+          ]
+        }
+      ]
     },
     {
       "id": "task-2",
@@ -43,6 +51,6 @@
   ],
   "createdAt": "2026-04-24T04:48:29.308Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T04:56:06.326Z",
-  "_write_nonce": "6e86cff33e1366d4"
+  "_last_modified": "2026-04-24T05:02:38.513Z",
+  "_write_nonce": "8cfa135ca3043dbb"
 }
