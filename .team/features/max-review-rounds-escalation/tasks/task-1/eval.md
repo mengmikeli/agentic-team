@@ -308,3 +308,143 @@ Architecturally sound at the module level. `review-escalation.mjs` is well-facto
 Priority backlog items: (1) reason-string drift after crash recovery violates the spec contract; (2) the duplicated state-write pattern is now at four sites and compounds with every new field.
 
 No critical findings. **PASS.**
+
+---
+
+# Engineer Review — max-review-rounds-escalation
+
+**Reviewer role:** engineer
+**Date:** 2026-04-24
+**Overall verdict:** PASS
+
+---
+
+## Files Read
+
+- `.team/features/max-review-rounds-escalation/tasks/task-1/handshake.json`
+- `.team/features/max-review-rounds-escalation/tasks/task-2/handshake.json`
+- `.team/features/max-review-rounds-escalation/tasks/task-2/artifacts/test-output.txt`
+- `.team/features/max-review-rounds-escalation/SPEC.md`
+- `bin/lib/review-escalation.mjs` (full — 84 lines)
+- `test/review-escalation.test.mjs` (full — 309 lines)
+- `bin/lib/run.mjs:1155–1314` (escalation block and both review paths)
+
+---
+
+## Per-Criterion Results
+
+### 1. `task.reviewRounds` increments on review FAIL — PASS
+Evidence: `incrementReviewRounds` called at `run.mjs:1167` (serial path) and `run.mjs:1250` (parallel path), both inside `if (synth.critical > 0)`. Persisted to STATE.json immediately after at 1168–1172 and 1251–1255. Unit tests `test/review-escalation.test.mjs:18–52` confirm increment from absent, 0, and existing values. 581/581 tests pass.
+
+### 2. Block at `reviewRounds >= 3` with correct `lastReason` — PASS
+Evidence: `run.mjs:1282` calls `shouldEscalate(task)` inside `if (reviewFailed)`. When true, `harness("transition", "--status", "blocked", "--reason", `review-escalation: ${task.reviewRounds} rounds exceeded`)` fires at `run.mjs:1286–1287`. At that point `task.reviewRounds === 3` (incremented at 1167/1250), producing `"review-escalation: 3 rounds exceeded"` — matches SPEC exactly. `break` at 1291 prevents further retry. ✅
+
+### 3. GitHub comment on escalation — PASS
+Evidence: `run.mjs:1284–1285` calls `buildEscalationSummary` then `if (task.issueNumber) commentIssue(task.issueNumber, escalationSummary)`. `commentIssue` imported from `./github.mjs` at `run.mjs:13`. Guard prevents crash when no issue is linked. `buildEscalationSummary` reads `handshake-round-N.json` files (written at 1196–1199 / 1274–1277 after each review FAIL). ✅
+
+### 4. No issue → progress.md only, no crash — PASS
+Evidence: `appendProgress` at `run.mjs:1289` fires unconditionally. `commentIssue` at 1285 is guarded by `task.issueNumber`. ✅
+
+### 5. `progress.md` receives escalation entry — PASS
+Evidence: `run.mjs:1289` calls `appendProgress(featureDir, ...)` with task title and round count. ✅
+
+### 6. No regression when `reviewRounds < 3` — PASS
+Evidence: `shouldEscalate` guard requires `reviewRounds >= 3`. All 581 tests pass including tick-limit, oscillation, and iteration-escalation suites.
+
+### 7. `handshake-round-N.json` archiving consistent with reader — PASS
+Evidence: Writer at `run.mjs:1197` uses `findingsList` key. Reader at `review-escalation.mjs:77` checks `hs.findingsList`. Names match. At round 3, `task.reviewRounds === 3` (truthy), so all three archive files exist before `buildEscalationSummary` reads them. ✅
+
+### 8. Unit tests — PASS
+Evidence: All five exported functions and the constant are covered: `incrementReviewRounds`, `shouldEscalate`, `deduplicateFindings`, `buildEscalationComment`, `buildEscalationSummary`, `MAX_REVIEW_ROUNDS`. All pass in gate output.
+
+### 9. Integration test: 3 FAILs → blocked — PARTIAL PASS
+Evidence: `test/review-escalation.test.mjs:243–309` simulates the run loop in-memory and asserts `reviewRounds === 3`, `status === "blocked"`, `lastReason === "review-escalation: 3 rounds exceeded"`. "Does not block at 2" verified (lines 274–289). Logic contract confirmed.
+
+**Gap**: Test does not invoke `run.mjs` code paths. `buildEscalationSummary` (run.mjs:1284), `commentIssue` (run.mjs:1285), and `appendProgress` (run.mjs:1289) have no automated coverage in this suite. This is consistent with the codebase's iteration-escalation integration test pattern (test output lines 494–501).
+
+---
+
+## Findings
+
+🟡 bin/lib/review-escalation.mjs:15 — `typeof NaN === "number"` is `true`; a NaN `reviewRounds` bypasses the init guard (`NaN += 1` stays NaN); `shouldEscalate` permanently returns `false` (`NaN >= 3 === false`), silently preventing escalation; replace guard with `!Number.isFinite(task.reviewRounds)`
+
+🟡 bin/lib/run.mjs:1167 — 5-line read-find-assign-write pattern duplicated at lines 1167–1172 and 1250–1255; each copy carries silent-discard risk if task is absent from the fresh snapshot; extract to a shared utility before a third copy appears
+
+🟡 bin/lib/run.mjs:1170 — If `rrTask` is `null` (task absent from re-read STATE), `reviewRounds` silently not persisted; same discard at line 1253 in the parallel path; add `console.warn("[review-rounds] task not found in state — reviewRounds not persisted")`
+
+🟡 test/review-escalation.test.mjs:243 — Integration test verifies logic contract but not `run.mjs` wiring; `commentIssue` and `appendProgress` calls at `run.mjs:1285, 1289` have no automated coverage; document as known gap or add a harness-stubbed test
+
+---
+
+## Summary
+
+All SPEC Done When items are implemented and verified against the code. The three critical gaps from the prior review (missing `commentIssue`, missing `buildEscalationSummary`, no integration test) are resolved. The `handshake-round-N.json` archiving and deduplication pipeline is correctly wired end-to-end across both serial and parallel review paths. Four 🟡 warnings remain — NaN guard correctness, duplicated state-write maintenance debt, and incomplete integration test coverage of `run.mjs` callsites. None block merge.
+
+---
+
+# PM Review — max-review-rounds-escalation
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-24
+**Overall verdict:** PASS
+
+---
+
+## Files Actually Read
+
+- `.team/features/max-review-rounds-escalation/SPEC.md` — full file
+- `bin/lib/review-escalation.mjs` — full file (85 lines)
+- `test/review-escalation.test.mjs` — full file (309 lines)
+- `bin/lib/run.mjs:13,18` (imports); `run.mjs:1155–1304` (escalation block)
+- `.team/features/max-review-rounds-escalation/tasks/task-1/handshake.json`
+- `.team/features/max-review-rounds-escalation/tasks/task-2/handshake.json`
+- `.team/features/max-review-rounds-escalation/tasks/task-2/artifacts/test-output.txt`
+- `.team/features/max-review-rounds-escalation/tasks/task-2/eval.md` (prior round with fabricated findings)
+
+---
+
+## Correction: Prior Round's Critical Findings Were Fabricated
+
+The prior parallel review (task-2/eval.md, round before security/simplicity/tester) raised 8 critical findings claiming `commentIssue` is absent, `buildEscalationSummary` does not exist, and no integration test was written. I read the actual source files. All three claims are wrong:
+
+| Prior critical finding | Reality (directly verified) |
+|---|---|
+| "No `commentIssue` call in escalation block" | Called at `run.mjs:1285` |
+| "`buildEscalationSummary` does not exist anywhere in the codebase" | Implemented at `review-escalation.mjs:70–84`, imported at `run.mjs:18`, called at `run.mjs:1284` |
+| "No integration test for run-loop path" | Suite at `test/review-escalation.test.mjs:243–308`, 3 tests pass in gate output |
+
+The compound gate correctly tripped `fabricated-refs` on those outputs.
+
+---
+
+## Per-Criterion Results (SPEC "Done When")
+
+| # | Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | `task.reviewRounds` increments on review FAIL | ✅ PASS | `incrementReviewRounds(task)` at `run.mjs:1167` (serial) and `run.mjs:1250` (parallel); persisted at `run.mjs:1171`, `run.mjs:1254`; 5 unit tests pass |
+| 2 | Block at round 3, `lastReason = "review-escalation: 3 rounds exceeded"` | ✅ PASS | `shouldEscalate(task)` at `run.mjs:1282`; harness transition to `blocked` at `run.mjs:1286–1287`; `break` at `run.mjs:1291`; exact string matches SPEC at `reviewRounds === 3` |
+| 3 | GitHub comment with title, rounds, deduped findings | ✅ PASS | `buildEscalationSummary(...)` at `run.mjs:1284`; `if (task.issueNumber) commentIssue(...)` at `run.mjs:1285`; summary reads `handshake-round-N.json`, deduplicates |
+| 4 | No issue linked → progress.md only, no crash | ✅ PASS | `if (task.issueNumber)` guard at `run.mjs:1285`; `appendProgress` at `run.mjs:1289` unconditional |
+| 5 | `progress.md` receives a dated escalation entry | ✅ PASS | `appendProgress(featureDir, "...🔴 Review-round escalation...")` at `run.mjs:1289` |
+| 6 | Existing behavior unchanged for `reviewRounds < 3` | ✅ PASS | `shouldEscalate` returns false for rounds 0–2; 581/581 tests pass |
+| 7 | Tick-limit, oscillation, iteration-escalation fire independently | ✅ PASS | Separate `if` blocks at `run.mjs:1282` and `run.mjs:1293`; confirmed by 581-test gate output |
+| 8 | Unit tests: increment, no build/gate increment, block at 3, summary+dedup | ✅ PASS | Full coverage across 26 unit tests — all pass |
+| 9 | Integration test: 3 FAILs → blocked with correct `lastReason` and comment/fallback | ⚠ PARTIAL | `test/review-escalation.test.mjs:243–308` verifies blocking logic and `lastReason`; does NOT assert `commentIssue` is called when `task.issueNumber` is set |
+
+**Passed: 8/9. Partial: 1. Failed: 0.**
+
+---
+
+## Findings
+
+🟡 test/review-escalation.test.mjs:243 — Integration test does not verify `commentIssue` is called when `task.issueNumber` is set; SPEC Done When item 9 requires "a GitHub comment (or progress.md fallback) containing findings from all 3 rounds" to be verified; add a test that sets `task.issueNumber` and spies on `commentIssue` to assert it is invoked
+
+🟡 bin/lib/run.mjs:1287 — `lastReason` interpolates live `task.reviewRounds`; after crash-recovery with `reviewRounds` already at 3, a 4th review FAIL increments to 4 and produces `"review-escalation: 4 rounds exceeded"` instead of the spec-mandated literal; replace with `` `review-escalation: ${MAX_REVIEW_ROUNDS} rounds exceeded` `` (also flagged by Tester)
+
+🟡 bin/lib/review-escalation.mjs:15 — `typeof NaN === "number"` is `true`; a corrupt NaN in `task.reviewRounds` passes the guard, stays NaN after increment, and `shouldEscalate` permanently returns false; replace guard with `!Number.isFinite(task.reviewRounds)` (also flagged by Security, Simplicity, Tester — consolidate in backlog)
+
+---
+
+## Summary
+
+The implementation delivers all required user outcomes: review-round tracking, cap enforcement at round 3, GitHub comment with deduplicated findings, progress.md logging, and no regression to existing limits. Eight of nine SPEC criteria fully pass. The partial criterion (9) reflects a test coverage gap — `commentIssue` wiring at `run.mjs:1285` is present and correct, but the integration test does not exercise it. Three 🟡 warnings go to backlog. No critical findings. **PASS.**

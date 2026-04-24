@@ -30,10 +30,10 @@
     {
       "id": "task-2",
       "title": "When `task.reviewRounds` reaches 3, the task is immediately blocked (no further retry attempts) with `lastReason = \"review-escalation: 3 rounds exceeded\"`.",
-      "status": "in-progress",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 149,
-      "lastTransition": "2026-04-24T05:15:39.506Z",
+      "lastTransition": "2026-04-24T05:36:27.103Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -41,15 +41,24 @@
           "layers": [
             "fabricated-refs"
           ]
+        },
+        {
+          "iteration": 2,
+          "layers": [
+            "fabricated-refs"
+          ]
         }
-      ]
+      ],
+      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
     },
     {
       "id": "task-3",
       "title": "A GitHub comment is posted to the task's linked issue containing: task title, rounds attempted, and deduplicated critical findings from each round's handshake.json.",
-      "status": "pending",
+      "status": "in-progress",
       "attempts": 0,
-      "issueNumber": 150
+      "issueNumber": 150,
+      "lastTransition": "2026-04-24T05:36:27.154Z",
+      "ticks": 1
     },
     {
       "id": "task-4",
@@ -132,7 +141,7 @@
       "taskId": "task-2"
     }
   ],
-  "transitionCount": 3,
+  "transitionCount": 5,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -154,10 +163,24 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T05:15:39.506Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-24T05:36:27.103Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T05:36:27.154Z"
     }
   ],
   "createdAt": "2026-04-24T04:55:17.113Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T05:30:41.612Z",
-  "_write_nonce": "72f1a7642ad38542"
+  "_last_modified": "2026-04-24T05:36:29.325Z",
+  "_write_nonce": "a74fab658e99c85a"
 }

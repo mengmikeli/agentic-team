@@ -10,3 +10,8 @@
 
 ## Execution Log
 
+### 2026-04-24 05:35:31
+**Task 1: Dashboard active task indicator — Show which specific task is executing with name and attempt number, not just "N/M done".**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
