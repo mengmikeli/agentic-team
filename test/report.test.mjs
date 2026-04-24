@@ -142,7 +142,7 @@ describe("buildReport", () => {
   it("marks in-progress features in header", () => {
     const state = makeState({ status: "executing", completedAt: undefined });
     const report = buildReport(state);
-    assert.ok(report.includes("in progress") || report.includes("executing"), "Should mark in-progress");
+    assert.ok(report.includes("Run in progress"), "Should mark in-progress with 'Run in progress' label");
   });
 
   it("marks completed features in header", () => {

@@ -28,7 +28,7 @@ export function buildReport(state) {
       duration = rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
     }
   }
-  const statusLabel = isComplete ? "completed" : `${status} (in progress)`;
+  const statusLabel = isComplete ? "completed" : "Run in progress";
   lines.push(`# Execution Report: ${feature}`);
   lines.push(`Status: ${statusLabel}  |  Duration: ${duration}  |  Tasks: ${tasks.length}`);
   if (state.createdAt) lines.push(`Started: ${state.createdAt}`);
