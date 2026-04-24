@@ -314,6 +314,7 @@ switch (command) {
               hasSpec: fs.existsSync(join(featDir, d.name, "SPEC.md")),
               hasProgress: fs.existsSync(join(featDir, d.name, "progress.md")),
               transitionCount: state?.transitionCount || 0,
+              tokenUsage: state?.tokenUsage ?? null,
             };
           });
       } catch { return []; }

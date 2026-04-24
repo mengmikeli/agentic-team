@@ -9,6 +9,7 @@ import { StatCards } from './components/stat-cards';
 import { Backlog } from './components/backlog';
 import { FeatureTimeline } from './components/feature-timeline';
 import { TaskBoard } from './components/task-board';
+import { FeatureDetail } from './components/feature-detail';
 import { TokenView } from './components/token-view';
 import { Skeleton } from './components/ui/skeleton';
 import { ErrorBoundary } from './components/error-boundary';
@@ -126,11 +127,18 @@ function App() {
               </ErrorBoundary>
               
               <ErrorBoundary fallback="TaskBoard">
-                <TaskBoard 
-                  features={features}
-                  selectedFeature={selectedFeature}
-                  onFeatureChange={handleFeatureChange}
-                />
+                {selectedFeature ? (
+                  <FeatureDetail
+                    feature={features.find(f => f.name === selectedFeature) || null}
+                    onClose={() => setSelectedFeature(null)}
+                  />
+                ) : (
+                  <TaskBoard
+                    features={features}
+                    selectedFeature={selectedFeature}
+                    onFeatureChange={handleFeatureChange}
+                  />
+                )}
               </ErrorBoundary>
             </div>
           </>

@@ -1,0 +1,38 @@
+{
+  "version": "2.0",
+  "feature": "dashboard-token-breakdown-feature-detail-view-clic",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Dashboard token breakdown — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline.",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 138,
+      "lastTransition": "2026-04-24T04:51:02.627Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 139
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T04:51:02.627Z"
+    }
+  ],
+  "createdAt": "2026-04-24T04:48:29.308Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T04:51:04.772Z",
+  "_write_nonce": "d890189117ae8569"
+}

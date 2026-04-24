@@ -23,9 +23,36 @@ export interface Feature {
   tasks: Task[];
   createdAt?: string;
   completedAt?: string;
+  _last_modified?: string;
   summary?: {
     duration?: string;
   };
+  tokenUsage?: FeatureTokenUsage | null;
+}
+
+export interface TaskTokenUsage {
+  phase: string;
+  dispatches: number;
+  inputTokens: number;
+  cachedInput: number;
+  outputTokens: number;
+  costUsd: number;
+  durationMs: number;
+}
+
+export interface PhaseTokenUsage {
+  dispatches: number;
+  inputTokens: number;
+  cachedInput: number;
+  outputTokens: number;
+  costUsd: number;
+  durationMs: number;
+}
+
+export interface FeatureTokenUsage {
+  byTask: Record<string, TaskTokenUsage>;
+  byPhase: Record<string, PhaseTokenUsage>;
+  total: PhaseTokenUsage;
 }
 
 export interface BacklogItem {

@@ -1,0 +1,18 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Implemented feature detail view for the token breakdown dashboard: clicking a feature in the timeline now shows a FeatureDetail panel with per-task cost, phase breakdown (brainstorm/build/review), token counts, and run duration. Also added a cost column to the feature timeline and wired token usage persistence from run.mjs through agt.mjs to the dashboard types.",
+  "timestamp": "2026-04-24T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "bin/agt.mjs" },
+    { "type": "code", "path": "dashboard-ui/src/types.ts" },
+    { "type": "code", "path": "dashboard-ui/src/components/feature-timeline.tsx" },
+    { "type": "code", "path": "dashboard-ui/src/components/feature-detail.tsx" },
+    { "type": "code", "path": "dashboard-ui/src/App.tsx" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

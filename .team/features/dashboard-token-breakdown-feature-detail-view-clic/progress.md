@@ -1,0 +1,12 @@
+# Progress: dashboard-token-breakdown-feature-detail-view-clic
+
+**Started:** 2026-04-24T04:48:29.360Z
+**Tier:** functional
+**Tasks:** 2
+
+## Plan
+1. Dashboard token breakdown — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline.
+2. Quality gate passes
+
+## Execution Log
+

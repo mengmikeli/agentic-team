@@ -192,7 +192,10 @@ function trackUsage(jsonResult) {
 
   // Accumulate to task
   if (_currentTask) {
-    if (!_taskUsage[_currentTask]) _taskUsage[_currentTask] = _emptyBucket();
+    if (!_taskUsage[_currentTask]) {
+      _taskUsage[_currentTask] = _emptyBucket();
+      _taskUsage[_currentTask].phase = _currentPhase;
+    }
     const tk = _taskUsage[_currentTask];
     tk.dispatches++; tk.inputTokens += entry.input; tk.cacheRead += entry.cacheRead;
     tk.cacheCreate += entry.cacheCreate; tk.outputTokens += entry.output;
@@ -209,6 +212,26 @@ export function resetRunUsage() {
   for (const k of Object.keys(_phaseUsage)) delete _phaseUsage[k];
   for (const k of Object.keys(_taskUsage)) delete _taskUsage[k];
   _currentPhase = "build"; _currentTask = null;
+}
+
+function buildTokenUsage() {
+  const mapBucket = (b) => ({
+    dispatches: b.dispatches,
+    inputTokens: b.inputTokens,
+    cachedInput: (b.cacheRead || 0) + (b.cacheCreate || 0),
+    outputTokens: b.outputTokens,
+    costUsd: b.costUsd,
+    durationMs: b.durationMs,
+  });
+  return {
+    byTask: Object.fromEntries(
+      Object.entries(_taskUsage).map(([k, v]) => [k, { ...mapBucket(v), phase: v.phase || "build" }])
+    ),
+    byPhase: Object.fromEntries(
+      Object.entries(_phaseUsage).map(([k, v]) => [k, mapBucket(v)])
+    ),
+    total: mapBucket(_runUsage),
+  };
 }
 
 // ── Agent dispatch (exported for outer loop) ───────────────────
@@ -1330,6 +1353,14 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   // ── Finalize ──
 
   const finalizeResult = harness("finalize", "--dir", featureDir);
+
+  // Persist token usage to STATE.json for dashboard visibility
+  if (_runUsage.dispatches > 0) {
+    try {
+      const s = readState(featureDir);
+      if (s) { s.tokenUsage = buildTokenUsage(); writeState(featureDir, s); }
+    } catch { /* best-effort */ }
+  }
 
   // Auto-push if there are commits to push
   try {

@@ -66,6 +66,11 @@ export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelinePr
                     {dateStr && <span className="ml-2">{relativeTime(dateStr)}</span>}
                   </div>
                 </div>
+                {feature.tokenUsage?.total?.costUsd != null && (
+                  <div className="flex-shrink-0 text-xs font-mono tabular-nums text-muted-foreground">
+                    ${feature.tokenUsage.total.costUsd.toFixed(4)}
+                  </div>
+                )}
               </div>
             );
           })}
