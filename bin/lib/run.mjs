@@ -10,7 +10,7 @@ import {
   c, getFlag, readState, writeState, lockFile, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS, appendProgress,
 } from "./util.mjs";
-import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
@@ -926,10 +926,9 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     console.log(`${c.dim}Creating GitHub issues...${c.reset}`);
     for (const task of tasks) {
       if (task.issueNumber) continue; // already has an issue (e.g. from crash recovery)
-      const backLink = state?.approvalIssueNumber ? `\n\nPart of #${state.approvalIssueNumber}` : "";
       const issueNum = createIssue(
         `${featureLabel ? `[${featureLabel}] ` : ''}[${featureName}] ${task.title}`,
-        `Auto-created by \`agt run\` for feature **${featureLabel ? `[${featureLabel}] ` : ''}${featureName}**.\n\nTask: ${task.title}${backLink}`,
+        buildTaskIssueBody(featureName, featureLabel, task.title, state?.approvalIssueNumber),
       );
       if (issueNum) {
         task.issueNumber = issueNum;
@@ -1296,7 +1295,7 @@ async function _runSingleFeature(args, description, providedLabel = '') {
             if (task.issueNumber) commentIssue(task.issueNumber, escalationSummary);
             if (task.issueNumber && state?.approvalIssueNumber) {
               const parentBody = getIssueBody(state.approvalIssueNumber);
-              if (parentBody) {
+              if (parentBody !== null) {
                 const updated = markChecklistItemBlocked(parentBody, task.title, task.issueNumber);
                 if (updated !== parentBody) editIssue(state.approvalIssueNumber, updated);
               }
@@ -1354,7 +1353,7 @@ async function _runSingleFeature(args, description, providedLabel = '') {
         if (task.issueNumber) { closeIssue(task.issueNumber, "Task completed — gate passed."); if (projectNum) setProjectItemStatus(task.issueNumber, projectNum, "done"); }
         if (task.issueNumber && state?.approvalIssueNumber) {
           const parentBody = getIssueBody(state.approvalIssueNumber);
-          if (parentBody) {
+          if (parentBody !== null) {
             const updated = tickChecklistItem(parentBody, task.title, task.issueNumber);
             if (updated !== parentBody) editIssue(state.approvalIssueNumber, updated);
           }

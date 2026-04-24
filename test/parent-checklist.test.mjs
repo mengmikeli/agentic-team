@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildTasksChecklist, tickChecklistItem, markChecklistItemBlocked } from "../bin/lib/github.mjs";
+import { buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "../bin/lib/github.mjs";
 
 describe("buildTasksChecklist", () => {
   it("returns empty string when task list is empty", () => {
@@ -132,21 +132,36 @@ describe("markChecklistItemBlocked", () => {
   });
 });
 
-describe("task issue body back-link template", () => {
-  it("includes Part of #N when approvalIssueNumber is set", () => {
-    const approvalIssueNumber = 55;
-    const featureName = "my-feature";
-    const title = "Build the widget";
-    const body = `Auto-created by \`agt run\` for feature **${featureName}**.\n\nTask: ${title}\n\nPart of #${approvalIssueNumber}`;
-    assert.ok(body.includes(`Part of #${approvalIssueNumber}`));
+describe("buildTaskIssueBody", () => {
+  it("includes Part of #N when approvalIssueNumber is a positive integer", () => {
+    const body = buildTaskIssueBody("my-feature", "", "Build the widget", 55);
+    assert.ok(body.includes("Part of #55"));
   });
 
-  it("does not include Part of when no approvalIssueNumber", () => {
-    const approvalIssueNumber = null;
-    const featureName = "my-feature";
-    const title = "Build the widget";
-    const backLink = approvalIssueNumber ? `\n\nPart of #${approvalIssueNumber}` : "";
-    const body = `Auto-created by \`agt run\` for feature **${featureName}**.\n\nTask: ${title}${backLink}`;
+  it("does not include Part of when approvalIssueNumber is null", () => {
+    const body = buildTaskIssueBody("my-feature", "", "Build the widget", null);
     assert.ok(!body.includes("Part of"));
+  });
+
+  it("does not include Part of when approvalIssueNumber is 0", () => {
+    const body = buildTaskIssueBody("my-feature", "", "Build the widget", 0);
+    assert.ok(!body.includes("Part of"));
+  });
+
+  it("does not include Part of when approvalIssueNumber is a non-integer string", () => {
+    const body = buildTaskIssueBody("my-feature", "", "Build the widget", "55\n\n**evil**");
+    assert.ok(!body.includes("Part of"));
+  });
+
+  it("includes feature name and task title in body", () => {
+    const body = buildTaskIssueBody("my-feature", "", "Build the widget", null);
+    assert.ok(body.includes("my-feature"));
+    assert.ok(body.includes("Build the widget"));
+  });
+
+  it("includes feature label in body when provided", () => {
+    const body = buildTaskIssueBody("my-feature", "v2", "Build the widget", 10);
+    assert.ok(body.includes("[v2]"));
+    assert.ok(body.includes("Part of #10"));
   });
 });

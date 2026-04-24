@@ -163,6 +163,19 @@ export function markChecklistItemBlocked(body, title, issueNumber) {
   );
 }
 
+/**
+ * Build the body string for a task GitHub issue.
+ * Appends `Part of #N` back-link when approvalIssueNumber is a positive integer.
+ */
+export function buildTaskIssueBody(featureName, featureLabel, title, approvalIssueNumber) {
+  const label = featureLabel ? `[${featureLabel}] ` : "";
+  const backLink =
+    Number.isInteger(approvalIssueNumber) && approvalIssueNumber > 0
+      ? `\n\nPart of #${approvalIssueNumber}`
+      : "";
+  return `Auto-created by \`agt run\` for feature **${label}${featureName}**.\n\nTask: ${title}${backLink}`;
+}
+
 /** Build the ## Tasks checklist markdown from a list of tasks. Returns empty string if no tasks have issue numbers. */
 export function buildTasksChecklist(tasks) {
   const lines = (tasks || [])
