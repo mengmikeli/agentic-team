@@ -5,7 +5,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { recordWarningIteration, checkEscalation } from "../bin/lib/iteration-escalation.mjs";
 import { runCompoundGate } from "../bin/lib/compound-gate.mjs";
-import { mkdtempSync, writeFileSync } from "fs";
+import { appendProgress } from "../bin/lib/util.mjs";
+import { mkdtempSync, writeFileSync, readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -273,5 +274,29 @@ describe("Integration: iteration escalation in simulated run loop", () => {
     const escalation = checkEscalation(reloadedTask.gateWarningHistory);
     assert.ok(escalation !== null, "Escalation must fire after reload + second WARN with same layer");
     assert.deepEqual(escalation.layers, ["thin-content"]);
+  });
+
+  it("escalation event is written to progress.md via appendProgress", () => {
+    const dir = makeDir();
+    const task = { id: "task-p1", title: "Progress test task", gateWarningHistory: [] };
+
+    // Simulate two WARN iterations with the same layer
+    recordWarningIteration(task, 1, ["thin-content"]);
+    recordWarningIteration(task, 2, ["thin-content"]);
+
+    const escalation = checkEscalation(task.gateWarningHistory);
+    assert.ok(escalation !== null, "Escalation must fire");
+
+    // Mirror exactly what run.mjs does when escalation fires
+    const taskIndex = 0;
+    appendProgress(dir, `**Task ${taskIndex + 1}: ${task.title}**\n- 🔴 Iteration escalation: ${escalation.layers.join(", ")} recurred in iterations ${escalation.iterations.join(", ")}`);
+
+    const progressPath = join(dir, "progress.md");
+    assert.ok(existsSync(progressPath), "progress.md must be created");
+    const content = readFileSync(progressPath, "utf8");
+    assert.ok(content.includes("🔴 Iteration escalation"), "progress.md must contain the escalation marker");
+    assert.ok(content.includes("thin-content"), "progress.md must name the recurring layer");
+    assert.ok(content.includes("iterations 1, 2"), "progress.md must include the iteration numbers");
+    assert.ok(content.includes(task.title), "progress.md must include the task title");
   });
 });
