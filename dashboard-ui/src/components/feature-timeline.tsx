@@ -7,9 +7,10 @@ import { CheckCircle2, Circle, Zap } from 'lucide-react';
 interface FeatureTimelineProps {
   features: Feature[];
   onFeatureSelect: (featureName: string) => void;
+  selectedFeature?: string | null;
 }
 
-export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelineProps) {
+export function FeatureTimeline({ features, onFeatureSelect, selectedFeature }: FeatureTimelineProps) {
   const withState = features.filter((f) => f.status && f.status !== 'unknown');
 
   if (withState.length === 0) {
@@ -40,6 +41,7 @@ export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelinePr
             const dateStr = feature.completedAt || feature._last_modified || feature.createdAt || '';
             const isActive = ['active', 'executing'].includes(feature.status);
             const isDone = feature.status === 'completed';
+            const isSelected = selectedFeature === feature.name;
             const activeTask = isActive ? getActiveTask(tasks) : null;
 
             return (
@@ -48,7 +50,8 @@ export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelinePr
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-sm cursor-pointer transition-colors",
                   "hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary",
-                  isActive && "bg-[var(--ops-accent-subtle)] border-l-2 border-l-primary"
+                  isActive && "bg-[var(--ops-accent-subtle)] border-l-2 border-l-primary",
+                  isSelected && !isActive && "bg-muted/60 ring-1 ring-primary/40"
                 )}
                 onClick={() => onFeatureSelect(feature.name)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFeatureSelect(feature.name); } }}
@@ -75,10 +78,12 @@ export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelinePr
                     {dateStr && <span className="ml-2">{relativeTime(dateStr)}</span>}
                   </div>
                 </div>
-                {feature.tokenUsage?.total?.costUsd != null && (
-                  <div className="flex-shrink-0 text-xs font-mono tabular-nums text-muted-foreground">
+                {feature.tokenUsage?.total?.costUsd != null ? (
+                  <div className="flex-shrink-0 w-14 text-right text-xs font-mono tabular-nums text-muted-foreground">
                     ${feature.tokenUsage.total.costUsd.toFixed(2)}
                   </div>
+                ) : (
+                  <div className="flex-shrink-0 w-14" />
                 )}
               </div>
             );

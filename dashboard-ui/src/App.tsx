@@ -121,6 +121,7 @@ function App() {
                 <FeatureTimeline
                   features={features}
                   onFeatureSelect={handleFeatureChange}
+                  selectedFeature={selectedFeature}
                 />
               </ErrorBoundary>
               

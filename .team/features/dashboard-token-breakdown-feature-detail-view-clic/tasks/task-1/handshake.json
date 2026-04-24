@@ -1,24 +1,16 @@
 {
   "taskId": "task-1",
-  "nodeType": "gate",
+  "nodeType": "build",
   "runId": "run_1",
-  "status": "failed",
-  "verdict": "FAIL",
-  "summary": "Gate command: npm test — exit code 1",
-  "timestamp": "2026-04-24T13:23:36.522Z",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added feature detail view enhancements: wall-clock run duration stat in the detail header (using _runStartedAt/createdAt → completedAt/_last_modified), selected-feature highlight ring in the timeline, and a fixed-width cost column so rows don't shift when cost data is absent. Also added _runStartedAt to the Feature type and wired selectedFeature prop through App.tsx → FeatureTimeline.",
+  "timestamp": "2026-04-25T00:00:00Z",
   "artifacts": [
-    {
-      "type": "test-result",
-      "path": "artifacts/test-output.txt"
-    },
-    {
-      "type": "cli-output",
-      "path": "artifacts/gate-stderr.txt"
-    }
+    { "type": "code", "path": "dashboard-ui/src/types.ts" },
+    { "type": "code", "path": "dashboard-ui/src/components/feature-detail.tsx" },
+    { "type": "code", "path": "dashboard-ui/src/components/feature-timeline.tsx" },
+    { "type": "code", "path": "dashboard-ui/src/App.tsx" }
   ],
-  "findings": {
-    "critical": 1,
-    "warning": 0,
-    "suggestion": 0
-  }
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

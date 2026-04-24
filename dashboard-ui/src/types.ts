@@ -25,6 +25,7 @@ export interface Feature {
   createdAt?: string;
   completedAt?: string;
   _last_modified?: string;
+  _runStartedAt?: string;
   summary?: {
     duration?: string;
   };

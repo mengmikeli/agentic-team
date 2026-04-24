@@ -39,6 +39,10 @@ export function FeatureDetail({ feature, onClose }: FeatureDetailProps) {
 
   const { tokenUsage } = feature;
 
+  const startTs = feature._runStartedAt || feature.createdAt;
+  const endTs = feature.completedAt || feature._last_modified;
+  const wallClockMs = startTs && endTs ? new Date(endTs).getTime() - new Date(startTs).getTime() : null;
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between pb-3">
@@ -52,6 +56,17 @@ export function FeatureDetail({ feature, onClose }: FeatureDetailProps) {
         </button>
       </CardHeader>
       <CardContent className="space-y-4">
+        {wallClockMs != null && wallClockMs > 0 && (
+          <div className="flex items-center gap-4 text-xs font-mono tabular-nums text-muted-foreground border-b border-border pb-3">
+            <span>Run duration: <span className="text-foreground">{fmtMs(wallClockMs)}</span></span>
+            {tokenUsage?.total?.costUsd != null && (
+              <span>Cost: <span className="text-foreground">{fmtCost(tokenUsage.total.costUsd)}</span></span>
+            )}
+            {tokenUsage?.total?.durationMs != null && (
+              <span>LLM time: <span className="text-foreground">{fmtMs(tokenUsage.total.durationMs)}</span></span>
+            )}
+          </div>
+        )}
         {!tokenUsage ? (
           <div className="text-sm text-muted-foreground py-4 text-center">No token data available</div>
         ) : (
