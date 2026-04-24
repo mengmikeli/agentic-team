@@ -1,11 +1,12 @@
 import type { TokenData } from '@/types';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatTokens } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, TrendingUp } from 'lucide-react';
+import { AlertTriangle, TrendingUp, RefreshCw } from 'lucide-react';
 
 interface TokenViewProps {
   tokenData: TokenData | null;
@@ -47,6 +48,24 @@ function ChartTooltip({ active, payload, label }: any) {
 }
 
 export function TokenView({ tokenData, loading, days, onDaysChange }: TokenViewProps) {
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  async function handleSync() {
+    setSyncing(true);
+    setSyncMsg(null);
+    try {
+      const res = await fetch('/api/tokens/sync', { method: 'POST' });
+      const data = await res.json();
+      setSyncMsg(data.ok ? `Synced${data.records ? ` ${data.records} records` : ''}` : 'Sync failed');
+      setTimeout(() => setSyncMsg(null), 3000);
+    } catch {
+      setSyncMsg('Sync failed');
+      setTimeout(() => setSyncMsg(null), 3000);
+    } finally {
+      setSyncing(false);
+    }
+  }
   if (loading && !tokenData) return <TokenSkeleton />;
 
   if (!tokenData || tokenData.error) {
@@ -97,21 +116,36 @@ export function TokenView({ tokenData, loading, days, onDaysChange }: TokenViewP
           <h2 className="text-lg font-semibold">Tokens</h2>
           <p className="text-xs text-muted-foreground">{rangeLabel} · all tools</p>
         </div>
-        <div className="flex bg-muted/80 rounded-sm p-0.5">
-          {RANGE_OPTIONS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => onDaysChange(opt.value)}
-              className={cn(
-                "px-3 py-1 text-xs font-medium rounded-sm transition-all",
-                days === opt.value
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-sm transition-all",
+              "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+              syncing && "opacity-50 cursor-not-allowed"
+            )}
+            title="Run pew sync"
+          >
+            <RefreshCw className={cn("size-3", syncing && "animate-spin")} />
+            {syncMsg || 'Sync'}
+          </button>
+          <div className="flex bg-muted/80 rounded-sm p-0.5">
+            {RANGE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => onDaysChange(opt.value)}
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-sm transition-all",
+                  days === opt.value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

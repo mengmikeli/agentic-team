@@ -500,6 +500,20 @@ switch (command) {
             const validDays = [1, 7, 28].includes(daysParam) ? daysParam : 7;
             return jsonRes(res, loadTokenData(fs, join, home, validDays));
           }
+          if (pathname === "/api/tokens/sync" && req.method === "POST") {
+            try {
+              const result = spawnSync("pew", ["sync"], { encoding: "utf8", timeout: 30000, stdio: ["pipe", "pipe", "pipe"] });
+              const pending = (result.stdout || "").match(/(\d+)\s*record/i);
+              return jsonRes(res, {
+                ok: result.status === 0,
+                message: result.status === 0 ? "Sync complete" : "Sync failed",
+                records: pending ? parseInt(pending[1]) : null,
+                output: (result.stdout || "").trim().slice(0, 500),
+              });
+            } catch (err) {
+              return jsonRes(res, { ok: false, message: err.message }, 500);
+            }
+          }
           if (pathname === "/api/events") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());
             const streamPath = join(pp, ".team", ".notify-stream");
