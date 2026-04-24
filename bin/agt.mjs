@@ -592,6 +592,18 @@ switch (command) {
           }
           if (pathname === "/api/features") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const rebuild = url.searchParams.get("rebuild") === "true";
+            if (rebuild) {
+              // Rebuild cache from GitHub for all features
+              import("./lib/state-sync.mjs").then(({ rebuildFromGitHub }) => {
+                const featDir = join(pp, ".team", "features");
+                if (fs.existsSync(featDir)) {
+                  for (const d of fs.readdirSync(featDir, { withFileTypes: true })) {
+                    if (d.isDirectory()) rebuildFromGitHub(join(featDir, d.name));
+                  }
+                }
+              }).catch(() => {});
+            }
             return jsonRes(res, readFeatures(pp));
           }
           if (pathname === "/api/sprints") {

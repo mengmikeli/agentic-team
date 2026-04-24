@@ -13,6 +13,7 @@ import {
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
+import { pushFeatureStatus, pushTaskStatus, syncFromHarness } from "./state-sync.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
 import { recordWarningIteration, checkEscalation } from "./iteration-escalation.mjs";
 import { incrementReviewRounds, shouldEscalate, buildEscalationSummary } from "./review-escalation.mjs";
@@ -1029,26 +1030,7 @@ async function _runSingleFeature(args, description, providedLabel = '') {
 
   // Sync in-memory task list to STATE.json so the dashboard reflects real-time progress
   function syncTaskState() {
-    const s = readState(featureDir);
-    if (s) {
-      // Merge: harness updates task status via transition, so read those back.
-      // But in-memory tasks may have new entries from replan, so merge both.
-      const stateTaskMap = new Map((s.tasks || []).map(t => [t.id, t]));
-      for (const t of tasks) {
-        const existing = stateTaskMap.get(t.id);
-        if (existing) {
-          // Keep harness-updated fields (status, ticks, etc), but sync issueNumber from memory
-          if (t.issueNumber && !existing.issueNumber) existing.issueNumber = t.issueNumber;
-        } else {
-          // New task from replan — add it
-          stateTaskMap.set(t.id, { ...t });
-        }
-      }
-      s.tasks = [...stateTaskMap.values()];
-      s.status = 'executing';
-      s._last_modified = new Date().toISOString();
-      writeState(featureDir, s);
-    }
+    syncFromHarness(featureDir, tasks);
   }
 
   // ── Brainstorm phase (full-stack flow only) ──
@@ -1411,7 +1393,7 @@ async function _runSingleFeature(args, description, providedLabel = '') {
         syncTaskState();
         console.log(`  ${c.green}✓ Gate PASS${c.reset}\n`);
         appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Verdict: ✅ PASS (attempt ${task.attempts})\n- Gate: \`${gateCmd}\` — exit 0`);
-        if (task.issueNumber) { closeIssue(task.issueNumber, "Task completed — gate passed."); if (projectNum) setProjectItemStatus(task.issueNumber, projectNum, "done"); }
+        pushTaskStatus(featureDir, task.id, "passed", { issueNumber: task.issueNumber, attempts: task.attempts });
         if (task.issueNumber && state?.approvalIssueNumber) {
           const parentBody = getIssueBody(state.approvalIssueNumber);
           if (parentBody !== null) {
@@ -1447,13 +1429,13 @@ async function _runSingleFeature(args, description, providedLabel = '') {
               blocked++;
               syncTaskState();
               console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
-              if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
+              pushTaskStatus(featureDir, task.id, "blocked", { issueNumber: task.issueNumber, lastReason: `blocked after ${maxRetries} attempts` });
             }
           } else {
             blocked++;
             syncTaskState();
             console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
-            if (task.issueNumber) commentIssue(task.issueNumber, `Task blocked after ${maxRetries} attempts.`);
+            pushTaskStatus(featureDir, task.id, "blocked", { issueNumber: task.issueNumber, lastReason: `blocked after ${maxRetries} attempts` });
           }
         }
       }
