@@ -143,3 +143,5 @@
 {"ts":"2026-04-24T02:57:41.523Z","event":"task-started","msg":"▶ Task 4/8: The merged `eval.md` produced by a multi-review run lists findings in severity order (all criticals before warnings before suggestions) with role prefix on each finding."}
 {"ts":"2026-04-24T03:18:11.250Z","event":"feature-started","msg":"▶ Feature: finalize-auto-close-validation (7 tasks planned)"}
 {"ts":"2026-04-24T03:20:22.669Z","event":"task-started","msg":"▶ Task 1/7: Test: `agt finalize` on a feature with 2 task issues returns `issuesClosed: 2` in JSON output"}
+{"ts":"2026-04-24T03:28:50.554Z","event":"task-passed","msg":"✓ Task 1/7: Test: `agt finalize` on a feature with 2 task issues returns `issuesClosed: 2` in JSON output"}
+{"ts":"2026-04-24T03:28:58.127Z","event":"task-started","msg":"▶ Task 2/7: Test: each closed task issue receives the correct comment (`\"Task completed — gate passed.\"` for passed, status-specific for skipped)"}

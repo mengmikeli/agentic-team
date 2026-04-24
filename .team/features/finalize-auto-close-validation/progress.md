@@ -15,3 +15,8 @@
 
 ## Execution Log
 
+### 2026-04-24 03:28:50
+**Task 1: Test: `agt finalize` on a feature with 2 task issues returns `issuesClosed: 2` in JSON output**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
