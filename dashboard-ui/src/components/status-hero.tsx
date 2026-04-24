@@ -13,6 +13,9 @@ export function StatusHero({ activeFeature, lastCompleted }: StatusHeroProps) {
   if (activeFeature) {
     const tasks = (activeFeature.tasks || []).filter((t) => t.title !== "Quality gate passes");
     const passed = tasks.filter((t) => t.status === "passed").length;
+    const blocked = tasks.filter((t) => t.status === "blocked").length;
+    const inProgress = tasks.find((t) => t.status === "in-progress");
+    const currentTaskIndex = inProgress ? tasks.indexOf(inProgress) + 1 : passed + 1;
     const progress = tasks.length > 0 ? Math.round((passed / tasks.length) * 100) : 0;
     const duration = activeFeature.summary?.duration ||
       (activeFeature.createdAt ? formatDuration(Date.now() - new Date(activeFeature.createdAt).getTime()) : '');
@@ -43,8 +46,20 @@ export function StatusHero({ activeFeature, lastCompleted }: StatusHeroProps) {
             <div className="space-y-1.5">
               <Progress value={progress} className="h-1.5" />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span><span className="font-mono tabular-nums">{passed}</span> of <span className="font-mono tabular-nums">{tasks.length}</span> tasks</span>
+                <span><span className="font-mono tabular-nums">{passed}</span> of <span className="font-mono tabular-nums">{tasks.length}</span> tasks{blocked > 0 && <span className="text-[var(--ops-error)]"> · {blocked} blocked</span>}</span>
               </div>
+              {/* Current task indicator */}
+              {inProgress ? (
+                <div className="text-xs text-muted-foreground truncate">
+                  <span className="text-primary font-mono">▶ {currentTaskIndex}/{tasks.length}</span>
+                  <span className="ml-1.5">{inProgress.title?.slice(0, 60)}</span>
+                  {(inProgress as any).attempts > 1 && <span className="text-muted-foreground ml-1">(attempt {(inProgress as any).attempts})</span>}
+                </div>
+              ) : passed < tasks.length ? (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-mono">Waiting for task {currentTaskIndex}/{tasks.length}...</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </CardContent>

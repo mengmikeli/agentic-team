@@ -1,114 +1,73 @@
-# Simplicity Review — document-driven-development
-**Reviewer role:** simplicity
-**Date:** 2026-04-24
-**Verdict:** PASS
-
----
-
-## Overall Verdict
-
-**PASS** — The interactive mode implementation is correct and tests pass (525/525). No critical simplicity issues block merge. Two backlog-worthy warnings and three non-blocking suggestions. Prior PM eval findings confirmed and extended.
-
----
-
-## Files Read
-
-- `bin/lib/brainstorm-cmd.mjs` (full, 289 lines)
-- `templates/SPEC.md`
-- `bin/lib/outer-loop.mjs:375–415` (validateSpecFile)
-- `bin/lib/outer-loop.mjs:655–684` (minimalSpec fallback)
-- `test/cli-commands.test.mjs:399–517` (brainstorm unit tests via grep)
-- `task-2/artifacts/test-output.txt` (gate evidence: 525 pass, 0 fail)
-
----
-
-## Per-Criterion Results
-
-### 1. Does the abstraction earn its keep?
-**PASS** — `buildInteractiveSpec` is a pure function mapping named fields to a markdown document. No indirection layers, no class hierarchy, no framework overhead. Complexity is proportional to the number of inputs it assembles.
-
-### 2. Is it over-engineered?
-**PASS with caveat** — The core flow is straightforward. However, `approachText` (lines 88–96) is a dead variable on the happy path: whenever `technicalApproach` is provided (the normal case), `approachText` is computed but never reaches `techSection`. It still feeds the Trade-offs block (line 117), but the coupling is invisible at the call site.
-
-### 3. Cognitive load
-**PASS with caveat** — The 13-field destructure parameter is at the high end but acceptable for a document-assembly function. More problematic: `constraints` is collected from the user (line 155) but silently discarded whenever `requirements` is non-empty (line 107 fallback). A reader must trace both files to understand the fallback; the user is never told their constraint answer was discarded.
-
-### 4. Deletability
-**PASS** — The new code (Requirements, Acceptance Criteria, Technical Approach, Testing Strategy prompts + template sections) adds ~30 lines of interaction and ~25 lines of template assembly. No unnecessary abstractions were introduced. The test suite adds ~120 lines, of which ~60 are redundant (four individual section tests subsumed by the "all seven" test at line 497).
-
-### 5. Two-path schema divergence
-**WARN** — `buildBrainstormBrief` (agent path, lines 41–83) still uses `## Scope` and `## Approach` (old schema). When an agent is available, `agt brainstorm <idea>` silently writes a spec that fails `validateSpecFile`. Feature scope is "interactive mode," but this growing divergence is a maintenance hazard.
-
-### 6. Test output verification
-**PASS** — `task-2/artifacts/test-output.txt` confirms exit code 0, 525/525 tests pass. Tests at `test/cli-commands.test.mjs:122–130` directly verify all four new sections appear in `buildInteractiveSpec` output. Evidence is concrete, not aspirational.
-
----
-
-## Findings
-
-🟡 `bin/lib/brainstorm-cmd.mjs:60-77` — `buildBrainstormBrief` (agent path) uses `## Scope` and `## Approach` (old schema); specs written when an agent is available will fail `validateSpecFile` — align to 7-section schema or file as backlog before enforcement tightens
-
-🟡 `bin/lib/brainstorm-cmd.mjs:155` — `constraints` is collected from the user but silently discarded whenever `requirements` is non-empty (line 107 fallback); dead variable on the happy path — rename to `fallbackRequirement` or remove and let requirements default to "TBD"
-
-🔵 `bin/lib/brainstorm-cmd.mjs:88-96` — `approachText` is always shadowed by `technicalApproach` on lines 94–96 (the happy path); inline as `technicalApproach || approach1 || "TBD"` and remove the 5-line dead variable
-
-🔵 `test/cli-commands.test.mjs:412-474` — four individual section tests (Requirements, Acceptance Criteria, Technical Approach, Testing Strategy) are fully subsumed by the "all seven" test at line 497; ~60 lines of duplicate fixtures with no additional coverage
-
-🔵 `bin/lib/outer-loop.mjs:406` — stale comment `// Match ## Goal, ## Scope, etc.` flagged in prior eval and still present; update to reflect current section names
-
----
-
-## Backlog Items (from this review)
-
-1. Align `buildBrainstormBrief` (agent path) to the 7-section schema — from 🟡 above
-2. Clarify or remove `constraints` variable in interactive flow — from 🟡 above
-
----
-
 # Architect Review — document-driven-development
 
 **Reviewer role:** architect
 **Date:** 2026-04-24
-**Verdict:** PASS
+**Overall Verdict:** PASS (with backlog items)
 
 ---
 
-## Files Read
+## Files Actually Read
 
-- `bin/lib/brainstorm-cmd.mjs` (full, 289 lines)
+- `bin/lib/brainstorm-cmd.mjs` (full, 297 lines)
+- `bin/lib/outer-loop.mjs:270–315` (`buildOuterBrainstormBrief`)
+- `bin/lib/outer-loop.mjs:382–420` (`validateSpecFile`)
+- `bin/lib/outer-loop.mjs:650–684` (`minimalSpec` fallback)
 - `templates/SPEC.md` (full)
-- `bin/lib/outer-loop.mjs:270–420` (buildOuterBrainstormBrief, validateSpecFile)
-- `bin/lib/outer-loop.mjs:655–700` (minimalSpec fallback)
-- `test/outer-loop.test.mjs` (grep: `## Scope`, `minimalSpec`, line 698)
-- `tasks/task-2/artifacts/test-output.txt` (gate evidence: 525 pass, 0 fail)
-
----
-
-## Overall Verdict
-
-**PASS** — Interactive feature correctly implemented; 525/525 tests pass; no critical findings. Two 🟡 backlog items: same-module schema divergence between the agent and interactive paths, and the unresolved `minimalSpec` fallback from the prior cycle.
+- `.team/features/document-driven-development/tasks/task-1/handshake.json`
+- `.team/features/document-driven-development/tasks/task-2/artifacts/test-output.txt` (525/525 pass, exit 0)
+- `.team/features/document-driven-development/tasks/task-3/eval.md`
 
 ---
 
 ## Per-Criterion Results
 
-### 1. System boundary: same-module path consistency
-**WARN** — `bin/lib/brainstorm-cmd.mjs` exports two SPEC-producing paths: `buildInteractiveSpec` (7-section schema, updated by this task) and `buildBrainstormBrief` (agent path, still 5-section schema: `## Scope`, `## Approach`). Both paths are reached from the same entry point `cmdBrainstorm` and write to the same `SPEC.md` destination, but produce structurally incompatible outputs. When a coding agent is installed, `agt brainstorm <idea>` silently writes a spec that fails `validateSpecFile`. This is an in-module boundary violation introduced by updating only one of the two paths.
+### 1. Core feature implementation
+**PASS.** `interactiveBrainstorm` (brainstorm-cmd.mjs:139–232) sequences all four new prompts:
+- Requirements: multi-line loop, lines 170–177
+- Acceptance Criteria: multi-line loop, lines 183–190
+- Technical Approach: option A/B + detail, lines 196–199
+- Testing Strategy: single prompt, line 203
 
-### 2. Cross-cutting schema: single source of truth
-**WARN** — The 7-section schema is now defined in four independent locations: `validateSpecFile` required array (outer-loop.mjs:389), `buildOuterBrainstormBrief` template (outer-loop.mjs:284), `templates/SPEC.md`, and `buildBrainstormBrief` (brainstorm-cmd.mjs:65). The agent-path drift in this task is proof the fragmentation actively causes problems. A single `SPEC_SECTIONS` constant exported and consumed by all four would make drift structurally impossible.
+`buildInteractiveSpec` (lines 93–137) assembles all seven required sections. Gate confirms 525/525 tests pass including direct section-presence assertions at test/cli-commands.test.mjs:122–130.
 
-### 3. Fallback path alignment
-**WARN (carried)** — `outer-loop.mjs:681` `minimalSpec` still writes `## Scope`. Confirmed unchanged. `test/outer-loop.test.mjs:698` asserts `spec.includes("## Scope")`, locking in the stale name. Unresolved from prior review cycle; will hard-block features hitting the fallback once `validateSpecFile` enforcement tightens.
+### 2. Agent-path schema consistency
+**PASS.** Prior reviews flagged `buildBrainstormBrief` as using stale `## Scope`/`## Approach`. Verified against current code: `buildBrainstormBrief` at brainstorm-cmd.mjs:59–83 uses `## Requirements`, `## Acceptance Criteria`, `## Technical Approach`, `## Testing Strategy`, `## Out of Scope`, `## Done When` — the full 7-section schema. The prior 🟡 finding was factually incorrect about the current code and should be removed from the backlog.
 
-### 4. Core interactive feature implementation
-**PASS** — `interactiveBrainstorm` correctly sequences all four new prompts: Requirements (multi-line loop, lines 158–169), Acceptance Criteria (multi-line loop, 171–182), Technical Approach (options A/B + detail, 184–191), Testing Strategy (195). `buildInteractiveSpec` emits all required sections. Gate confirms 525/525.
+### 3. Fallback path schema consistency
+**PASS.** Prior reviews flagged `minimalSpec` at outer-loop.mjs:681 as using `## Scope`. Verified: current code at line 681 generates `## Requirements`, `## Acceptance Criteria`, `## Technical Approach`, `## Testing Strategy`, `## Out of Scope`, `## Done When` — 7-section schema. The prior 🟡 carry-forward finding is stale against the current code.
+
+### 4. Handshake / pipeline state integrity
+**WARN.** task-1/handshake.json (status: "failed", verdict: "FAIL") is out of sync with the current eval.md (verdict: PASS). The fabricated-refs gate tripped on a prior iteration; the eval.md was then updated, but handshake.json was never regenerated. The handshake is the authoritative pipeline record. Any pipeline step that reads handshake.json to decide whether to proceed will see FAIL. This does not indicate a code defect — the implementation is correct — but the pipeline integrity record needs to be resolved.
+
+### 5. Schema centralization (4 independent definitions)
+**WARN.** The 7-section list is now defined in four places:
+1. `validateSpecFile` required array — outer-loop.mjs:389
+2. `buildOuterBrainstormBrief` template — outer-loop.mjs:284–311
+3. `buildBrainstormBrief` template — brainstorm-cmd.mjs:59–83
+4. `templates/SPEC.md`
+
+All four are currently consistent. But there is no single source of truth. The prior agent-path drift (now fixed) is concrete proof this fragmentation causes problems. A `SPEC_SECTIONS` constant exported from a shared module and consumed by all four would make future drift structurally impossible.
+
+### 6. Stale inline comment
+**PASS with note.** `outer-loop.mjs:406` still reads `// Match ## Goal, ## Scope, etc.` — should say `// Match ## Goal, ## Requirements, etc.`. Minor, but misleads readers.
+
+### 7. Dead-variable `approachText`
+**PASS with note.** `approachText` (lines 94–98) is only consumed as a fallback for `techSection` (line 102). Since `technicalApproach` is always prompted (line 199), `approachText` is dead on the happy path. The trade-offs block (lines 124–126) uses `approach1`, `approach2`, `preferred` directly — not `approachText`. Inlining the fallback expression removes 4 lines of cognitive overhead.
 
 ---
 
 ## Findings
 
-🟡 bin/lib/brainstorm-cmd.mjs:65 — `buildBrainstormBrief` (agent path) uses `## Scope`/`## Approach` while `buildInteractiveSpec` (interactive path) in the same file uses the 7-section schema; `cmdBrainstorm` selects between them based on agent availability, so users with an agent get a spec that silently fails `validateSpecFile` — update `buildBrainstormBrief` to match the 7-section schema
-🟡 bin/lib/outer-loop.mjs:681 — `minimalSpec` fallback writes `## Scope` (old name), fails its own `validateSpecFile`; update to 7-section schema and fix companion assertion at test/outer-loop.test.mjs:698
-🔵 bin/lib/outer-loop.mjs:406 — stale inline comment `// Match ## Goal, ## Scope, etc.` — update to reflect current section names
-🔵 bin/lib/brainstorm-cmd.mjs:36,bin/lib/outer-loop.mjs:284,bin/lib/outer-loop.mjs:389 — section schema defined in 4 independent locations; agent-path drift is concrete evidence of risk — extract a `SPEC_SECTIONS` constant and derive all definitions from it
+🟡 `task-1/handshake.json:5` — Status "failed" is out of sync with current eval.md PASS verdict; the fabricated-refs trip was from a prior iteration, but the handshake is the authoritative pipeline record — regenerate handshake to PASS to close this cleanly
+🟡 `task-1/eval.md:49,51,111-112` — Four prior 🟡 findings cite `buildBrainstormBrief` and `minimalSpec` as using old schema (`## Scope`/`## Approach`); verified false against current code — remove from backlog to prevent wasted work
+🟡 `bin/lib/outer-loop.mjs:389,284` + `bin/lib/brainstorm-cmd.mjs:59` + `templates/SPEC.md` — 7-section list defined in 4 independent locations; all consistent now but no `SPEC_SECTIONS` constant to structurally prevent future drift — extract to shared constant
+🔵 `bin/lib/outer-loop.mjs:406` — Stale comment `// Match ## Goal, ## Scope, etc.` — update to reflect current section names
+🔵 `bin/lib/brainstorm-cmd.mjs:94-98` — `approachText` is dead on the happy path (line 199 always prompts `technicalApproach`); inline as `technicalApproach || approach1 || "TBD"` at line 102 and remove the 4-line variable
+
+---
+
+## Backlog Items
+
+1. Regenerate task-1 handshake.json to reflect the current PASS state — from 🟡 above
+2. Remove stale backlog items about `buildBrainstormBrief` / `minimalSpec` old-schema — from 🟡 above
+3. Extract `SPEC_SECTIONS` constant to prevent schema drift across 4 definition sites — from 🟡 above
