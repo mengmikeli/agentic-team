@@ -26,3 +26,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 01:01:07
+**Task 2: When the same compound-gate layer name appears in `gateWarningHistory` for ≥2 distinct iterations, the task is marked `blocked` with a synthetic critical finding naming the repeated layers and iteration numbers**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
