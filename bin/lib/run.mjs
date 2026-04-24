@@ -878,6 +878,10 @@ async function _runSingleFeature(args, description, providedLabel = '') {
       initState._last_modified = new Date().toISOString();
       writeState(featureDir, initState);
     }
+    // Track current run start time (createdAt is preserved for audit trail)
+    initState._runStartedAt = new Date().toISOString();
+    initState.status = 'executing';
+    writeState(featureDir, initState);
     // Persist roadmap label so dashboard and outer loop re-entry can read it without re-parsing
     if (featureLabel) {
       const labelState = readState(featureDir);

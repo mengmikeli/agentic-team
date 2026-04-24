@@ -464,6 +464,7 @@ switch (command) {
               gates: state?.gates || [],
               feature: state?.feature || d.name,
               createdAt: state?.createdAt || null,
+              _runStartedAt: state?._runStartedAt || null,
               completedAt: state?.completedAt || null,
               _last_modified: stat ? stat.mtime.toISOString() : null,
               hasSpec: fs.existsSync(join(fdir, "SPEC.md")),

@@ -17,8 +17,9 @@ export function StatusHero({ activeFeature, lastCompleted }: StatusHeroProps) {
     const inProgress = getActiveTask(tasks);
     const currentTaskIndex = inProgress ? tasks.indexOf(inProgress) + 1 : passed + 1;
     const progress = tasks.length > 0 ? Math.round((passed / tasks.length) * 100) : 0;
+    const startTime = (activeFeature as any)._runStartedAt || activeFeature.createdAt;
     const duration = activeFeature.summary?.duration ||
-      (activeFeature.createdAt ? formatDuration(Date.now() - new Date(activeFeature.createdAt).getTime()) : '');
+      (startTime ? formatDuration(Date.now() - new Date(startTime).getTime()) : '');
 
     return (
       <Card className="border-l-2 border-l-primary">
