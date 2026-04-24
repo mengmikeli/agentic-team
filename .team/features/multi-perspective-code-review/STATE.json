@@ -1,0 +1,88 @@
+{
+  "version": "2.0",
+  "feature": "multi-perspective-code-review",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`roles/architect.md`, `roles/engineer.md`, `roles/product.md`, `roles/tester.md`, `roles/security.md`, and `roles/simplicity.md` all exist with substantive focus descriptions.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 111
+    },
+    {
+      "id": "task-2",
+      "title": "`PARALLEL_REVIEW_ROLES` in `flows.mjs` contains all six roles: `[\"architect\", \"engineer\", \"product\", \"tester\", \"security\", \"simplicity\"]`.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 112
+    },
+    {
+      "id": "task-3",
+      "title": "`buildReviewBrief()` injects the content of `roles/<role>.md` into each reviewer's brief.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 113
+    },
+    {
+      "id": "task-4",
+      "title": "The merged `eval.md` produced by a multi-review run lists findings in severity order (all criticals before warnings before suggestions) with role prefix on each finding.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 114
+    },
+    {
+      "id": "task-5",
+      "title": "The merged `eval.md` includes a per-role summary section at the top showing verdict and finding counts for each of the six roles.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 115
+    },
+    {
+      "id": "task-6",
+      "title": "A unit test verifies that findings from multiple roles are merged and sorted correctly by severity.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 116
+    },
+    {
+      "id": "task-7",
+      "title": "An integration test runs the multi-review phase against a fixture task and confirms all six role names appear in the output.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 117
+    },
+    {
+      "id": "task-8",
+      "title": "All existing tests pass.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 118
+    }
+  ],
+  "gates": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (4.142916ms)\n  ✔ returns null and does not write approval.json when createIssue fails (0.713542ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (0.809834ms)\n  ✔ skips project board calls when projectNumber is null (0.400625ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.328708ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.27825ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.320292ms)\n✔ createApprovalIssue (7.623208ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.170583ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.28325ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.408375ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.247208ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.235958ms)\n✔ readApprovalState (1.46775ms)\n▶ waitForApproval\n  ✔ prints issue URL before pausing when getIssueUrl returns a URL (0.246625ms)\n  ✔ prints 'Waiting for approval (issue #N)...' before pausing (0.132792ms)\n  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (685.004417ms)\n  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (656.889625ms)\n  ✔ polls multiple times before returning 'approved' (648.101916ms)\n  ✔ returns 'interrupted' after sleep when stopping flag becomes true (665.560833ms)\n  ✔ uses APPROVAL_POLL_INTERVAL env var as sleep interval (0.217666ms)\n  ✔ defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set (0.145667ms)\n  ✔ uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid (0.152583ms)\n  ✔ prints elaps",
+      "stderr": "",
+      "timestamp": "2026-04-24T02:08:44.809Z",
+      "taskId": "task-1"
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T02:06:18.639Z"
+    }
+  ],
+  "createdAt": "2026-04-24T02:03:46.639Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T02:08:44.809Z",
+  "_write_nonce": "a89b299a4a882835"
+}

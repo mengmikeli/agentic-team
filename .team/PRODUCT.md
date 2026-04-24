@@ -39,7 +39,7 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 11. **Oscillation detection + tick limits** — ✅ Done. Tick-limit enforcement (default 6, configurable), K≥2 pattern detection with warn/halt, replan tick inheritance, progress.md logging. 376 tests.
 12. **Human approval gate** — ✅ Done. Outer loop creates GitHub issue for each feature, waits for human to move to Ready before executing. Agents never self-approve scope.
 13. **Compound evaluation gate** — ✅ Done. Multi-layer substance check on reviews (thin content, missing code refs, low uniqueness, fabricated references, aspirational claims). ≥3 layers tripped = hard FAIL.
-14. **Iteration escalation** — Persistent eval warnings across ≥2 iterations auto-escalate to FAIL. No more infinite shallow-fix loops.
+14. **Iteration escalation** — ✅ Done. Persistent eval warnings across ≥2 iterations auto-escalate to FAIL. No more infinite shallow-fix loops.
 
 ### Phase 4 — Productive Execution
 15. **Simplicity reviewer with veto** — Dedicated review pass that checks for dead code, premature abstraction, unnecessary indirection, gold-plating. Simplicity REQUEST_CHANGES = overall REQUEST_CHANGES.
