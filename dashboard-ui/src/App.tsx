@@ -49,10 +49,6 @@ function App() {
     setSelectedFeature(null);
   };
 
-  const handleFeatureSelect = (featureName: string) => {
-    setSelectedFeature(featureName);
-  };
-
   const handleFeatureChange = (featureName: string | null) => {
     setSelectedFeature(featureName);
   };
@@ -120,9 +116,9 @@ function App() {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ErrorBoundary fallback="FeatureTimeline">
-                <FeatureTimeline 
+                <FeatureTimeline
                   features={features}
-                  onFeatureSelect={handleFeatureSelect}
+                  onFeatureSelect={handleFeatureChange}
                 />
               </ErrorBoundary>
               

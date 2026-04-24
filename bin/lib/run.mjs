@@ -195,6 +195,8 @@ export function trackUsage(jsonResult) {
   if (_currentTask) {
     if (!_taskUsage[_currentTask]) {
       _taskUsage[_currentTask] = _emptyBucket();
+      // Phase label frozen at first dispatch for this task (intentional: task identity
+      // is established at creation time; setUsageContext phase shifts do not re-label).
       _taskUsage[_currentTask].phase = _currentPhase;
     }
     const tk = _taskUsage[_currentTask];
@@ -277,6 +279,8 @@ export function dispatchToAgent(agent, brief, cwd) {
     }
 
     if (agent === "codex") {
+      // NOTE: codex does not return usage/cost fields; trackUsage() is not called here.
+      // Features built via codex will always show tokenUsage: null in the dashboard.
       const result = spawnSync("codex", ["--quiet", brief], {
         encoding: "utf8",
         cwd,

@@ -1,41 +1,73 @@
-## Parallel Review Findings
+# Simplicity Review — max-review-rounds-escalation
 
-🔴 [engineer] `bin/lib/run.mjs:1270` — GitHub comment never posted on review-round escalation; add `if (task.issueNumber) commentIssue(task.issueNumber, escalationSummary)` before the `break`, where `escalationSummary` contains task title, rounds attempted, and deduplicated critical findings collected from prior-round `handshake.json` files (SPEC Done When item 3)
-🔴 [engineer] `test/review-escalation.test.mjs:1` — No integration test covers the run-loop path "3 review FAILs → task blocked"; add a simulated-loop test asserting `task.status === "blocked"`, `lastReason === "review-escalation: 3 rounds exceeded"`, and a progress.md entry after three critical-finding review rounds (SPEC Done When item 9)
-[product] - `shouldEscalate` is imported (`run.mjs:18`) and wired (`run.mjs:1270`) — the prior review's 🔴 critical is resolved
-🔴 [tester] `test/review-escalation.test.mjs:1` — Integration test for "3 review FAILs → task blocked" is absent; SPEC Done-When item 9 explicitly requires it; add a simulated-loop test asserting `task.status === "blocked"` and `lastReason === "review-escalation: 3 rounds exceeded"` in STATE.json after 3 critical-finding review rounds
-🔴 [tester] `bin/lib/run.mjs:1270` — GitHub comment on review-round escalation is never posted; no `commentIssue` call exists in the escalation block (lines 1270–1278); SPEC Done-When item 3 is unimplemented
-[security] **Verdict: PASS** — No critical (🔴) findings. Two warnings go to backlog.
-[security] 1. **Prior eval.md critical was wrong**: The previous 🔴 finding that "`shouldEscalate` is never imported" is stale — `run.mjs:18` imports it and `run.mjs:1270` calls it correctly.
-🟡 [architect] `bin/lib/review-escalation.mjs:14` — `typeof NaN === "number"` is `true`; a corrupt `NaN` value passes the type guard, stays `NaN` after `+= 1`, and makes `shouldEscalate` permanently return `false` (`NaN >= 3` is always `false`). Replace the guard with `!Number.isFinite(task.reviewRounds)`.
-🟡 [architect] `bin/lib/run.mjs:1163` — The read-state → find-task → update-field → write-state pattern is inlined verbatim at lines 1163–1168 and 1242–1247 (and again for `gateWarningHistory` at ~1144 and ~1218). Any future fix must be applied to all four copies. Extract a `persistTaskField(featureDir, taskId, field, value)` helper before the next task adds a fifth copy.
-🟡 [architect] `test/review-escalation.test.mjs:1` — No integration test exercises the run-loop path "3 consecutive review FAILs → task transitions to `blocked`". SPEC Done When item 9 explicitly requires this. Track in backlog; assign to task-9.
-🟡 [engineer] `bin/lib/run.mjs:1166` — If `rrTask` is null (task absent from fresh STATE.json snapshot), the `reviewRounds` write is silently dropped; add `console.warn("[review-rounds] task not found in state — reviewRounds not persisted")` so this is visible in diagnostics
-🟡 [engineer] `bin/lib/run.mjs:1244` — Same silent discard in parallel-review path (`rrTaskP` is null); same fix
-🟡 [engineer] `test/review-escalation.test.mjs:78` — "no increment on build/gate FAIL" stub does not test `run.mjs` code paths; document this explicitly or replace with a real integration test
-🟡 [product] `test/review-escalation.test.mjs:78` — "no increment on build/gate FAIL" is a caller-semantics stub; add a run.mjs-path integration test confirming counter is absent on build/gate fail iterations (deferred to task-8)
-🟡 [product] `test/review-escalation.test.mjs:1` — No test asserts compound-gate FAIL verdict → `incrementReviewRounds` called; direct coverage needed (deferred to task-8)
-🟡 [product] `bin/lib/run.mjs:1270` — `shouldEscalate` + block logic belongs to task-2; task-2 must not re-implement this or the escalation fires twice — add handoff note
-🟡 [tester] `test/review-escalation.test.mjs:78` — "no increment on build/gate FAIL" test is a caller-semantics stub with no `run.mjs` code path coverage; a misplaced `incrementReviewRounds` call in a gate-fail branch would not be caught — replace with a run-loop integration test asserting `reviewRounds` is absent from STATE.json after gate-only failure
-🟡 [tester] `test/review-escalation.test.mjs:1` — No test verifies STATE.json persistence of `reviewRounds` after a review FAIL; the "field exists in STATE.json" criterion (task-1's core scope) has no automated verification — add to task-8/task-9
-🟡 [security] `bin/lib/review-escalation.mjs:14` — The guard `typeof task.reviewRounds !== "number"` accepts both `NaN` and negative integers. `NaN + 1 = NaN` and `NaN >= 3 === false`, so a corrupt/crafted `NaN` value permanently disables escalation. A STATE.json with `reviewRounds: -100` delays the cap by 100 rounds. Fix: replace guard with `!Number.isFinite(task.reviewRounds) || task.reviewRounds < 0`.
-🟡 [security] `bin/lib/util.mjs:190` — `readState` performs no integrity check. `task.reviewRounds` loaded at `run.mjs:889-893` (crash recovery) and `run.mjs:1164` (post-increment sync) is trusted without HMAC validation — the harness tamper detection only fires in harness subprocesses, not in `run.mjs` direct reads. A local attacker who writes STATE.json between a harness write and a `run.mjs` read can inject arbitrary `reviewRounds`. Mitigation: clamp `reviewRounds` to `[0, MAX_REVIEW_ROUNDS + 1]` after reading from state.
-🟡 [simplicity] `bin/lib/run.mjs:1163` — Read-state→find-task→write-state block for persisting `reviewRounds` is duplicated verbatim at lines 1163–1168 and 1242–1247; `gateWarningHistory` has two more copies (~1144 and ~1220). Four identical 6-line blocks, each with the same silent-discard bug when `rrTask` is null. Extract `persistTaskField(featureDir, taskId, field, value)` before task-2 adds a fifth.
-[simplicity] Task-1 scope is correctly delivered. The counter increments on both `critical > 0` and compound gate FAIL (via the synthetic-critical-finding injection path at `run.mjs:1132-1136`). The field persists to STATE.json. `shouldEscalate` is imported and called (the prior eval.md critical about it being absent was stale — fixed before the second gate run). 566/566 tests pass. The 🟡 duplication finding goes to backlog.
-🔵 [architect] `bin/lib/run.mjs:1166` — If `rrTask` is null (concurrent STATE.json snapshot race), the `reviewRounds` write silently drops with no diagnostic. Add `console.warn` to surface this.
-🔵 [engineer] `bin/lib/review-escalation.mjs:14` — `typeof NaN === "number"` is true; corrupt `NaN` passes the type guard, `NaN + 1` stays `NaN`, and `shouldEscalate` permanently returns `false` (`NaN >= 3` is false); change guard to `typeof task.reviewRounds !== "number" || !Number.isFinite(task.reviewRounds)`
-🔵 [engineer] `bin/lib/review-escalation.mjs:26` — `shouldEscalate` has no comment indicating it is consumed by `run.mjs`; add `// called by run.mjs after review FAIL` to prevent readers from treating it as dead code
-🔵 [product] `bin/lib/review-escalation.mjs:14` — `typeof NaN === "number"` is true; corrupt `NaN` passes the guard and poisons the counter — add `|| !Number.isFinite(task.reviewRounds)`
-🔵 [product] `bin/lib/run.mjs:1163` — read-state-find-task-write-state block is duplicated at lines 1163–1168 and 1242–1247; extract before task-2 adds a third copy
-🔵 [tester] `bin/lib/review-escalation.mjs:14` — `typeof NaN === "number"` is true in JS; though NaN doesn't survive JSON round-trip, tighten guard with `!Number.isFinite(task.reviewRounds)` for defensive completeness
-🔵 [security] `bin/lib/review-escalation.mjs:26` — The `maxRounds` parameter is test-visible but not documented as unsafe to source from external input. Add a comment noting bypass risk if ever wired to a config value.
-🔵 [simplicity] `bin/lib/review-escalation.mjs:14` — `typeof NaN === 'number'` is true; if `task.reviewRounds` is `NaN`, the guard passes, `NaN + 1` stays `NaN`, and `shouldEscalate` permanently returns false (`NaN >= 3` is false). Guard with `!Number.isFinite(task.reviewRounds)` — one-token fix.
+**Reviewer role:** simplicity
+**Date:** 2026-04-24
+**Overall verdict:** ITERATE
 
-🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
-🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2
+---
 
-## Compound Gate
+## Files Read
 
-**Verdict:** WARN
-**Layers tripped:** 1/5
-**Tripped layers:** fabricated-refs
+- `bin/lib/review-escalation.mjs` (full file, 29 lines)
+- `test/review-escalation.test.mjs` (full file, 101 lines)
+- `bin/lib/run.mjs` (lines 1150–1290, grep for all `reviewRounds`/`shouldEscalate` hits)
+- `.team/features/max-review-rounds-escalation/SPEC.md`
+- `.team/features/max-review-rounds-escalation/tasks/task-1/handshake.json`
+- `.team/features/max-review-rounds-escalation/tasks/task-2/handshake.json`
+- `.team/features/max-review-rounds-escalation/tasks/task-2/artifacts/test-output.txt`
+
+---
+
+## Per-Criterion Results
+
+### 1. `review-escalation.mjs` module — is the abstraction earned?
+
+PASS. The module is 29 lines, pure functions, no I/O, no side effects. `incrementReviewRounds` and `shouldEscalate` are the right size and have clear single responsibilities. The module boundary earns its keep by isolating the cap logic from `run.mjs`.
+
+One defect: `typeof task.reviewRounds !== "number"` passes NaN (NaN has type "number"). Post-increment: `NaN + 1 = NaN`. `NaN >= 3` is always false, so escalation is permanently disabled for a task whose `reviewRounds` becomes NaN. This is a one-token fix (`!Number.isFinite`).
+
+### 2. Counter increment in run.mjs — duplicate read-state→write-state blocks
+
+FAIL (backlog-level). The 6-line read-state→find-task→write-state block that persists `reviewRounds` is copy-pasted verbatim at `run.mjs:1163–1168` and `run.mjs:1242–1247`. The same structure also exists for `gateWarningHistory` at ~1144 and ~1220. That is four identical blocks with the same silent-discard risk when `rrTask` is null. Cognitive load: a reader must verify each copy individually. A future bug fix must be applied to all four. This should be a `persistTaskField(featureDir, taskId, field, value)` helper.
+
+### 3. Block logic at shouldEscalate — correct and simple
+
+PASS. Lines 1270–1278 correctly fire after `reviewFailed = true`, call `shouldEscalate(task)`, transition to `blocked`, write `progress.md`, and log the event. The early `break` prevents further retries. No unnecessary indirection.
+
+### 4. SPEC Done When item 3 — GitHub comment on escalation
+
+FAIL. The SPEC requires: "A GitHub comment is posted to the task's linked issue containing: task title, rounds attempted, and deduplicated critical findings from each round's handshake.json." The escalation block at `run.mjs:1270–1278` contains no `commentIssue` call. This criterion is not implemented.
+
+Evidence: grepping `run.mjs` for `commentIssue` near line 1270 finds nothing. The handshake task-1 also lists this as a 🔴 critical from the engineer and tester roles.
+
+### 5. SPEC Done When item 9 — integration test: 3 review FAILs → task blocked
+
+FAIL. `test/review-escalation.test.mjs` has 14 unit tests covering `incrementReviewRounds`, `shouldEscalate`, and the constant — all testing the pure module in isolation. No test exercises the run-loop path "task receives 3 critical-finding review FAILs → `task.status === 'blocked'` in STATE.json with `lastReason === 'review-escalation: 3 rounds exceeded'`". The test at line 78 ("counter only increments on review FAIL") is a caller-semantics stub that never calls `run.mjs` code.
+
+Evidence: test output shows `incrementReviewRounds` suite (5 tests), `shouldEscalate` suite (8 tests), `MAX_REVIEW_ROUNDS constant` suite (1 test). No suite named "integration" for this feature's run-loop path.
+
+### 6. Test coverage for "summary generation with deduplication"
+
+FAIL. SPEC Done When item 8 requires: "Unit tests cover: counter increment on review FAIL, no increment on build/gate FAIL, block fires at round 3, summary generation with deduplication." Summary generation and deduplication are unimplemented entirely — no code, no test.
+
+### 7. Gate result (566/566 tests pass)
+
+PASS. The gate task-2 handshake shows exit code 0, 566 tests pass, 0 fail. The existing test suite is green.
+
+---
+
+## Findings
+
+🔴 bin/lib/run.mjs:1270 — GitHub comment on escalation (SPEC Done When item 3) is absent; add `if (task.issueNumber) await commentIssue(task.issueNumber, buildEscalationSummary(task, featureDir))` before the `break`, where `buildEscalationSummary` deduplicates critical findings across prior handshake.json files
+
+🔴 test/review-escalation.test.mjs:1 — No integration test for run-loop path "3 review FAILs → task blocked"; add a simulated-loop test asserting `task.status === 'blocked'` and `lastReason === 'review-escalation: 3 rounds exceeded'` in STATE.json after three critical-finding review rounds (SPEC Done When item 9)
+
+🟡 bin/lib/run.mjs:1163 — Read-state→find-task→write-state for `reviewRounds` is copy-pasted verbatim at lines 1163–1168 and 1242–1247; same pattern for `gateWarningHistory` at ~1144 and ~1220 — four identical 6-line blocks with the same silent-discard bug; extract `persistTaskField(featureDir, taskId, field, value)` helper before this adds a fifth copy
+
+🟡 bin/lib/review-escalation.mjs:14 — `typeof NaN === "number"` is true; NaN passes the guard, `NaN + 1` stays NaN, and `shouldEscalate` permanently returns false (`NaN >= 3` is false); change guard to `!Number.isFinite(task.reviewRounds)`
+
+---
+
+## Summary
+
+The core escalation mechanic (counter + block at round 3 + progress.md entry) is cleanly implemented. The `review-escalation.mjs` module is appropriately scoped and simple. Two SPEC Done When items are unimplemented: the GitHub comment with deduplicated findings (item 3) and the run-loop integration test (item 9). The duplication of the read-state→write-state pattern across four sites in `run.mjs` is the primary simplicity concern — it adds maintenance cost and masks a silent-discard bug at each copy.
