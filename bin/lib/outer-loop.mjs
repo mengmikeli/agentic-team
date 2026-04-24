@@ -286,13 +286,25 @@ The SPEC.md MUST have these sections:
 # Feature: {name}
 
 ## Goal
-{One clear sentence describing the outcome}
+{One sentence describing the desired outcome}
 
-## Scope
-{Concrete list of what's included}
+## Requirements
+- {Functional or non-functional requirement}
+- {Requirement 2}
+
+## Acceptance Criteria
+- [ ] {Specific, verifiable condition}
+- [ ] {Condition 2}
+
+## Technical Approach
+{High-level design: which files/modules change, key algorithms, data structures, APIs used}
+
+## Testing Strategy
+{How correctness will be verified: unit tests, integration tests, manual checks}
 
 ## Out of Scope
-{Explicit list of what's excluded}
+- {Explicitly excluded item}
+- {Deferred to future work}
 
 ## Done When
 - [ ] {Concrete, verifiable criterion}
@@ -374,7 +386,7 @@ export function parsePriorityOutput(output) {
  * @returns {{ valid: boolean, sections: string[], missing: string[] }}
  */
 export function validateSpecFile(specPath) {
-  const required = ["Goal", "Scope", "Out of Scope", "Done When"];
+  const required = ["Goal", "Requirements", "Acceptance Criteria", "Technical Approach", "Testing Strategy", "Out of Scope", "Done When"];
 
   if (!existsSync(specPath)) {
     return { valid: false, sections: [], missing: required };

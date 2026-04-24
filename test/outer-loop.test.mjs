@@ -124,12 +124,15 @@ describe("buildOuterBrainstormBrief", () => {
     assert.ok(brief.includes(".team/features/feature-x/SPEC.md"));
   });
 
-  it("requires Goal, Scope, Out of Scope, Done When sections", () => {
+  it("requires Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope, Done When sections", () => {
     const brief = buildOuterBrainstormBrief(
       SAMPLE_PRODUCT_MD, [], "Feature", "feat", "/project",
     );
     assert.ok(brief.includes("## Goal"));
-    assert.ok(brief.includes("## Scope"));
+    assert.ok(brief.includes("## Requirements"));
+    assert.ok(brief.includes("## Acceptance Criteria"));
+    assert.ok(brief.includes("## Technical Approach"));
+    assert.ok(brief.includes("## Testing Strategy"));
     assert.ok(brief.includes("## Out of Scope"));
     assert.ok(brief.includes("## Done When"));
   });
@@ -257,9 +260,18 @@ describe("validateSpecFile", () => {
 ## Goal
 Build something great.
 
-## Scope
+## Requirements
 - Item 1
 - Item 2
+
+## Acceptance Criteria
+- [ ] Criterion 1
+
+## Technical Approach
+Use Node.js modules.
+
+## Testing Strategy
+Unit tests with node:test.
 
 ## Out of Scope
 - Not this
@@ -271,7 +283,7 @@ Build something great.
 
     const result = validateSpecFile(specPath);
     assert.equal(result.valid, true);
-    assert.equal(result.sections.length, 4);
+    assert.equal(result.sections.length, 7);
     assert.equal(result.missing.length, 0);
   });
 
@@ -282,7 +294,7 @@ Build something great.
 ## Goal
 Build something.
 
-## Scope
+## Requirements
 - Item 1
 `);
 
@@ -291,13 +303,13 @@ Build something.
     assert.ok(result.missing.includes("Out of Scope"));
     assert.ok(result.missing.includes("Done When"));
     assert.ok(result.sections.includes("Goal"));
-    assert.ok(result.sections.includes("Scope"));
+    assert.ok(result.sections.includes("Requirements"));
   });
 
   it("returns all missing for non-existent file", () => {
     const result = validateSpecFile(join(tmpDir, "nope.md"));
     assert.equal(result.valid, false);
-    assert.equal(result.missing.length, 4);
+    assert.equal(result.missing.length, 7);
     assert.equal(result.sections.length, 0);
   });
 
@@ -308,8 +320,17 @@ Build something.
 ## goal
 do stuff
 
-## scope
+## requirements
 stuff
+
+## acceptance criteria
+- [ ] done
+
+## technical approach
+use modules
+
+## testing strategy
+unit tests
 
 ## out of scope
 none
@@ -327,7 +348,7 @@ none
     writeFileSync(specPath, "");
     const result = validateSpecFile(specPath);
     assert.equal(result.valid, false);
-    assert.equal(result.missing.length, 4);
+    assert.equal(result.missing.length, 7);
   });
 });
 
