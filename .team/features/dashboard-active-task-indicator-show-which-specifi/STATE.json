@@ -1,0 +1,38 @@
+{
+  "version": "2.0",
+  "feature": "dashboard-active-task-indicator-show-which-specifi",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Dashboard active task indicator — Show which specific task is executing with name and attempt number, not just \"N/M done\".",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 157,
+      "lastTransition": "2026-04-24T05:29:12.813Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 158
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T05:29:12.813Z"
+    }
+  ],
+  "createdAt": "2026-04-24T05:29:02.316Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T05:29:15.125Z",
+  "_write_nonce": "3a13badcdd66f02d"
+}

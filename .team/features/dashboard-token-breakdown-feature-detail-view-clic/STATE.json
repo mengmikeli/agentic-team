@@ -30,10 +30,10 @@
     {
       "id": "task-2",
       "title": "Quality gate passes",
-      "status": "in-progress",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 139,
-      "lastTransition": "2026-04-24T05:11:39.481Z",
+      "lastTransition": "2026-04-24T05:25:58.202Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -41,8 +41,15 @@
           "layers": [
             "fabricated-refs"
           ]
+        },
+        {
+          "iteration": 2,
+          "layers": [
+            "fabricated-refs"
+          ]
         }
-      ]
+      ],
+      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
     }
   ],
   "gates": [
@@ -83,7 +90,7 @@
       "taskId": "task-2"
     }
   ],
-  "transitionCount": 3,
+  "transitionCount": 4,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -105,10 +112,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T05:11:39.481Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-24T05:25:58.202Z"
     }
   ],
   "createdAt": "2026-04-24T04:48:29.308Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T05:21:27.250Z",
-  "_write_nonce": "2e3f1935b668c28f"
+  "_last_modified": "2026-04-24T05:25:58.202Z",
+  "_write_nonce": "6e74f0d74b1e9943"
 }

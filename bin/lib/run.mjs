@@ -15,7 +15,7 @@ import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REV
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
 import { recordWarningIteration, checkEscalation } from "./iteration-escalation.mjs";
-import { incrementReviewRounds, shouldEscalate } from "./review-escalation.mjs";
+import { incrementReviewRounds, shouldEscalate, buildEscalationSummary } from "./review-escalation.mjs";
 import { cmdInit } from "./init.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
@@ -1193,6 +1193,10 @@ async function _runSingleFeature(args, description, providedLabel = '') {
               compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
             });
             writeFileSync(join(taskDir, "handshake.json"), JSON.stringify(reviewHandshake, null, 2) + "\n");
+            if (synth.critical > 0 && task.reviewRounds) {
+              const roundHs = { ...reviewHandshake, findingsList: findings.filter(f => f.severity === "critical" || f.severity === "warning").map(f => ({ severity: f.severity, text: f.text })) };
+              writeFileSync(join(taskDir, `handshake-round-${task.reviewRounds}.json`), JSON.stringify(roundHs, null, 2) + "\n");
+            }
           }
         }
 
@@ -1267,12 +1271,18 @@ async function _runSingleFeature(args, description, providedLabel = '') {
             compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
           });
           writeFileSync(join(taskDir, "handshake.json"), JSON.stringify(multiReviewHandshake, null, 2) + "\n");
+          if (synth.critical > 0 && task.reviewRounds) {
+            const roundHs = { ...multiReviewHandshake, findingsList: findings.filter(f => f.severity === "critical" || f.severity === "warning").map(f => ({ severity: f.severity, text: f.text })) };
+            writeFileSync(join(taskDir, `handshake-round-${task.reviewRounds}.json`), JSON.stringify(roundHs, null, 2) + "\n");
+          }
         }
 
         // If review found critical issues, treat as failure — retry the task
         if (reviewFailed) {
           if (shouldEscalate(task)) {
             // Review-round escalation: block when cap is hit
+            const escalationSummary = buildEscalationSummary(taskDir, task.title, task.reviewRounds);
+            if (task.issueNumber) commentIssue(task.issueNumber, escalationSummary);
             harness("transition", "--task", task.id, "--status", "blocked",
               "--dir", featureDir, "--reason", `review-escalation: ${task.reviewRounds} rounds exceeded`);
             blocked++;

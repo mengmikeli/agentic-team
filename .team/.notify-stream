@@ -174,3 +174,6 @@
 {"ts":"2026-04-24T04:59:18.526Z","event":"task-started","msg":"▶ Task 1/9: `task.reviewRounds` field exists in STATE.json and increments by 1 each time a review phase produces a FAIL verdict (critical findings > 0 or compound gate FAIL)."}
 {"ts":"2026-04-24T05:11:41.803Z","event":"task-started","msg":"▶ Task 2/2: Quality gate passes"}
 {"ts":"2026-04-24T05:15:41.846Z","event":"task-started","msg":"▶ Task 2/9: When `task.reviewRounds` reaches 3, the task is immediately blocked (no further retry attempts) with `lastReason = \"review-escalation: 3 rounds exceeded\"`."}
+{"ts":"2026-04-24T05:26:00.583Z","event":"feature-complete","msg":"Feature complete: dashboard-token-breakdown-feature-detail-view-clic — 0/2 done, 2 blocked, 37m 21s, $27.64"}
+{"ts":"2026-04-24T05:29:02.365Z","event":"feature-started","msg":"▶ Feature: dashboard-active-task-indicator-show-which-specifi (2 tasks planned)"}
+{"ts":"2026-04-24T05:29:15.124Z","event":"task-started","msg":"▶ Task 1/2: Dashboard active task indicator — Show which specific task is executing with name and attempt number, not just \"N/M done\"."}

@@ -26,3 +26,8 @@
 **Task 1: `task.reviewRounds` field exists in STATE.json and increments by 1 each time a review phase produces a FAIL verdict (critical findings > 0 or compound gate FAIL).**
 - 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
 
+### 2026-04-24 05:24:48
+**Task 2: When `task.reviewRounds` reaches 3, the task is immediately blocked (no further retry attempts) with `lastReason = "review-escalation: 3 rounds exceeded"`.**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
