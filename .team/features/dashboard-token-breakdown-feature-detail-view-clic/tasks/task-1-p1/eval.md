@@ -1,172 +1,183 @@
-# Architect Review — dashboard-token-breakdown-feature-detail-view-clic
+# Engineer Review — dashboard-token-breakdown-feature-detail-view-clic
 
-## Overall Verdict: PASS
-
-Gate: 566/566 tests, exit 0 (task-2/artifacts/test-output.txt lines 1416–1423, verified).
-Core architecture is sound. Three 🟡 items carry to backlog. Prior task-2 FAIL verdict was caused by fabricated-refs escalation in the review process, not code defects.
+**Reviewer role:** Software Engineer (implementation correctness, code quality, error handling, performance)
+**Date:** 2026-04-25
+**Overall Verdict:** PASS
 
 ---
 
-## Files Actually Read (Architect Pass)
+## Files Actually Read
 
+- `dashboard-ui/src/components/feature-detail.tsx` (full, 167 lines)
+- `dashboard-ui/src/components/feature-timeline.tsx` (full, 95 lines)
+- `dashboard-ui/src/App.tsx` (full, 153 lines)
+- `dashboard-ui/src/hooks/use-features.ts` (full, 91 lines)
+- `dashboard-ui/src/types.ts` (full, 109 lines)
 - `tasks/task-1/handshake.json`
 - `tasks/task-1-p1/handshake.json`
 - `tasks/task-2/handshake.json`
-- `tasks/task-2/eval.md` (full parallel review findings)
-- `tasks/task-1/eval.md` (prior architect review)
+- `tasks/task-2/eval.md`
+- `tasks/task-1/eval.md`
 - `tasks/task-1-p1/artifacts/test-output.txt`
-- `tasks/task-1-p1/artifacts/gate-stderr.txt`
-- `tasks/task-2/artifacts/test-output.txt` (lines 1410–1423)
-- `dashboard-ui/src/components/feature-detail.tsx` (full, 164 lines)
-- `dashboard-ui/src/App.tsx` (full, 151 lines)
-- `dashboard-ui/src/App.tsx.bak` (lines 40–69)
-- `dashboard-ui/src/types.ts` (full, 109 lines)
-- `dashboard-ui/src/components/feature-timeline.tsx` (full, 96 lines)
+- `bin/lib/run.mjs` (grep: resetRunUsage, trackUsage, buildTokenUsage, tokenUsage — lines 192, 239, 246, 298, 308–309, 347, 761, 1468)
+- `dashboard-ui/src/components/task-board.tsx` (lines 1–12)
+
+**Not read:** `dashboard-ui/**/*.test.*` — confirmed none exist via glob.
 
 ---
 
-## Per-Criterion Results (Architect)
+## Builder Claims vs Evidence
 
-### 1. Artifact existence — PASS
-All four builder-claimed artifacts exist on disk: `types.ts`, `feature-detail.tsx`, `feature-timeline.tsx`, `App.tsx`.
+Builder (task-1) claimed 6 fixes. Each verified against current code:
 
-### 2. Builder claims verified — PASS
-- `_runStartedAt` at `types.ts:28` ✓
-- Wall-clock duration at `feature-detail.tsx:42–44` ✓
-- Selection highlight ring at `feature-timeline.tsx:54` ✓
-- Fixed-width cost column at `feature-timeline.tsx:81–86` ✓
-- `selectedFeature` wired `App.tsx:124` → `FeatureTimeline.onFeatureSelect` ✓
+| Claim | File:Line | Verified |
+|---|---|---|
+| Deleted `App.tsx.bak` | — (glob returned no match) | ✓ PASS |
+| Passed `setSelectedFeature` directly to `FeatureTimeline` | `App.tsx:126` | ✓ PASS |
+| Adaptive cost precision (`toFixed(4)` sub-cent) | `feature-detail.tsx:13` | ✓ PASS |
+| `Number.isFinite` guard on timeline cost | `feature-timeline.tsx:83` | ✓ PASS |
+| `useEffect` reset guard for SSE-removed feature | `App.tsx:49–53` | ✓ PASS |
+| SSE ref prevents polling while connected | `use-features.ts:74` | ✓ PASS |
 
-### 3. Gate — PASS
-task-2 test output lines 1416–1423: `tests 566, pass 566, fail 0`.
-
-### 4. task-1-p1 gate failure — TIMEOUT, NOT CODE
-gate-stderr.txt: `spawnSync /bin/sh ETIMEDOUT`. Runner timeout; not a code defect.
-
-### 5. task-2 FAIL cause — PROCESS ARTIFACT
-The critical finding was iteration-escalation: fabricated-refs tripped in review iterations 1 and 2. Prior reviewers hallucinated line numbers. The code is correct. The compound gate correctly caught the problem; the code did not cause it.
-
-### 6. `fmtCost` precision — USABILITY GAP
-`feature-detail.tsx:11`: `$${v.toFixed(2)}`. Per-task costs < $0.005 render as `$0.00`. Small brainstorm/review task costs ($0.001–$0.004) are misrepresented as free. This undermines the feature's core purpose. `feature-timeline.tsx:83` has the same problem.
-
-### 7. `App.tsx.bak` — CONFIRMED HARMFUL
-`App.tsx.bak:50–56` has two handlers that no longer exist in `App.tsx`. It directly caused prior reviewers to fabricate findings, driving the fabricated-refs escalation that failed task-2. Zero value; active harm.
-
-### 8. Stale `selectedFeature` on SSE removal
-`App.tsx:131`: no `useEffect` guard. If SSE removes the selected feature, `FeatureDetail` shows "Select a feature" while `selectedFeature` is still set. Confusing UX; carry to backlog.
-
-### 9. Type/runtime contract mismatch
-`types.ts:57` declares `total: PhaseTokenUsage` (non-optional) but `feature-detail.tsx:157` uses `total?.costUsd ?? 0`. The type and runtime code disagree on whether `total` can be absent.
-
-### 10. Dead prop
-`App.tsx:137` passes `selectedFeature` to `TaskBoard` which renders only when `selectedFeature` is null (line 129). Always `null` at the call site.
-
-### 11. Callback interface fragmentation
-`feature-timeline.tsx:9`: `onFeatureSelect: (name: string)` vs `task-board.tsx:11`: `onFeatureChange: (name: string | null)`. Same handler, two names, divergent nullability.
+**Note:** task-1-p1 eval.md (architect section, lines 50–73) contains findings that describe code BEFORE the task-1 fix run. Those findings (`fmtCost toFixed(2)` only, no `useEffect` guard) do not match the current committed code and should not be carried to backlog.
 
 ---
 
-## Architect Findings
+## Per-Criterion Results
 
-🟡 `dashboard-ui/src/App.tsx.bak` — dead backup file committed to source tree; caused fabricated-refs escalation by misleading reviewers about a two-handler pattern that no longer exists; delete immediately
-🟡 `dashboard-ui/src/components/feature-detail.tsx:11` — `fmtCost` uses `toFixed(2)`; per-task costs < $0.005 render as `$0.00`, misrepresenting them as free; use `toFixed(4)` or adaptive precision for per-task cost rows
-🟡 `dashboard-ui/src/App.tsx:131` — `features.find(f => f.name === selectedFeature) || null` has no reset guard; SSE feature removal leaves `selectedFeature` stale and shows confusing "Select a feature" message; add `useEffect` to call `setSelectedFeature(null)` when selected name is no longer in `features`
-🔵 `dashboard-ui/src/types.ts:57` — `FeatureTokenUsage.total` is non-optional in type but accessed as `total?.costUsd ?? 0` in component; resolve: either `total?: PhaseTokenUsage` if partial writes are possible, or remove optional chaining and document the invariant
-🔵 `dashboard-ui/src/App.tsx:137` — `selectedFeature` always `null` when `TaskBoard` renders (line 129 guard); pass `null` directly or remove prop to make invariant explicit
-🔵 `dashboard-ui/src/components/feature-timeline.tsx:9` — `onFeatureSelect: (name: string)` diverges from `task-board.tsx:11` `onFeatureChange: (name: string | null)`; align prop names and nullability for the same callback
+### 1. Click a feature to see per-task cost — PASS
 
----
+`App.tsx:132–136`: `selectedFeature` truthy → renders `FeatureDetail` with `features.find(f => f.name === selectedFeature) || null`. `feature-detail.tsx:87–121`: `Object.keys(tokenUsage.byTask).length > 0` guards per-task table. Wire-up is correct; click handler (`setSelectedFeature`) flows through `feature-timeline.tsx:56`.
 
-# Security Review — dashboard-token-breakdown-feature-detail-view-clic
+### 2. Phase breakdown (brainstorm/build/review) — PASS
 
-**Reviewer role:** Security specialist
-**Date:** 2026-04-25
-**Overall verdict:** PASS
+`feature-detail.tsx:127–153`: phase table rendered when `byPhase` non-empty. Each row renders `phase`, `dispatches`, aggregate tokens, `costUsd`, `durationMs`.
 
----
+### 3. Run duration in header — PASS
 
-## Files actually read
+`feature-detail.tsx:45–47`: `startTs = _runStartedAt || createdAt`, `endTs = completedAt || _last_modified`. `wallClockMs` computed only when both are non-null. Rendered at line 62 only when `> 0`. Invalid timestamps produce `NaN`; `NaN > 0` is `false`, so the section suppresses silently — correct.
 
-- `dashboard-ui/src/components/feature-detail.tsx` (full file, 163 lines)
-- `dashboard-ui/src/components/feature-timeline.tsx` (full file, 95 lines)
-- `dashboard-ui/src/App.tsx` (full file, 151 lines)
-- `dashboard-ui/src/types.ts` (full file, 109 lines)
-- `dashboard-ui/src/lib/utils.ts` (partial — humanizeName)
-- `bin/agt.mjs` lines 440–659 and 758–765 (API server)
-- `.team/features/.../tasks/task-1/handshake.json`
-- `.team/features/.../tasks/task-1-p1/handshake.json`
-- `.team/features/.../tasks/task-2/handshake.json`
-- `.team/features/.../tasks/task-2/eval.md`
-- `.team/features/.../tasks/task-1-p1/artifacts/test-output.txt`
+**Caveat:** For in-progress features, `endTs` falls back to `_last_modified` (last state write), not current time. "Run duration" shows time-to-last-state-write, not current elapsed. This is stale for long-running active features. Not a bug but a UX limitation; flagged below.
 
----
+### 4. Cost column in feature timeline — PASS
 
-## Per-criterion results
+`feature-timeline.tsx:81–87`: `costUsd != null` renders `$N.NN`; otherwise renders `<div className="flex-shrink-0 w-14" />` as a placeholder. `Number.isFinite` guard at line 83.
 
-### 1. XSS / injection in new UI components
+**Precision inconsistency:** Timeline uses inline `toFixed(2)` — sub-cent costs show `$0.00`. `feature-detail.tsx` uses adaptive `toFixed(4)`. The same cost amount looks free in the timeline but non-zero in the panel. Flagged below.
 
-**Result: PASS**
+### 5. Error handling — PASS
 
-Evidence:
-- `feature-detail.tsx:49` — `humanizeName(feature.name)` output rendered as React JSX text child; React auto-escapes all text children. No `dangerouslySetInnerHTML` used anywhere in the new component.
-- `feature-detail.tsx:106` — task title appears as `{taskMap.get(id) || id}` (JSX text) and in `title={...}` attribute; React escapes both.
-- `feature-detail.tsx:109` — `tu.phase` rendered as JSX text; auto-escaped.
-- `humanizeName` (utils.ts:48) — transforms slug to display string with `.replace()` only; does not emit HTML.
-- `feature-timeline.tsx:67` — feature name rendered as JSX text, no raw HTML.
+- `fmtCost`/`fmtMs`/`fmtK` all open with `Number.isFinite(v)` guard (`feature-detail.tsx:11–26`). Non-finite inputs return `'—'`.
+- `total` in `TokenBreakdown` accessed via `total?.costUsd ?? 0` throughout lines 160–162.
+- `feature.tasks.map(...)` safe: `Feature.tasks` is typed as `Task[]` (non-optional, non-nullable); no null guard needed.
+- `JSON.parse` values from STATE.json cannot be `Infinity`/`NaN` (not valid JSON), so `Number.isFinite` guards are a correctness improvement but not strictly required for server-provided data.
 
-All data from STATE.json flows through React text rendering. No injection path found.
+### 6. Code quality — PASS with minor caveats
 
-### 2. Sensitive data exposure — new tokenUsage field
+- `feature-detail.tsx` split into `FeatureDetail` (null gate) + `TokenBreakdown` (renders only when `tokenUsage` is non-null). Clean separation.
+- `taskMap` allocated inside `TokenBreakdown` — only created when `tokenUsage` is truthy. No wasted allocation.
+- `use-features.ts:74`: `sseActiveRef.current` ref correctly prevents polling when SSE is live. Ref approach avoids stale closure issues.
+- `handleFeatureChange` wrapper removed; `setSelectedFeature` passed directly. One handler, one name.
 
-**Result: WARN (pre-existing, carry to backlog)**
+**Type/runtime disagreement:** `types.ts:57` declares `total: PhaseTokenUsage` (non-optional). Runtime accesses via `total?.costUsd ?? 0` (optional-chaining). One of them is wrong; flagged below.
 
-Evidence:
-- `bin/agt.mjs:473` — `tokenUsage: state?.tokenUsage ?? null` is now serialised into the `/api/features` response. This includes `costUsd`, `inputTokens`, `outputTokens`, etc.
-- `bin/agt.mjs:624-628` — `/api/state?path=` reads any `STATE.json` on the filesystem from a caller-supplied path with no validation. `expandTilde` (line 280-282) only handles `~/` prefix; it performs no allowlist check against registered project roots.
-- `bin/agt.mjs:762` — `server.listen(parseInt(port))` with no host argument binds to 0.0.0.0 (all interfaces). Any device on the same LAN can reach these endpoints.
-- Combined: a LAN-adjacent attacker can read any `STATE.json` on the machine (constrained to files named `STATE.json`) via path traversal. The new `tokenUsage` field means this now leaks cost/token data in addition to task state.
-- This is a **pre-existing issue** flagged by the prior parallel review (`[security] bin/agt.mjs:449`). Impact is marginally elevated by this feature. No new code path introduced here.
+**Dead prop:** `App.tsx:140` passes `selectedFeature` to `TaskBoard`, which renders only in the `!selectedFeature` branch (line 131). `selectedFeature` is always `null` at that call site. Dead prop.
 
-### 3. Date parsing in feature-detail.tsx
+### 7. Performance — PASS
 
-**Result: PASS**
+`Object.entries(byTask).map(...)` and `Object.entries(byPhase).map(...)` are O(n) over task/phase buckets. No n+1, no blocking I/O in the UI components. `use-features.ts` SSE + fallback polling pattern is correct.
 
-Evidence:
-- `feature-detail.tsx:44` — `new Date(endTs).getTime() - new Date(startTs).getTime()`. If either timestamp is malformed, `new Date(...)` returns `Invalid Date`; `.getTime()` returns `NaN`; `NaN != null` is `true` but `NaN > 0` is `false` (line 59), so the wall-clock display is suppressed. No crash, no misleading output.
+### 8. Gate — PASS (with infrastructure caveat)
 
-### 4. Number formatting — `toFixed` without guard in feature-timeline.tsx
+task-1-p1 gate: `spawnSync /bin/sh ETIMEDOUT` — runner infrastructure timeout, not a test failure. Current gate output (prompt): 566/566 tests, exit 0. Gate is clean.
 
-**Result: PASS (narrow)**
+### 9. Zero UI component tests — WARN
 
-Evidence:
-- `feature-timeline.tsx:81-83` — guarded by `feature.tokenUsage?.total?.costUsd != null` before calling `.toFixed(2)`. Since `JSON.parse` cannot produce `Infinity`/`NaN` (they are not valid JSON), the only numeric values reachable here are finite numbers. `.toFixed(2)` on a finite number cannot throw. The guard is sufficient.
-
-### 5. localStorage — project name storage
-
-**Result: PASS**
-
-Evidence:
-- `App.tsx:33-45` — project name written to `localStorage.getItem('agt-dashboard-project')` and read back.
-- Read value is only used in `projects.find(p => p.name === savedProject)` — a filter, never eval'd or used as a filesystem path.
-- No XSS vector: the value is compared, not rendered as HTML.
-
-### 6. New artifact — `_runStartedAt` field
-
-**Result: PASS**
-
-Evidence:
-- `types.ts:28` — `_runStartedAt?: string` added to `Feature` interface.
-- `bin/agt.mjs:467` — `_runStartedAt: state?._runStartedAt || null` sourced from STATE.json.
-- Used only in `feature-detail.tsx:42` as an input to `new Date()` (see criterion 3 above). No additional attack surface.
+`dashboard-ui/**/*.test.*` → 0 files. All 566 tests cover backend harness code. The core acceptance criterion — "click a feature to see per-task cost, phase breakdown, run duration" — has no component test. If `App.tsx` stops passing `feature` to `FeatureDetail`, or `feature-detail.tsx` stops rendering `byTask` when non-empty, no test will catch it.
 
 ---
 
 ## Findings
 
-🟡 bin/agt.mjs:624 — `/api/state?path=` reads STATE.json from any caller-supplied path with no allowlist; `server.listen` (line 762) binds to 0.0.0.0; now also exposes `tokenUsage` cost data — validate path against registered project roots before serving *(pre-existing; carry to backlog)*
+🟡 dashboard-ui/src/components/feature-detail.tsx:1 — Zero component tests for `FeatureDetail`; the entire click-to-detail acceptance criterion is untested at the component level; add Vitest/RTL tests for: populated state, null tokenUsage, close button, and `fmtMs`/`fmtCost`/`fmtK` boundary values (carry to backlog)
+
+🟡 dashboard-ui/src/components/feature-detail.tsx:74 — `!tokenUsage` renders generic "No token data available" with no agent-specific hint; codex-built features silently show this message and users cannot distinguish it from a data error; update fallback text to distinguish codex limitation (carry to backlog)
+
+🔵 dashboard-ui/src/types.ts:57 — `FeatureTokenUsage.total` is non-optional in type but accessed as `total?.costUsd ?? 0` in `feature-detail.tsx:160`; change type to `total?: PhaseTokenUsage` to align with the defensive runtime access, or document the invariant and remove optional chaining
+
+🔵 dashboard-ui/src/App.tsx:140 — `selectedFeature` is always `null` when `TaskBoard` renders (it's in the `!selectedFeature` branch at line 131); pass `null` directly or remove the prop to make the invariant explicit
+
+🔵 dashboard-ui/src/components/feature-timeline.tsx:83 — inline `toFixed(2)` instead of reusing `fmtCost` from `feature-detail.tsx`; sub-cent costs show `$0.00` in the timeline but `$0.0001` in the detail panel — same cost reads as free in one view and non-zero in the other; extract `fmtCost` to a shared utils module and use it in both
+
+🔵 dashboard-ui/src/components/feature-detail.tsx:47 — for in-progress features `endTs = feature._last_modified` (last state write), not current time; "Run duration" shows stale elapsed time that does not advance until the next SSE state push; consider suppressing the run duration display for active features, or document the limitation with a tooltip
 
 ---
 
-## Summary
+# Simplicity Review — dashboard-token-breakdown-feature-detail-view-clic
 
-The new feature adds a pure read-only UI layer over data already in STATE.json. React's JSX rendering prevents XSS. Date arithmetic handles invalid inputs without crashing. The only security-relevant finding is a pre-existing path traversal / all-interface binding in the API server, marginally elevated by the new `tokenUsage` data. No new attack surface introduced.
+**Reviewer role:** Simplicity advocate (dead code, premature abstraction, unnecessary indirection, gold-plating)
+**Date:** 2026-04-25
+**Overall Verdict:** PASS
+
+---
+
+## Files Actually Read
+
+- `dashboard-ui/src/App.tsx` (full, 154 lines)
+- `dashboard-ui/src/components/feature-detail.tsx` (full, 167 lines)
+- `dashboard-ui/src/components/feature-timeline.tsx` (full, 95 lines)
+- `dashboard-ui/src/hooks/use-features.ts` (full, 92 lines)
+- `dashboard-ui/src/types.ts` (full, 109 lines)
+- `tasks/task-1/handshake.json`, `tasks/task-2/handshake.json`, `tasks/task-1-p1/handshake.json`
+- `tasks/task-2/eval.md`, `tasks/task-1/eval.md`, `tasks/task-1-p1/eval.md`
+
+---
+
+## Veto-Category Audit (🔴)
+
+### 1. Dead code
+`App.tsx.bak` — confirmed deleted (glob returns no match). No other dead variables, unreachable branches, or unused imports found. `_featuresLoading` at `App.tsx:25` uses the underscore prefix to intentionally ignore the value — not dead code.
+
+**Result: PASS — no dead code.**
+
+### 2. Premature abstraction
+`TokenBreakdown` (`feature-detail.tsx:83`) is a file-private sub-component with one call site (`feature-detail.tsx:76`). Technically single-callsite. However, the split is a null-narrowing pattern, not a reuse abstraction: the parent `FeatureDetail` gates on `!tokenUsage`, and `TokenBreakdown` receives `tokenUsage: NonNullable<Feature['tokenUsage']>`, eliminating all null checks across 80+ lines of table rendering. Inlining it would require nesting 80 lines inside a ternary or scattering `!` assertions throughout. The split reduces cognitive load; it does not add it.
+
+`fmtCost`, `fmtMs`, `fmtK` — each used at 3+ call sites within the same file. Not premature.
+
+**Result: PASS — abstractions earn their keep.**
+
+### 3. Unnecessary indirection
+`handleProjectChange` (`App.tsx:55–58`) is a two-statement wrapper: sets project AND clears selected feature. Not a no-op delegation. The prior single-line `handleFeatureChange` wrapper (flagged 🔵 in task-2 review) has been removed; `setSelectedFeature` is now passed directly at lines 126 and 141.
+
+**Result: PASS — no wrapper-only delegation.**
+
+### 4. Gold-plating
+`tokenDays` / `setTokenDays` — used at `App.tsx:103` as `onDaysChange={setTokenDays}`. Real variation is exercised.
+`sseConnected` — used at `App.tsx:94` to show the connection indicator in `Navigation`.
+No config options with only one value, no speculative extensibility.
+
+**Result: PASS — no gold-plating.**
+
+---
+
+## Per-Criterion Results
+
+### Feature code size
+`feature-detail.tsx` is 167 lines: 3 formatters (14 lines), 1 exported component (52 lines), 1 private sub-component (83 lines, 2 tables + totals). The only indirection is the null-gate split described above. No hooks, no context, no abstraction layers. Size is proportional to the feature.
+
+### Builder claims verified
+All 6 task-1 fix claims verified against current code (see Engineer section above). The critical prior issue (`App.tsx.bak`) is gone. The previously flagged one-line `handleFeatureChange` wrapper is gone — `setSelectedFeature` passed directly.
+
+### Unfixed prior 🔵 items (carry to backlog)
+Two 🔵 items from previous reviews remain unaddressed in the current code:
+- `App.tsx:141` — `selectedFeature` always null when `TaskBoard` renders; dead prop value
+- `feature-timeline.tsx:3-4` — two separate import lines from the same `@/lib/utils` module (new finding; not previously called out)
+
+---
+
+## Findings
+
+🔵 dashboard-ui/src/components/feature-timeline.tsx:3 — two separate `import { … } from '@/lib/utils'` statements (lines 3 and 4); merge into one: `import { humanizeName, relativeTime, getActiveTask, truncate, cn } from '@/lib/utils'`
+
+🔵 dashboard-ui/src/App.tsx:141 — `selectedFeature={selectedFeature}` passed to `TaskBoard` is always `null` at that call site (code is in the `!selectedFeature` branch at line 131); pass `null` directly or remove the prop to make the invariant explicit (unfixed 🔵 from prior review)
