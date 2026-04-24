@@ -127,3 +127,5 @@
 {"ts":"2026-04-24T01:21:53.524Z","event":"task-started","msg":"▶ Task 5/8: The escalation event appears in `progress.md`"}
 {"ts":"2026-04-24T01:29:42.559Z","event":"task-passed","msg":"✓ Task 5/8: The escalation event appears in `progress.md`"}
 {"ts":"2026-04-24T01:29:49.233Z","event":"task-started","msg":"▶ Task 6/8: All unit tests described in Scope pass"}
+{"ts":"2026-04-24T01:40:28.356Z","event":"task-passed","msg":"✓ Task 6/8: All unit tests described in Scope pass"}
+{"ts":"2026-04-24T01:40:35.068Z","event":"task-started","msg":"▶ Task 7/8: The integration test described in Scope passes"}
