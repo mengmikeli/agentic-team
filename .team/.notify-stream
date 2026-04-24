@@ -150,3 +150,5 @@
 {"ts":"2026-04-24T03:42:17.980Z","event":"task-passed","msg":"✓ Task 3/7: Test: `finalize` also closes `state.approvalIssueNumber` when present, and `issuesClosed` reflects it"}
 {"ts":"2026-04-24T03:42:22.356Z","event":"progress","msg":"Progress: 3/7 done, 0 blocked."}
 {"ts":"2026-04-24T03:42:24.753Z","event":"task-started","msg":"▶ Task 4/7: Test: tasks without `issueNumber` are skipped silently and do not affect the count"}
+{"ts":"2026-04-24T03:48:01.834Z","event":"task-passed","msg":"✓ Task 4/7: Test: tasks without `issueNumber` are skipped silently and do not affect the count"}
+{"ts":"2026-04-24T03:48:08.544Z","event":"task-started","msg":"▶ Task 5/7: Test: calling `finalize` on an already-completed feature does not re-close issues"}

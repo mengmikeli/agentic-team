@@ -1,23 +1,20 @@
 # Security Review — finalize-auto-close-validation
 
 **Role:** Security specialist
-**Task:** Test: `finalize` also closes `state.approvalIssueNumber` when present, and `issuesClosed` reflects it
+**Task:** Test: tasks without `issueNumber` are skipped silently and do not affect the count
 **Verdict:** PASS (with backlog items)
 
 ---
 
 ## Files Opened and Read
 
-- `.team/features/finalize-auto-close-validation/tasks/task-1/handshake.json`
-- `.team/features/finalize-auto-close-validation/tasks/task-2/handshake.json`
-- `.team/features/finalize-auto-close-validation/tasks/task-3/handshake.json`
-- `.team/features/finalize-auto-close-validation/tasks/task-3/artifacts/test-output.txt`
-- `.team/features/finalize-auto-close-validation/tasks/task-1/eval.md`
-- `.team/features/finalize-auto-close-validation/tasks/task-2/eval.md`
-- `.team/features/finalize-auto-close-validation/tasks/pm-review/eval.md`
+- `.team/features/finalize-auto-close-validation/tasks/task-4/handshake.json`
+- `.team/features/finalize-auto-close-validation/tasks/task-4/artifacts/test-output.txt`
+- `.team/features/finalize-auto-close-validation/tasks/security-review/eval.md` (prior task-3 review)
 - `bin/lib/finalize.mjs` (full file, 150 lines)
-- `bin/lib/github.mjs` (full file, 197 lines)
-- `test/harness.test.mjs` (lines 265–426)
+- `bin/lib/github.mjs` (lines 1–148)
+- `bin/lib/util.mjs` (full file, 220 lines)
+- `test/harness.test.mjs` (lines 1–43 setup/teardown; lines 468–506 new test)
 
 ---
 
@@ -27,74 +24,73 @@
 
 **PASS — direct evidence.**
 
-Test output line 392:
+Gate handshake (task-4) reports exit code 0, verdict PASS. Test output line 394:
 ```
-✔ closes approvalIssueNumber when present and counts it in issuesClosed (285.479625ms)
+✔ silently skips tasks without issueNumber and does not affect count (217.125542ms)
 ```
-All 517 tests pass (exit code 0, confirmed by task-3 gate handshake).
+518 tests pass, 0 fail.
 
-### 2. Injection via `approvalIssueNumber`
+### 2. Injection surface: `task.issueNumber` from STATE.json
 
 **PASS — spawnSync array form prevents shell injection.**
 
-New code at `finalize.mjs:134–139` passes `freshState.approvalIssueNumber` to `closeIssue()`, which calls:
+The skip path at `finalize.mjs:118` is `if (task.issueNumber)` — tasks without issueNumber don't reach `closeIssue` at all. For tasks that do have issueNumber, `closeIssue` at `github.mjs:139–141` calls:
 ```js
 spawnSync("gh", ["issue", "close", String(number)], ...)
 ```
-(`github.mjs:139–141`). `spawnSync` receives an explicit argument array, not a shell string. Even if `approvalIssueNumber` were set to `"500; rm -rf /"`, it would be passed as a single literal argument — `gh` would fail to parse the issue number and return non-zero. No shell injection possible.
+`spawnSync` receives an explicit array, not a shell string. A crafted STATE.json with `"issueNumber": "201; rm -rf /"` would pass `String()` as a single literal argument — `gh` would reject it. No shell injection possible on either the skip or the close path.
 
-### 3. Type validation on `approvalIssueNumber`
+### 3. Pre-existing: `task.issueNumber` has no integer type guard
 
-**WARN — no integer type guard before use.**
+**WARN — unresolved from task-3 security review.**
 
-At `finalize.mjs:134`, the only guard is `if (freshState.approvalIssueNumber)` (truthy check). `closeIssue` adds `if (!number) return false` (`github.mjs:138`), rejecting null/0/undefined/empty string, but passes a non-numeric string like `"abc"` through to `gh issue close "abc"`. The `try/catch` at line 138 silently swallows the gh failure. The `issuesClosed++` at line 137 fires unconditionally regardless (see finding 4).
+`finalize.mjs:118`: the guard is `if (task.issueNumber)` (truthy). Non-integer strings like `"abc"` pass the truthy check, pass `closeIssue`'s `if (!number) return false` guard (non-empty string is truthy), and reach `gh issue close "abc"`. The `try/catch` at line 122 silently swallows the `gh` failure.
 
-Real-world impact is limited: reaching this branch requires a writable STATE.json, and gh would reject non-integer issue numbers at the CLI level. Pre-existing pattern from `task.issueNumber`.
+The new test uses only `{ issueNumber: 201 }` (valid integer) and absent issueNumber. No test covers an issueNumber set to a non-integer string. Impact is limited to filesystem-write-access attackers, but the guard was flagged in the prior review and is still absent.
 
-### 4. `issuesClosed++` unconditional on approval issue close — new instance
+### 4. Pre-existing: `issuesClosed++` unconditional
 
-**WARN — new code introduces same counter bug that already exists at line 128.**
+**WARN — unresolved from task-3 security review.**
 
-`finalize.mjs:137`: `issuesClosed++` fires after `closeIssue(freshState.approvalIssueNumber, ...)` regardless of the return value (`closeIssue` returns `true`/`false`; github.mjs:141). The return value is discarded.
+`finalize.mjs:128`: `issuesClosed++` fires after `closeIssue(task.issueNumber, comment)` regardless of the boolean return value. `closeIssue` returns `true` on success and `false` on `gh` failure (never throws). The return value is discarded, so `issuesClosed` measures "tasks that had an issueNumber" not "tasks whose issues were actually closed."
 
-This is **new code** introduced by this feature at lines 133–139, repeating the pattern already flagged pre-existing at line 128. Tests use a stub that always exits 0, so the failure path is untested for the approval issue as well.
+The new test uses a non-capturing stub that always exits 0, so the failure branch remains untested for task issue closes. Pre-existing; already in backlog.
 
-### 5. STATE.json tamper detection (pre-existing, assessed for context)
+### 5. Test stub: non-capturing, count-only verification
 
-**WARN — `_write_nonce` is presence-only; not a MAC.**
+**PASS (partial) — count claim proven; command targeting unverified.**
 
-`finalize.mjs:21–24` checks `state._written_by !== "at-harness"` and `finalize.mjs:58` checks `!state._write_nonce`. Both guards can be defeated by any attacker with filesystem write access who knows the string constants (visible in source). The nonce provides no cryptographic proof that the harness wrote the file.
-
-Impact for the new code: an attacker with filesystem write access can inject any `approvalIssueNumber` (or forge task `issueNumber` values) to force the harness to close arbitrary GitHub issues — requires GitHub authentication in the current user's context. For a local CLI developer tool, this is an acceptable threat model.
-
-Pre-existing finding — already in task-2 backlog (`🟡 [security] bin/lib/finalize.mjs:58`).
-
-### 6. Test coverage of the approval-close comment
-
-**PASS (partial) — issue number asserted, comment text not.**
-
-`test/harness.test.mjs:419` asserts `ghCalls.includes("500")`, which proves the issue number reached `gh`. It does not assert:
-- The subcommand is `issue close` (not `issue comment`)
-- The comment text `"Feature finalized — all tasks complete."` appears
-
-The task's stated requirement is only that the issue is closed and counted, which the test satisfies. The missing assertions are hardening.
-
-### 7. Shell heredoc with path in test stub (pre-existing)
-
-`test/harness.test.mjs:282`:
-```js
-`#!/bin/sh\necho "$@" >> "${ghLogFile}"\necho ok\nexit 0\n`
+The new test at `test/harness.test.mjs:470` writes a non-capturing stub:
+```sh
+#!/bin/sh
+echo ok
+exit 0
 ```
-`ghLogFile` comes from `mkdtempSync(join(tmpdir(), "fake-gh-"))`. On macOS, `tmpdir()` returns `/var/folders/...` — no shell metacharacters expected. Already flagged as 🔵 in task-2 eval. Test-only code; no production impact.
+The assertion at lines 501–502 checks `result.finalized === true` and `result.issuesClosed === 1`. This proves the count is 1 (not 0, not 2), which verifies the skip logic is active. However, it does not verify:
+- That `gh issue close 201` was the call made (versus `gh issue close` with the wrong argument)
+- That `gh` was not called for the task without issueNumber at the `gh` level (only at the `finalize.mjs` level, via the count)
+
+The count-based check is sufficient for the stated claim ("does not affect count"), but other tests in this suite use capturing stubs (lines 282, 353). The simpler stub is not wrong but does leave the command-targeting path unverified.
+
+### 6. Test cleanup scope
+
+**PASS — no leak.**
+
+`featureDir` (`join(testDir, "features", "no-issue-skip-test")`) is inside `testDir`, which is cleaned globally by `after(() => rmSync(testDir, ...))` at `test/harness.test.mjs:40–42`. Only `fakeBinDir` needs per-test cleanup since it lives outside `testDir`, and it is correctly cleaned in `finally` at line 503–505.
+
+### 7. Test PATH injection pattern
+
+**PASS — standard and safe.**
+
+`env: { ...process.env, PATH: \`${fakeBinDir}:${process.env.PATH}\` }` at line 497 is passed to `execFileSync("node", [...])` — not a shell invocation. `fakeBinDir` comes from `mkdtempSync` (OS-generated random suffix). PATH extension is contained to the subprocess; no effect on the test process itself.
 
 ---
 
 ## Findings
 
-🟡 bin/lib/finalize.mjs:137 — `issuesClosed++` fires unconditionally after `closeIssue(freshState.approvalIssueNumber)` regardless of return value; change to `if (closeIssue(freshState.approvalIssueNumber, "Feature finalized — all tasks complete.")) issuesClosed++;` — new code at this line repeating pre-existing pattern from line 128
-🟡 bin/lib/finalize.mjs:134 — `approvalIssueNumber` has no integer type guard before reaching `closeIssue`; add `Number.isInteger(freshState.approvalIssueNumber)` guard to prevent silent failure path and match the documented contract
-🔵 test/harness.test.mjs:419 — Assert subcommand and comment text, not just issue number: `assert.ok(ghCalls.includes("issue close 500"))` and `assert.ok(ghCalls.includes("Feature finalized"))` to guard against argument-order regressions
-🔵 test/harness.test.mjs:282 — `ghLogFile` path is interpolated into a shell heredoc without quoting; fragile if tmpdir ever includes `"` or `$` — pass log path via env var instead (test-only, macOS path is safe in practice)
+🟡 bin/lib/finalize.mjs:118 — `task.issueNumber` has no integer type guard; a crafted STATE.json with a non-integer string passes the truthy check and silently reaches `gh issue close "bad-value"` — add `Number.isInteger(task.issueNumber)` before the truthy check (pre-existing, unresolved from task-3 review)
+🟡 bin/lib/finalize.mjs:128 — `issuesClosed++` fires unconditionally; `closeIssue` return value is discarded; count inflates when `gh` exits non-zero — change to `if (closeIssue(task.issueNumber, comment)) issuesClosed++;` (pre-existing, unresolved from task-3 review)
+🔵 test/harness.test.mjs:470 — Non-capturing stub cannot verify `gh issue close 201` was actually invoked nor that `gh` was not called for the no-issueNumber task; consider replacing with a capturing stub (log `$@` to a file) and asserting `ghCalls.includes("issue close 201")` and `!ghCalls.includes("issue close")` for the second task
 
 ---
 
@@ -102,4 +98,4 @@ The task's stated requirement is only that the issue is closed and counted, whic
 
 **PASS**
 
-No critical findings. The new code at `finalize.mjs:133–139` is functionally correct and the target test passes. The primary injection surface (`spawnSync` with array args) is safe. The two 🟡 findings are maintenance-debt: one is a new instance of the pre-existing unconditional-counter bug, the other is a missing type guard with no practical exploit path for this tool's threat model. Both go to backlog.
+No critical findings. No new security surface was introduced — this commit adds only a test. The production logic at `finalize.mjs:118` (`if (task.issueNumber)`) correctly skips tasks without an issue number before any GitHub API call is made, proven by the gate (518/518 pass) and confirmed by direct code inspection. The two 🟡 findings are pre-existing debt that was already flagged in the task-3 security review and should be in the backlog. The non-capturing stub (🔵) is adequate for the stated claim but leaves command-targeting unverified.

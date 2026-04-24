@@ -30,3 +30,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 03:48:01
+**Task 4: Test: tasks without `issueNumber` are skipped silently and do not affect the count**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
