@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "dashboard-token-breakdown-feature-detail-view-clic",
-  "status": "executing",
+  "status": "completed",
   "tasks": [
     {
       "id": "task-1",
@@ -158,5 +158,6 @@
       }
     },
     "byTask": {}
-  }
+  },
+  "completedAt": "2026-04-24T00:00:00.000Z"
 }
