@@ -593,15 +593,28 @@ export async function outerLoop(args, deps) {
     console.log(`${c.bold}Prioritizing...${c.reset}`);
     if (stopping) break;
 
-    const prioritizeBrief = buildPrioritizeBrief(productContent, completedFeatures, cwd);
-    const prioritizeResult = dispatchToAgent(agent, prioritizeBrief, cwd);
+    let priority;
+
+    if (dogfood) {
+      // Dogfood mode: strict roadmap order, no LLM prioritization
+      const roadmap = parseRoadmap(productContent);
+      const nextItem = roadmap.find(item => !item.done);
+      if (!nextItem) {
+        console.log(`\n${c.green}${c.bold}All roadmap items completed!${c.reset}`);
+        break;
+      }
+      priority = { name: nextItem.name, reasoning: `Roadmap order (dogfood mode)` };
+      console.log(`  ${c.green}\u2192 Next in roadmap: "${priority.name}"${c.reset}`);
+    } else {
+      const prioritizeBrief = buildPrioritizeBrief(productContent, completedFeatures, cwd);
+      const prioritizeResult = dispatchToAgent(agent, prioritizeBrief, cwd);
 
     if (!prioritizeResult.ok) {
       console.log(`  ${c.red}✗ Prioritization failed: ${prioritizeResult.error}${c.reset}`);
-      break;
+        break;
     }
 
-    let priority = parsePriorityOutput(prioritizeResult.output);
+    priority = parsePriorityOutput(prioritizeResult.output);
     if (!priority) {
       // Fallback: try to find next undone roadmap item
       const roadmap = parseRoadmap(productContent);
@@ -613,6 +626,7 @@ export async function outerLoop(args, deps) {
       console.log(`  ${c.yellow}⚠ Could not parse PRIORITY from agent output. Falling back to next roadmap item.${c.reset}`);
       priority = { name: nextItem.name, reasoning: `Fallback: next undone roadmap item (${nextItem.name})` };
     }
+    } // end else (LLM prioritizer)
 
     const featureName = slugify(priority.name);
     console.log(`  ${c.green}→ Selected: "${priority.name}"${c.reset}`);
@@ -843,7 +857,7 @@ function detectPhase(productContent, itemName) {
   const lines = productContent.split("\n");
   let currentPhase = null;
   for (const line of lines) {
-    const phaseMatch = line.match(/^###\s*Phase\s*(\d+)/);
+    const phaseMatch = line.match(/^###\s*Phase\s*([\d.]+)/);
     if (phaseMatch) currentPhase = phaseMatch[1];
     if (currentPhase && line.toLowerCase().includes(itemName.toLowerCase())) {
       return currentPhase;
