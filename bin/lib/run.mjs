@@ -163,7 +163,7 @@ const _taskUsage = {};    // taskId -> bucket
 let _currentPhase = "build";
 let _currentTask = null;
 
-function trackUsage(jsonResult) {
+export function trackUsage(jsonResult) {
   if (!jsonResult) return;
   const u = jsonResult.usage || {};
   const entry = {
@@ -215,7 +215,7 @@ export function resetRunUsage() {
   _currentPhase = "build"; _currentTask = null;
 }
 
-function buildTokenUsage() {
+export function buildTokenUsage() {
   const mapBucket = (b) => ({
     dispatches: b.dispatches,
     inputTokens: b.inputTokens,
@@ -710,6 +710,10 @@ ${roadmapList}
 }
 
 async function _runSingleFeature(args, description, providedLabel = '') {
+  // Reset token usage so each feature gets its own clean counters (prevents
+  // accumulation across features in multi-feature outer-loop runs)
+  resetRunUsage();
+
   if (!description) description = args.filter(a => !a.startsWith("-")).join(" ") || null;
   const cwd = process.cwd();
   const teamDir = join(cwd, ".team");
