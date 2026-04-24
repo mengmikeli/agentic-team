@@ -15,7 +15,7 @@ import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REV
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
 import { recordWarningIteration, checkEscalation } from "./iteration-escalation.mjs";
-import { incrementReviewRounds } from "./review-escalation.mjs";
+import { incrementReviewRounds, shouldEscalate } from "./review-escalation.mjs";
 import { cmdInit } from "./init.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
@@ -1267,6 +1267,15 @@ async function _runSingleFeature(args, description, providedLabel = '') {
 
         // If review found critical issues, treat as failure — retry the task
         if (reviewFailed) {
+          if (shouldEscalate(task)) {
+            // Review-round escalation: block when cap is hit
+            harness("transition", "--task", task.id, "--status", "blocked",
+              "--dir", featureDir, "--reason", `review-escalation: ${task.reviewRounds} rounds exceeded`);
+            blocked++;
+            appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- 🔴 Review-round escalation: blocked after ${task.reviewRounds} review FAIL round(s)`);
+            console.log(`  ${c.red}✗ Blocked by review-round escalation — ${task.reviewRounds} review FAILs exceeded cap${c.reset}\n`);
+            break;
+          }
           if (escalationFired) {
             // Iteration escalation: block immediately, no further retries allowed
             harness("transition", "--task", task.id, "--status", "blocked",
