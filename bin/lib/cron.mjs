@@ -116,9 +116,7 @@ export async function cmdCronTick(args = [], deps = {}) {
       console.error(`cron-tick: failed for issue #${issueNumber}: ${err.message || err}`);
     }
   } finally {
-    if (lock.release) {
-      lock.release();
-    }
+    lock.release();
   }
 }
 
