@@ -150,10 +150,11 @@ describe("cmdCronTick", () => {
     await cmdCronTick([], deps);
 
     assert.ok(runCalled, "runSingleFeature should have been called");
-    assert.ok(statusTransitions.some(t => t.issueNumber === 7 && t.status === "in-progress"),
-      "Should transition issue to in-progress before running");
-    assert.ok(statusTransitions.some(t => t.issueNumber === 7 && t.status === "done"),
-      "Should transition issue to done after success");
+    const inProgressIdx = statusTransitions.findIndex(t => t.issueNumber === 7 && t.status === "in-progress");
+    const doneIdx = statusTransitions.findIndex(t => t.issueNumber === 7 && t.status === "done");
+    assert.ok(inProgressIdx !== -1, "Should transition issue to in-progress before running");
+    assert.ok(doneIdx !== -1, "Should transition issue to done after success");
+    assert.ok(inProgressIdx < doneIdx, "in-progress must come before done");
   });
 
   // ── 4. Failed dispatch ────────────────────────────────────────

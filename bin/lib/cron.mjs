@@ -79,7 +79,6 @@ export async function cmdCronTick(args = [], deps = {}) {
   if (!lock.acquired) {
     console.log("cron-tick: tick already running (lock held by another process)");
     process.exit(0);
-    return; // for testability — process.exit may be mocked
   }
 
   try {
@@ -106,7 +105,7 @@ export async function cmdCronTick(args = [], deps = {}) {
     _setProjectItemStatus(issueNumber, projectNumber, "in-progress");
 
     try {
-      await _runSingleFeature([], title);
+      await _runSingleFeature(args, title);
       // Transition to done on success
       _setProjectItemStatus(issueNumber, projectNumber, "done");
       console.log(`cron-tick: completed issue #${issueNumber}`);
@@ -117,7 +116,7 @@ export async function cmdCronTick(args = [], deps = {}) {
       console.error(`cron-tick: failed for issue #${issueNumber}: ${err.message || err}`);
     }
   } finally {
-    if (lock.acquired && lock.release) {
+    if (lock.release) {
       lock.release();
     }
   }
@@ -138,7 +137,7 @@ export function cmdCronSetup(args = []) {
 
   // Single-quote paths to handle spaces (macOS/Linux safe)
   const quotePath = (p) => `'${p.replace(/'/g, "'\\''")}'`;
-  const cronLine = `*/${interval} * * * * cd ${quotePath(cwd)} && PATH=${process.env.PATH} ${quotePath(agtPath)} cron-tick >> ${quotePath(cwd + "/.team/cron.log")} 2>&1`;
+  const cronLine = `*/${interval} * * * * cd ${quotePath(cwd)} && PATH=${quotePath(process.env.PATH ?? "")} ${quotePath(agtPath)} cron-tick >> ${quotePath(cwd + "/.team/cron.log")} 2>&1`;
 
   console.log("Add this line to your crontab (run: crontab -e):\n");
   console.log(cronLine);
