@@ -1,26 +1,28 @@
 ## Parallel Review Findings
 
-[architect] **Summary:** The task-1 Done When criterion is met — four categories are named, 🔴 is required for each, and "Don't block on speculative complexity" is removed. The `flows.mjs` tagging and three new tests (confirmed present in codebase) are correct and minimal. Four 🟡 items go to backlog; none are blockers. The state drift from commit bundling is the most architecturally significant issue and should be resolved before harness task dispatching continues.
-[engineer] - `roles/simplicity.md` diff confirmed: `## Veto Authority (🔴 Required)` section added with four categories, `Don't block` anti-pattern removed, 🟡 fallback retained. Done-when criterion for task-1 is met.
-[engineer] - `flows.mjs:188` ternary is logically correct for all three cases (simplicity+critical, simplicity+non-critical, other roles). Round-trip through `parseFindings` is sound because it uses `.includes("🔴")` not an anchored regex.
-[tester] - `roles/simplicity.md` — four veto categories and 🔴 requirement are correct; "Don't block" anti-pattern removed ✓
-[tester] The two 🟡 gaps go to backlog. No 🔴 blockers found.
-[security] - The veto authority uses pre-existing `🔴 → FAIL` machinery unchanged — it tightens policy, not loosens it
-🟡 [architect] `STATE.json:6-49` — Commit `0a2eaa0` (labeled task-1) bundles `bin/lib/flows.mjs` and `test/flows.test.mjs` changes that belong to tasks 2-5, while STATE.json still marks those tasks as pending. If the harness dispatches them, builders will encounter already-implemented code. Resolve state drift before proceeding to task-2.
-🟡 [architect] `roles/simplicity.md:3` — Identity section unchanged from baseline; SPEC scope requires "Update identity section to state veto authority." Veto authority is buried in a separate section rather than front-loaded in identity.
-🟡 [architect] `roles/simplicity.md:24` — Gold-plating definition missing "speculative extensibility with no stated requirement" (explicitly listed in SPEC); narrows veto coverage.
-🟡 [architect] `roles/simplicity.md:22` — Premature abstraction scoped to "in the current PR" — qualifier not in SPEC. Existing single-use abstractions extended by a PR would bypass the veto. Either align with SPEC or document the narrowing as intentional.
-🟡 [engineer] roles/simplicity.md:24 — Gold-plating criterion omits "speculative extensibility with no stated requirement" from the spec; a PR adding an extension hook for a non-existent future requirement would not trigger a veto — add as a third sub-criterion
-🟡 [engineer] test/flows.test.mjs:255 — Simplicity 🟡 test only asserts the label; task-4 done-when requires `verdict === "PASS"` and `backlog === true` — extend with `computeVerdict(parseFindings(merged))` assertions
-[engineer] - Three new tests pass. The FAIL verdict test (line 264) exercises the full mergeReviewFindings → parseFindings → computeVerdict chain. The 🟡 label test (line 255) is missing `verdict`/`backlog` assertions required by task-4's done-when.
-🟡 [product] `test/flows.test.mjs:255` — Done criterion #4 partially unmet: the simplicity 🟡 test verifies the label only; never calls `computeVerdict` or asserts `verdict === "PASS"` / `backlog === true`; add those assertions to satisfy the done criterion verbatim.
-🟡 [product] `roles/simplicity.md:4` — Spec requires updating the Identity section to state veto authority; `## Identity` is unchanged; veto authority should be reflected in the identity sentence (e.g., "…and holds veto authority over four anti-pattern categories").
-🟡 [tester] `roles/simplicity.md:3` — SPEC requires identity section to state veto authority; current text is unchanged ("simplicity advocate" with no veto mention); add a sentence declaring veto authority
-🟡 [tester] `test/flows.test.mjs:255` — Test for simplicity 🟡 only asserts the label (`[simplicity]` vs `[simplicity veto]`); SPEC criterion requires asserting `verdict === "PASS"` and `backlog === true` through the full chain — add `computeVerdict(parseFindings(merged))` assertions
-[tester] - `test/flows.test.mjs:255–262` — 🟡 test checks label only, not verdict ✗
-🔵 [engineer] roles/simplicity.md:4 — Spec (Scope §1) says "Update identity section to state veto authority"; Identity text is unchanged; adding one sentence aids first-read discoverability
+[architect] Task-1 done-when criterion is fully met. `roles/simplicity.md` names all four veto categories, requires 🔴 for each, states veto authority in the identity section, and removes the "don't block" anti-pattern. The supporting implementation (`flows.mjs:188` ternary, three new tests) is minimal and correct — reuses existing 🔴→FAIL machinery with zero new modules or verdict types. Two 🟡 items go to backlog; neither blocks merge for this task.
+[engineer] The task-1 done-when criterion is met. `roles/simplicity.md` names all four veto categories, requires 🔴 for each, removes the "don't block" anti-pattern, and updates the identity sentence. Prior eval concerns about missing identity text and incomplete gold-plating were resolved in commit `ded4c22`. Two 🟡 items go to backlog; no 🔴 blockers.
+[product] | 🔴 required for each | ✅ | ✅ lines 18–19 |
+[tester] | `roles/simplicity.md` contains 4 named veto categories with 🔴 required | ✅ Direct file read |
+[tester] | `mergeReviewFindings` labels simplicity 🔴 as `[simplicity veto]` | ✅ 3 tests green (test-output.txt:339–341) |
+[tester] | `simplicity 🔴` causes FAIL verdict | ✅ Tested |
+[security] | Role label spoofing in `mergeReviewFindings` (flows.mjs:188) | PASS — `f.role` comes from internal dispatch, not reviewer output; fabricating 🔴 only tightens verdict |
+[security] No 🔴 or 🟡 findings. The change tightens review policy without introducing any new attack surface.
+[simplicity] - 🔴 required explicitly for all four (`roles/simplicity.md:19`)
+🟡 [architect] `STATE.json:6–49` — Tasks 2–5 implementations are already in the codebase (`flows.mjs:188` veto label, `test/flows.test.mjs:247–277` three new tests) but STATE marks them pending. Harness dispatch will send builders into already-completed work. Resolve state drift before task-2 is dispatched.
+🟡 [architect] `roles/simplicity.md:22` — "in the current PR" qualifier on premature-abstraction veto is narrower than SPEC scope §1 ("abstraction used fewer than two call sites" — no PR scoping). A PR that extends an existing single-use abstraction to two total uses escapes the veto. Remove the qualifier or document the narrowing as intentional.
+🟡 [engineer] `roles/simplicity.md:22` — "in the current PR" qualifier narrows premature abstraction beyond SPEC scope §1 (which has no PR scoping); an existing single-use abstraction extended by a PR bypasses the veto — remove the qualifier or document the narrowing as intentional
+🟡 [engineer] `STATE.json:6` — Commits `0a2eaa0` and `ded4c22` (both labeled task-1) include `bin/lib/flows.mjs` and `test/flows.test.mjs` changes belonging to tasks 2–5; STATE.json still marks those tasks pending — resolve state drift before the harness dispatches task-2 through task-5
+🟡 [product] `roles/simplicity.md:22` — "in the current PR" qualifier on premature abstraction narrows veto scope beyond what SPEC specifies; SPEC says "abstraction used fewer than two call sites" (absolute, no PR qualifier); a PR that extends an existing single-use abstraction to two total uses would escape the veto — remove the qualifier or explicitly document the narrowing as intentional
+🟡 [product] `STATE.json:9` — tasks 2–5 implementation already shipped in task-1's commit (flows.mjs:188 veto tagging + test/flows.test.mjs:247–277 three new tests) while STATE.json still marks those tasks pending; resolve state drift before harness dispatches task-2 through task-5 to avoid builders re-implementing completed work
+[product] **Clarification on prior eval findings:** The parallel review's 🟡s about the identity section and gold-plating being incomplete are false positives — both are present in the shipped file. Those should not go to backlog. The two real gaps (premature abstraction qualifier, STATE.json drift) are the items to track.
+🟡 [tester] `test/flows.test.mjs:132` — No `buildReviewBrief` test for the "simplicity" role; add a test parallel to the architect/security/pm tests (lines 132–162) asserting that the brief contains Veto Authority content unique to `roles/simplicity.md` (e.g. "dead code" or "gold-plating"); without this, accidental removal of the veto section would go undetected
+[tester] | `simplicity 🟡` stays as warning, goes to backlog only | ✅ Tested |
+[simplicity] - 🟡 fallback retained for non-veto complexity (`roles/simplicity.md:26`)
+[simplicity] None of the four veto categories apply to this change: no dead code, no abstraction, no indirection, no gold-plating. Prior parallel-review 🟡 flags about the identity section and missing gold-plating text were inaccurate — both are present in the committed file.
 
 🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
+🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2
 
 ## Compound Gate
 

@@ -199,3 +199,4 @@
 {"ts":"2026-04-24T07:36:24.531Z","event":"feature-complete","msg":"Feature complete: parent-issue-subtask-lifecycle — 3/7 done, 3 blocked, 99m 10s, $123.72"}
 {"ts":"2026-04-24T07:40:54.598Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (6 tasks planned)"}
 {"ts":"2026-04-24T07:43:37.920Z","event":"task-started","msg":"▶ Task 1/6: `roles/simplicity.md` names the four veto categories and requires 🔴 for each, replacing the \"don't block\" anti-pattern."}
+{"ts":"2026-04-24T07:59:08.846Z","event":"task-started","msg":"▶ Task 2/6: `mergeReviewFindings()` tags 🔴 simplicity findings with `[simplicity veto]` in the merged output."}
