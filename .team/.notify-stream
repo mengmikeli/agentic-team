@@ -139,3 +139,5 @@
 {"ts":"2026-04-24T02:20:40.715Z","event":"task-started","msg":"▶ Task 2/8: `PARALLEL_REVIEW_ROLES` in `flows.mjs` contains all six roles: `[\"architect\", \"engineer\", \"product\", \"tester\", \"security\", \"simplicity\"]`."}
 {"ts":"2026-04-24T02:35:36.941Z","event":"task-passed","msg":"✓ Task 2/8: `PARALLEL_REVIEW_ROLES` in `flows.mjs` contains all six roles: `[\"architect\", \"engineer\", \"product\", \"tester\", \"security\", \"simplicity\"]`."}
 {"ts":"2026-04-24T02:35:43.703Z","event":"task-started","msg":"▶ Task 3/8: `buildReviewBrief()` injects the content of `roles/<role>.md` into each reviewer's brief."}
+{"ts":"2026-04-24T02:57:35.155Z","event":"task-passed","msg":"✓ Task 3/8: `buildReviewBrief()` injects the content of `roles/<role>.md` into each reviewer's brief."}
+{"ts":"2026-04-24T02:57:41.523Z","event":"task-started","msg":"▶ Task 4/8: The merged `eval.md` produced by a multi-review run lists findings in severity order (all criticals before warnings before suggestions) with role prefix on each finding."}

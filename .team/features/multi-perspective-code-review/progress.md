@@ -41,3 +41,8 @@
 - Verdict: 🟡 Review FAIL (attempt 2)
 - Will retry with review feedback
 
+### 2026-04-24 02:57:35
+**Task 3: `buildReviewBrief()` injects the content of `roles/<role>.md` into each reviewer's brief.**
+- Verdict: ✅ PASS (attempt 3)
+- Gate: `npm test` — exit 0
+

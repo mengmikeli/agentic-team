@@ -1,40 +1,40 @@
 ## Parallel Review Findings
 
 ### [security]
-Now here are my structured findings:
-
 ---
 
 ## Security Review Findings
 
 **Verdict: PASS**
 
-Files verified:
-- `bin/lib/flows.mjs` (full file — the implementation)
-- `roles/devil-s-advocate.md`, `roles/security.md`, `roles/architect.md`, `roles/pm.md`, `roles/product.md`
-- `test/flows.test.mjs` (buildReviewBrief sections)
-- All three `handshake.json` and `test-output.txt` artifacts (510/510/511 tests — all pass)
+Files actually read: `bin/lib/flows.mjs`, `roles/security.md`, all three `handshake.json`, both `test-output.txt` artifacts.
 
 ---
 
-**Correcting prior eval.md claims (task-3 parallel pass):**
+🟡 bin/lib/flows.mjs:99 — Gate output is inserted raw inside a triple-backtick fence; if a test emits ` ``` ` it closes the fence early and injects content into the reviewer's prompt. Escape or strip backtick sequences from `gateOutput` before insertion.
 
-The prior eval.md (
+🔵 bin/lib/flows.mjs:15 — Slug regex `[^a-z0-9-]` does not p
 
 ### [architect]
 ---
 
+**Verdict: PASS** (no critical findings)
+
 **Findings:**
 
-🟡 test/flows.test.mjs:131 — architect/security/pm role tests assert on keywords present in both the role file AND `getRoleFocus()` fallback; if `loadRoleFile` were removed entirely these tests would still pass; add per-role assertions on content unique to each file (same pattern as the devil's-advocate test at line 216)
+🟡 bin/lib/flows.mjs:154 — `getRoleFocus()` hardcodes role descriptions inline while `roles/*.md` files exist as the authoritative role definitions; two sources will diverge on any future role edit. Remove `getRoleFocus()` and move the "Review Focus" content into each role's `.md` file.
 
-🟡 bin/lib/flows.mjs:157 — `getRoleFocus("pm")` and `getRoleFocus("product")` return identical strings; `roles/pm.md` and `roles/product.md` are also identi
+🟡 roles/product.md:1 — `roles/product.md` and `roles/pm.md` are byte-identical; `PARALLEL_REVIEW_ROLES` dispatches `"product"` while `"pm"` is only 
 
 ### [devil's-advocate]
+## Verdict: PASS (with backlog items)
+
 ---
 
-**Findings:**
+### Findings
 
-🟡 `test/flows.test.mjs:131` — architect/security/pm tests only check keywords that exist in *both* the role file and the `getRoleFocus()` fallback; if `loadRoleFile` failed silently for all parallel-review roles, every test would still pass; add per-role assertions on content unique to each file (same pattern used for devil's-advocate at line 216)
+🟡 `test/flows.test.mjs:153` — PM injection test uses `"pm"` but `PARALLEL_REVIEW_ROLES` dispatches `"product"`; add a test for `buildReviewBrief(..., "product")` asserting `roles/product.md` content is present
 
-🟡 `bin/lib/flows.mjs:19` — `catch { return null; }` swallows all errors (ENOENT, permissions, encoding) with no console warning
+🟡 `bin/lib/flows.mjs:178` — `mergeReviewFindings` truncates each reviewer to 500 chars; role-file-enriched reviewers write substantially more; raise cap to ≥3000 or remove it — **third time this is flagged**
+
+🟡 `roles/pm.md:1` —

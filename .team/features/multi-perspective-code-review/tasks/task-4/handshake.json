@@ -1,14 +1,20 @@
 {
   "taskId": "task-4",
-  "nodeType": "build",
+  "nodeType": "gate",
   "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Updated mergeReviewFindings() in flows.mjs to parse emoji-tagged findings from each role using parseFindings(), prefix each finding with its role name (e.g. [security]), then sort the full list critical → warning → suggestion before emitting a flat merged report. Tests updated and extended with sorting and role-prefix assertions; all 513 tests pass.",
-  "timestamp": "2026-04-24T03:05:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-24T03:00:18.389Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/flows.mjs" },
-    { "type": "code", "path": "test/flows.test.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }
