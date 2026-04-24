@@ -1,32 +1,36 @@
 ## Parallel Review Findings
 
 ### [security]
----
-
-**Security review complete.** Here are the findings:
-
-🟡 `bin/lib/review.mjs:214` — WARN compound gate result (1–2 layers tripped) is silently dropped in `cmdReview`; `cmdSynthesize` correctly injects a `🟡` warning finding but `cmdReview` has no `else if (gateResult.verdict === "WARN")` branch — add it to match `synthesize.mjs:124-128`
-
-🔵 `bin/lib/compound-gate.mjs:86` — `MISSING_FILE_CONTEXT` regex doesn't include "nonexistent"; a reviewer writing `ghost.mjs:1 — module is nonexistent` wi
-
-### [architect]
 **Verdict: PASS**
 
+No critical or blocking findings. The integration test is implemented correctly and the logic is sound.
+
 ---
 
-**Findings:**
+**Structured findings:**
 
-🟡 bin/lib/compound-gate.mjs:97 — `backPathRe` is a `/g`-flagged regex declared inside `detectFabricatedRefs`; `lastIndex` is manually reset at line 114. This is fragile — a future edit adding a second `.test()` call or reordering the reset will silently break per-path matching. Extract as a module-level constant and reset before use.
+🟡 `bin/lib/compound-gate.mjs:86` — `MISSING_FILE_CONTEXT` missing "nonexistent"; `ghost.mjs:1 — module is nonexistent` bypasses the false-positive guard and incorrectly trips fabricated-refs — add `"nonexistent"` to the alternation (unaddressed from prior cycle)
 
-🟡 bin/lib/compound-gate.mjs:28 — `FILE_LINE_PATTERN` recognises only `mjs|ts|js|json|md|cjs|jsx|tsx|mts`. In a polyglot re
+🟡 `bin/lib/compound-gate.mjs:97` — `backPathRe` with `/g` flag + `.test()` insi
+
+### [architect]
+---
+
+**Verdict: PASS**
+
+Files I actually read: `bin/lib/compound-gate.mjs`, `test/compound-gate.test.mjs`, `test/synthesize-compound.test.mjs`, `bin/lib/synthesize.mjs`, `task-9/handshake.json`, `task-9/artifacts/test-output.txt` (head + tail), `task-9/eval.md`. Did **not** read `bin/lib/review.mjs`.
+
+---
+
+### Findings
+
+🟡 test/synthesize-compound.test.mjs:26 — `DETAILED_EVAL_MD` hardcodes real production paths (`bin/lib/compound-gate.mjs`, `bin/lib/synthesize.mjs`); renaming either silently fli
 
 ### [devil's-advocate]
-**Verdict: PASS (with backlog items)**
+Here are my findings:
 
 ---
 
-Structured findings (each on its own line):
+**Files actually read:** `test/synthesize-compound.test.mjs`, `test/compound-gate.test.mjs`, `bin/lib/compound-gate.mjs`, `bin/lib/synthesize.mjs`, `handshake.json`, `test-output.txt`, `SPEC.md`
 
-🟡 test/synthesize-compound.test.mjs:50 — DETAILED_EVAL_MD PASS fixture hardcodes real production filenames (`bin/lib/compound-gate.mjs`, `bin/lib/synthesize.mjs`); if either is renamed `detectFabricatedRefs` silently flips the test to FAIL — write named temp files into a temp dir as `compound-gate.test.mjs:407` does
-
-🟡 bin/lib/review.mjs:214 — `cmdReview` WARN path (1–2 tripped layers) silently dropped; n
+**Claim verification:** Handshake claims `verdict: PASS`, exit code 0. Test output confirms 483 tests / 0 failures. Integration suites at test-output.txt lines 175–178 and 1193–1201 all pass. THIN_EVAL_MD logic traced through compound-gate.mjs — confirmed 3 layers trip (thin-

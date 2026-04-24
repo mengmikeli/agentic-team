@@ -129,3 +129,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 00:03:07
+**Task 13: Integration test with a synthetic thin/fabricated `eval.md` fixture results in hard FAIL.**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+
