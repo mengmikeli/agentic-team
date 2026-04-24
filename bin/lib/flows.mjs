@@ -182,7 +182,13 @@ export function mergeReviewFindings(findings) {
   for (const f of findings) {
     const parsed = parseFindings(f.output || "");
     for (const p of parsed) {
-      allFindings.push({ severity: p.severity, text: `[${f.role}] ${p.text}` });
+      // Format: 🔴 [role] file:line — … (emoji anchors severity at line-start)
+      const emojiRe = /^([🔴🟡🔵])\s*/u;
+      const m = p.text.match(emojiRe);
+      const prefixedText = m
+        ? `${m[1]} [${f.role}] ${p.text.slice(m[0].length)}`
+        : `[${f.role}] ${p.text}`;
+      allFindings.push({ severity: p.severity, text: prefixedText });
     }
   }
 

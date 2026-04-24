@@ -225,7 +225,7 @@ describe("mergeReviewFindings", () => {
       { role: "engineer", ok: true, output: "🔴 x.mjs:1 — fix this" },
     ];
     const merged = mergeReviewFindings(findings);
-    assert.ok(merged.includes("[engineer]"));
+    assert.ok(merged.includes("🔴 [engineer]"), "finding line should have emoji then [role]");
   });
 
   it("handles empty output gracefully", () => {

@@ -46,3 +46,8 @@
 - Verdict: ✅ PASS (attempt 3)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 03:07:47
+**Task 4: The merged `eval.md` produced by a multi-review run lists findings in severity order (all criticals before warnings before suggestions) with role prefix on each finding.**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

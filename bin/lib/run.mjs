@@ -1157,23 +1157,21 @@ async function _runSingleFeature(args, description) {
             agent, PARALLEL_REVIEW_ROLES, featureName, task.title, gateResult.stdout, cwd,
           );
           const merged = mergeReviewFindings(roleFindings);
-          // Save merged review as eval.md
-          writeFileSync(join(taskDir, "eval.md"), merged);
           console.log(`  ${c.dim}${merged.slice(0, 1000)}${c.reset}`);
           const allText = roleFindings.map(f => f.output || "").join("\n");
           let findings = parseFindings(allText);
           const compoundGateResult = runCompoundGate(findings, cwd);
+          // Collect synthetic finding lines so eval.md is written once — after all verdicts are assembled
+          const syntheticEvalLines = [];
           if (compoundGateResult.verdict === "FAIL") {
-            findings = [
-              { severity: "critical", text: `🔴 compound-gate.mjs:0 — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
-              ...findings,
-            ];
+            const synLine = `🔴 compound-gate.mjs:0 — Shallow review detected: ${compoundGateResult.layers.join(", ")}`;
+            findings = [{ severity: "critical", text: synLine }, ...findings];
+            syntheticEvalLines.push(synLine);
           } else if (compoundGateResult.verdict === "WARN") {
             console.log(`  ${c.yellow}⚠ Compound gate WARN: ${compoundGateResult.layers.join(", ")}${c.reset}`);
-            findings = [
-              { severity: "warning", text: `🟡 compound-gate.mjs:0 — Thin review warning: ${compoundGateResult.layers.join(", ")}` },
-              ...findings,
-            ];
+            const synLine = `🟡 compound-gate.mjs:0 — Thin review warning: ${compoundGateResult.layers.join(", ")}`;
+            findings = [{ severity: "warning", text: synLine }, ...findings];
+            syntheticEvalLines.push(synLine);
             recordWarningIteration(task, attempt, compoundGateResult.layers);
             const warnStateP = readState(featureDir);
             if (warnStateP) {
@@ -1181,15 +1179,20 @@ async function _runSingleFeature(args, description) {
               if (warnTaskP) { warnTaskP.gateWarningHistory = task.gateWarningHistory; writeState(featureDir, warnStateP); }
             }
           }
-          appendFileSync(join(taskDir, "eval.md"), "\n\n" + compoundGateResult.section);
           const escalationP = checkEscalation(task.gateWarningHistory);
           if (escalationP) {
             escalationFired = true;
             const escalMsgP = `🔴 iteration-escalation — Persistent eval warning: ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}`;
             findings = [{ severity: "critical", text: escalMsgP }, ...findings];
+            syntheticEvalLines.push(escalMsgP);
             appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- 🔴 Iteration escalation: ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}`);
             console.log(`  ${c.red}⚠ Iteration escalation — ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}${c.reset}`);
           }
+          // Write eval.md now that verdict is fully assembled — synthetic findings appear as parseable lines
+          const evalContent = merged +
+            (syntheticEvalLines.length > 0 ? "\n\n" + syntheticEvalLines.join("\n") : "") +
+            "\n\n" + compoundGateResult.section;
+          writeFileSync(join(taskDir, "eval.md"), evalContent);
           const synth = computeVerdict(findings);
           console.log(`  ${c.dim}Synthesized verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
           if (synth.critical > 0) {

@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "iteration-escalation",
-  "status": "executing",
+  "status": "paused",
   "tasks": [
     {
       "id": "task-1",
@@ -204,6 +204,8 @@
   ],
   "createdAt": "2026-04-24T00:24:54.090Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T02:00:34.150Z",
-  "_write_nonce": "2ed68a049139a5d3"
+  "_last_modified": "2026-04-24T03:05:34.174Z",
+  "_write_nonce": "ac4687aed0cc3e79",
+  "pausedAt": "2026-04-24T03:05:34.174Z",
+  "_pause_reason": "agt stop"
 }
