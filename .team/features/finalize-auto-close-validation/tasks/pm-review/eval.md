@@ -1,7 +1,7 @@
 # PM Review — finalize-auto-close-validation
 
 **Role:** Product Manager
-**Task reviewed:** Test: calling `finalize` on an already-completed feature does not re-close issues
+**Task reviewed:** Implementation: `finalize.mjs` closes `state.approvalIssueNumber` in addition to task issues
 **Verdict:** PASS
 
 ---
@@ -14,84 +14,91 @@
 - `.team/features/finalize-auto-close-validation/tasks/task-3/handshake.json`
 - `.team/features/finalize-auto-close-validation/tasks/task-4/handshake.json`
 - `.team/features/finalize-auto-close-validation/tasks/task-5/handshake.json`
-- `.team/features/finalize-auto-close-validation/tasks/task-5/artifacts/test-output.txt` (lines 387–396, 1308–1315)
-- `.team/features/finalize-auto-close-validation/tasks/task-4/eval.md` (full file)
+- `.team/features/finalize-auto-close-validation/tasks/task-6/handshake.json`
+- `.team/features/finalize-auto-close-validation/tasks/task-6/artifacts/test-output.txt` (full file, 1316 lines)
+- `.team/features/finalize-auto-close-validation/tasks/pm-review/eval.md` (full file — prior review)
+- `.team/features/finalize-auto-close-validation/STATE.json` (full file)
 - `bin/lib/finalize.mjs` (full file, 150 lines)
-- `test/harness.test.mjs` (lines 508–554)
+- `test/harness.test.mjs` (finalize section, lines 239–554 via grep)
 
 ---
 
 ## Per-Criterion Results
 
-### 1. SPEC.md Done When — "Test: calling `finalize` on an already-completed feature does not re-close issues"
+### 1. Implementation: `finalize.mjs` closes `state.approvalIssueNumber` in addition to task issues
 
 **PASS — direct evidence.**
 
-Test at `test/harness.test.mjs:508–554`:
-- Fixture has `status: "completed"`, one task with `issueNumber: 601`, `approvalIssueNumber: 700`
-- Calls `agt-harness finalize` via CLI
-- Asserts `result.finalized === true` and `result.note === "already finalized"` (lines 546–547)
-- Asserts no `gh` calls were made: checks that the fake-gh log file is absent or empty (lines 549–550)
-
-The fake `gh` binary appends every invocation to a log file. An empty log proves no issue-close operations reached the OS level. This directly satisfies the criterion.
-
-Production guard at `bin/lib/finalize.mjs:26–33` — early return before any lock acquisition or `closeIssue` calls:
+`bin/lib/finalize.mjs:134–139`:
 ```js
-if (state.status === "completed") {
-  console.log(JSON.stringify({
-    finalized: true,
-    feature: state.feature,
-    note: "already finalized",
-  }));
-  return;
+if (freshState.approvalIssueNumber) {
+  try {
+    closeIssue(freshState.approvalIssueNumber, "Feature finalized — all tasks complete.");
+    issuesClosed++;
+  } catch { /* best-effort */ }
 }
 ```
 
-Test output (test-output.txt line 395):
+The block is placed *after* the task-issue loop (line 117), operates on the same `issuesClosed` counter, and is included in the final JSON output at line 146. The guard (`if (freshState.approvalIssueNumber)`) correctly makes it conditional — no approval issue means no close attempt.
+
+### 2. Test coverage for the approval-issue close
+
+**PASS — direct evidence.**
+
+`test/harness.test.mjs:377` ("closes approvalIssueNumber when present and counts it in issuesClosed"):
+- Fixture: `{ issueNumber: 401 }` (task) + `approvalIssueNumber: 500`
+- Asserts `result.issuesClosed === 2` (line 416) — task + approval
+- Asserts `ghCalls.includes("500")` (line 420) — proves the approval issue number was actually sent to the gh CLI stub
+
+Test output, line 392:
 ```
-✔ does not re-close issues when feature is already completed (idempotent) (50.994166ms)
+✔ closes approvalIssueNumber when present and counts it in issuesClosed (277.391083ms)
 ```
 
 Confirmed PASS.
 
-### 2. Coverage of both issue types (task issue + approval issue)
+### 3. Full Done When checklist — all 7 criteria
 
-**PASS.**
+Evidence from test-output.txt lines 388–396 (the finalize suite):
 
-The test fixture includes both `issueNumber: 601` (task) and `approvalIssueNumber: 700` (approval). The single "no gh calls" assertion covers both issue types — if either were closed, the log would be non-empty. Implicit but adequate coverage for the stated requirement.
-
-### 3. No regressions — all existing tests continue to pass
-
-**PASS — direct evidence from gate (task-5).**
-
-test-output.txt lines 1308–1311:
-```
-ℹ tests 519
-ℹ pass 519
-ℹ fail 0
-```
-
-Gate handshake verdict: PASS, exit code 0.
+| # | Criterion | Test name | Result |
+|---|---|---|---|
+| 1 | `issuesClosed: 2` for 2 tasks | "returns issuesClosed: 2 when feature has 2 tasks with issueNumber" | ✔ |
+| 2 | Correct comments per status | "posts correct comment to passed task issue" / "posts status-specific comment to skipped task issue" | ✔ (×2) |
+| 3 | Closes `approvalIssueNumber`, reflected in count | "closes approvalIssueNumber when present and counts it in issuesClosed" | ✔ |
+| 4 | Tasks without `issueNumber` skipped silently | "silently skips tasks without issueNumber and does not affect count" | ✔ |
+| 5 | Already-completed idempotency | "does not re-close issues when feature is already completed (idempotent)" | ✔ |
+| 6 | Implementation in `finalize.mjs` | `finalize.mjs:134–139` — code present and exercised | ✔ |
+| 7 | All existing tests pass | `ℹ tests 519 / ℹ pass 519 / ℹ fail 0` (test-output.txt:1308–1311) | ✔ |
 
 ### 4. Scope discipline
 
 **PASS.**
 
-The task boundary is a single new test for the idempotency path. The implementation:
-- Added no new production logic (the `status === "completed"` guard pre-existed at `finalize.mjs:26–33`)
-- Added one test case at `test/harness.test.mjs:508–554`
+The implementation adds exactly one block (6 lines, `finalize.mjs:134–139`) to an existing function. No new files created. No unrelated behavior changed. The Out of Scope items (project board updates, `agt run` issue creation) are not touched.
 
-No unrelated behavior was changed, no extra files created. Scope is clean.
+### 5. STATE.json consistency
+
+**FLAG — process gap, not a correctness issue.**
+
+STATE.json at the time of review shows:
+- `task-6` ("Implementation: finalize.mjs closes approvalIssueNumber"): `"status": "in-progress"`
+- `task-7` ("All existing finalize tests continue to pass"): `"status": "pending"`
+- Feature `status`: `"executing"`
+
+The implementation is functionally complete and the gate passed, but the harness state has not been advanced past task-6 yet. The gate artifact in FS task-6 exists and validates the gate passed, but the implementation task itself hasn't been transitioned to "passed" in STATE.json. This means `agt finalize` will reject the feature until these tasks are advanced — which is correct behavior.
+
+This is a process gap, not an implementation bug. The builder must transition task-6 → passed and task-7 → passed before finalize can be called.
 
 ---
 
 ## Findings
 
-🟡 test/harness.test.mjs:547 — `result.note === "already finalized"` asserts an undocumented API contract not specified in SPEC.md; if consumers parse finalize JSON output they will depend on this field — add `note` field to finalize contract documentation or SPEC so the shape is intentional, not incidental → add to backlog
+🟡 .team/features/finalize-auto-close-validation/STATE.json:94 — task-6 status is "in-progress" and task-7 is "pending"; the builder must transition both tasks to "passed" before `agt finalize` will accept the feature — this is a harness process step, not a code defect, but the feature cannot be closed without it; add to backlog if not addressed this session
 
-🔵 test/harness.test.mjs:519 — The `approvalIssueNumber: 700` in the fixture is present but plays no distinct role beyond increasing the implied issue count; consider a variant fixture without `approvalIssueNumber` to confirm the no-gh-calls assertion still holds when only a task issue is present
+🔵 bin/lib/finalize.mjs:125 — `const projMatch = String(tracking.statusFieldId || "").match(/\d+/)` is assigned but never used (no body follows); this pre-existing dead code lives in the function modified by this change — flag for cleanup in a future backlog item
 
-🔵 .team/features/finalize-auto-close-validation/tasks/task-[1-4]/handshake.json — All four review tasks show `compoundGate.layers: ["fabricated-refs"]` with verdict WARN; this is a recurring pattern across reviews for this feature and may indicate reviewers are citing file paths that don't resolve at gate-check time — investigate root cause to eliminate false positives in future reviews
+🔵 test/harness.test.mjs:420 — approval-issue close test only asserts `ghCalls.includes("500")` (the issue number), not the specific close comment; no assertion verifies the comment sent to the approval issue is `"Feature finalized — all tasks complete."` — add a stricter assertion to make the comment contract testable
 
 ---
 
@@ -99,10 +106,11 @@ No unrelated behavior was changed, no extra files created. Scope is clean.
 
 **PASS**
 
-The acceptance criterion is met with direct evidence:
-1. Test exists at `test/harness.test.mjs:508` and passes (test-output.txt:395) ✓
-2. No `gh` calls made on already-completed feature — asserted via stub log check ✓
-3. Both task issue and approval issue are implicitly covered by the no-calls assertion ✓
-4. All 519 tests pass, no regressions ✓
+All 7 SPEC Done When criteria are met with direct evidence:
+1. Implementation code exists at `bin/lib/finalize.mjs:134–139` ✓
+2. Dedicated test for approval-issue close exists and passes (`test/harness.test.mjs:377`) ✓
+3. `issuesClosed` count correctly reflects approval issue (`result.issuesClosed === 2`) ✓
+4. Full test suite: 519 tests, 0 failures ✓
+5. Scope boundary respected — only the approval-issue close block was added ✓
 
-The one 🟡 item is a documentation gap (undocumented API contract), not a correctness issue. The 🔵 items are optional improvements. Recommend merge.
+The 🟡 item is a harness state management process step (transition tasks to passed), not a defect in the implementation. The implementation itself is correct and the gate confirms it. Recommend merge once the builder advances STATE.json task-6 and task-7.

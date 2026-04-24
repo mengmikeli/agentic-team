@@ -1,79 +1,90 @@
 # Tester Review — finalize-auto-close-validation
-## Task: "Test: tasks without `issueNumber` are skipped silently and do not affect the count"
-## Commit: e74a1af
+## Task: "Implementation: `finalize.mjs` closes `state.approvalIssueNumber` in addition to task issues"
+## Commits: ff2842a, 39b7955, c27962b, e74a1af, 5064ec7
 
 ---
 
 ## Overall Verdict: PASS
 
-All 518 tests pass. The specific test case is present, executes correctly, and the assertion
-`issuesClosed: 1` provides meaningful coverage of the production guard in `finalize.mjs:118`.
-Two backlog items flagged below.
+All 519 tests pass. The core behavior is implemented and the critical path has coverage. Two warnings are filed for backlog; two suggestions logged.
 
 ---
 
-## Files Examined
+## Files Actually Read
 
-- `test/harness.test.mjs` — lines 468–506 (the new test)
-- `bin/lib/finalize.mjs` — lines 114–131 (production guard under test)
-- `bin/lib/github.mjs` — lines 137–142 (`closeIssue`, null-guard at line 138)
-- `.team/features/finalize-auto-close-validation/tasks/task-4/artifacts/test-output.txt` — test run evidence
+- `bin/lib/finalize.mjs` — full file (150 lines)
+- `bin/lib/github.mjs` — `closeIssue` function (lines 136–142)
+- `test/harness.test.mjs` — finalize describe block (lines 239–554)
+- `test/e2e.test.mjs` — finalize step (lines 259–266)
+- `.team/features/finalize-auto-close-validation/tasks/task-6/artifacts/test-output.txt` — full gate output
 
 ---
 
 ## Per-Criterion Results
 
-### 1. Test exists and passes
-**PASS** — `test/harness.test.mjs:468` is present and reported as ✔ in `test-output.txt:394`:
+### 1. Core behavior tested: `approvalIssueNumber` is closed
+**PASS — direct evidence**
+
+Test at `test/harness.test.mjs:377` ("closes approvalIssueNumber when present and counts it in issuesClosed"):
+- State: `approvalIssueNumber: 500`, one task with `issueNumber: 401`
+- Asserts `result.issuesClosed === 2` ✓
+- Asserts `ghCalls.includes("500")` ✓
+
+Test output line 392: `✔ closes approvalIssueNumber when present and counts it in issuesClosed (277.391083ms)` — confirmed passing.
+
+### 2. Idempotency: already-completed feature does not re-close
+**PASS — direct evidence**
+
+Test at `test/harness.test.mjs:508` ("does not re-close issues when feature is already completed (idempotent)"):
+- State has `status: "completed"`, `approvalIssueNumber: 700`
+- Asserts no gh calls made (log file absent or empty) ✓
+
+Test output line 395: `✔ does not re-close issues when feature is already completed (idempotent) (50.432209ms)` — confirmed passing.
+
+### 3. Dead code: project board update after close
+**WARN — incomplete implementation, no test coverage**
+
+`bin/lib/finalize.mjs:124–127`:
+```javascript
+const projMatch = String(tracking.statusFieldId || "").match(/\d+/);
+// Best-effort: move to done on project board
 ```
-✔ silently skips tasks without issueNumber and does not affect count (217.125542ms)
+`projMatch` is computed and immediately discarded. No project board status update is performed. The comment implies intent that was never implemented. No test covers or guards against this path — if someone adds the implementation incorrectly, there is no regression test to catch it.
+
+### 4. Assertion strength for approval issue close
+**WARN — weak assertion**
+
+`test/harness.test.mjs:418–422`:
+```javascript
+assert.ok(ghCalls.includes("500"), ...);
 ```
+This only checks that the string `"500"` appears somewhere in the gh call log. It does NOT verify:
+- The `close` subcommand was invoked (not `comment` or `edit`)
+- The comment `"Feature finalized — all tasks complete."` was passed
 
-### 2. Count contract is verified
-**PASS** — `assert.equal(result.issuesClosed, 1)` at line 502 directly verifies that t2
-(no `issueNumber`) did not increment the counter. The production counter increment lives
-inside `if (task.issueNumber)` (`finalize.mjs:118`), so removing the guard would push the
-count to 2 and fail the assertion.
+The comment text is publicly visible on GitHub. A regression dropping or changing it would not be caught.
 
-### 3. The "silent" part of the claim is not verified
-**PARTIAL** — The test name says "silently skips" but no assertion checks that no
-warning or log is emitted for t2. If a future change adds `console.warn("task t2 has
-no issueNumber")`, this test would not detect it. The test only parses the last JSON
-line (`lines[lines.length - 1]`), so any intermediate output for t2 is ignored.
+### 5. Sole-approval-issue scenario (no task issues)
+**GAP — untested path**
 
-Production code (`finalize.mjs:117–131`) currently emits nothing for the no-issueNumber
-case — so the implementation is silent — but the test does not lock this in.
+No test covers a feature with `approvalIssueNumber` but zero tasks with `issueNumber`. In that scenario `issuesClosed` should be `1`. The logic at `finalize.mjs:134–139` would produce the correct result, but no test locks this in.
 
-### 4. No gh-call log for absence-of-call verification
-**PARTIAL** — Peer tests (e.g., the comment-passed and comment-skipped tests at lines
-~305 and ~356) use a `gh-calls.log` pattern to verify what arguments were passed to `gh`.
-This test does not. The count assertion (`issuesClosed: 1`) is sufficient to detect the
-most likely regressions, but it does not directly prove that `gh issue close` was never
-invoked for t2. (Note: `closeIssue(undefined)` exits early at `github.mjs:138`, so no
-actual gh call would occur even without the `finalize.mjs` guard — meaning the count
-assertion alone can't distinguish "guard blocks the call" from "closeIssue no-ops".)
+### 6. Partial `closeIssue` failure handling
+**GAP — untested**
 
-### 5. All-tasks-missing-issueNumber edge case not covered
-**GAP** — No test verifies `issuesClosed: 0` when a feature has zero tasks with an
-`issueNumber`. This is the boundary value for the skip-all path.
+The catch blocks at `finalize.mjs:129` and `finalize.mjs:138` silently swallow all errors. No test verifies `issuesClosed` count behavior when one call succeeds and another throws. Not a production risk given the best-effort contract, but unverified.
 
 ---
 
 ## Findings
 
-🟡 test/harness.test.mjs:499 — "Silently skips" is asserted via count only; add a check that the output lines contain no unexpected content for t2 (e.g., assert no lines between status lines reference "t2" or "undefined"), to lock in the silence contract
-
-🟡 test/harness.test.mjs:468 — No gh-calls.log in this test (unlike peer finalize tests at ~line 305/356); the count assertion distinguishes correct guard from `closeIssue(undefined)` no-op but does not directly prove `gh` was never invoked for t2 — add a log file assertion consistent with peer tests
-
-🔵 test/harness.test.mjs:468 — Missing edge: all tasks lack issueNumber → expected `issuesClosed: 0`; add a separate test or extend this fixture with an all-no-issue scenario
-
-🔵 test/harness.test.mjs:479 — Only covers `status: "passed"` + no issueNumber; the `status: "skipped"` + no issueNumber combo is not tested (same guard applies, but explicit coverage would close the matrix)
+🟡 bin/lib/finalize.mjs:124 — Dead code: `projMatch` is computed but never used; project board is silently not updated on finalize despite the `// Best-effort` comment; either implement the update or remove the dead variable to prevent future confusion and silent contract violation
+🟡 test/harness.test.mjs:418 — Weak assertion: only checks `ghCalls.includes("500")`, not that `close` subcommand and comment text "Feature finalized — all tasks complete." were passed; add `assert.ok(ghCalls.includes("issue close 500"))` and `assert.ok(ghCalls.includes("Feature finalized"))` to prevent silent regression on the comment body
+🔵 test/harness.test.mjs:377 — No test for `approvalIssueNumber` as the sole issue (feature with no tasks having `issueNumber`); add a fixture with `tasks: []` or all tasks missing `issueNumber` and assert `issuesClosed: 1`
+🔵 test/harness.test.mjs:377 — No test for partial `closeIssue` failure; the catch block silently swallows errors and `issuesClosed` count in partial-failure scenarios is unverified; add a fake-gh that exits non-zero for one issue to confirm count behaviour
 
 ---
 
 ## Regression Risk
 
-**Low.** The production guard (`if (task.issueNumber)` in `finalize.mjs:118`) is simple and
-the count assertion would detect its removal. The two 🟡 items are test-quality gaps, not
-production safety gaps — `closeIssue` has its own null-guard at `github.mjs:138` as a
-backstop. Backlog both yellows.
+**Low.** The `approvalIssueNumber` close logic is simple (lines 134–139) and the `issuesClosed: 2` count assertion would detect its removal. The two 🟡 items are test-quality gaps that reduce confidence in the comment contract and the dead-code smell; backlog both. The two 🔵 items are edge cases with low production impact given `closeIssue`'s own null-guard at `github.mjs:138`.

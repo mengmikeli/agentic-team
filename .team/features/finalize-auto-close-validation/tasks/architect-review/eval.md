@@ -1,22 +1,23 @@
 # Architect Review — finalize-auto-close-validation
 
-**Task**: Test: tasks without `issueNumber` are skipped silently and do not affect the count
-**Role**: Architect
-**Verdict**: PASS
+**Role:** Architect
+**Task:** Implementation: `finalize.mjs` closes `state.approvalIssueNumber` in addition to task issues
+**Verdict:** PASS
 
 ---
 
 ## Files Actually Read
 
-1. `.team/features/finalize-auto-close-validation/tasks/task-1/handshake.json` — review, PASS
-2. `.team/features/finalize-auto-close-validation/tasks/task-2/handshake.json` — review, PASS
-3. `.team/features/finalize-auto-close-validation/tasks/task-3/handshake.json` — review, PASS
-4. `.team/features/finalize-auto-close-validation/tasks/task-4/handshake.json` — gate, PASS, exit 0
-5. `.team/features/finalize-auto-close-validation/tasks/task-4/artifacts/test-output.txt` — 518 pass, 0 fail
-6. `test/harness.test.mjs` (via `git show e74a1af`) — 40 lines added
-7. `bin/lib/finalize.mjs` — production implementation
-8. `bin/lib/github.mjs:130–158` — `closeIssue` signature and implementation
-9. `bin/lib/util.mjs:185–198` — `readState` implementation
+1. `.team/features/finalize-auto-close-validation/tasks/task-1/handshake.json` — review, PASS, 0 critical
+2. `.team/features/finalize-auto-close-validation/tasks/task-2/handshake.json` — review, PASS, 0 critical
+3. `.team/features/finalize-auto-close-validation/tasks/task-3/handshake.json` — review, PASS, 0 critical
+4. `.team/features/finalize-auto-close-validation/tasks/task-4/handshake.json` — review, PASS, 0 critical
+5. `.team/features/finalize-auto-close-validation/tasks/task-5/handshake.json` — review, PASS, 0 critical
+6. `.team/features/finalize-auto-close-validation/tasks/task-6/handshake.json` — gate, PASS, exit 0
+7. `.team/features/finalize-auto-close-validation/tasks/task-6/artifacts/test-output.txt` — 519 pass, 0 fail
+8. `bin/lib/finalize.mjs` — full file, 150 lines
+9. `bin/lib/github.mjs:130–158` — `closeIssue` signature and implementation
+10. `test/harness.test.mjs:377–554` — new finalize tests
 
 ---
 
@@ -24,69 +25,98 @@
 
 ### 1. Claim vs. Evidence
 
-**Claimed**: "silently skips tasks without `issueNumber` and does not affect count"
+**Claimed**: `finalize.mjs` closes `state.approvalIssueNumber` in addition to task issues.
 
-**Evidence**:
-- Test output line 394: `✔ silently skips tasks without issueNumber and does not affect count (217.125542ms)` — direct confirmation
-- Test logic (from git show): creates state with `t1` (issueNumber: 201, passed) and `t2` (no issueNumber, passed), runs `finalize`, asserts `result.issuesClosed === 1`
-- Production code at `finalize.mjs:118`: `if (task.issueNumber)` — the guard is present and correct
+**Evidence** — test output lines 392, 395–396 (test-output.txt):
+```
+✔ closes approvalIssueNumber when present and counts it in issuesClosed (277.391083ms)
+✔ returns issuesClosed: 2 when feature has 2 tasks with issueNumber (281.081417ms)
+✔ silently skips tasks without issueNumber and does not affect count (212.826875ms)
+✔ does not re-close issues when feature is already completed (idempotent) (50.432209ms)
+```
 
-**Result**: PASS — evidence is direct and unambiguous
+Production code at `finalize.mjs:134–139`:
+```js
+if (freshState.approvalIssueNumber) {
+  try {
+    closeIssue(freshState.approvalIssueNumber, "Feature finalized — all tasks complete.");
+    issuesClosed++;
+  } catch { /* best-effort */ }
+}
+```
+
+This directly implements the claim. The guard `if (freshState.approvalIssueNumber)` is correct — it handles `undefined`, `null`, and `0` as falsy (no issue to close).
+
+**Result**: PASS — direct evidence from both the test output and the production code path.
 
 ---
 
-### 2. Design Boundary Integrity
+### 2. Module Boundary Integrity
 
-The test is hermetic:
-- Uses `mkdtempSync` for isolation
-- Injects a fake `gh` binary via PATH override (`echo ok; exit 0`)
-- Cleans up the fake binary in a `finally` block
-- Writes STATE.json directly (valid pattern for harness unit tests)
+`finalize.mjs` is an orchestration module. It depends on:
+- `util.mjs` — state read/write
+- `github.mjs` — external side-effects (close issue)
 
-`readState` at `util.mjs:190` is a plain JSON parse with no integrity check — the test's manually constructed STATE.json is accepted without issue. This is the correct behavior for a utility function.
+Adding the `approvalIssueNumber` close does not cross any new module boundaries. The call is structurally identical to the existing task issue close: same `closeIssue()` call, same `issuesClosed++` pattern. No new imports, no new abstractions introduced.
 
-**Result**: PASS — boundaries are clean, no shared state leakage
+The feature is positioned after the task loop (line 134), making the execution order explicit: close task issues first, then close the approval issue.
+
+**Result**: PASS — clean, consistent with existing module boundaries.
 
 ---
 
-### 3. Production Code Correctness
+### 3. Idempotency / Double-Finalize Safety
 
-The `if (task.issueNumber)` guard at `finalize.mjs:118` correctly handles:
-- `undefined` (field absent) → falsy, skipped
-- `null` → falsy, skipped
-- `0` → falsy, skipped (edge case: should never occur in practice)
-- A valid integer → truthy, processed
+The early return at `finalize.mjs:26–33` (status === "completed") prevents re-closing issues on repeat invocations. A second check occurs at lines 82–89 after the lock is acquired. This double-check pattern is correct and ensures the guard holds under concurrent or retry scenarios.
 
-`closeIssue` at `github.mjs:137` accepts a `comment` parameter and passes it as `--comment` to `gh issue close`. This is a clean, single-call close+comment pattern.
+Test at line 508: "does not re-close issues when feature is already completed" — confirmed by asserting `ghLogFile` is absent or empty.
 
-**Result**: PASS
+**Result**: PASS — idempotency is enforced and tested.
 
 ---
 
 ### 4. Pre-Existing Technical Debt (not introduced by this task)
 
-Two issues are present in `finalize.mjs` from prior commits and were **not introduced** by this task. They are flagged for the backlog:
+These issues exist in `finalize.mjs` prior to this feature. They are not introduced by this task, but they are exercised by the new code path and are flagged for the backlog.
 
-**Dead code at `finalize.mjs:124–127`**:
+**Dead no-op block at finalize.mjs:116–127**:
 ```js
-const projMatch = String(tracking.statusFieldId || "").match(/\d+/);
-// Best-effort: move to done on project board
+const tracking = readTrackingConfig();          // filesystem read, always
+for (const task of freshState.tasks || []) {
+  if (task.issueNumber) {
+    ...
+    if (tracking) {
+      const projMatch = String(tracking.statusFieldId || "").match(/\d+/);
+      // Best-effort: move to done on project board
+    }
+    issuesClosed++;
+  }
+}
 ```
-`projMatch` is computed but never used. The stub comment describes intent without implementation. This is shipped dead code.
+`readTrackingConfig()` pays a filesystem read on every finalize. `projMatch` is computed and immediately discarded. The comment describes intent; there is no implementation. Every future `finalize` call — including the new approval-issue close path — runs this dead code.
 
-**Bare catch clauses at `finalize.mjs:129` and `finalize.mjs:138`**:
+**`closeIssue()` return value discarded at lines 123 and 136**:
+```js
+closeIssue(task.issueNumber, comment);   // return value ignored
+...
+issuesClosed++;                           // increments regardless of success
+```
+The JSON output field `issuesClosed` is the only signal callers have that issues were closed. When `gh` exits non-zero, the count is inflated. No test covers the failure path.
+
+**Bare catch clauses at lines 129 and 138**:
 ```js
 } catch { /* best-effort */ }
 ```
-These swallow all errors — including programming errors (TypeError, ReferenceError) that would indicate bugs in the calling code. Best-effort network operations should catch narrowly (e.g., checking for a specific error type or at minimum logging to stderr at debug level).
+These swallow all exceptions — including `TypeError` and `ReferenceError` that indicate programming errors. Production failures are invisible.
 
 ---
 
 ## Findings
 
-🟡 bin/lib/finalize.mjs:124 — `projMatch` is computed but never used; remove the dead code or implement the project-board status update it was meant to enable
-🟡 bin/lib/finalize.mjs:129 — bare `catch {}` swallows programming errors as well as network errors; log to stderr at debug level or narrow the catch scope to expected failure modes
-🔵 test/harness.test.mjs:394 — the fake `gh` binary accepts all commands unconditionally; consider capturing invocations to assert that `gh issue close 201` was called exactly once and `gh issue close` was never called without a valid number
+🟡 bin/lib/finalize.mjs:116 — `readTrackingConfig()` called unconditionally but result only used in a dead block (line 124); remove or guard behind a "has task issues" check to avoid an unnecessary filesystem read on every finalize
+🟡 bin/lib/finalize.mjs:123 — `closeIssue()` return value discarded; `issuesClosed` counter increments regardless of actual `gh` success — reported count is unreliable when `gh` fails
+🟡 bin/lib/finalize.mjs:129 — bare `catch {}` swallows all exceptions including programming errors; at minimum write to `process.stderr` so failures are observable in production
+🔵 bin/lib/finalize.mjs:134 — the approval-issue close is a second parallel loop appended after the task loop; if project-board support is ever added for the approval issue, the two loops will diverge; consider a unified close-all pass with a discriminated entry type to keep the logic co-located
 
 ---
 
@@ -94,4 +124,4 @@ These swallow all errors — including programming errors (TypeError, ReferenceE
 
 **PASS**
 
-The test correctly and completely verifies the claimed behavior. The production guard (`if (task.issueNumber)`) is in place and confirmed by a passing hermetic test. The two yellow findings are pre-existing issues in `finalize.mjs` that belong in the backlog; they were not introduced by this task and do not affect correctness of the tested behavior.
+The implementation is correct and minimal. Lines 134–139 are the only code change: a guarded `closeIssue` call and `issuesClosed++`, consistent with the existing pattern for task issues. All 8 finalize tests pass (exit 0, 519 total pass). The four flagged items are pre-existing debt; none block merge.

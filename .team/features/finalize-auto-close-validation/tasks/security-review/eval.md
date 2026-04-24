@@ -1,20 +1,19 @@
 # Security Review — finalize-auto-close-validation
 
 **Role:** Security specialist
-**Task:** Test: calling `finalize` on an already-completed feature does not re-close issues
+**Task:** Implementation: `finalize.mjs` closes `state.approvalIssueNumber` in addition to task issues
 **Verdict:** PASS (with backlog items)
 
 ---
 
 ## Files Opened and Read
 
-- `.team/features/finalize-auto-close-validation/tasks/task-5/handshake.json`
-- `.team/features/finalize-auto-close-validation/tasks/task-5/artifacts/test-output.txt`
-- `.team/features/finalize-auto-close-validation/tasks/security-review/eval.md` (prior review, task-4 scope)
 - `bin/lib/finalize.mjs` (full file, 150 lines)
-- `bin/lib/github.mjs` (lines 1–170)
-- `bin/lib/util.mjs` (full file)
-- `test/harness.test.mjs` (lines 508–554 — the new idempotency test)
+- `bin/lib/github.mjs` (lines 1–158)
+- `test/harness.test.mjs` (lines 377–426 — the new approvalIssueNumber test)
+- `.team/features/finalize-auto-close-validation/tasks/task-6/artifacts/test-output.txt` (gate output)
+- `.team/features/finalize-auto-close-validation/tasks/task-6/handshake.json`
+- `.team/features/finalize-auto-close-validation/tasks/security-review/eval.md` (prior review, task-5 scope)
 
 ---
 
@@ -24,78 +23,95 @@
 
 **PASS — direct evidence.**
 
-Gate handshake (task-5) reports exit code 0, verdict PASS. Test output line 395:
+Gate handshake (task-6) reports exit code 0, verdict PASS. Test output lines 392–396:
 ```
-✔ does not re-close issues when feature is already completed (idempotent) (50.994166ms)
+✔ closes approvalIssueNumber when present and counts it in issuesClosed (277.391083ms)
+✔ returns issuesClosed: 2 when feature has 2 tasks with issueNumber (281.081417ms)
+✔ silently skips tasks without issueNumber and does not affect count (212.826875ms)
+✔ does not re-close issues when feature is already completed (idempotent) (50.432209ms)
 ```
 519 tests pass, 0 fail.
 
-### 2. Idempotent early-exit is correctly ordered relative to tamper detection
+### 2. New code path — approvalIssueNumber closing (lines 133–139)
 
-**PASS — code path confirmed.**
+**PASS — core behavior confirmed.**
 
-`finalize.mjs:21–24` checks `_written_by !== WRITER_SIG` before reaching the early-exit at lines 26–33. A crafted STATE.json must at minimum pass the tamper check before the idempotency guard fires. The test correctly sets `_written_by: "at-harness"` (line 534) to satisfy this. No security regression introduced: the exit order is tamper-check → idempotency-check, not reversed.
-
-### 3. Early exit makes zero gh calls — capturing stub verifies it
-
-**PASS — stronger coverage than prior tasks in this series.**
-
-The test at `test/harness.test.mjs:509–513` writes a capturing stub:
-```sh
-#!/bin/sh
-echo "$@" >> "${ghLogFile}"
-echo ok
-exit 0
-```
-The assertion at lines 549–550 reads the log file and asserts it is empty (or absent). This directly proves that `gh` was never invoked, covering both `task.issueNumber: 601` and `approvalIssueNumber: 700` present in the state fixture (lines 524–525, 527). This is a meaningful improvement over the non-capturing stubs used in prior tasks in this series.
-
-### 4. TOCTOU protection for concurrent finalize calls
-
-**PASS — double-check present, ordered correctly.**
-
-`finalize.mjs:69` acquires the file lock. After lock acquisition, `finalize.mjs:82–89` re-reads state and checks `freshState.status === "completed"` before proceeding. If two concurrent callers both initially see a non-completed state, only the first to acquire the lock will write `status: "completed"` (line 91); the second will hit the post-lock early-exit. The idempotency guard thus works at both the pre-lock (line 26) and post-lock (line 82) layers.
-
-### 5. Pre-existing: `task.issueNumber` has no integer type guard
-
-**WARN — unresolved from task-3 and task-4 security reviews.**
-
-`finalize.mjs:118`: guard is `if (task.issueNumber)` (truthy). A non-integer string like `"abc"` passes the truthy check and reaches `closeIssue("abc", comment)`, which calls `spawnSync("gh", ["issue", "close", "abc"])`. No shell injection is possible (spawnSync array form), but `gh` would fail silently via the `try/catch` at line 122–129, and `issuesClosed++` would still fire. The test uses only integer `601` — the non-integer path is untested.
-
-### 6. Pre-existing: `issuesClosed++` unconditional
-
-**WARN — unresolved from task-3 and task-4 security reviews.**
-
-`finalize.mjs:128`: `issuesClosed++` fires regardless of the boolean returned by `closeIssue`. Since `closeIssue` never throws (returns `false` on `gh` failure), the count reports "tasks with an issueNumber" not "issues actually closed". This inflates the reported count on partial failures. Not introduced by this change but still unresolved.
-
-### 7. Dead code: `tracking` block computes but discards `projMatch`
-
-**SUGGESTION — incomplete implementation left in production path.**
-
-`finalize.mjs:124–127`:
+`finalize.mjs:134–139` adds:
 ```js
-if (tracking) {
-  const projMatch = String(tracking.statusFieldId || "").match(/\d+/);
-  // Best-effort: move to done on project board
+if (freshState.approvalIssueNumber) {
+  try {
+    closeIssue(freshState.approvalIssueNumber, "Feature finalized — all tasks complete.");
+    issuesClosed++;
+  } catch { /* best-effort */ }
 }
 ```
-`projMatch` is assigned but never used. `readTrackingConfig()` (line 116) incurs a filesystem read on every finalize call, and the result is only consulted by this dead block. This is not a security issue, but it signals an incomplete feature that could mislead future reviewers into thinking project board status is being updated on finalize.
 
-### 8. Weak STATE.json tamper detection — structural concern
+The test at `test/harness.test.mjs:377–426` creates a capturing `gh` stub, sets `approvalIssueNumber: 500` in STATE.json, and asserts `issuesClosed === 2` and that `ghCalls.includes("500")`. This directly proves `gh issue close 500` was invoked. The comment is hardcoded — no user-controlled content in the approval issue comment.
 
-**WARN — pre-existing design constraint.**
+### 3. No shell injection — confirmed
 
-`finalize.mjs:21–24` gates on `_written_by === "at-harness"`. This is a string field that any filesystem-write-capable actor can set. Unlike `approval.json` (which uses HMAC signing with a key from `.approval-secret`), STATE.json has no cryptographic integrity check. An attacker who can write STATE.json can set `status: "completed"` + `_written_by: "at-harness"` and cause `finalize` to report `finalized: true, note: "already finalized"` without any task validation, lock acquisition, or issue closing.
+**PASS — code path traced.**
 
-For a developer-local tool this is acceptable, but noting because it means the idempotency guard can be triggered by a crafted file, not only by a legitimate prior finalize run.
+`closeIssue` at `github.mjs:137–142`:
+```js
+export function closeIssue(number, comment) {
+  if (!number) return false;
+  const args = ["issue", "close", String(number)];
+  if (comment) args.push("--comment", comment);
+  return runGh(...args) !== null;
+}
+```
+
+`runGh` uses `spawnSync("gh", args, {...})` with `args` as an array — no shell string interpolation, no shell metacharacter risk. Even if `approvalIssueNumber` contained special characters, they would be passed as a single argument to `gh`, not interpreted by a shell.
+
+### 4. Idempotency guard remains intact
+
+**PASS — verified ordering.**
+
+The new closing code is at lines 133–139, which executes only after:
+- Tamper check (`_written_by === WRITER_SIG`) at line 21
+- Pre-lock idempotency check (`state.status === "completed"`) at line 26
+- Lock acquisition at line 69
+- Post-lock re-check (`freshState.status === "completed"`) at line 82
+
+An already-completed feature exits at line 82 before reaching line 133. The idempotency test at line 508 in the test file confirms `gh` is not called for already-completed features.
+
+### 5. Integer type guard missing on `approvalIssueNumber` — NEW INSTANCE
+
+**WARN — same pattern as pre-existing `task.issueNumber:118`.**
+
+`finalize.mjs:134`: guard is `if (freshState.approvalIssueNumber)` (truthy). A crafted STATE.json with `approvalIssueNumber: "not-a-number"` passes the truthy check and reaches `closeIssue("not-a-number", ...)`. `closeIssue` has `if (!number) return false` but this won't catch non-empty strings. `gh issue close not-a-number` will fail (non-zero exit), `runGh` returns null, `closeIssue` returns false — but the `try {}` block does not check the return value and `issuesClosed++` fires anyway. No injection (spawnSync array form), but the count is inflated by 1 on invalid input.
+
+The test only exercises `approvalIssueNumber: 500` (valid integer) — the invalid string path is untested.
+
+### 6. `issuesClosed++` unconditional for approvalIssueNumber — NEW INSTANCE
+
+**WARN — same pattern as pre-existing line 128.**
+
+`finalize.mjs:137`: `issuesClosed++` fires unconditionally inside the `try {}` block, regardless of `closeIssue`'s return value. `closeIssue` never throws (catches internally, returns false on failure). This means the reported `issuesClosed` count represents "issues for which close was attempted" not "issues successfully closed".
+
+### 7. Dead code in tracking block — pre-existing
+
+**SUGGESTION — unchanged from prior review.**
+
+`finalize.mjs:116–127`: `readTrackingConfig()` is called on every finalize (filesystem read). The result `tracking` is only consulted to extract `projMatch` via regex, which is then discarded unused. The block serves no purpose. Not a security issue, but misleads future reviewers about project board status being updated.
+
+### 8. STATE.json tamper detection is not cryptographic — pre-existing
+
+**WARN — pre-existing structural constraint, no change.**
+
+`finalize.mjs:21–24` gates on `state._written_by === "at-harness"`. This is a plaintext string field. Any filesystem-write-capable actor can craft STATE.json with `_written_by: "at-harness"` and reach all downstream logic. Contrast with `approval.json`, which uses HMAC signing. For a developer-local tool this is acceptable, but the idempotency guard and early exits can be bypassed by file manipulation.
 
 ---
 
 ## Findings
 
-🟡 bin/lib/finalize.mjs:118 — `task.issueNumber` has no integer type guard; a crafted STATE.json with `issueNumber: "bad"` passes the truthy check and silently reaches `gh issue close "bad"` — add `Number.isInteger(task.issueNumber)` guard (pre-existing, unresolved from task-3 and task-4 reviews)
-🟡 bin/lib/finalize.mjs:128 — `issuesClosed++` fires unconditionally regardless of `closeIssue` return value; count inflates when `gh` fails — change to `if (closeIssue(...)) issuesClosed++` (pre-existing, unresolved from task-3 and task-4 reviews)
-🟡 bin/lib/finalize.mjs:21 — STATE.json tamper detection relies on a string field (`_written_by`) with no cryptographic backing; a filesystem-write-capable actor can set `status: "completed"` and trigger the idempotency early-exit without legitimate prior finalization (pre-existing structural constraint)
-🔵 bin/lib/finalize.mjs:124 — Dead code: `readTrackingConfig()` is called and `projMatch` is computed but neither is used; remove or complete the block to avoid misleading future reviewers about project board status being updated on finalize
+🟡 bin/lib/finalize.mjs:134 — `approvalIssueNumber` has no integer type guard; a crafted STATE.json with `approvalIssueNumber: "abc"` passes the truthy check, reaches `gh issue close abc` (fails silently), but still increments `issuesClosed` — add `Number.isInteger(freshState.approvalIssueNumber)` guard; mirrors pre-existing finding on `task.issueNumber:118`
+🟡 bin/lib/finalize.mjs:137 — `issuesClosed++` fires unconditionally; `closeIssue` return value is not checked; count inflates when `gh` fails — change to `if (closeIssue(...)) issuesClosed++`; mirrors pre-existing finding on line 128
+🟡 bin/lib/finalize.mjs:118 — `task.issueNumber` has no integer type guard (pre-existing, unresolved)
+🟡 bin/lib/finalize.mjs:128 — `issuesClosed++` unconditional for task issues (pre-existing, unresolved)
+🟡 bin/lib/finalize.mjs:21 — STATE.json tamper detection relies on a plaintext `_written_by` string with no cryptographic backing; filesystem-write-capable actor can bypass (pre-existing structural constraint)
+🔵 bin/lib/finalize.mjs:124 — Dead code: `readTrackingConfig()` is called and `projMatch` computed but neither is used; remove or complete the block (pre-existing)
 
 ---
 
@@ -103,4 +119,6 @@ For a developer-local tool this is acceptable, but noting because it means the i
 
 **PASS**
 
-No critical findings. No new security surface introduced — this commit adds one test. The implementation correctly places the idempotency guard (`state.status === "completed"` at line 26) after tamper detection (line 21), before lock acquisition (line 69), and the guard is re-applied post-lock (line 82) for TOCTOU safety. The test uses a capturing `gh` stub and asserts zero invocations, directly proving no GitHub API calls are made for an already-completed feature. The three 🟡 findings are pre-existing debt that should remain in the backlog.
+No critical findings. The new `approvalIssueNumber` closing block (lines 133–139) introduces no new attack surface: `closeIssue` uses `spawnSync` in array form (no shell injection), the comment is hardcoded (no user-controlled content), and the idempotency guard at lines 26 and 82 prevents double-closing. The test at `test/harness.test.mjs:377–426` uses a capturing `gh` stub and directly verifies `issuesClosed === 2` and that gh was called with issue number 500.
+
+The two new 🟡 findings (`finalize.mjs:134` and `:137`) are the same pre-existing patterns from lines 118 and 128 applied to the new code path. They should be added to the backlog alongside the existing items.
