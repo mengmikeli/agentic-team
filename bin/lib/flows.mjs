@@ -4,6 +4,7 @@
 // full-stack: brainstorm + build + multi-role review + gate
 
 import { readFileSync } from "node:fs";
+import { parseFindings } from "./synthesize.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -174,8 +175,21 @@ export const PARALLEL_REVIEW_ROLES = ["architect", "engineer", "product", "teste
  * @returns {string}
  */
 export function mergeReviewFindings(findings) {
-  const parts = findings.map(f =>
-    `### [${f.role}]\n${(f.output || "No output").slice(0, 500)}`
-  );
-  return `## Parallel Review Findings\n\n${parts.join("\n\n")}`;
+  const SEVERITY_ORDER = { critical: 0, warning: 1, suggestion: 2 };
+
+  // Collect all findings with role prefix, tagged by severity
+  const allFindings = [];
+  for (const f of findings) {
+    const parsed = parseFindings(f.output || "");
+    for (const p of parsed) {
+      allFindings.push({ severity: p.severity, text: `[${f.role}] ${p.text}` });
+    }
+  }
+
+  // Sort: critical → warning → suggestion
+  allFindings.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
+
+  const lines = allFindings.map(f => f.text);
+  const body = lines.length > 0 ? lines.join("\n") : "_No findings._";
+  return `## Parallel Review Findings\n\n${body}`;
 }

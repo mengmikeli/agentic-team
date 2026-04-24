@@ -193,17 +193,39 @@ describe("PARALLEL_REVIEW_ROLES", () => {
 describe("mergeReviewFindings", () => {
   it("combines findings from multiple roles into a single report", () => {
     const findings = [
-      { role: "security", ok: true, output: "No issues found." },
-      { role: "architect", ok: true, output: "Structure looks good." },
-      { role: "devil's-advocate", ok: true, output: "Consider edge case X." },
+      { role: "security", ok: true, output: "🔴 auth.mjs:10 — use bcrypt" },
+      { role: "architect", ok: true, output: "🟡 api.mjs:5 — add retry" },
+      { role: "tester", ok: true, output: "🔵 util.mjs:3 — add test" },
     ];
     const merged = mergeReviewFindings(findings);
-    assert.ok(merged.includes("security"));
-    assert.ok(merged.includes("architect"));
-    assert.ok(merged.includes("devil's-advocate"));
-    assert.ok(merged.includes("No issues found."));
-    assert.ok(merged.includes("Structure looks good."));
-    assert.ok(merged.includes("Consider edge case X."));
+    assert.ok(merged.includes("[security]"));
+    assert.ok(merged.includes("[architect]"));
+    assert.ok(merged.includes("[tester]"));
+    assert.ok(merged.includes("use bcrypt"));
+    assert.ok(merged.includes("add retry"));
+    assert.ok(merged.includes("add test"));
+  });
+
+  it("sorts findings: critical before warning before suggestion", () => {
+    const findings = [
+      { role: "tester",    ok: true, output: "🔵 a.mjs:1 — suggestion" },
+      { role: "security",  ok: true, output: "🟡 b.mjs:2 — warning" },
+      { role: "architect", ok: true, output: "🔴 c.mjs:3 — critical" },
+    ];
+    const merged = mergeReviewFindings(findings);
+    const criticalIdx  = merged.indexOf("🔴");
+    const warningIdx   = merged.indexOf("🟡");
+    const suggestionIdx = merged.indexOf("🔵");
+    assert.ok(criticalIdx < warningIdx, "critical should appear before warning");
+    assert.ok(warningIdx < suggestionIdx, "warning should appear before suggestion");
+  });
+
+  it("prefixes each finding with the role name", () => {
+    const findings = [
+      { role: "engineer", ok: true, output: "🔴 x.mjs:1 — fix this" },
+    ];
+    const merged = mergeReviewFindings(findings);
+    assert.ok(merged.includes("[engineer]"));
   });
 
   it("handles empty output gracefully", () => {
@@ -211,15 +233,14 @@ describe("mergeReviewFindings", () => {
       { role: "security", ok: false, output: "" },
     ];
     const merged = mergeReviewFindings(findings);
-    assert.ok(merged.includes("security"));
-    assert.ok(merged.includes("No output"));
+    assert.ok(merged.includes("_No findings._"));
   });
 
   it("returns a string with a heading", () => {
     const findings = [{ role: "architect", ok: true, output: "Looks good." }];
     const merged = mergeReviewFindings(findings);
     assert.ok(typeof merged === "string");
-    assert.ok(merged.length > 0);
+    assert.ok(merged.includes("## Parallel Review Findings"));
   });
 });
 
