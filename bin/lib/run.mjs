@@ -755,7 +755,7 @@ ${roadmapList}
   console.log(`\n${c.green}✓ PRODUCT.md created${c.reset}`);
 }
 
-async function _runSingleFeature(args, description, providedLabel = '') {
+async function _runSingleFeature(args, description, providedLabel = '', explicitSlug = '') {
   // Reset token usage so each feature gets its own clean counters (prevents
   // accumulation across features in multi-feature outer-loop runs)
   resetRunUsage();
@@ -784,8 +784,8 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   let featureLabel = providedLabel;  // e.g. "P3/#10" for roadmap display; may be overridden in Mode 2
 
   if (description) {
-    // Mode 1: explicit feature — use providedLabel if given
-    featureName = description
+    // Mode 1: explicit feature
+    featureName = explicitSlug || description
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")

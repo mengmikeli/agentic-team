@@ -408,12 +408,66 @@ export function checkTests(cwd = process.cwd()) {
  * Run phase-level checks. Called by dogfood mode at phase boundaries.
  * Returns { passed, failed, warnings, checks }.
  */
+/**
+ * Check for duplicate feature dirs (slug mismatch).
+ */
+export function checkDuplicateFeatures(cwd = process.cwd()) {
+  const featDir = join(cwd, ".team", "features");
+  if (!existsSync(featDir)) return { status: "pass", message: "No features to check" };
+  
+  const dirs = readdirSync(featDir, { withFileTypes: true }).filter(d => d.isDirectory()).map(d => d.name);
+  const prefixes = new Map();
+  const dupes = [];
+  
+  for (const d of dirs) {
+    const prefix = d.slice(0, 20);
+    if (prefixes.has(prefix)) {
+      dupes.push(`${prefixes.get(prefix)} vs ${d}`);
+    } else {
+      prefixes.set(prefix, d);
+    }
+  }
+  
+  if (dupes.length > 0) {
+    return { status: "warn", message: `${dupes.length} possible duplicate feature dir(s): ${dupes.join("; ")}` };
+  }
+  return { status: "pass", message: "No duplicate feature dirs" };
+}
+
+/**
+ * Check for features that completed with 0 tasks.
+ */
+export function checkZeroTaskCompletions(cwd = process.cwd()) {
+  const featDir = join(cwd, ".team", "features");
+  if (!existsSync(featDir)) return { status: "pass", message: "No features to check" };
+  
+  const zeroTask = [];
+  for (const d of readdirSync(featDir, { withFileTypes: true })) {
+    if (!d.isDirectory()) continue;
+    const sp = join(featDir, d.name, "STATE.json");
+    if (!existsSync(sp)) continue;
+    try {
+      const state = JSON.parse(readFileSync(sp, "utf8"));
+      if (state.status === "completed" && (state.tasks || []).length === 0) {
+        zeroTask.push(d.name);
+      }
+    } catch {}
+  }
+  
+  if (zeroTask.length > 0) {
+    return { status: "fail", message: `${zeroTask.length} feature(s) completed with 0 tasks: ${zeroTask.join(", ")}` };
+  }
+  return { status: "pass", message: "No zero-task completions" };
+}
+
 export function runPhaseChecks(cwd = process.cwd(), opts = {}) {
   console.log(`\n${c.bold}Phase Health Check${c.reset}\n`);
 
   const checks = [
     checkRoadmapIntegrity(cwd),
     checkStaleExecuting(cwd),
+    checkDuplicateFeatures(cwd),
+    checkZeroTaskCompletions(cwd),
     ...(opts.skipTests ? [] : [checkTests(cwd)]),
     ...(opts.skipGitHub ? [] : [checkOrphanedIssues(cwd)]),
   ];

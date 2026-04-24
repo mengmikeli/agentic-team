@@ -847,7 +847,7 @@ export async function outerLoop(args, deps) {
 
     console.log(`${c.bold}Executing...${c.reset}`);
     writeLoopStatus(teamDir, { phase: "executing", cycle, feature: priority.name });
-    const executeResult = await runSingleFeature(args, priorityDescription, roadmapLabel);
+    const executeResult = await runSingleFeature(args, priorityDescription, roadmapLabel, featureName);
     console.log();
 
     if (stopping) break;
