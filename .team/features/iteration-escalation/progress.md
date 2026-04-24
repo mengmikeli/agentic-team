@@ -16,3 +16,8 @@
 
 ## Execution Log
 
+### 2026-04-24 00:40:58
+**Task 1: `STATE.json` task entries include a `gateWarningHistory` array (`[{iteration: N, layers: [...]}]`) written after each WARN verdict**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

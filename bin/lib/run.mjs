@@ -1065,6 +1065,7 @@ async function _runSingleFeature(args, description) {
         // ── Review phases ──
 
         let reviewFailed = false;
+        let escalationFired = false;
 
         if (agent && flow.phases.includes("review")) {
           console.log(`  ${c.cyan}▶ Review...${c.reset}`);
@@ -1100,6 +1101,7 @@ async function _runSingleFeature(args, description) {
             appendFileSync(evalPath, "\n\n" + compoundGateResult.section);
             const escalation = checkEscalation(task.gateWarningHistory);
             if (escalation) {
+              escalationFired = true;
               const escalMsg = `🔴 iteration-escalation — Persistent eval warning: ${escalation.layers.join(", ")} recurred in iterations ${escalation.iterations.join(", ")}`;
               findings = [{ severity: "critical", text: escalMsg }, ...findings];
               appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- 🔴 Iteration escalation: ${escalation.layers.join(", ")} recurred in iterations ${escalation.iterations.join(", ")}`);
@@ -1169,6 +1171,7 @@ async function _runSingleFeature(args, description) {
           appendFileSync(join(taskDir, "eval.md"), "\n\n" + compoundGateResult.section);
           const escalationP = checkEscalation(task.gateWarningHistory);
           if (escalationP) {
+            escalationFired = true;
             const escalMsgP = `🔴 iteration-escalation — Persistent eval warning: ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}`;
             findings = [{ severity: "critical", text: escalMsgP }, ...findings];
             appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- 🔴 Iteration escalation: ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}`);
@@ -1200,6 +1203,14 @@ async function _runSingleFeature(args, description) {
 
         // If review found critical issues, treat as failure — retry the task
         if (reviewFailed) {
+          if (escalationFired) {
+            // Iteration escalation: block immediately, no further retries allowed
+            harness("transition", "--task", task.id, "--status", "blocked",
+              "--dir", featureDir, "--reason", "Iteration escalation: same compound-gate layer recurred across multiple iterations");
+            blocked++;
+            console.log(`  ${c.red}✗ Blocked by iteration escalation — no further retries${c.reset}\n`);
+            break;
+          }
           console.log(`  ${c.red}✗ Review blocked task — will retry${c.reset}\n`);
           appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Verdict: 🟡 Review FAIL (attempt ${task.attempts})\n- Will retry with review feedback`);
           if (attempt === maxRetries) {
