@@ -222,6 +222,29 @@ export function addToProject(issueNumber, projectNumber) {
   return output || null;
 }
 
+/**
+ * List all items on a GitHub Project board.
+ * Returns [{ issueNumber, title, status, id }] or [] on failure.
+ */
+export function listProjectItems(projectNumber) {
+  if (!projectNumber) return [];
+  const itemsJson = runGh("project", "item-list", String(projectNumber), "--owner", "@me", "--format", "json");
+  if (!itemsJson) return [];
+  try {
+    const data = JSON.parse(itemsJson);
+    return (data.items || [])
+      .filter(i => i.content?.number)
+      .map(i => ({
+        issueNumber: i.content.number,
+        title: i.content.title || "",
+        status: i.fieldValues?.find(fv => fv.field?.name === "Status")?.name ?? null,
+        id: i.id,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 /** Move an issue to a status column on the project board. */
 export function setProjectItemStatus(issueNumber, projectNumber, status) {
   if (!issueNumber || !projectNumber) return false;

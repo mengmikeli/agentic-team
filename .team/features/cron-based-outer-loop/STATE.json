@@ -1,0 +1,87 @@
+{
+  "version": "2.0",
+  "feature": "cron-based-outer-loop",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`agt cron-tick` queries the GitHub Project board and dispatches the first \"Ready\" issue to `runSingleFeature`",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 182,
+      "lastTransition": "2026-04-24T10:02:27.023Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-2",
+      "title": "`agt cron-tick` transitions the board item from \"Ready\" → \"In Progress\" before execution and → \"Done\" on success",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 183
+    },
+    {
+      "id": "task-3",
+      "title": "`agt cron-tick` transitions the board item back to \"Ready\" on failure, with a GitHub comment explaining the error",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 184
+    },
+    {
+      "id": "task-4",
+      "title": "`agt cron-tick` exits code 0 with a \"no ready items\" message when the board has nothing to dispatch",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 185
+    },
+    {
+      "id": "task-5",
+      "title": "`.team/.cron-lock` is acquired before execution and released after; a concurrent invocation exits code 0 immediately with a \"tick already running\" message",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 186
+    },
+    {
+      "id": "task-6",
+      "title": "`agt cron-setup` prints a valid `crontab` entry invoking `agt cron-tick` (with the correct working directory and PATH)",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 187
+    },
+    {
+      "id": "task-7",
+      "title": "`agt cron-setup --interval <n>` respects the configured interval in the printed crontab entry",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 188
+    },
+    {
+      "id": "task-8",
+      "title": "`agt help cron-tick` and `agt help cron-setup` return usage text consistent with other `agt help <command>` output",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 189
+    },
+    {
+      "id": "task-9",
+      "title": "Unit tests cover: no Ready items, lock already held, successful dispatch, failed dispatch (board rollback)",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 190
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T10:02:27.023Z"
+    }
+  ],
+  "createdAt": "2026-04-24T09:58:37.214Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T10:02:29.352Z",
+  "_write_nonce": "712a90db606510c8"
+}

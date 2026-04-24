@@ -1537,3 +1537,5 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   }
   return "done";
 }
+
+export const runSingleFeature = _runSingleFeature;

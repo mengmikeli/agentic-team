@@ -15,6 +15,7 @@ import { cmdAudit } from "./lib/audit-cmd.mjs";
 import { cmdBrainstorm } from "./lib/brainstorm-cmd.mjs";
 import { daemonStart, daemonStop, daemonStatus } from "./lib/daemon.mjs";
 import { cmdDoctor } from "./lib/doctor.mjs";
+import { cmdCronTick, cmdCronSetup } from "./lib/cron.mjs";
 
 const command = process.argv[2];
 const args = process.argv.slice(3);
@@ -66,6 +67,9 @@ switch (command) {
   case "audit":   await cmdAudit(args);   break;
   case "brainstorm": await cmdBrainstorm(args); break;
   case "doctor":  cmdDoctor(args);  break;
+
+  case "cron-tick":  await cmdCronTick(args);  break;
+  case "cron-setup": cmdCronSetup(args); break;
 
   case "help": {
     const sub = args[0];
@@ -164,6 +168,20 @@ switch (command) {
         flags: [],
         examples: ["agt doctor"],
       },
+      "cron-tick": {
+        usage: "agt cron-tick",
+        description: "Query the GitHub Project board and dispatch the first 'Ready' issue to the autonomous execution loop. Uses an advisory lock to prevent concurrent runs. Intended to be invoked by a cron job (see 'agt cron-setup').",
+        flags: [],
+        examples: ["agt cron-tick"],
+      },
+      "cron-setup": {
+        usage: "agt cron-setup [--interval <minutes>]",
+        description: "Print a crontab entry for scheduling 'agt cron-tick' at a given interval.",
+        flags: [
+          "--interval <n>   Run every N minutes (default: 30)",
+        ],
+        examples: ["agt cron-setup", "agt cron-setup --interval 15"],
+      },
       version: {
         usage: "agt version",
         description: "Print the installed agt version.",
@@ -214,6 +232,8 @@ switch (command) {
       console.log("  dashboard [port]         Web dashboard (default: 3847)");
       console.log("  doctor                   Health check for setup");
       console.log("  version                  Show version");
+      console.log("  cron-tick                Dispatch next Ready board item");
+      console.log("  cron-setup [--interval]  Print crontab entry for cron-tick");
       console.log();
       console.log("Run 'agt help <command>' for detailed usage, flags, and examples.");
       console.log();
@@ -629,6 +649,8 @@ switch (command) {
     console.log("  dashboard [port]         Web dashboard (default: 3847)");
     console.log("  doctor                   Health check for setup");
     console.log("  version                  Show version");
+    console.log("  cron-tick                Dispatch next Ready board item");
+    console.log("  cron-setup [--interval]  Print crontab entry for cron-tick");
     console.log();
     console.log("Run 'agt help <command>' for detailed usage, flags, and examples.");
     console.log();
