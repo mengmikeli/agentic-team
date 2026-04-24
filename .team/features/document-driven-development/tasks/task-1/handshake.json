@@ -1,0 +1,13 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Replaced the sprint-oriented `templates/SPEC.md` with a feature PRD template containing all seven required sections: Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope, and Done When. Each section includes an HTML comment explaining what to write there. All 519 existing tests continue to pass.",
+  "timestamp": "2026-04-24T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "templates/SPEC.md" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
