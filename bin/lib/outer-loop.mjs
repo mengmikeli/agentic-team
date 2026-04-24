@@ -841,12 +841,20 @@ export async function outerLoop(args, deps) {
       console.log(`  ${c.green}→ ${outcomeMatch[1].trim()}${c.reset}`);
     }
 
-    // Ensure roadmap is updated (agent may have done it, but double-check)
-    const wasMarked = markRoadmapItemDone(productPath, priority.name);
-    if (wasMarked) {
-      console.log(`  ${c.green}→ Roadmap updated: ✅ Done${c.reset}`);
+    // Only mark roadmap done if the feature actually shipped (>50% tasks passed)
+    const featureState = readState(join(teamDir, "features", featureName));
+    const passedTasks = (featureState?.tasks || []).filter(t => t.status === "passed").length;
+    const totalTasks = (featureState?.tasks || []).length;
+    let wasMarked = false;
+    if (passedTasks > 0 && passedTasks >= Math.ceil(totalTasks * 0.5)) {
+      wasMarked = markRoadmapItemDone(productPath, priority.name);
+      if (wasMarked) {
+        console.log(`  ${c.green}→ Roadmap updated: ✅ Done (${passedTasks}/${totalTasks} tasks)${c.reset}`);
+      } else {
+        console.log(`  ${c.dim}→ Roadmap already marked or no matching item${c.reset}`);
+      }
     } else {
-      console.log(`  ${c.dim}→ Roadmap already marked or no matching item${c.reset}`);
+      console.log(`  ${c.yellow}→ NOT marking done: only ${passedTasks}/${totalTasks} tasks passed (need >50%)${c.reset}`);
     }
 
     // Append outcome to progress log
