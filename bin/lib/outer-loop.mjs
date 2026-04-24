@@ -527,6 +527,7 @@ export function parseRoadmap(productContent) {
  */
 export async function outerLoop(args, deps) {
   const { findAgent, dispatchToAgent, runSingleFeature } = deps;
+  const dogfood = args.includes("--dogfood");
 
   const cwd = process.cwd();
   const teamDir = join(cwd, ".team");
@@ -795,6 +796,26 @@ export async function outerLoop(args, deps) {
       console.log(`\n${c.green}${c.bold}All roadmap items completed after ${cycle} cycle(s)!${c.reset}`);
       break;
     }
+
+    // Dogfood mode: detect phase boundary and pause for reflection
+    if (dogfood) {
+      const freshProduct = readFileSync(productPath, "utf8");
+      const freshRoadmap = parseRoadmap(freshProduct);
+      const currentPhase = detectPhase(freshProduct, priority.name);
+      const nextUndone = freshRoadmap.find(item => !item.done);
+      const nextPhase = nextUndone ? detectPhase(freshProduct, nextUndone.name) : null;
+
+      if (currentPhase && nextPhase && currentPhase !== nextPhase) {
+        console.log(`\n${"\u2550".repeat(50)}`);
+        console.log(`${c.bold}${c.cyan}Phase ${currentPhase} complete${c.reset}`);
+        console.log(`  Next: Phase ${nextPhase} \u2014 ${nextUndone.name}`);
+        console.log(`  ${c.dim}Cycles: ${cycle}${c.reset}`);
+        console.log(`${"\u2550".repeat(50)}`);
+        console.log(`\n${c.yellow}Dogfood mode: pausing for reflection.${c.reset}`);
+        console.log(`Run ${c.bold}agt run --dogfood${c.reset} to continue.\n`);
+        break;
+      }
+    }
   }
 
   process.removeListener("SIGINT", sigintHandler);
@@ -804,4 +825,17 @@ export async function outerLoop(args, deps) {
   }
 
   return cycle;
+}
+
+function detectPhase(productContent, itemName) {
+  const lines = productContent.split("\n");
+  let currentPhase = null;
+  for (const line of lines) {
+    const phaseMatch = line.match(/^###\s*Phase\s*(\d+)/);
+    if (phaseMatch) currentPhase = phaseMatch[1];
+    if (currentPhase && line.toLowerCase().includes(itemName.toLowerCase())) {
+      return currentPhase;
+    }
+  }
+  return null;
 }

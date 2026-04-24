@@ -2,7 +2,7 @@
 // Dispatches agents, runs quality gates, manages state via harness.
 
 import { execSync, spawnSync, execFileSync, spawn } from "child_process";
-import { existsSync, readFileSync, mkdirSync, writeFileSync, appendFileSync } from "fs";
+import { existsSync, readFileSync, mkdirSync, writeFileSync, appendFileSync, unlinkSync } from "fs";
 import { join, resolve, dirname } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
@@ -956,6 +956,19 @@ async function _runSingleFeature(args, description) {
 
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i];
+
+    // Check for pause signal before each task
+    if (existsSync(join(featureDir, ".pause"))) {
+      console.log(`\n${c.yellow}⏸ Pause requested — stopping after current state is saved.${c.reset}`);
+      syncTaskState();
+      // Update state to paused
+      const ps = readState(featureDir);
+      if (ps) { ps.status = 'paused'; ps.pausedAt = new Date().toISOString(); writeState(featureDir, ps); }
+      // Clean up signal
+      try { unlinkSync(join(featureDir, '.pause')); } catch {}
+      console.log(`  Paused at task ${i + 1}/${tasks.length}. Resume with ${c.bold}agt run${c.reset}\n`);
+      return "paused";
+    }
 
     console.log(`${c.bold}▶ Task ${i + 1}/${tasks.length}:${c.reset} ${task.title}`);
     setUsageContext("build", task.id);

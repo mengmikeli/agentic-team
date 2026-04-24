@@ -41,6 +41,7 @@ switch (command) {
   case "board":   cmdBoard(args);   break;
   case "metrics": cmdMetrics(args); break;
   case "stop":
+  case "pause":
     if (args.includes("--daemon") || args.length === 0) {
       daemonStop(process.cwd());
       if (args.includes("--daemon")) break;
