@@ -120,6 +120,27 @@ export function getIssueUrl(issueNumber) {
   return runGh("issue", "view", String(issueNumber), "--json", "url", "--jq", ".url") || null;
 }
 
+/** Get the body of a GitHub issue. Returns string or null on failure. */
+export function getIssueBody(number) {
+  if (!number) return null;
+  return runGh("issue", "view", String(number), "--json", "body", "--jq", ".body") || null;
+}
+
+/** Edit a GitHub issue body. Returns true on success. */
+export function editIssue(number, body) {
+  if (!number) return false;
+  return runGh("issue", "edit", String(number), "--body", body || "") !== null;
+}
+
+/** Build the ## Tasks checklist markdown from a list of tasks. Returns empty string if no tasks have issue numbers. */
+export function buildTasksChecklist(tasks) {
+  const lines = (tasks || [])
+    .filter(t => t.issueNumber)
+    .map(t => `- [ ] ${t.title} (#${t.issueNumber})`);
+  if (!lines.length) return "";
+  return `\n\n## Tasks\n${lines.join("\n")}`;
+}
+
 /** Create a GitHub issue. Returns the issue number, or null on failure. */
 export function createIssue(title, body, labels = []) {
   if (!title) return null;

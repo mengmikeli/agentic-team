@@ -54,10 +54,10 @@
     {
       "id": "task-3",
       "title": "A GitHub comment is posted to the task's linked issue containing: task title, rounds attempted, and deduplicated critical findings from each round's handshake.json.",
-      "status": "in-progress",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 150,
-      "lastTransition": "2026-04-24T05:36:27.154Z",
+      "lastTransition": "2026-04-24T05:52:42.935Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -65,8 +65,15 @@
           "layers": [
             "fabricated-refs"
           ]
+        },
+        {
+          "iteration": 2,
+          "layers": [
+            "fabricated-refs"
+          ]
         }
-      ]
+      ],
+      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
     },
     {
       "id": "task-4",
@@ -167,7 +174,7 @@
       "taskId": "task-3"
     }
   ],
-  "transitionCount": 5,
+  "transitionCount": 6,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -203,10 +210,17 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T05:36:27.154Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-24T05:52:42.935Z"
     }
   ],
   "createdAt": "2026-04-24T04:55:17.113Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T05:47:04.855Z",
-  "_write_nonce": "0d46e4a0edde14f4"
+  "_last_modified": "2026-04-24T05:52:42.935Z",
+  "_write_nonce": "96203024219d20b5"
 }

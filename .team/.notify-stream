@@ -182,3 +182,7 @@
 {"ts":"2026-04-24T05:36:29.323Z","event":"task-started","msg":"▶ Task 3/9: A GitHub comment is posted to the task's linked issue containing: task title, rounds attempted, and deduplicated critical findings from each round's handshake.json."}
 {"ts":"2026-04-24T05:36:59.393Z","event":"task-passed","msg":"✓ Task 2/2: Quality gate passes"}
 {"ts":"2026-04-24T05:37:07.508Z","event":"feature-complete","msg":"Feature complete: dashboard-active-task-indicator-show-which-specifi — 2/2 done, 0 blocked, 7m 55s, $30.09"}
+{"ts":"2026-04-24T05:52:42.985Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in max-review-rounds-escalation — stopping execution"}
+{"ts":"2026-04-24T05:52:45.029Z","event":"feature-complete","msg":"Feature complete: max-review-rounds-escalation — 0/9 done, 3 blocked, 56m 46s, $81.13"}
+{"ts":"2026-04-24T05:56:40.927Z","event":"feature-started","msg":"▶ Feature: parent-issue-subtask-lifecycle (7 tasks planned)"}
+{"ts":"2026-04-24T06:00:13.663Z","event":"task-started","msg":"▶ Task 1/7: After `agt run` creates task issues, the parent (approval) issue body gains a `## Tasks` checklist with each task title and `(#N)` issue reference"}

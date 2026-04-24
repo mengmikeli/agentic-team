@@ -10,7 +10,7 @@ import {
   c, getFlag, readState, writeState, lockFile, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS, appendProgress,
 } from "./util.mjs";
-import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus } from "./github.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
@@ -926,9 +926,10 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     console.log(`${c.dim}Creating GitHub issues...${c.reset}`);
     for (const task of tasks) {
       if (task.issueNumber) continue; // already has an issue (e.g. from crash recovery)
+      const backLink = state?.approvalIssueNumber ? `\n\nPart of #${state.approvalIssueNumber}` : "";
       const issueNum = createIssue(
         `${featureLabel ? `[${featureLabel}] ` : ''}[${featureName}] ${task.title}`,
-        `Auto-created by \`agt run\` for feature **${featureLabel ? `[${featureLabel}] ` : ''}${featureName}**.\n\nTask: ${task.title}`,
+        `Auto-created by \`agt run\` for feature **${featureLabel ? `[${featureLabel}] ` : ''}${featureName}**.\n\nTask: ${task.title}${backLink}`,
       );
       if (issueNum) {
         task.issueNumber = issueNum;
@@ -946,6 +947,16 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     if (ghState) {
       ghState.tasks = tasks;
       writeState(featureDir, ghState);
+    }
+    // Append ## Tasks checklist to parent approval issue
+    if (state?.approvalIssueNumber) {
+      const checklist = buildTasksChecklist(tasks);
+      if (checklist) {
+        const currentBody = getIssueBody(state.approvalIssueNumber) || "";
+        if (!currentBody.includes("## Tasks")) {
+          editIssue(state.approvalIssueNumber, currentBody + checklist);
+        }
+      }
     }
     console.log();
   }
