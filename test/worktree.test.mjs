@@ -3,7 +3,7 @@
 
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, rmSync, existsSync, mkdtempSync } from "fs";
+import { mkdirSync, rmSync, existsSync, mkdtempSync, readFileSync, realpathSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -182,9 +182,11 @@ describe("runGateInline cwd injection", () => {
     // Run `pwd` — on POSIX its stdout will be the cwd. On Windows, `cd` does the same.
     const cmd = process.platform === "win32" ? "cd" : "pwd";
     const result = runGateInline(cmd, tmpDir, null, tmpDir);
-    assert.ok(
-      result.stdout.trim().includes(tmpDir.split("/").pop()),
-      `Expected stdout to reflect cwd ${tmpDir}, got: ${result.stdout}`
+    const realTmpDir = realpathSync(tmpDir);
+    assert.equal(
+      result.stdout.trim(),
+      realTmpDir,
+      `Expected stdout to equal cwd ${realTmpDir}, got: ${result.stdout}`
     );
   });
 
@@ -215,7 +217,19 @@ describe("slugToBranch normalization", () => {
   });
 });
 
-// ── dispatchToAgent cwd injection ────────────────────────────────
+// ── _runSingleFeature → runGateInline wiring ─────────────────────
+
+describe("_runSingleFeature wiring", () => {
+  it("passes worktreePath as cwd to runGateInline (source assertion)", () => {
+    const src = readFileSync(new URL("../bin/lib/run.mjs", import.meta.url), "utf8");
+    // Verify the call site passes `cwd` (the worktree path) as the 4th argument
+    assert.ok(
+      /runGateInline\(\s*gateCmd\s*,\s*featureDir\s*,\s*task\.id\s*,\s*cwd\s*\)/.test(src),
+      "run.mjs must call runGateInline(gateCmd, featureDir, task.id, cwd) — cwd is the injected worktree path"
+    );
+  });
+});
+
 
 describe("dispatchToAgent cwd injection", () => {
   it("forwards worktreePath as cwd to spawnSync for claude agent", () => {

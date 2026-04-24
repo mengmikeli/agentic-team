@@ -940,6 +940,9 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   // ── Create git worktree for isolated execution ──
 
   let worktreePath = null;
+  let completed = 0;
+  let blocked = 0;
+  const startTime = Date.now();
   try {
     worktreePath = createWorktreeIfNeeded(featureName, mainCwd);
     cwd = worktreePath;
@@ -1021,10 +1024,6 @@ async function _runSingleFeature(args, description, providedLabel = '') {
       writeState(featureDir, s);
     }
   }
-
-  let completed = 0;
-  let blocked = 0;
-  const startTime = Date.now();
 
   // ── Brainstorm phase (full-stack flow only) ──
 

@@ -36,3 +36,8 @@
 **Task 2: Agent dispatches pass `cwd: worktreePath` to `spawnSync`/`spawn`**
 - 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
 
+### 2026-04-24 09:44:25
+**Task 3: Gate commands (`runGateInline`) receive and use the worktree path as their working directory**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

