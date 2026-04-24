@@ -18,6 +18,7 @@ import {
   getCompletedFeatures,
   slugify,
   parseRoadmap,
+  computeRoadmapLabel,
   outerLoop,
   createApprovalIssue,
   waitForApproval,
@@ -436,6 +437,59 @@ describe("parseRoadmap", () => {
   it("returns empty array for empty roadmap section", () => {
     const items = parseRoadmap("## Roadmap\n\n## Next Section");
     assert.deepEqual(items, []);
+  });
+});
+
+// ── computeRoadmapLabel ─────────────────────────────────────────
+
+const PHASED_PRODUCT_MD = `# Product
+
+## Roadmap
+### Phase 1
+1. **Alpha feature** — First item
+2. **Beta feature** — Second item ✅ Done
+
+### Phase 2
+3. **Gamma feature** — Third item
+4. **Delta feature** — Fourth item
+`;
+
+const FLAT_PRODUCT_MD = `# Product
+
+## Roadmap
+1. **Simple one** — Just one item
+2. **Simple two** — Another item
+`;
+
+describe("computeRoadmapLabel", () => {
+  it("returns phase-qualified label for phased roadmap", () => {
+    const label = computeRoadmapLabel(PHASED_PRODUCT_MD, "gamma-feature");
+    assert.equal(label, "P2/#3");
+  });
+
+  it("returns item number only when no phase headers present", () => {
+    const label = computeRoadmapLabel(FLAT_PRODUCT_MD, "simple-one");
+    assert.equal(label, "#1");
+  });
+
+  it("returns '' when feature not found in roadmap", () => {
+    const label = computeRoadmapLabel(PHASED_PRODUCT_MD, "nonexistent-feature");
+    assert.equal(label, "");
+  });
+
+  it("returns '' when no roadmap section exists", () => {
+    const label = computeRoadmapLabel("# Just a title\n\nSome text", "anything");
+    assert.equal(label, "");
+  });
+
+  it("handles Phase 1 items correctly", () => {
+    const label = computeRoadmapLabel(PHASED_PRODUCT_MD, "alpha-feature");
+    assert.equal(label, "P1/#1");
+  });
+
+  it("handles done items", () => {
+    const label = computeRoadmapLabel(PHASED_PRODUCT_MD, "beta-feature");
+    assert.equal(label, "P1/#2");
   });
 });
 
@@ -1237,6 +1291,62 @@ Add flow selection to agt run.
     assert.ok(typeof stateData._write_nonce === "string" && stateData._write_nonce.length > 0, "STATE.json nonce must be a non-empty string");
     // approvalStatus should NOT be set (interrupted before approval)
     assert.equal(stateData.approvalStatus, undefined, "approvalStatus must not be set after interruption");
+  });
+
+  it("threads roadmap position label to runSingleFeature", async () => {
+    // Use a PRODUCT.md that has a Phase header so label is P#/#N
+    const phasedProductMd = `# Product
+
+## Vision
+Test product.
+
+## Users
+Devs.
+
+## Problem
+None.
+
+## Success Metrics
+1. Works.
+
+## Roadmap
+### Phase 2
+3. **Flow templates** — Add flow selection to agt run based on task complexity.
+4. **Parallel reviewers** — Dispatch reviewers simultaneously.
+`;
+    writeFileSync(join(tmpDir, ".team", "PRODUCT.md"), phasedProductMd);
+
+    let receivedLabel;
+    let dispatchCount = 0;
+
+    const mockDeps = {
+      findAgent: () => "claude",
+      ...NO_GH_APPROVAL_DEPS,
+      dispatchToAgent: (agent, brief) => {
+        dispatchCount++;
+        if (dispatchCount === 1) {
+          return { ok: true, output: "PRIORITY: Flow templates\nREASONING: test" };
+        }
+        if (dispatchCount === 2) {
+          const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+          mkdirSync(featureDir, { recursive: true });
+          writeFileSync(join(featureDir, "SPEC.md"), `# Feature: Flow templates\n\n## Goal\nDo stuff.\n\n## Out of Scope\n- nothing\n\n## Done When\n- [ ] done\n`);
+          return { ok: true, output: "SPEC.md written." };
+        }
+        return { ok: true, output: "OUTCOME: done." };
+      },
+      runSingleFeature: async (args, description, roadmapLabel) => {
+        receivedLabel = roadmapLabel;
+        const featureDir = join(tmpDir, ".team", "features", "flow-templates");
+        mkdirSync(featureDir, { recursive: true });
+        writeFileSync(join(featureDir, "progress.md"), "done\n");
+        return "exhausted";
+      },
+    };
+
+    await outerLoop([], mockDeps);
+
+    assert.equal(receivedLabel, "P2/#3", "Outer loop should pass roadmap label to runSingleFeature");
   });
 });
 

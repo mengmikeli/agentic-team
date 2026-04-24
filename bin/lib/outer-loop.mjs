@@ -520,6 +520,45 @@ export function parseRoadmap(productContent) {
   }));
 }
 
+/**
+ * Compute the roadmap position label (e.g. "P3/#10") for a feature slug.
+ * Returns '' if the feature can't be found or no numbering is available.
+ *
+ * @param {string} productContent - Full PRODUCT.md content
+ * @param {string} featureName - Slugified feature name
+ * @returns {string} Label like "P3/#10" or "#10" or ''
+ */
+export function computeRoadmapLabel(productContent, featureName) {
+  const roadmapSection = productContent.match(/## Roadmap\n([\s\S]*?)(?=\n## [^#]|$)/);
+  if (!roadmapSection) return '';
+  const roadmapText = roadmapSection[1];
+
+  // Detect phase headers
+  const phaseMap = new Map();
+  for (const m of roadmapText.matchAll(/^###\s*Phase\s*(\d+)/gm)) {
+    phaseMap.set(m.index, m[1]);
+  }
+  const phaseOffsets = [...phaseMap.keys()].sort((a, b) => a - b);
+  function getPhase(offset) {
+    let phase = null;
+    for (const po of phaseOffsets) {
+      if (po <= offset) phase = phaseMap.get(po);
+      else break;
+    }
+    return phase;
+  }
+
+  const items = [...roadmapText.matchAll(/(\d+)\.\s*\*\*(.+?)\*\*\s*[-—]\s*(.+)$/gm)];
+  for (const item of items) {
+    const slug = item[2].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50);
+    if (slug === featureName) {
+      const phase = getPhase(item.index);
+      return phase ? `P${phase}/#${item[1]}` : `#${item[1]}`;
+    }
+  }
+  return '';
+}
+
 // ── Outer loop ──────────────────────────────────────────────────
 
 /**
@@ -530,7 +569,7 @@ export function parseRoadmap(productContent) {
  * @param {object} deps - Injectable dependencies
  * @param {function} deps.findAgent - () => string|null
  * @param {function} deps.dispatchToAgent - (agent, brief, cwd) => { ok, output, error }
- * @param {function} deps.runSingleFeature - (args, description) => Promise<string>
+ * @param {function} deps.runSingleFeature - (args, description, roadmapLabel) => Promise<string>
  * @param {function} [deps.createIssue] - Injectable gh createIssue (for testing)
  * @param {function} [deps.addToProject] - Injectable gh addToProject (for testing)
  * @param {function} [deps.setProjectItemStatus] - Injectable gh setProjectItemStatus (for testing)
@@ -658,6 +697,12 @@ export async function outerLoop(args, deps) {
       ? `${matchedItem.name} — ${matchedItem.description}`
       : priority.name;
 
+    // Compute roadmap position label (e.g. "P3/#10") to thread through to inner loop
+    const roadmapLabel = computeRoadmapLabel(productContent, featureName);
+    if (roadmapLabel) {
+      console.log(`  ${c.dim}Roadmap position: [${roadmapLabel}]${c.reset}`);
+    }
+
     console.log(`${c.bold}Brainstorming...${c.reset}`);
     if (stopping) break;
 
@@ -772,7 +817,7 @@ export async function outerLoop(args, deps) {
     // ── Step 3: EXECUTE ─────────────────────────────────────────
 
     console.log(`${c.bold}Executing...${c.reset}`);
-    const executeResult = await runSingleFeature(args, priorityDescription);
+    const executeResult = await runSingleFeature(args, priorityDescription, roadmapLabel);
     console.log();
 
     if (stopping) break;

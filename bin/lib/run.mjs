@@ -685,7 +685,7 @@ ${roadmapList}
   console.log(`\n${c.green}✓ PRODUCT.md created${c.reset}`);
 }
 
-async function _runSingleFeature(args, description) {
+async function _runSingleFeature(args, description, providedLabel = '') {
   if (!description) description = args.filter(a => !a.startsWith("-")).join(" ") || null;
   const cwd = process.cwd();
   const teamDir = join(cwd, ".team");
@@ -703,10 +703,10 @@ async function _runSingleFeature(args, description) {
 
   let featureName;
   let featureDescription;
-  let featureLabel = '';  // e.g. "P3/#10" for roadmap display
+  let featureLabel = providedLabel;  // e.g. "P3/#10" for roadmap display; may be overridden in Mode 2
 
   if (description) {
-    // Mode 1: explicit feature
+    // Mode 1: explicit feature — use providedLabel if given
     featureName = description
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
@@ -817,6 +817,14 @@ async function _runSingleFeature(args, description) {
       initState.status = 'executing';
       initState._last_modified = new Date().toISOString();
       writeState(featureDir, initState);
+    }
+    // Persist roadmap label so dashboard and outer loop re-entry can read it without re-parsing
+    if (featureLabel) {
+      const labelState = readState(featureDir);
+      if (labelState && labelState.roadmapLabel !== featureLabel) {
+        labelState.roadmapLabel = featureLabel;
+        writeState(featureDir, labelState);
+      }
     }
     console.log(`${c.green}✓${c.reset} Feature trackable: ${initState.status}`);
   }
