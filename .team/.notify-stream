@@ -201,3 +201,7 @@
 {"ts":"2026-04-24T07:43:37.920Z","event":"task-started","msg":"▶ Task 1/6: `roles/simplicity.md` names the four veto categories and requires 🔴 for each, replacing the \"don't block\" anti-pattern."}
 {"ts":"2026-04-24T07:59:08.846Z","event":"task-started","msg":"▶ Task 2/6: `mergeReviewFindings()` tags 🔴 simplicity findings with `[simplicity veto]` in the merged output."}
 {"ts":"2026-04-24T08:16:22.345Z","event":"task-started","msg":"▶ Task 3/6: Unit test: simplicity 🔴 finding → overall `FAIL` verdict even when all other roles produce no criticals."}
+{"ts":"2026-04-24T08:31:25.549Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in simplicity-reviewer-with-veto — stopping execution"}
+{"ts":"2026-04-24T08:31:27.877Z","event":"feature-complete","msg":"Feature complete: simplicity-reviewer-with-veto — 0/6 done, 3 blocked, 50m 4s, $145.15"}
+{"ts":"2026-04-24T08:35:21.349Z","event":"feature-started","msg":"▶ Feature: git-worktree-isolation (10 tasks planned)"}
+{"ts":"2026-04-24T08:40:13.618Z","event":"task-started","msg":"▶ Task 1/10: `_runSingleFeature()` calls `git worktree add .team/worktrees/{slug} -b feature/{slug}` before dispatching any task"}

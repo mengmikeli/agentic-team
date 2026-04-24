@@ -2,56 +2,61 @@
 
 **Feature:** simplicity-reviewer-with-veto
 **Task:** Unit test: simplicity 🔴 finding → overall `FAIL` verdict even when all other roles produce no criticals
-**Verdict: PASS**
+**Verdict:** PASS
 
 ---
 
 ## Files Read
 
 - `.team/features/simplicity-reviewer-with-veto/tasks/task-3/handshake.json`
-- `test/flows.test.mjs` (lines 247–287, grep for simplicity/mergeReviewFindings)
-- `bin/lib/flows.mjs` (lines 162–202)
-- `bin/lib/synthesize.mjs` (lines 1–80)
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-3/eval.md`
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-3/artifacts/test-output.txt` (first 100 lines + grep)
+- `test/flows.test.mjs` (lines 255–290, imports)
+- `bin/lib/flows.mjs` (lines 170–199)
+- `bin/lib/run.mjs` (lines 1215–1234)
+- `git show 073b073 -- test/flows.test.mjs`
 
 ---
 
 ## Claim vs Evidence
 
-**Handshake claims:** gate PASS, exit code 0, 0 findings.
+**Builder claimed:** Test exists, passes, and correctly exercises the production verdict path so that a simplicity 🔴 alone causes FAIL even when all other roles produce no criticals.
 
-**Evidence verified:**
-Test output confirms: `✔ simplicity 🔴 causes FAIL even when all other roles pass with no criticals (1.742ms)`
-
-The implementation in `flows.mjs:188` labels simplicity criticals as `[simplicity veto]` while preserving the 🔴 emoji. `parseFindings` then detects 🔴 in the merged output line, and `computeVerdict` returns FAIL. The chain is correct.
+**Evidence:**
+- `test-output.txt` line 342: `✔ simplicity 🔴 causes FAIL even when all other roles pass with no criticals (0.040167ms)` — confirmed passing.
+- The diff replaces `mergeReviewFindings(findings)` + `parseFindings(merged)` with `findings.map(f => f.output || "").join("\n")` + `parseFindings(allText)`, which exactly mirrors `run.mjs:1221–1222`. This correctly guards the live production verdict path.
+- `ok: false` → `ok: true` correctly removes misleading fixture data (`mergeReviewFindings` ignores `ok`).
 
 ---
 
-## Per-Criterion Results
+## Veto-Category Checks (🔴 required if triggered)
 
-### 1. Dead code — PASS
-No unused imports, variables, or functions introduced. No unreachable branches. No commented-out code.
+| Category | Status | Evidence |
+|---|---|---|
+| Dead code | PASS | `mergeReviewFindings` import still used at lines 259, 271 — no dead import introduced |
+| Premature abstraction | PASS | No new abstraction introduced |
+| Unnecessary indirection | PASS | No wrapper/delegation introduced |
+| Gold-plating | PASS | No config option or feature flag introduced |
 
-### 2. Premature abstraction — PASS
-`mergeReviewFindings` is called at 9+ sites in `test/flows.test.mjs` alone (lines 201, 216, 228, 236, 242, 251, 259, 272, 282) plus production use. Well above the 2-site threshold. The `[simplicity veto]` label logic is inline — no new abstraction introduced.
+---
 
-### 3. Unnecessary indirection — PASS
-Each function in the pipeline adds real transformation: `mergeReviewFindings` labels, prefixes, and sorts; `parseFindings` tokenizes text into typed findings; `computeVerdict` counts and decides verdict. No pure delegation.
+## Non-Veto Complexity Concerns
 
-### 4. Gold-plating — PASS
-`SEVERITY_ORDER` is actively used for sorting. The `[simplicity veto]` label distinction was explicitly required by the feature spec. No speculative config options or feature flags introduced.
+**Test block placement:** The test at line 276 lives inside `describe("mergeReviewFindings")` but does not call `mergeReviewFindings`. Mild cognitive friction — readers expect the describe block to exercise its namesake function. The surrounding tests (lines 255, 267) do still call it, and the placement is intentional (broader context: "how simplicity findings flow through the pipeline"). Not a blocking concern.
+
+**Inline comment verbosity (lines 282–284):** A 3-line comment block with verbatim production code could be condensed to one line. Minor noise.
+
+**Role coverage:** Test uses only 3 of 6 roles. Adequate for the stated scenario but the title word "all" oversells coverage. Already flagged 🔵 in prior round; carry-forward.
 
 ---
 
 ## Findings
 
-🔵 bin/lib/flows.mjs:186 — `emojiRe` regex created inside nested loop on every finding; hoist to module scope to avoid per-iteration object allocation
-
-🔵 bin/lib/flows.mjs:178 — `SEVERITY_ORDER` static object recreated on every call; hoist to module scope as a constant
-
-🔵 test/flows.test.mjs:280 — `ok: false` on simplicity finding is inconsistent with other test fixtures (which use `ok: true` even with findings); `mergeReviewFindings` ignores the `ok` field, so this is misleading — use `ok: true` for consistency
+🔵 test/flows.test.mjs:282 — 3-line comment repeating production code verbatim; condense to `// mirrors run.mjs:1221-1222`
+🔵 test/flows.test.mjs:276 — test lives in `describe("mergeReviewFindings")` but never calls it; consider moving to a dedicated describe block or add an inline note explaining the grouping intent
 
 ---
 
 ## Overall Verdict: PASS
 
-No findings in the four veto categories (dead code, premature abstraction, unnecessary indirection, gold-plating). Three minor 🔵 suggestions with no backlog impact.
+No veto-category findings. The implementation is minimal, correct, and directly mirrors the production verdict path. The two 🔵 items are cosmetic with no backlog impact.

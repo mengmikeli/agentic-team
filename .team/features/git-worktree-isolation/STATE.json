@@ -1,0 +1,104 @@
+{
+  "version": "2.0",
+  "feature": "git-worktree-isolation",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`_runSingleFeature()` calls `git worktree add .team/worktrees/{slug} -b feature/{slug}` before dispatching any task",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 172,
+      "lastTransition": "2026-04-24T08:40:11.253Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-2",
+      "title": "Agent dispatches pass `cwd: worktreePath` to `spawnSync`/`spawn`",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 173
+    },
+    {
+      "id": "task-3",
+      "title": "Gate commands (`runGateInline`) receive and use the worktree path as their working directory",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 174
+    },
+    {
+      "id": "task-4",
+      "title": "Auto-commit (`git add -A` + `git commit`) executes with `cwd: worktreePath`",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 175
+    },
+    {
+      "id": "task-5",
+      "title": "Git diff context calls use the worktree path",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 176
+    },
+    {
+      "id": "task-6",
+      "title": "On feature done/blocked/exhausted, `git worktree remove --force .team/worktrees/{slug}` is called and the feature branch remains",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 177
+    },
+    {
+      "id": "task-7",
+      "title": "Auto-push pushes `feature/{slug}` (not main) to remote",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 178
+    },
+    {
+      "id": "task-8",
+      "title": "If the worktree directory already exists at startup (crash recovery), it is reused without throwing",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 179
+    },
+    {
+      "id": "task-9",
+      "title": "Running two features sequentially leaves no cross-contamination on the main branch (verified by checking main branch diff before/after each feature)",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 180
+    },
+    {
+      "id": "task-10",
+      "title": "Unit tests cover: worktree creation, `cwd` injection into agent briefs and gate commands, cleanup on done, cleanup on blocked, crash-recovery reuse",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 181
+    }
+  ],
+  "gates": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n▶ isGateTask\n  ✔ returns true for quality gate task (0.920459ms)\n  ✔ returns false for regular task (0.13225ms)\n  ✔ returns false when title is undefined (0.092458ms)\n  ✔ is case-sensitive (0.092666ms)\n✔ isGateTask (3.486625ms)\n▶ getActiveTask\n  ✔ returns null for empty task list (0.120708ms)\n  ✔ returns null when all tasks are pending (0.057375ms)\n  ✔ returns null when all tasks are passed (0.041875ms)\n  ✔ returns the in-progress task (0.057583ms)\n  ✔ returns the first in-progress task when multiple exist (0.049958ms)\n  ✔ skips gate task even when it is in-progress (0.063333ms)\n  ✔ returns null when only gate task is in-progress (0.040708ms)\n  ✔ returns correct task with attempts field present (0.036417ms)\n✔ getActiveTask (0.618833ms)\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (4.583209ms)\n  ✔ returns null and does not write approval.json when createIssue fails (0.702667ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (1.126083ms)\n  ✔ skips project board calls when projectNumber is null (0.370916ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.335791ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.259459ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.646042ms)\n✔ createApprovalIssue (8.691833ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.193625ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.2905ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.4285ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.435875ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.189625ms)\n✔ readApprovalState (1.660375ms)\n▶ waitForApproval\n  ✔ pri",
+      "stderr": "",
+      "timestamp": "2026-04-24T08:45:35.166Z",
+      "taskId": "task-1"
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T08:40:11.253Z"
+    }
+  ],
+  "createdAt": "2026-04-24T08:35:21.300Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T08:45:35.166Z",
+  "_write_nonce": "78f082e002e58aa8"
+}
