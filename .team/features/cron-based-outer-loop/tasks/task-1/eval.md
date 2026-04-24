@@ -1,3 +1,96 @@
+# Architect Review — cron-based-outer-loop
+
+**Role:** Software Architect
+**Date:** 2026-04-24
+**Files read (directly verified):**
+- `bin/lib/cron.mjs` — full, 147 lines
+- `bin/lib/util.mjs` — lines 90–166 (lockFile implementation)
+- `test/cron-tick.test.mjs` — lines 1–50 and 140–239
+- `task-3/artifacts/test-output.txt` — full (664 pass, 0 fail, exit 0)
+- `task-1/handshake.json`, `task-2/handshake.json`, `task-3/handshake.json`
+- `task-1/eval.md` (prior parallel reviews: Tester, Simplicity, Security, PM, Engineer)
+
+---
+
+## Overall Verdict: PASS
+
+Module boundaries are clean, DI pattern is exemplary, and all 664 tests pass. Two 🟡 warnings go to backlog. Two 🔵 suggestions optional. The Simplicity 🔴 at `cron.mjs:119` (dead `if (lock.release)` guard) is confirmed by direct inspection of `util.mjs:162` and remains unfixed in the current code — this is a Simplicity veto, not an architect blocker.
+
+---
+
+## Per-Criterion Results
+
+### Module boundaries — PASS
+
+`cron.mjs` is a clean orchestrator. It delegates:
+- GitHub API operations → `github.mjs`
+- Lock file management → `util.mjs`
+- Feature dispatch → `run.mjs`
+
+No boundary leakage. Each concern is isolated. Pre-flight checks (tracking config, project number, Ready option ID) fire before lock acquisition — correct fail-fast ordering.
+
+### Dependency injection — PASS (exemplary)
+
+Seven injected deps (`listProjectItems`, `runSingleFeature`, `setProjectItemStatus`, `commentIssue`, `readTrackingConfig`, `lockFile`, `readProjectNumber`) with test doubles covering all paths. Consistent with codebase DI pattern. Test suite exercises all pre-flight guards and both success/failure dispatch paths.
+
+### Dead guard (confirmed) — WARN
+
+`cron.mjs:119`: `if (lock.release)` is confirmed dead.
+
+Direct evidence from `util.mjs:90–165`: six return paths total — lines 121, 140, 142, 148, 165 all yield `{ acquired: false }` with no `release`; line 162 is the sole `acquired: true` path and always includes `release` as a function. The `finally` block is only reachable when `lock.acquired === true` because `!lock.acquired` calls `process.exit(0)` at `cron.mjs:81` before the `try` block is entered. The guard is unconditionally true inside `finally`.
+
+Behavioral impact: none. Maintainer impact: the guard falsely implies `release` may be absent when the lock is held, obscuring the correct invariant. The Simplicity reviewer called this 🔴 (veto). From the architect lens it is 🟡 (misleading, not structural).
+
+### Run timeout gap — WARN (new finding)
+
+`cron.mjs:108`: `await _runSingleFeature(args, title)` has no wall-clock timeout. If the Claude/Codex agent hangs indefinitely:
+- The lock file at `.team/.cron-lock` persists
+- All subsequent cron-tick invocations exit 0 silently ("already running")
+- No comment is posted to the GitHub issue
+- No self-healing — recovery requires manual lock deletion or process kill
+
+For a production cron loop, a hung agent is not hypothetical (network timeout, blocked prompt, hanging subprocess). This is the weakest architectural link: a single stuck run silently freezes the entire outer loop with no observable signal. At minimum, a configurable `AGT_RUN_TIMEOUT` env var with a sensible default (e.g. 30 min) and a failure comment + revert on timeout would eliminate this blind spot.
+
+### `_setProjectItemStatus` return discarded on revert — WARN
+
+`cron.mjs:114`: return value of the failure-revert call is discarded. If the GitHub API call fails, the item is permanently stuck in "in-progress" — future cron-tick runs filter for `status === "ready"` at line 89, so the item silently falls out of the queue. No diagnostic. Already flagged by Engineer and PM; confirming as architectural data-integrity gap.
+
+### Null guard gap — acceptable (v1)
+
+`cron.mjs:89`: `items.filter(...)` without `?? []`. If `_listProjectItems` returns `null` (contract says `[]` on error but callers shouldn't rely on undocumented contracts), a TypeError is thrown inside the locked `try` block — the `finally` releases the lock correctly, so no lock leak. The fix (`items ?? []).filter(...)`) is one token. Flagged 🔵; does not block.
+
+### Scalability — PASS
+
+One item per invocation by design. At-scale queuing is natural: items queue in "Ready" and are dispatched one per cron interval. Advisory lock prevents concurrent runs without coordination overhead. Appropriate for a single-machine cron outer loop.
+
+---
+
+## Edge Cases Checked
+
+| Path | Coverage |
+|---|---|
+| No ready items | ✅ `cron.mjs:91–93`, test #1 |
+| Lock already held | ✅ `cron.mjs:79–82`, test #2 |
+| Ready → In Progress → Done (ordered) | ✅ `findIndex` assertion test #3 |
+| Failure: revert + comment | ✅ test #4 (ordering: ⚠ `.some()` only) |
+| Pre-flight guards (×3) | ✅ tests #5–7 |
+| `_runSingleFeature` hangs indefinitely | ❌ no timeout, no test |
+| `_setProjectItemStatus` returns false on revert | ❌ no test, no log |
+
+---
+
+## Findings
+
+🟡 bin/lib/cron.mjs:108 — No timeout on `_runSingleFeature`: a hung agent holds the lock file indefinitely; all subsequent cron-tick runs exit 0 silently with "already running"; add a configurable wall-clock timeout (e.g. `AGT_RUN_TIMEOUT` env, default 30 min) that releases the lock, reverts the board item, and posts a timeout comment to the issue
+
+🟡 bin/lib/cron.mjs:114 — `_setProjectItemStatus` return discarded on failure revert; a `false` return leaves the item permanently stuck in "in-progress" and silently dropped from all future runs; log a warning at minimum — `console.error(\`cron-tick: failed to revert #\${issueNumber} to ready\`)`
+
+🔵 bin/lib/cron.mjs:89 — No `?? []` guard before `.filter()`; `_listProjectItems` contract says `[]` on error but callers should not rely on it; change to `(items ?? []).filter(...)`
+
+🔵 bin/lib/cron.mjs:119 — Dead guard `if (lock.release)` confirmed by `util.mjs:162`; Simplicity 🔴 veto already established — noting for completeness that the code is unchanged from when the veto was issued
+
+---
+
 # Tester Evaluation — cron-based-outer-loop
 
 **Role:** Test Strategist

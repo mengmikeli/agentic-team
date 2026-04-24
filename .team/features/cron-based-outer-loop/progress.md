@@ -35,3 +35,8 @@
 **Task 2: `agt cron-tick` transitions the board item from "Ready" → "In Progress" before execution and → "Done" on success**
 - 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
 
+### 2026-04-24 10:54:27
+**Task 3: `agt cron-tick` transitions the board item back to "Ready" on failure, with a GitHub comment explaining the error**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

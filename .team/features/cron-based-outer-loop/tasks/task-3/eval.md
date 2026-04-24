@@ -1,0 +1,43 @@
+## Parallel Review Findings
+
+🔵 [architect] `bin/lib/cron.mjs:119` — Dead guard `if (lock.release)` confirmed by `util.mjs:162`; Simplicity 🔴 veto already established and code is unchanged — veto stands
+[architect] **The Simplicity 🔴 (dead `if (lock.release)` guard at line 119) is confirmed unfixed.** The fix is one line. As Architect I classify it 🟡 (misleading, not structurally defective), but the Simplicity veto stands and the fix should go into the next iteration.
+[product] The outstanding Simplicity 🔴 (`if (lock.release)` dead guard at `cron.mjs:119`) does not affect user-facing behavior for this task but must be resolved to close the feature.
+[tester] **Overall verdict: PASS.** All 12 cron-tick/cron-setup tests pass (exit 0). The core feature — revert to Ready and post a GitHub comment on failure — is implemented at `cron.mjs:112–116` and exercised by test #4. Three 🟡 gaps go to backlog: failure-path ordering unverified, first-item-only contract under-asserted, and `commentIssue` throw not handled or tested. The task-2 🔴 dead guard (`if (lock.release)` at `cron.mjs:119`) was not fixed by the builder — it remains a pre-existing open blocker.
+[simplicity] One 🔴 blocker confirmed. Findings:
+🔴 [simplicity] `bin/lib/cron.mjs:119` — Dead guard `if (lock.release)`: `util.mjs:162` proves `release` is always a function when `acquired === true`; the `finally` block is unreachable without the lock held; replace `if (lock.release) { lock.release(); }` with `lock.release()`
+[simplicity] **Summary of evidence:** The feature itself (catch block + `commentIssue`) is minimal and correct — three lines of implementation, directly tested. The 🔴 is not from this task's new code: the `if (lock.release)` dead guard was introduced in the prior `f8a10f4` cleanup commit (which correctly removed `lock.acquired &&` but left an equivalent dead wrapper), flagged in task-2's review, and remains unaddressed. The new code in task-3 introduces no additional veto-category violations.
+🟡 [architect] `bin/lib/cron.mjs:108` — No timeout on `_runSingleFeature`: a hung agent holds `.team/.cron-lock` indefinitely; all subsequent cron-tick invocations exit 0 silently with "already running"; no GitHub comment posted; add a configurable wall-clock timeout (e.g. `AGT_RUN_TIMEOUT`, default 30 min) that releases the lock, reverts the board item to "ready", and posts a timeout comment
+🟡 [architect] `bin/lib/cron.mjs:114` — `_setProjectItemStatus` return value discarded on failure revert; a `false` return leaves the item permanently stuck in "in-progress" and silently dropped from all future runs (line 89 filters for "ready" only); log a warning at minimum
+[architect] **Two 🟡 warnings go to backlog:**
+🟡 [engineer] `bin/lib/cron.mjs:114` — `_setProjectItemStatus` return value discarded on failure-revert path; `false` return leaves the board item permanently stuck in "in-progress", invisible to all future cron-tick runs (line 89 filters `status === "ready"` only); log a warning on `false`
+🟡 [engineer] `test/cron-tick.test.mjs:184` — Failure-path ordering unverified; `.some()` passes even if "ready" is recorded before "in-progress" or "in-progress" is skipped entirely; mirror the `findIndex`-based ordering assertion from test #3 at lines 153–157
+🟡 [engineer] `bin/lib/cron.mjs:116` — Raw `err.message` posted verbatim to a public GitHub issue comment; ENOENT-style errors expose absolute local paths; sanitize and truncate to ≤300 chars before posting
+🟡 [engineer] `bin/lib/cron.mjs:119` — Dead guard `if (lock.release)`: `util.mjs:162` confirms `release` is always a function when `acquired === true`; `finally` is only reachable after acquisition; replace `if (lock.release) { lock.release(); }` with `lock.release()`
+🟡 [product] `bin/lib/cron.mjs:114` — `_setProjectItemStatus` return discarded on failure-revert path; `false` return leaves item permanently stuck in "in-progress" with no warning — log on `false` return
+🟡 [product] `bin/lib/cron.mjs:115` — Raw `err.message` posted verbatim to public GitHub comment; ENOENT errors expose local absolute paths — strip paths and truncate to ≤300 chars before posting
+🟡 [product] `test/cron-tick.test.mjs:184` — Failure-path ordering unverified; `.some()` cannot detect reversed "in-progress"/"ready" order — apply `findIndex`-based ordering assertion matching test #3 at lines 153–157
+🟡 [tester] `test/cron-tick.test.mjs:184` — Failure-path ordering not enforced; both "in-progress" and "ready" assertions use `.some()`, so a bug reversing order or skipping "in-progress" passes silently; mirror the `findIndex`-based ordering assertion already used in test #3 (lines 153–157)
+🟡 [tester] `test/cron-tick.test.mjs:125` — First-item-only contract incompletely tested; `runCalled` is a boolean not a count, and no assertion that issue #8 transitions do NOT appear in `statusTransitions`; add call-count assertion and `assert.ok(statusTransitions.every(t => t.issueNumber !== 8))`
+🟡 [tester] `bin/lib/cron.mjs:115` — `_commentIssue` throw is unhandled and untested; if it throws (network/auth failure), the exception escapes the `catch(err)` block uncontrolled — revert happened but `cmdCronTick` throws instead of logging and returning; add a test where `commentIssue` throws and assert the function still exits cleanly
+🟡 [security] bin/lib/cron.mjs:115 — Raw `err.message` posted verbatim to public GitHub issue comment; ENOENT errors expose local absolute paths (`/Users/...`), `gh` auth errors expose internal state; `commentIssue` uses `spawnSync` with array args (no `shell: true`) so no secondary shell injection, but the content is world-readable on a public repo; fix: `.replace(/\/[^\s:'"]+/g, "<path>").slice(0, 300)` before posting
+🟡 [simplicity] `test/cron-tick.test.mjs:184` — Failure path ordering unverified: `.some()` accepts any transition order; a bug recording "ready" before "in-progress" passes undetected; apply `findIndex`-based ordering assertion as in the success test (lines 153–157)
+🟡 [simplicity] `bin/lib/cron.mjs:114` — `_setProjectItemStatus` return discarded on failure revert; silent `false` leaves item permanently stuck in "in-progress" (future runs filter `status === "ready"` only); log a warning on `false`
+🟡 [simplicity] `test/cron-tick.test.mjs:67` — Dead test setup: `writeProjectMd(teamDir)` called in tests 1–4 but both `readTrackingConfig` and `readProjectNumber` are mocked via deps; PROJECT.md is never read; remove to eliminate false signal
+🔵 [architect] `bin/lib/cron.mjs:89` — No `?? []` guard before `.filter()`; `_listProjectItems` contract says `[]` on error but callers should not rely on this; change to `(items ?? []).filter(...)`
+🔵 [engineer] `bin/lib/cron.mjs:105` — `_setProjectItemStatus` return discarded on "in-progress" pre-flight transition; a `false` return goes unlogged
+🔵 [engineer] `bin/lib/cron.mjs:110` — `_setProjectItemStatus` return discarded on "done" transition; a `false` return goes unlogged
+🔵 [engineer] `bin/lib/cron.mjs:89` — No null guard before `.filter()`; null from `_listProjectItems` throws `TypeError: items.filter is not a function` with no context; change to `(items ?? []).filter(...)`
+🔵 [tester] `bin/lib/cron.mjs:89` — No null guard before `.filter()`; `_listProjectItems` returning null causes an uncontextual TypeError; change to `(items ?? []).filter(...)` and add a test for null return
+🔵 [tester] `bin/lib/cron.mjs:100` — Title sanitization (control chars, 200-char truncation) has no dedicated test; add cases for a title with `\n` and a 300-char title, asserting the sanitized value reaches `runSingleFeature`
+🔵 [tester] `test/cron-tick.test.mjs` — Non-numeric `--interval "abc"` → NaN → 30 fallback correct in code but untested; add one case asserting `*/30` output
+🔵 [tester] `test/cron-tick.test.mjs:67` — `writeProjectMd(teamDir)` called in tests 1–4 but both `readTrackingConfig` and `readProjectNumber` are fully mocked via `deps`; the file is never read; creates a false signal that PROJECT.md content matters; remove the dead setup calls
+🔵 [security] bin/lib/cron.mjs:100 — Title sanitization omits Unicode bidi override characters (U+202A–U+202E, U+2066–U+2069); terminal display spoofing is possible but Claude API behavior is unaffected; extend the regex if display integrity matters
+
+🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
+
+## Compound Gate
+
+**Verdict:** WARN
+**Layers tripped:** 1/5
+**Tripped layers:** fabricated-refs
