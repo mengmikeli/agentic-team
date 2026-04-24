@@ -444,5 +444,39 @@
   "_written_by": "at-harness",
   "_last_modified": "2026-04-23T20:35:56.005Z",
   "_write_nonce": "0ae0870c6abb4b7f",
-  "completedAt": "2026-04-23T20:36:03.000Z"
+  "completedAt": "2026-04-23T20:36:03.000Z",
+  "tokenUsage": {
+    "total": {
+      "dispatches": 141,
+      "costUsd": 116.67,
+      "inputTokens": 0,
+      "cacheRead": 0,
+      "cacheCreate": 0,
+      "outputTokens": 0
+    },
+    "byPhase": {
+      "brainstorm": {
+        "costUsd": 1.41,
+        "dispatches": 0,
+        "inputTokens": 0,
+        "cacheRead": 0,
+        "outputTokens": 0
+      },
+      "build": {
+        "costUsd": 11.58,
+        "dispatches": 0,
+        "inputTokens": 0,
+        "cacheRead": 0,
+        "outputTokens": 0
+      },
+      "review": {
+        "costUsd": 103.68,
+        "dispatches": 0,
+        "inputTokens": 0,
+        "cacheRead": 0,
+        "outputTokens": 0
+      }
+    },
+    "byTask": {}
+  }
 }

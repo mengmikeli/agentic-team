@@ -208,5 +208,39 @@
   "_write_nonce": "ac4687aed0cc3e79",
   "pausedAt": "2026-04-24T03:05:34.174Z",
   "_pause_reason": "agt stop",
-  "completedAt": "2026-04-24T02:00:41.000Z"
+  "completedAt": "2026-04-24T02:00:41.000Z",
+  "tokenUsage": {
+    "total": {
+      "dispatches": 278,
+      "costUsd": 221.06,
+      "inputTokens": 0,
+      "cacheRead": 0,
+      "cacheCreate": 0,
+      "outputTokens": 0
+    },
+    "byPhase": {
+      "brainstorm": {
+        "costUsd": 3.06,
+        "dispatches": 0,
+        "inputTokens": 0,
+        "cacheRead": 0,
+        "outputTokens": 0
+      },
+      "build": {
+        "costUsd": 23.17,
+        "dispatches": 0,
+        "inputTokens": 0,
+        "cacheRead": 0,
+        "outputTokens": 0
+      },
+      "review": {
+        "costUsd": 194.84,
+        "dispatches": 0,
+        "inputTokens": 0,
+        "cacheRead": 0,
+        "outputTokens": 0
+      }
+    },
+    "byTask": {}
+  }
 }
