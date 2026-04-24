@@ -1,15 +1,20 @@
 {
   "taskId": "task-2",
-  "nodeType": "build",
+  "nodeType": "gate",
   "runId": "run_1",
   "status": "completed",
-  "verdict": null,
-  "summary": "Implemented board status transitions in cmdCronTick: the command transitions the selected board item from Ready → In Progress before calling runSingleFeature, then → Done on success or reverts to Ready (with an issue comment) on failure. Seven test cases in test/cron-tick.test.mjs verify all transition paths including lock-held, no-ready-items, successful dispatch, and failed dispatch scenarios.",
-  "timestamp": "2026-04-24T10:35:00.000Z",
+  "verdict": "PASS",
+  "summary": "Gate command: npm test — exit code 0",
+  "timestamp": "2026-04-24T10:29:11.285Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/cron.mjs" },
-    { "type": "code", "path": "bin/lib/run.mjs" },
-    { "type": "code", "path": "test/cron-tick.test.mjs" }
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    }
   ],
-  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+  "findings": {
+    "critical": 0,
+    "warning": 0,
+    "suggestion": 0
+  }
 }

@@ -22,3 +22,7 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 10:26:36
+**Task 1: `agt cron-tick` queries the GitHub Project board and dispatches the first "Ready" issue to `runSingleFeature`**
+- 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
+
