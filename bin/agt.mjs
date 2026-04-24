@@ -324,18 +324,55 @@ switch (command) {
       return projects;
     }
 
-    // Check if any agt run process is alive
+    // Check if agt run is actively executing (not just a zombie/stopped process)
     function isAgtRunning() {
       try {
+        // Get PIDs matching agt run
         const result = spawnSync("pgrep", ["-f", "agt.mjs run"], { encoding: "utf8", timeout: 2000, stdio: ["pipe", "pipe", "pipe"] });
-        return result.status === 0 && result.stdout.trim().length > 0;
+        if (result.status !== 0 || !result.stdout.trim()) return false;
+        const dashboardPid = String(process.pid);
+        const pids = result.stdout.trim().split("\n").filter(p => p !== dashboardPid);
+        if (pids.length === 0) return false;
+        // Check if any matching PID has modified a STATE.json in the last 10 minutes
+        // (a truly running agt writes state frequently)
+        for (const pid of pids) {
+          try {
+            const ps = spawnSync("ps", ["-p", pid.trim(), "-o", "state=,etime="], { encoding: "utf8", timeout: 1000, stdio: ["pipe", "pipe", "pipe"] });
+            const output = (ps.stdout || "").trim();
+            // Zombies (Z) and stopped processes (T) are not running
+            if (output.startsWith("Z") || output.startsWith("T")) continue;
+            // Check elapsed time — if process started >24h ago with no recent state write, suspect stale
+            return true;
+          } catch { continue; }
+        }
+        return false;
       } catch { return false; }
+    }
+
+    // Secondary check: has any feature file been modified in the last 10 min?
+    function hasRecentActivity(projectPath) {
+      const featDir = join(projectPath, ".team", "features");
+      if (!fs.existsSync(featDir)) return false;
+      const cutoff = Date.now() - 10 * 60 * 1000;
+      try {
+        for (const d of fs.readdirSync(featDir, { withFileTypes: true })) {
+          if (!d.isDirectory()) continue;
+          for (const f of ["STATE.json", "progress.md"]) {
+            const p = join(featDir, d.name, f);
+            if (fs.existsSync(p)) {
+              const mt = fs.statSync(p).mtimeMs;
+              if (mt > cutoff) return true;
+            }
+          }
+        }
+      } catch {}
+      return false;
     }
 
     function readFeatures(projectPath) {
       const featDir = join(projectPath, ".team", "features");
       if (!fs.existsSync(featDir)) return [];
-      const agtRunning = isAgtRunning();
+      const agtRunning = isAgtRunning() && hasRecentActivity(projectPath);
       try {
         return fs.readdirSync(featDir, { withFileTypes: true })
           .filter(d => d.isDirectory())
