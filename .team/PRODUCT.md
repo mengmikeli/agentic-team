@@ -59,6 +59,6 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 21. **Runbook system** — Pattern-matched task recipes (regex + keyword scoring). Reusable decompositions eliminate repeated planning. Runbook replay for known sequences. ✅ Done
 22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs. ✅ Done
 23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. ✅ Done
-24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat.
-25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI.
-26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--output md` writes REPORT.md.
+24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat. ✅ Done
+25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI. ✅ Done
+26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--output md` writes REPORT.md. ✅ Done

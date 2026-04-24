@@ -10,6 +10,22 @@ import { join } from "path";
 import { randomBytes, createHmac, timingSafeEqual } from "crypto";
 import { c, readState, writeState, atomicWriteSync, WRITER_SIG } from "./util.mjs";
 import { runPhaseChecks } from "./doctor.mjs";
+
+// Write outer loop status for dashboard visibility
+function writeLoopStatus(teamDir, status) {
+  try {
+    const statusPath = join(teamDir, ".loop-status.json");
+    const data = JSON.stringify({ ...status, updatedAt: new Date().toISOString() }, null, 2) + "\n";
+    writeFileSync(statusPath, data);
+  } catch {}
+}
+
+function clearLoopStatus(teamDir) {
+  try {
+    const statusPath = join(teamDir, ".loop-status.json");
+    writeFileSync(statusPath, JSON.stringify({ phase: "idle", updatedAt: new Date().toISOString() }, null, 2) + "\n");
+  } catch {}
+}
 import {
   createIssue as ghCreateIssue,
   addToProject as ghAddToProject,
@@ -631,6 +647,7 @@ export async function outerLoop(args, deps) {
     // ── Step 1: PRIORITIZE ──────────────────────────────────────
 
     console.log(`${c.bold}Prioritizing...${c.reset}`);
+    writeLoopStatus(teamDir, { phase: "prioritizing", cycle });
     if (stopping) break;
 
     let priority;
@@ -705,6 +722,7 @@ export async function outerLoop(args, deps) {
     }
 
     console.log(`${c.bold}Brainstorming...${c.reset}`);
+    writeLoopStatus(teamDir, { phase: "brainstorming", cycle, feature: priority.name });
     if (stopping) break;
 
     const brainstormBrief = buildOuterBrainstormBrief(
@@ -818,6 +836,7 @@ export async function outerLoop(args, deps) {
     // ── Step 3: EXECUTE ─────────────────────────────────────────
 
     console.log(`${c.bold}Executing...${c.reset}`);
+    writeLoopStatus(teamDir, { phase: "executing", cycle, feature: priority.name });
     const executeResult = await runSingleFeature(args, priorityDescription, roadmapLabel);
     console.log();
 
@@ -826,6 +845,7 @@ export async function outerLoop(args, deps) {
     // ── Step 4: REVIEW OUTCOME ──────────────────────────────────
 
     console.log(`${c.bold}Reviewing outcome...${c.reset}`);
+    writeLoopStatus(teamDir, { phase: "reviewing", cycle, feature: priority.name });
 
     // Read progress log if available
     const progressPath = join(featureDir, "progress.md");
@@ -909,6 +929,7 @@ export async function outerLoop(args, deps) {
     console.log(`\n${c.yellow}Stopped after ${cycle} cycle(s).${c.reset}`);
   }
 
+  clearLoopStatus(teamDir);
   return cycle;
 }
 

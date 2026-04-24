@@ -606,6 +606,14 @@ switch (command) {
             }
             return jsonRes(res, readFeatures(pp));
           }
+          if (pathname === "/api/loop-status") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const statusPath = join(pp, ".team", ".loop-status.json");
+            if (fs.existsSync(statusPath)) {
+              try { return jsonRes(res, JSON.parse(fs.readFileSync(statusPath, "utf8"))); } catch {}
+            }
+            return jsonRes(res, { phase: "idle" });
+          }
           if (pathname === "/api/sprints") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());
             const sp = join(pp, ".team", "SPRINTS.md");
