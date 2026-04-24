@@ -194,7 +194,6 @@ describe("Integration: iteration escalation in simulated run loop", () => {
   it("does not escalate when different layers trip each iteration", () => {
     const dir = makeDir();
     const task = { id: "task-2", title: "No escalation task", gateWarningHistory: [] };
-    const maxRetries = 3;
     let escalationFired = false;
 
     // Iteration 1: thin-content trips
@@ -206,6 +205,36 @@ describe("Integration: iteration escalation in simulated run loop", () => {
     if (checkEscalation(task.gateWarningHistory)) escalationFired = true;
 
     assert.equal(escalationFired, false, "Must not escalate when no layer repeats across iterations");
+  });
+
+  it("retries up to the full retry limit when different WARN layers trip each iteration", () => {
+    // Task-4: different layers each iteration must NOT trigger escalation,
+    // so the retry loop runs all the way to maxRetries.
+    const task = { id: "task-diff-layers", title: "Different layers task", gateWarningHistory: [] };
+    const maxRetries = 3;
+    let builderInvocations = 0;
+    let escalationFired = false;
+
+    // Each iteration produces a distinct WARN layer — no overlap
+    const layersPerIteration = [
+      ["thin-content"],
+      ["missing-code-refs"],
+      ["low-uniqueness"],
+    ];
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      builderInvocations++;
+      recordWarningIteration(task, attempt, layersPerIteration[attempt - 1]);
+      const escalation = checkEscalation(task.gateWarningHistory);
+      if (escalation) {
+        escalationFired = true;
+        break;
+      }
+    }
+
+    assert.equal(escalationFired, false, "Must not escalate when no layer repeats across iterations");
+    assert.equal(builderInvocations, maxRetries, `Builder must be invoked all ${maxRetries} times — no early exit due to escalation`);
+    assert.equal(task.gateWarningHistory.length, maxRetries, "History must have one entry per attempt");
   });
 
   it("escalates on non-consecutive iterations (1 and 3)", () => {
