@@ -188,3 +188,6 @@
 {"ts":"2026-04-24T06:00:13.663Z","event":"task-started","msg":"▶ Task 1/7: After `agt run` creates task issues, the parent (approval) issue body gains a `## Tasks` checklist with each task title and `(#N)` issue reference"}
 {"ts":"2026-04-24T06:35:23.623Z","event":"task-started","msg":"▶ Task 2/7: When a task gate passes, its checklist line updates from `- [ ]` to `- [x]`"}
 {"ts":"2026-04-24T06:51:26.808Z","event":"task-started","msg":"▶ Task 3/7: When a task hits max review rounds (escalated), its checklist line shows the `⚠️ blocked` marker"}
+{"ts":"2026-04-24T07:01:33.434Z","event":"task-passed","msg":"✓ Task 3/7: When a task hits max review rounds (escalated), its checklist line shows the `⚠️ blocked` marker"}
+{"ts":"2026-04-24T07:01:38.050Z","event":"progress","msg":"Progress: 1/7 done, 2 blocked."}
+{"ts":"2026-04-24T07:01:40.561Z","event":"task-started","msg":"▶ Task 4/7: Each task issue body contains `Part of #N` linking back to the parent approval issue"}

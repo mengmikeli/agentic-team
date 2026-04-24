@@ -33,3 +33,8 @@
 **Task 2: When a task gate passes, its checklist line updates from `- [ ]` to `- [x]`**
 - 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
 
+### 2026-04-24 07:01:33
+**Task 3: When a task hits max review rounds (escalated), its checklist line shows the `⚠️ blocked` marker**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
