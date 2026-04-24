@@ -324,74 +324,112 @@ switch (command) {
       return projects;
     }
 
+    // Check if any agt run process is alive
+    function isAgtRunning() {
+      try {
+        const result = spawnSync("pgrep", ["-f", "agt.mjs run"], { encoding: "utf8", timeout: 2000, stdio: ["pipe", "pipe", "pipe"] });
+        return result.status === 0 && result.stdout.trim().length > 0;
+      } catch { return false; }
+    }
+
     function readFeatures(projectPath) {
       const featDir = join(projectPath, ".team", "features");
       if (!fs.existsSync(featDir)) return [];
+      const agtRunning = isAgtRunning();
       try {
         return fs.readdirSync(featDir, { withFileTypes: true })
           .filter(d => d.isDirectory())
           .map(d => {
-            const sp = join(featDir, d.name, "STATE.json");
-            const state = fs.existsSync(sp) ? JSON.parse(fs.readFileSync(sp, "utf8")) : null;
+            const fdir = join(featDir, d.name);
+            const sp = join(fdir, "STATE.json");
+            let state = null;
+            try { state = fs.existsSync(sp) ? JSON.parse(fs.readFileSync(sp, "utf8")) : null; } catch {}
             const stat = fs.existsSync(sp) ? fs.statSync(sp) : null;
-            const progPath = join(featDir, d.name, "progress.md");
+            const progPath = join(fdir, "progress.md");
             const hasProgress = fs.existsSync(progPath);
+            const hasPause = fs.existsSync(join(fdir, ".pause"));
 
-            // Reconcile: cross-check STATE.json against progress.md
-            let reconciledStatus = state?.status || "unknown";
-            let reconciledTasks = state?.tasks || [];
-            if (state && hasProgress) {
+            let status = state?.status || "unknown";
+            let tasks = state?.tasks || [];
+            let dirty = false;
+
+            // Read progress.md for ground truth
+            let hasSummary = false, passes = 0, summaryBlocked = 0;
+            if (hasProgress) {
               try {
                 const prog = fs.readFileSync(progPath, "utf8");
-                const hasSummary = prog.includes("Run Summary");
-                const passes = (prog.match(/✅ PASS/g) || []).length;
-                const blockedMatch = prog.match(/Tasks: \d+\/\d+ done, (\d+) blocked/);
-                const summaryBlocked = blockedMatch ? parseInt(blockedMatch[1]) : 0;
-                const hasPause = fs.existsSync(join(featDir, d.name, ".pause"));
+                hasSummary = prog.includes("Run Summary");
+                passes = (prog.match(/\u2705 PASS/g) || []).length;
+                const bm = prog.match(/Tasks: \d+\/\d+ done, (\d+) blocked/);
+                if (bm) summaryBlocked = parseInt(bm[1]);
+              } catch {}
+            }
 
-                // Fix stale executing → completed
-                if (hasSummary && ["active", "executing"].includes(reconciledStatus)) {
-                  reconciledStatus = "completed";
-                }
-                // Fix stale executing → paused (no summary, no running process)
-                if (!hasSummary && hasPause && ["active", "executing"].includes(reconciledStatus)) {
-                  reconciledStatus = "paused";
-                }
-                // Sync task statuses from progress.md
-                let curPassed = reconciledTasks.filter(t => t.status === "passed").length;
-                if (passes > curPassed) {
-                  for (const t of reconciledTasks) {
-                    if (t.status === "pending" && curPassed < passes) {
-                      t.status = "passed";
-                      curPassed++;
-                    }
+            if (state) {
+              // Rule 1: Run Summary exists = feature completed
+              if (hasSummary && status !== "completed") {
+                status = "completed";
+                if (!state.completedAt) state.completedAt = new Date().toISOString();
+                dirty = true;
+              }
+
+              // Rule 2: .pause file = paused
+              if (hasPause && ["active", "executing"].includes(status)) {
+                status = "paused";
+                dirty = true;
+                try { fs.unlinkSync(join(fdir, ".pause")); } catch {}
+              }
+
+              // Rule 3: executing but no agt process = stale = paused
+              if (["active", "executing"].includes(status) && !agtRunning) {
+                status = "paused";
+                state._stale_reason = "no agt run process detected";
+                dirty = true;
+              }
+
+              // Rule 4: sync task pass count
+              let curPassed = tasks.filter(t => t.status === "passed").length;
+              if (passes > curPassed) {
+                for (const t of tasks) {
+                  if (t.status === "pending" && curPassed < passes) {
+                    t.status = "passed"; curPassed++; dirty = true;
                   }
                 }
-                // Mark remaining pending as blocked for completed features
-                if (reconciledStatus === "completed" && summaryBlocked > 0) {
-                  for (const t of reconciledTasks) {
-                    if (t.status === "pending" || t.status === "in-progress") t.status = "blocked";
-                  }
+              }
+
+              // Rule 5: completed + blocked count = mark remaining as blocked
+              if (status === "completed" && summaryBlocked > 0) {
+                for (const t of tasks) {
+                  if (["pending", "in-progress"].includes(t.status)) { t.status = "blocked"; dirty = true; }
                 }
-                // Reset in-progress to pending for paused features
-                if (reconciledStatus === "paused") {
-                  for (const t of reconciledTasks) {
-                    if (t.status === "in-progress") t.status = "pending";
-                  }
+              }
+
+              // Rule 6: paused = reset in-progress to pending
+              if (status === "paused") {
+                for (const t of tasks) {
+                  if (t.status === "in-progress") { t.status = "pending"; dirty = true; }
                 }
-              } catch { /* best-effort reconciliation */ }
+              }
+
+              // Write back to disk if anything changed
+              if (dirty) {
+                state.status = status;
+                state.tasks = tasks;
+                state._reconciled_at = new Date().toISOString();
+                try { fs.writeFileSync(sp, JSON.stringify(state, null, 2) + "\n"); } catch {}
+              }
             }
 
             return {
               name: d.name,
-              status: reconciledStatus,
-              tasks: reconciledTasks,
+              status,
+              tasks,
               gates: state?.gates || [],
               feature: state?.feature || d.name,
               createdAt: state?.createdAt || null,
               completedAt: state?.completedAt || null,
               _last_modified: stat ? stat.mtime.toISOString() : null,
-              hasSpec: fs.existsSync(join(featDir, d.name, "SPEC.md")),
+              hasSpec: fs.existsSync(join(fdir, "SPEC.md")),
               hasProgress,
               transitionCount: state?.transitionCount || 0,
               tokenUsage: state?.tokenUsage ?? null,
