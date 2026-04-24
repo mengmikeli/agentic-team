@@ -134,3 +134,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 00:12:53
+**Task 14: Integration test with a detailed, code-referencing `eval.md` fixture passes the gate.**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
