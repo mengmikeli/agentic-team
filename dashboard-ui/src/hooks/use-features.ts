@@ -16,6 +16,7 @@ export function useFeatures(projectPath: string | null) {
     }
 
     let eventSource: EventSource | null = null;
+    const sseActiveRef = { current: false };
 
     async function loadData() {
       setLoading(true);
@@ -41,6 +42,7 @@ export function useFeatures(projectPath: string | null) {
       if (eventSource) {
         eventSource.onopen = () => {
           setSseConnected(true);
+          sseActiveRef.current = true;
         };
 
         eventSource.onmessage = async (e) => {
@@ -59,6 +61,7 @@ export function useFeatures(projectPath: string | null) {
 
         eventSource.onerror = () => {
           setSseConnected(false);
+          sseActiveRef.current = false;
         };
       }
     }
@@ -66,8 +69,9 @@ export function useFeatures(projectPath: string | null) {
     loadData();
     setupSSE();
 
-    // Auto-refresh fallback every 10 seconds
+    // Auto-refresh fallback every 10 seconds (only when SSE is inactive)
     const refreshInterval = setInterval(async () => {
+      if (sseActiveRef.current) return;
       try {
         const featuresData = await api.getFeatures(projectPath!);
         setFeatures(featuresData);

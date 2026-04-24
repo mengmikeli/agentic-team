@@ -1,16 +1,16 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Added feature detail view enhancements: wall-clock run duration stat in the detail header (using _runStartedAt/createdAt → completedAt/_last_modified), selected-feature highlight ring in the timeline, and a fixed-width cost column so rows don't shift when cost data is absent. Also added _runStartedAt to the Feature type and wired selectedFeature prop through App.tsx → FeatureTimeline.",
+  "summary": "Fixed all critical and warning issues from the review: deleted dead App.tsx.bak file, inlined the no-op handleFeatureChange wrapper by passing setSelectedFeature directly, added adaptive cost precision (toFixed(4) for sub-cent amounts) in feature-detail, added Number.isFinite guard on timeline cost display, added a useEffect reset guard when the selected feature is removed from the list mid-session, and prevented the polling interval from firing while SSE is active by tracking SSE state in a ref.",
   "timestamp": "2026-04-25T00:00:00Z",
   "artifacts": [
-    { "type": "code", "path": "dashboard-ui/src/types.ts" },
+    { "type": "code", "path": "dashboard-ui/src/App.tsx" },
     { "type": "code", "path": "dashboard-ui/src/components/feature-detail.tsx" },
     { "type": "code", "path": "dashboard-ui/src/components/feature-timeline.tsx" },
-    { "type": "code", "path": "dashboard-ui/src/App.tsx" }
+    { "type": "code", "path": "dashboard-ui/src/hooks/use-features.ts" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

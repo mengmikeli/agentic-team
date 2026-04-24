@@ -45,13 +45,16 @@ function App() {
     }
   }, [currentProject]);
 
+  // Reset selected feature if it disappears from the list (e.g. SSE removes it)
+  useEffect(() => {
+    if (selectedFeature && !features.some(f => f.name === selectedFeature)) {
+      setSelectedFeature(null);
+    }
+  }, [features, selectedFeature]);
+
   const handleProjectChange = (project: Project) => {
     setCurrentProject(project);
     setSelectedFeature(null);
-  };
-
-  const handleFeatureChange = (featureName: string | null) => {
-    setSelectedFeature(featureName);
   };
 
   const activeFeature = features.find(f => ['active', 'executing'].includes(f.status));
@@ -120,7 +123,7 @@ function App() {
               <ErrorBoundary fallback="FeatureTimeline">
                 <FeatureTimeline
                   features={features}
-                  onFeatureSelect={handleFeatureChange}
+                  onFeatureSelect={setSelectedFeature}
                   selectedFeature={selectedFeature}
                 />
               </ErrorBoundary>
@@ -135,7 +138,7 @@ function App() {
                   <TaskBoard
                     features={features}
                     selectedFeature={selectedFeature}
-                    onFeatureChange={handleFeatureChange}
+                    onFeatureChange={setSelectedFeature}
                   />
                 )}
               </ErrorBoundary>

@@ -80,7 +80,7 @@ export function FeatureTimeline({ features, onFeatureSelect, selectedFeature }: 
                 </div>
                 {feature.tokenUsage?.total?.costUsd != null ? (
                   <div className="flex-shrink-0 w-14 text-right text-xs font-mono tabular-nums text-muted-foreground">
-                    ${feature.tokenUsage.total.costUsd.toFixed(2)}
+                    {Number.isFinite(feature.tokenUsage.total.costUsd) ? `$${feature.tokenUsage.total.costUsd.toFixed(2)}` : '—'}
                   </div>
                 ) : (
                   <div className="flex-shrink-0 w-14" />

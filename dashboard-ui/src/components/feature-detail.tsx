@@ -8,7 +8,10 @@ interface FeatureDetailProps {
   onClose: () => void;
 }
 
-function fmtCost(v: number) { return Number.isFinite(v) ? `$${v.toFixed(2)}` : '—'; }
+function fmtCost(v: number) {
+  if (!Number.isFinite(v)) return '—';
+  return v < 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(2)}`;
+}
 function fmtMs(v: number) {
   if (!Number.isFinite(v)) return '—';
   if (v >= 3_600_000) return `${(v / 3_600_000).toFixed(1)}h`;
