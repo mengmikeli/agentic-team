@@ -41,6 +41,12 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 13. **Compound evaluation gate** — ✅ Done. Multi-layer substance check on reviews (thin content, missing code refs, low uniqueness, fabricated references, aspirational claims). ≥3 layers tripped = hard FAIL.
 14. **Iteration escalation** — ✅ Done. Persistent eval warnings across ≥2 iterations auto-escalate to FAIL. No more infinite shallow-fix loops.
 
+### Phase 3.5 — Stabilization
+27. **Label threading** — Outer loop passes `[P#/#N]` labels through to inner loop's `runSingleFeature`. GitHub issues and CLI banner show roadmap position.
+28. **Dashboard token breakdown** — Feature detail view: click a feature to see per-task cost, phase breakdown (brainstorm/build/review), run duration. Cost column on feature timeline.
+29. **Dashboard active task indicator** — Show which specific task is executing with name and attempt number, not just "N/M done".
+30. **Finalize auto-close validation** — Integration test: `agt finalize` marks feature completed and closes all its GitHub issues. Verify end-to-end.
+
 ### Phase 4 — Productive Execution
 15. **Simplicity reviewer with veto** — Dedicated review pass that checks for dead code, premature abstraction, unnecessary indirection, gold-plating. Simplicity REQUEST_CHANGES = overall REQUEST_CHANGES.
 16. **Multi-perspective code review** — Parallel review dispatch: architect, engineer, product, tester, security, simplicity. Role-specific reference docs. Synthesis with severity ranking.
