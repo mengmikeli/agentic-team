@@ -59,6 +59,7 @@ export function runGateInline(cmd, featureDir, taskId, cwd = process.cwd()) {
       cwd,
       encoding: "utf8",
       timeout: 120000,
+      maxBuffer: 50 * 1024 * 1024, // 50MB — large test suites produce a lot of output
       shell: true,
       stdio: ["pipe", "pipe", "pipe"],
     });
