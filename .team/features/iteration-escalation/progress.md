@@ -41,3 +41,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 01:29:42
+**Task 5: The escalation event appears in `progress.md`**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
