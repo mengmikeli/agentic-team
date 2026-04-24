@@ -1,0 +1,15 @@
+{
+  "taskId": "task-3",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added logic in finalize.mjs to close state.approvalIssueNumber (when present) after the task-issue loop and increment issuesClosed. Added a test in harness.test.mjs verifying that a feature with one task issue (401) and approvalIssueNumber (500) results in issuesClosed === 2 and that gh is called with issue 500.",
+  "timestamp": "2026-04-24T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/finalize.mjs" },
+    { "type": "code", "path": "test/harness.test.mjs" },
+    { "type": "code", "path": ".team/features/finalize-auto-close-validation/tasks/task-3/handshake.json" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

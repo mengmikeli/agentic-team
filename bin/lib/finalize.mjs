@@ -130,6 +130,14 @@ export function cmdFinalize(args) {
       }
     }
 
+    // Close approval issue if present
+    if (freshState.approvalIssueNumber) {
+      try {
+        closeIssue(freshState.approvalIssueNumber, "Feature finalized — all tasks complete.");
+        issuesClosed++;
+      } catch { /* best-effort */ }
+    }
+
     console.log(JSON.stringify({
       finalized: true,
       feature: freshState.feature,

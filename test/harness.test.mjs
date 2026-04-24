@@ -374,6 +374,57 @@ describe("at-harness", () => {
       }
     });
 
+    it("closes approvalIssueNumber when present and counts it in issuesClosed", () => {
+      const fakeBinDir = mkdtempSync(join(tmpdir(), "fake-gh-"));
+      const ghLogFile = join(fakeBinDir, "gh-calls.log");
+      writeFileSync(
+        join(fakeBinDir, "gh"),
+        `#!/bin/sh\necho "$@" >> "${ghLogFile}"\necho ok\nexit 0\n`,
+        { mode: 0o755 },
+      );
+
+      const featureDir = join(testDir, "features", "approval-close-test");
+      mkdirSync(featureDir, { recursive: true });
+      const state = {
+        version: "2.0",
+        feature: "approval-close-test",
+        status: "active",
+        tasks: [
+          { id: "t1", status: "passed", issueNumber: 401 },
+        ],
+        approvalIssueNumber: 500,
+        gates: [],
+        transitionCount: 1,
+        transitionHistory: [],
+        createdAt: new Date().toISOString(),
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "abcd1234abcd1234",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      try {
+        const out = execFileSync("node", [harnessPath, "finalize", "--dir", join("features", "approval-close-test")], {
+          encoding: "utf8",
+          cwd: testDir,
+          timeout: 10000,
+          env: { ...process.env, PATH: `${fakeBinDir}:${process.env.PATH}` },
+        });
+        const lines = out.trim().split("\n").filter(Boolean);
+        const result = JSON.parse(lines[lines.length - 1]);
+        assert.equal(result.finalized, true);
+        assert.equal(result.issuesClosed, 2);
+
+        const ghCalls = readFileSync(ghLogFile, "utf8");
+        assert.ok(
+          ghCalls.includes("500"),
+          `expected issue 500 to be closed in gh calls, got:\n${ghCalls}`,
+        );
+      } finally {
+        rmSync(fakeBinDir, { recursive: true, force: true });
+      }
+    });
+
     it("returns issuesClosed: 2 when feature has 2 tasks with issueNumber", () => {
       const fakeBinDir = mkdtempSync(join(tmpdir(), "fake-gh-"));
       writeFileSync(join(fakeBinDir, "gh"), "#!/bin/sh\necho ok\nexit 0\n", { mode: 0o755 });
