@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildTasksChecklist, tickChecklistItem } from "../bin/lib/github.mjs";
+import { buildTasksChecklist, tickChecklistItem, markChecklistItemBlocked } from "../bin/lib/github.mjs";
 
 describe("buildTasksChecklist", () => {
   it("returns empty string when task list is empty", () => {
@@ -91,6 +91,44 @@ describe("tickChecklistItem", () => {
     const body = "- [ ] Task (#1)";
     assert.equal(tickChecklistItem(body, null, 1), body);
     assert.equal(tickChecklistItem(body, "Task", null), body);
+  });
+});
+
+describe("markChecklistItemBlocked", () => {
+  it("replaces - [ ] title with strikethrough and blocked marker", () => {
+    const body = "## Tasks\n- [ ] Build the widget (#42)\n- [ ] Write tests (#43)";
+    const result = markChecklistItemBlocked(body, "Build the widget", 42);
+    assert.ok(result.includes("- [ ] ~~Build the widget~~ (#42) ⚠️ blocked"));
+    assert.ok(result.includes("- [ ] Write tests (#43)"));
+  });
+
+  it("leaves body unchanged when title not found", () => {
+    const body = "## Tasks\n- [ ] Build the widget (#42)";
+    const result = markChecklistItemBlocked(body, "Other task", 42);
+    assert.equal(result, body);
+  });
+
+  it("leaves body unchanged when issue number does not match", () => {
+    const body = "## Tasks\n- [ ] Build the widget (#42)";
+    const result = markChecklistItemBlocked(body, "Build the widget", 99);
+    assert.equal(result, body);
+  });
+
+  it("does not modify an already-ticked item", () => {
+    const body = "## Tasks\n- [x] Build the widget (#42)";
+    const result = markChecklistItemBlocked(body, "Build the widget", 42);
+    assert.equal(result, body);
+  });
+
+  it("returns body unchanged when body is falsy", () => {
+    assert.equal(markChecklistItemBlocked(null, "Title", 1), null);
+    assert.equal(markChecklistItemBlocked("", "Title", 1), "");
+  });
+
+  it("returns body unchanged when title or issueNumber is falsy", () => {
+    const body = "- [ ] Task (#1)";
+    assert.equal(markChecklistItemBlocked(body, null, 1), body);
+    assert.equal(markChecklistItemBlocked(body, "Task", null), body);
   });
 });
 

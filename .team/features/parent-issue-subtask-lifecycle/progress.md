@@ -29,3 +29,7 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 06:51:24
+**Task 2: When a task gate passes, its checklist line updates from `- [ ]` to `- [x]`**
+- 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
+

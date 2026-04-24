@@ -148,6 +148,21 @@ export function tickChecklistItem(body, title, issueNumber) {
   );
 }
 
+/**
+ * Mark a checklist item as blocked in an issue body.
+ * Replaces `- [ ] title (#N)` with `- [ ] ~~title~~ (#N) ⚠️ blocked`.
+ * Returns the updated body string (unchanged if not found).
+ */
+export function markChecklistItemBlocked(body, title, issueNumber) {
+  if (!body || !title || !issueNumber) return body;
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const replacement = `- [ ] ~~${title}~~ (#${issueNumber}) ⚠️ blocked`;
+  return body.replace(
+    new RegExp(`- \\[ \\] ${escaped} \\(#${issueNumber}\\)`),
+    () => replacement,
+  );
+}
+
 /** Build the ## Tasks checklist markdown from a list of tasks. Returns empty string if no tasks have issue numbers. */
 export function buildTasksChecklist(tasks) {
   const lines = (tasks || [])

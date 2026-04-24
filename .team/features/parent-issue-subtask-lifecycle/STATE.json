@@ -30,10 +30,10 @@
     {
       "id": "task-2",
       "title": "When a task gate passes, its checklist line updates from `- [ ]` to `- [x]`",
-      "status": "in-progress",
+      "status": "blocked",
       "attempts": 0,
       "issueNumber": 160,
-      "lastTransition": "2026-04-24T06:35:21.105Z",
+      "lastTransition": "2026-04-24T06:51:24.442Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -41,15 +41,24 @@
           "layers": [
             "fabricated-refs"
           ]
+        },
+        {
+          "iteration": 2,
+          "layers": [
+            "fabricated-refs"
+          ]
         }
-      ]
+      ],
+      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
     },
     {
       "id": "task-3",
       "title": "When a task hits max review rounds (escalated), its checklist line shows the `⚠️ blocked` marker",
-      "status": "pending",
+      "status": "in-progress",
       "attempts": 0,
-      "issueNumber": 161
+      "issueNumber": 161,
+      "lastTransition": "2026-04-24T06:51:24.492Z",
+      "ticks": 1
     },
     {
       "id": "task-4",
@@ -116,9 +125,18 @@
       "stderr": "",
       "timestamp": "2026-04-24T06:46:58.748Z",
       "taskId": "task-2"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n▶ isGateTask\n  ✔ returns true for quality gate task (0.407084ms)\n  ✔ returns false for regular task (0.047125ms)\n  ✔ returns false when title is undefined (0.040083ms)\n  ✔ is case-sensitive (0.037917ms)\n✔ isGateTask (1.129958ms)\n▶ getActiveTask\n  ✔ returns null for empty task list (0.093625ms)\n  ✔ returns null when all tasks are pending (0.043875ms)\n  ✔ returns null when all tasks are passed (0.035541ms)\n  ✔ returns the in-progress task (0.047583ms)\n  ✔ returns the first in-progress task when multiple exist (0.049292ms)\n  ✔ skips gate task even when it is in-progress (0.062542ms)\n  ✔ returns null when only gate task is in-progress (0.03875ms)\n  ✔ returns correct task with attempts field present (0.035959ms)\n✔ getActiveTask (0.546583ms)\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (2.314625ms)\n  ✔ returns null and does not write approval.json when createIssue fails (0.691625ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (0.757875ms)\n  ✔ skips project board calls when projectNumber is null (0.354875ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.334792ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.252375ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (1.264709ms)\n✔ createApprovalIssue (6.783625ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.731916ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.662792ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.478666ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.268625ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.556166ms)\n✔ readApprovalState (3.603584ms)\n▶ waitForApproval\n  ✔",
+      "stderr": "",
+      "timestamp": "2026-04-24T06:56:42.538Z",
+      "taskId": "task-3"
     }
   ],
-  "transitionCount": 3,
+  "transitionCount": 5,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -140,10 +158,24 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T06:35:21.105Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-24T06:51:24.442Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T06:51:24.492Z"
     }
   ],
   "createdAt": "2026-04-24T05:56:40.878Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T06:46:58.748Z",
-  "_write_nonce": "8eb1985601fa1ed6"
+  "_last_modified": "2026-04-24T06:56:42.538Z",
+  "_write_nonce": "9039e5151fc4be4f"
 }

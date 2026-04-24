@@ -10,7 +10,7 @@ import {
   c, getFlag, readState, writeState, lockFile, generateNonce,
   WRITER_SIG, ALLOWED_TRANSITIONS, appendProgress,
 } from "./util.mjs";
-import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, tickChecklistItem } from "./github.mjs";
+import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
@@ -1294,6 +1294,13 @@ async function _runSingleFeature(args, description, providedLabel = '') {
             // Review-round escalation: block when cap is hit
             const escalationSummary = buildEscalationSummary(taskDir, task.title, task.reviewRounds);
             if (task.issueNumber) commentIssue(task.issueNumber, escalationSummary);
+            if (task.issueNumber && state?.approvalIssueNumber) {
+              const parentBody = getIssueBody(state.approvalIssueNumber);
+              if (parentBody) {
+                const updated = markChecklistItemBlocked(parentBody, task.title, task.issueNumber);
+                if (updated !== parentBody) editIssue(state.approvalIssueNumber, updated);
+              }
+            }
             harness("transition", "--task", task.id, "--status", "blocked",
               "--dir", featureDir, "--reason", `review-escalation: ${task.reviewRounds} rounds exceeded`);
             blocked++;

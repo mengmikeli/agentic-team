@@ -187,3 +187,4 @@
 {"ts":"2026-04-24T05:56:40.927Z","event":"feature-started","msg":"▶ Feature: parent-issue-subtask-lifecycle (7 tasks planned)"}
 {"ts":"2026-04-24T06:00:13.663Z","event":"task-started","msg":"▶ Task 1/7: After `agt run` creates task issues, the parent (approval) issue body gains a `## Tasks` checklist with each task title and `(#N)` issue reference"}
 {"ts":"2026-04-24T06:35:23.623Z","event":"task-started","msg":"▶ Task 2/7: When a task gate passes, its checklist line updates from `- [ ]` to `- [x]`"}
+{"ts":"2026-04-24T06:51:26.808Z","event":"task-started","msg":"▶ Task 3/7: When a task hits max review rounds (escalated), its checklist line shows the `⚠️ blocked` marker"}
