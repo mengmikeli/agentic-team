@@ -15,7 +15,8 @@ function loadRoleFile(role) {
     const slug = role.replace(/[^a-z0-9-]/g, "-");
     const filePath = resolve(__dirname, "../../roles", `${slug}.md`);
     return readFileSync(filePath, "utf8").trim();
-  } catch {
+  } catch (err) {
+    console.warn(`[loadRoleFile] Could not load role file for "${role}": ${err.message}`);
     return null;
   }
 }

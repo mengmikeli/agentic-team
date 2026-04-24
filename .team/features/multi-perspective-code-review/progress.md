@@ -36,3 +36,8 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 02:50:40
+**Task 3: `buildReviewBrief()` injects the content of `roles/<role>.md` into each reviewer's brief.**
+- Verdict: 🟡 Review FAIL (attempt 2)
+- Will retry with review feedback
+

@@ -132,17 +132,32 @@ describe("buildReviewBrief", () => {
     const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "architect");
     assert.ok(brief.toLowerCase().includes("architect"));
     assert.ok(brief.includes("maintainability") || brief.includes("structure"));
+    // unique to roles/architect.md — not present in getRoleFocus() fallback
+    assert.ok(
+      brief.toLowerCase().includes("loosely coupled") || brief.toLowerCase().includes("over-architect") || brief.toLowerCase().includes("scalability"),
+      "Expected role file content unique to architect.md to be injected"
+    );
   });
 
   it("includes role-specific focus for security", () => {
     const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "security");
     assert.ok(brief.toLowerCase().includes("security"));
     assert.ok(brief.includes("vulnerabilities") || brief.includes("validation"));
+    // unique to roles/security.md — not present in getRoleFocus() fallback
+    assert.ok(
+      brief.toLowerCase().includes("threat modeling") || brief.toLowerCase().includes("adversaries") || brief.toLowerCase().includes("xss"),
+      "Expected role file content unique to security.md to be injected"
+    );
   });
 
   it("includes role-specific focus for pm", () => {
     const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "pm");
     assert.ok(brief.toLowerCase().includes("pm") || brief.toLowerCase().includes("requirements"));
+    // unique to roles/pm.md — not present in getRoleFocus() fallback
+    assert.ok(
+      brief.toLowerCase().includes("scope creep") || brief.toLowerCase().includes("acceptance criteria") || brief.toLowerCase().includes("sprint"),
+      "Expected role file content unique to pm.md to be injected"
+    );
   });
 
   it("works without a role (generic review)", () => {
