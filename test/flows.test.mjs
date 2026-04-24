@@ -259,6 +259,9 @@ describe("mergeReviewFindings", () => {
     const merged = mergeReviewFindings(findings);
     assert.ok(merged.includes("[simplicity]"), "warning simplicity finding should be plain [simplicity]");
     assert.ok(!merged.includes("[simplicity veto]"), "warning must not be labeled [simplicity veto]");
+    const result = computeVerdict(parseFindings(merged));
+    assert.equal(result.verdict, "PASS", "simplicity 🟡 must not block merge");
+    assert.equal(result.backlog, true, "simplicity 🟡 must appear in backlog");
   });
 
   it("simplicity 🔴 causes FAIL even when all other roles pass with no criticals", () => {
