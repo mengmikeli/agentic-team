@@ -85,3 +85,80 @@ These two false findings account for the compound gate WARN on task-2. They shou
 1. Capture `users` answer in spec output or remove the question — from 🟡 above
 2. Disambiguate `constraints` question from Requirements loop — from 🟡 above
 3. Discard these previously-filed backlog items (they are fabricated): "buildBrainstormBrief uses ## Scope/## Approach" and "buildInteractiveSpec emits ## Users section"
+
+---
+
+# Tester Review — document-driven-development
+
+**Reviewer role:** tester
+**Date:** 2026-04-24
+**Overall Verdict:** PASS
+
+---
+
+## Files Actually Read
+
+- `bin/lib/brainstorm-cmd.mjs` (full, 297 lines)
+- `test/cli-commands.test.mjs:390–519` (brainstorm-cmd module tests)
+- `bin/lib/outer-loop.mjs:256–315` (buildOuterBrainstormBrief)
+- `bin/lib/outer-loop.mjs:375–420` (validateSpecFile)
+- `bin/lib/outer-loop.mjs:655–729` (minimalSpec fallback, brainstorm step)
+- `test/outer-loop.test.mjs:688–699` (minimalSpec assertion)
+- `templates/SPEC.md` (full)
+- `.team/features/document-driven-development/tasks/task-2/artifacts/test-output.txt` (full)
+- All three handshake.json files (task-1, task-2, task-3)
+- task-1/eval.md, task-3/eval.md (full)
+
+---
+
+## Per-Criterion Results
+
+### 1. Core feature: four new sections in `buildInteractiveSpec`
+**PASS** — `test/cli-commands.test.mjs:412–518` directly asserts `## Requirements`, `## Acceptance Criteria`, `## Technical Approach`, `## Testing Strategy`, and the combined 7-section test at line 497. Gate confirms 525/525 pass, exit 0.
+
+### 2. Content propagation
+**PASS** — Tests verify section headings AND content: Requirements (line 429–431: "Must be fast", "Must be reliable"), Acceptance Criteria (line 451–452: "Given X, when Y, then Z"), Technical Approach (line 472–473: "Detailed technical plan here"), Testing Strategy (line 493–494: "Jest unit tests with 90% coverage"). Content reaches the spec correctly on the happy path.
+
+### 3. TBD fallback paths
+**PARTIALLY UNTESTED** — Three TBD fallbacks exist in code:
+- `acceptanceCriteria: []` → `"- TBD"` (line 118) — no test asserts the "- TBD" content
+- `testingStrategy: ""` → `"TBD"` (line 129) — no test asserts the "TBD" content
+- `criteria: []` → empty string (line 135: `criteria.map(...).join("\n")`) — produces an empty `## Done When` section; `interactiveBrainstorm` has a default at line 220–223 but `buildInteractiveSpec` (exported) has no guard
+
+The `criteria: []` case passes `validateSpecFile` (which checks heading presence only) but produces a spec with no checkboxes.
+
+### 4. Interactive flow coverage
+**UNTESTED** — `interactiveBrainstorm` (lines 139–232) — the readline loop — has no unit test. Coverage is only a CLI smoke test at `test/cli-commands.test.mjs:96–98` that verifies the header prints (18.9s test). No test asserts spec content from the interactive path.
+
+### 5. Prior review fabricated claims
+**CONFIRMED FALSE** — task-1 cited `buildBrainstormBrief` as using old 5-section schema and `minimalSpec` as writing `## Scope`. Both are contradicted by the actual code:
+- `buildBrainstormBrief` (line 36–89): uses `## Requirements`, `## Acceptance Criteria`, `## Technical Approach`, `## Testing Strategy` — 7-section schema present
+- `minimalSpec` (outer-loop.mjs:726): writes all 7 sections including `## Requirements`, `## Acceptance Criteria`, `## Technical Approach`, `## Testing Strategy`
+- `test/outer-loop.test.mjs:698`: asserts `spec.includes("## Requirements")`, NOT `## Scope`
+
+The compound gate correctly tripped `fabricated-refs` on task-1. These findings must not enter backlog.
+
+### 6. Edge case: `preferred` input parsing
+**UNTESTED** — `approachText` at line 94–98 checks `preferred.toLowerCase().startsWith("a/b")`. Only "a" and "b" exactly are exercised in tests. Inputs like "option A", "a." or `preferred = ""` fall through to the catch-all. Low risk for CLI but no coverage of these paths.
+
+---
+
+## Findings
+
+🟡 `bin/lib/brainstorm-cmd.mjs:135` — `criteria.map(c => \`- [ ] ${c}\`).join("\n")` has no empty-array guard; `criteria: []` produces a blank `## Done When` section that passes `validateSpecFile` but contains no checkboxes — add a fallback matching `interactiveBrainstorm` line 220–223; add a test for `criteria: []`
+
+🟡 `test/cli-commands.test.mjs:96` — `agt brainstorm` CLI test only verifies the header prints; the full `interactiveBrainstorm` readline path has zero content assertions — add a test that stubs `readline.createInterface` and verifies all four new sections appear in the written SPEC.md
+
+🟡 `bin/lib/brainstorm-cmd.mjs:93` — `users` parameter is destructured but never referenced in the output template (lines 109–136); confirmed by the PM review above; silent data loss on a user-facing input — either include it in the spec or remove the prompt at line 162 and the parameter
+
+🔵 `test/cli-commands.test.mjs:412` — four individual section tests (lines 412–494) are subsumed by the "all seven" test at line 497 with no additional edge-case coverage — replace with edge-case variants (empty AC, empty testingStrategy, criteria: []) that test the TBD fallback paths instead
+
+🔵 `bin/lib/brainstorm-cmd.mjs:94` — `preferred` input parsed with `startsWith("a")` / `startsWith("b")` (case-insensitive via toLowerCase); "option a", "a." and multi-word inputs behave differently from "a" — no tests cover these; document or tighten the contract
+
+---
+
+## Backlog Items (from this review)
+
+1. Guard `criteria: []` in `buildInteractiveSpec` + add test — from 🟡 above
+2. Add interactive flow test (stub readline, verify SPEC.md output) — from 🟡 above
+3. Resolve `users` dead parameter — from 🟡 above (confirmed by PM review)
