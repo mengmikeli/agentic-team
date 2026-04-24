@@ -1,30 +1,75 @@
-## Parallel Review Findings
+## Architect Review — parent-issue-subtask-lifecycle
 
-🟡 [architect] `bin/lib/run.mjs:1311` — `escalationFired` (iteration-escalation) branch also blocks tasks but does NOT call `markChecklistItemBlocked`; both `shouldEscalate` and `escalationFired` produce a `blocked` status, but only one updates the parent checklist; add the same `getIssueBody`/`markChecklistItemBlocked`/`editIssue` block to the `escalationFired` branch for consistent parent-issue UI
-🟡 [architect] `test/parent-checklist.test.mjs:94` — no integration test verifies the `shouldEscalate → getIssueBody → markChecklistItemBlocked → editIssue` chain in `run.mjs`; unit tests cover the pure function only; add a test that mocks `getIssueBody`/`editIssue` and confirms they are invoked on escalation
-🟡 [engineer] `bin/lib/run.mjs:1299` — `if (parentBody)` coerces `""` (successful empty-body response) to falsy; blocked marker silently skipped on empty issue body; use `if (parentBody !== null)` to match the `getIssueBody` return contract (same pattern as unfixed backlog item at line 1356)
-🟡 [engineer] `bin/lib/run.mjs:1301` — `editIssue(...)` return value discarded; gh CLI failure during blocked-marker write is invisible; check return and log a warning on `false` (same pattern as unfixed backlog item at line 1359)
-[engineer] Both 🟡 warnings are carryovers from the prior backlog — they follow the exact same pattern as the existing `tickChecklistItem` call site. Neither is a new regression.
-🟡 [product] `test/review-escalation.test.mjs:243` — Integration test does not verify that `getIssueBody`/`markChecklistItemBlocked`/`editIssue` are called when escalation fires; add a mocked test asserting `editIssue` is invoked with the blocked body after MAX_REVIEW_ROUNDS FAILs
-🟡 [product] `bin/lib/run.mjs:1301` — `editIssue(...)` return value discarded; a GitHub API failure when writing the blocked marker leaves the parent checklist unchanged with no warning; log `⚠ Could not mark checklist item blocked for task #N` on false return (pre-existing pattern)
-[product] Two 🟡 warnings go to backlog. Both are pre-existing patterns in this feature (the same gaps were flagged for the `tickChecklistItem` path in prior rounds). No criticals.
-🟡 [tester] test/review-escalation.test.mjs:244 — Integration tests only check state transitions; add a mocked test asserting `getIssueBody` and `editIssue` are called with the blocked body when `shouldEscalate` fires (run.mjs:1297–1302)
-🟡 [tester] bin/lib/run.mjs:1311 — Iteration-escalation block path skips `markChecklistItemBlocked`; parent checklist stays `- [ ] title (#N)` (unchecked) after iteration escalation; document as known limitation or add call mirroring run.mjs:1297–1302
-🟡 [tester] bin/lib/run.mjs:1299 — `if (parentBody)` silently drops the blocked-marker update when `getIssueBody` returns null; add a warning log (matches existing `⚠` warning style in codebase)
-🟡 [simplicity] `bin/lib/github.mjs:156` — `markChecklistItemBlocked` duplicates the guard, escape, and regex pattern from `tickChecklistItem` (lines 141-149); extract a shared `replaceChecklistItem(body, title, issueNumber, replacement)` helper so a format change only touches one place
-🔵 [architect] `bin/lib/github.mjs:161` — regex not anchored to start of line (missing `^` with multiline flag `m`); could match mid-line in blockquote-style body content; add `RegExp(\`...\`, 'm')` with `^` prefix for robustness
-🔵 [architect] `bin/lib/github.mjs:161` — `issueNumber` interpolated into regex without explicit integer coercion; add `parseInt(issueNumber, 10)` to make the numeric contract explicit and guard against string callers
-🔵 [engineer] `test/parent-checklist.test.mjs` — no test covers title with regex-special chars (e.g., `"Fix (v2.0)"`) in `markChecklistItemBlocked`; add a case verifying the escaping at `github.mjs:158` handles these correctly
-🔵 [tester] test/parent-checklist.test.mjs:97 — No test for title containing regex-special chars (e.g., `"Fix (v2.0)"`); add case verifying `github.mjs:158` escaping handles these
-🔵 [tester] test/parent-checklist.test.mjs:117 — Already-blocked idempotency unverified; add case calling `markChecklistItemBlocked` on a body already in blocked format
-🔵 [security] `bin/lib/run.mjs:1299` — `if (parentBody)` silently skips the blocked marker on an empty issue body (`""`) due to falsy coercion; use `if (parentBody !== null)` — reliability gap only, no security consequence
-🔵 [security] `bin/lib/run.mjs:1311-1317` — iteration escalation (`escalationFired`) path does not call `markChecklistItemBlocked`; parent checklist silently shows iteration-blocked tasks as unchecked — operator-visible inconsistency, no security consequence
-🔵 [simplicity] `test/review-escalation.test.mjs:243` — the "3 consecutive review FAILs → task blocked" integration test simulates escalation in-memory but never calls `getIssueBody` / `markChecklistItemBlocked` / `editIssue`; add a test with a mock `editIssue` to verify the blocked marker reaches the parent issue body when `approvalIssueNumber` is set
+**Task:** Each task issue body contains `Part of #N` linking back to the parent approval issue
 
-🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
+---
 
-## Compound Gate
+## Files Read
 
-**Verdict:** WARN
-**Layers tripped:** 1/5
-**Tripped layers:** fabricated-refs
+- `.team/features/parent-issue-subtask-lifecycle/tasks/task-1/handshake.json`
+- `.team/features/parent-issue-subtask-lifecycle/tasks/task-2/handshake.json`
+- `.team/features/parent-issue-subtask-lifecycle/tasks/task-3/handshake.json`
+- `.team/features/parent-issue-subtask-lifecycle/tasks/task-4/handshake.json`
+- `.team/features/parent-issue-subtask-lifecycle/tasks/task-4/artifacts/test-output.txt`
+- `bin/lib/run.mjs` (lines 880–962, 1290–1365)
+- `bin/lib/github.mjs` (lines 131–173)
+- `bin/lib/outer-loop.mjs` (lines 567–820)
+- `test/parent-checklist.test.mjs` (lines 134–152)
+
+---
+
+## Implementation Verification
+
+The back-link feature is implemented at `run.mjs:929-932`:
+
+```js
+const backLink = state?.approvalIssueNumber ? `\n\nPart of #${state.approvalIssueNumber}` : "";
+const issueNum = createIssue(
+  `...${task.title}`,
+  `Auto-created by \`agt run\` for feature **...${featureName}**.\n\nTask: ${task.title}${backLink}`,
+);
+```
+
+**Lifecycle correctness confirmed:**
+- `approvalIssueNumber` is written to STATE.json at `outer-loop.mjs:778` before `runSingleFeature` is invoked at `outer-loop.mjs:820`
+- `runSingleFeature` reads STATE.json at `run.mjs:892` (`const state = readState(featureDir)`)
+- By the time task issues are created at `run.mjs:927-944`, `state.approvalIssueNumber` is already populated
+- The conditional correctly omits the back-link when no approval issue exists
+
+**Test suite:** 614 pass, 0 fail. Back-link tests at `test/parent-checklist.test.mjs:135-152` pass.
+
+---
+
+## Findings
+
+🟡 test/parent-checklist.test.mjs:140 — Tautological test: hardcodes `Part of #${approvalIssueNumber}` directly into the body string being constructed, then asserts the body includes it; does not import or invoke any production function from `run.mjs`; would pass even if `run.mjs:929` were deleted; replace with a test that mirrors the run.mjs backLink conditional (`approvalIssueNumber ? \`\n\nPart of #N\` : ""`) or exercises the actual body construction path
+
+🟡 bin/lib/run.mjs:1311 — Iteration-escalation (`escalationFired`) branch does not call `markChecklistItemBlocked`; tasks blocked via iteration escalation show `- [ ] title (#N)` (unchecked) in the parent checklist while review-escalation-blocked tasks show `- [ ] ~~title~~ (#N) ⚠️ blocked`; add the same `getIssueBody`/`markChecklistItemBlocked`/`editIssue` pattern from `run.mjs:1297-1302` to maintain consistent parent-issue UI (pre-existing backlog item)
+
+🟡 bin/lib/run.mjs:1299 — `if (parentBody)` coerces `""` to falsy; `getIssueBody` returns `""` for a valid issue with no body content, silently skipping the blocked-marker write; use `if (parentBody !== null)` to match the documented return contract (pre-existing backlog item)
+
+🔵 bin/lib/github.mjs:141 — `tickChecklistItem` and `markChecklistItemBlocked` duplicate the guard check, title-escaping expression, and regex skeleton; extract `replaceChecklistItem(body, title, issueNumber, replacement)` helper to eliminate duplication and make future format changes touch a single location
+
+🔵 bin/lib/github.mjs:161 — Regex not anchored with `^` and multiline flag `m`; could match mid-line in edge-case issue bodies with indented list items; use `new RegExp(\`^- \\\\[ \\\\] ${escaped} \\\\(#${issueNumber}\\\\)\`, 'm')` for robustness
+
+---
+
+## Per-Criterion Results
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Feature implemented | ✅ PASS | `run.mjs:929-932` constructs `backLink` and appends to issue body |
+| Lifecycle correct | ✅ PASS | `approvalIssueNumber` written to STATE.json (outer-loop.mjs:778) before `runSingleFeature` (outer-loop.mjs:820) |
+| Conditional omission works | ✅ PASS | `state?.approvalIssueNumber` guard; test line 148-150 mirrors the logic and passes |
+| Tests pass | ✅ PASS | 614/614, 0 fail |
+| Test quality | 🟡 WARN | Back-link "positive" test (line 140) is tautological — does not exercise run.mjs |
+| Checklist coherence | 🟡 WARN | Iteration-escalation branch skips `markChecklistItemBlocked` |
+| Guard correctness | 🟡 WARN | `if (parentBody)` falsy coercion on empty-string body |
+
+---
+
+## Overall Verdict: PASS
+
+The feature is correctly implemented and structurally sound. The `Part of #N` back-link flows cleanly through the outer-loop → STATE.json → task issue creation pipeline. No critical issues found.
+
+Three 🟡 warnings go to backlog: one test coverage gap (tautological test), two pre-existing patterns flagged in prior review rounds. No new regressions introduced.

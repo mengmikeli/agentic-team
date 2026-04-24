@@ -38,3 +38,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 07:09:24
+**Task 4: Each task issue body contains `Part of #N` linking back to the parent approval issue**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

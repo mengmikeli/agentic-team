@@ -71,18 +71,28 @@
     {
       "id": "task-4",
       "title": "Each task issue body contains `Part of #N` linking back to the parent approval issue",
-      "status": "in-progress",
+      "status": "passed",
       "attempts": 0,
       "issueNumber": 162,
-      "lastTransition": "2026-04-24T07:01:38.097Z",
-      "ticks": 1
+      "lastTransition": "2026-04-24T07:09:24.365Z",
+      "ticks": 1,
+      "gateWarningHistory": [
+        {
+          "iteration": 1,
+          "layers": [
+            "fabricated-refs"
+          ]
+        }
+      ]
     },
     {
       "id": "task-5",
       "title": "`agt finalize` closes the parent approval issue (confirm this already works or fix it)",
-      "status": "pending",
+      "status": "in-progress",
       "attempts": 0,
-      "issueNumber": 163
+      "issueNumber": 163,
+      "lastTransition": "2026-04-24T07:09:29.326Z",
+      "ticks": 1
     },
     {
       "id": "task-6",
@@ -153,9 +163,18 @@
       "stderr": "",
       "timestamp": "2026-04-24T07:03:21.789Z",
       "taskId": "task-4"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n▶ isGateTask\n  ✔ returns true for quality gate task (0.407292ms)\n  ✔ returns false for regular task (0.046708ms)\n  ✔ returns false when title is undefined (0.039333ms)\n  ✔ is case-sensitive (0.036ms)\n✔ isGateTask (1.102417ms)\n▶ getActiveTask\n  ✔ returns null for empty task list (0.096416ms)\n  ✔ returns null when all tasks are pending (0.04375ms)\n  ✔ returns null when all tasks are passed (0.035584ms)\n  ✔ returns the in-progress task (0.049541ms)\n  ✔ returns the first in-progress task when multiple exist (0.046458ms)\n  ✔ skips gate task even when it is in-progress (0.068584ms)\n  ✔ returns null when only gate task is in-progress (0.141666ms)\n  ✔ returns correct task with attempts field present (0.097292ms)\n✔ getActiveTask (1.189709ms)\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (6.194375ms)\n  ✔ returns null and does not write approval.json when createIssue fails (0.912542ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (0.860458ms)\n  ✔ skips project board calls when projectNumber is null (0.352375ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.338708ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.268709ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.319459ms)\n✔ createApprovalIssue (10.337ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.162791ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.287833ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.973041ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.290917ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.21225ms)\n✔ readApprovalState (2.055708ms)\n▶ waitForApproval\n  ✔ print",
+      "stderr": "",
+      "timestamp": "2026-04-24T07:12:12.928Z",
+      "taskId": "task-5"
     }
   ],
-  "transitionCount": 7,
+  "transitionCount": 9,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -205,10 +224,24 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-24T07:01:38.097Z"
+    },
+    {
+      "taskId": "task-4",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-24T07:09:24.365Z"
+    },
+    {
+      "taskId": "task-5",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T07:09:29.326Z"
     }
   ],
   "createdAt": "2026-04-24T05:56:40.878Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-24T07:03:21.789Z",
-  "_write_nonce": "088329b0989475c5"
+  "_last_modified": "2026-04-24T07:12:12.928Z",
+  "_write_nonce": "a8fe036c05e231f3"
 }
