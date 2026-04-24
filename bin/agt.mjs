@@ -334,17 +334,65 @@ switch (command) {
             const sp = join(featDir, d.name, "STATE.json");
             const state = fs.existsSync(sp) ? JSON.parse(fs.readFileSync(sp, "utf8")) : null;
             const stat = fs.existsSync(sp) ? fs.statSync(sp) : null;
+            const progPath = join(featDir, d.name, "progress.md");
+            const hasProgress = fs.existsSync(progPath);
+
+            // Reconcile: cross-check STATE.json against progress.md
+            let reconciledStatus = state?.status || "unknown";
+            let reconciledTasks = state?.tasks || [];
+            if (state && hasProgress) {
+              try {
+                const prog = fs.readFileSync(progPath, "utf8");
+                const hasSummary = prog.includes("Run Summary");
+                const passes = (prog.match(/✅ PASS/g) || []).length;
+                const blockedMatch = prog.match(/Tasks: \d+\/\d+ done, (\d+) blocked/);
+                const summaryBlocked = blockedMatch ? parseInt(blockedMatch[1]) : 0;
+                const hasPause = fs.existsSync(join(featDir, d.name, ".pause"));
+
+                // Fix stale executing → completed
+                if (hasSummary && ["active", "executing"].includes(reconciledStatus)) {
+                  reconciledStatus = "completed";
+                }
+                // Fix stale executing → paused (no summary, no running process)
+                if (!hasSummary && hasPause && ["active", "executing"].includes(reconciledStatus)) {
+                  reconciledStatus = "paused";
+                }
+                // Sync task statuses from progress.md
+                let curPassed = reconciledTasks.filter(t => t.status === "passed").length;
+                if (passes > curPassed) {
+                  for (const t of reconciledTasks) {
+                    if (t.status === "pending" && curPassed < passes) {
+                      t.status = "passed";
+                      curPassed++;
+                    }
+                  }
+                }
+                // Mark remaining pending as blocked for completed features
+                if (reconciledStatus === "completed" && summaryBlocked > 0) {
+                  for (const t of reconciledTasks) {
+                    if (t.status === "pending" || t.status === "in-progress") t.status = "blocked";
+                  }
+                }
+                // Reset in-progress to pending for paused features
+                if (reconciledStatus === "paused") {
+                  for (const t of reconciledTasks) {
+                    if (t.status === "in-progress") t.status = "pending";
+                  }
+                }
+              } catch { /* best-effort reconciliation */ }
+            }
+
             return {
               name: d.name,
-              status: state?.status || "unknown",
-              tasks: state?.tasks || [],
+              status: reconciledStatus,
+              tasks: reconciledTasks,
               gates: state?.gates || [],
               feature: state?.feature || d.name,
               createdAt: state?.createdAt || null,
               completedAt: state?.completedAt || null,
               _last_modified: stat ? stat.mtime.toISOString() : null,
               hasSpec: fs.existsSync(join(featDir, d.name, "SPEC.md")),
-              hasProgress: fs.existsSync(join(featDir, d.name, "progress.md")),
+              hasProgress,
               transitionCount: state?.transitionCount || 0,
               tokenUsage: state?.tokenUsage ?? null,
             };
