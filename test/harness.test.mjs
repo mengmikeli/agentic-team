@@ -274,6 +274,106 @@ describe("at-harness", () => {
       assert.equal(result.summary.skipped, 1);
     });
 
+    it("posts correct comment to passed task issue ('Task completed — gate passed.')", () => {
+      const fakeBinDir = mkdtempSync(join(tmpdir(), "fake-gh-"));
+      const ghLogFile = join(fakeBinDir, "gh-calls.log");
+      writeFileSync(
+        join(fakeBinDir, "gh"),
+        `#!/bin/sh\necho "$@" >> "${ghLogFile}"\necho ok\nexit 0\n`,
+        { mode: 0o755 },
+      );
+
+      const featureDir = join(testDir, "features", "comment-passed-test");
+      mkdirSync(featureDir, { recursive: true });
+      const state = {
+        version: "2.0",
+        feature: "comment-passed-test",
+        status: "active",
+        tasks: [
+          { id: "t1", status: "passed", issueNumber: 301 },
+        ],
+        gates: [],
+        transitionCount: 1,
+        transitionHistory: [],
+        createdAt: new Date().toISOString(),
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "abcd1234abcd1234",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      try {
+        const out = execFileSync("node", [harnessPath, "finalize", "--dir", join("features", "comment-passed-test")], {
+          encoding: "utf8",
+          cwd: testDir,
+          timeout: 10000,
+          env: { ...process.env, PATH: `${fakeBinDir}:${process.env.PATH}` },
+        });
+        const lines = out.trim().split("\n").filter(Boolean);
+        const result = JSON.parse(lines[lines.length - 1]);
+        assert.equal(result.finalized, true);
+        assert.equal(result.issuesClosed, 1);
+
+        const ghCalls = readFileSync(ghLogFile, "utf8");
+        assert.ok(
+          ghCalls.includes("Task completed — gate passed."),
+          `expected 'Task completed — gate passed.' in gh calls, got:\n${ghCalls}`,
+        );
+      } finally {
+        rmSync(fakeBinDir, { recursive: true, force: true });
+      }
+    });
+
+    it("posts status-specific comment to skipped task issue ('Feature finalized. Task status: skipped.')", () => {
+      const fakeBinDir = mkdtempSync(join(tmpdir(), "fake-gh-"));
+      const ghLogFile = join(fakeBinDir, "gh-calls.log");
+      writeFileSync(
+        join(fakeBinDir, "gh"),
+        `#!/bin/sh\necho "$@" >> "${ghLogFile}"\necho ok\nexit 0\n`,
+        { mode: 0o755 },
+      );
+
+      const featureDir = join(testDir, "features", "comment-skipped-test");
+      mkdirSync(featureDir, { recursive: true });
+      const state = {
+        version: "2.0",
+        feature: "comment-skipped-test",
+        status: "active",
+        tasks: [
+          { id: "t1", status: "skipped", issueNumber: 302 },
+        ],
+        gates: [],
+        transitionCount: 1,
+        transitionHistory: [],
+        createdAt: new Date().toISOString(),
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "abcd1234abcd1234",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      try {
+        const out = execFileSync("node", [harnessPath, "finalize", "--dir", join("features", "comment-skipped-test")], {
+          encoding: "utf8",
+          cwd: testDir,
+          timeout: 10000,
+          env: { ...process.env, PATH: `${fakeBinDir}:${process.env.PATH}` },
+        });
+        const lines = out.trim().split("\n").filter(Boolean);
+        const result = JSON.parse(lines[lines.length - 1]);
+        assert.equal(result.finalized, true);
+        assert.equal(result.issuesClosed, 1);
+
+        const ghCalls = readFileSync(ghLogFile, "utf8");
+        assert.ok(
+          ghCalls.includes("Feature finalized. Task status: skipped."),
+          `expected 'Feature finalized. Task status: skipped.' in gh calls, got:\n${ghCalls}`,
+        );
+      } finally {
+        rmSync(fakeBinDir, { recursive: true, force: true });
+      }
+    });
+
     it("returns issuesClosed: 2 when feature has 2 tasks with issueNumber", () => {
       const fakeBinDir = mkdtempSync(join(tmpdir(), "fake-gh-"));
       writeFileSync(join(fakeBinDir, "gh"), "#!/bin/sh\necho ok\nexit 0\n", { mode: 0o755 });
