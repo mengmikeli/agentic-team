@@ -276,12 +276,12 @@ export function findAgent() {
   return null;
 }
 
-export function dispatchToAgent(agent, brief, cwd) {
+export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
   console.log(`  ${c.dim}Dispatching to ${agent}...${c.reset}`);
 
   try {
     if (agent === "claude") {
-      const result = spawnSync("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
+      const result = _spawnFn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
         encoding: "utf8",
         cwd,
         timeout: 600000, // 10 min max per task
@@ -304,7 +304,7 @@ export function dispatchToAgent(agent, brief, cwd) {
     if (agent === "codex") {
       // NOTE: codex does not return usage/cost fields; trackUsage() is not called here.
       // Features built via codex will always show tokenUsage: null in the dashboard.
-      const result = spawnSync("codex", ["--quiet", brief], {
+      const result = _spawnFn("codex", ["--quiet", brief], {
         encoding: "utf8",
         cwd,
         timeout: 600000,
@@ -946,6 +946,7 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     throw new Error(`Cannot create worktree for "${featureName}": ${err.message}`);
   }
 
+  try {
   // ── Create GitHub issues ──
 
   const useGitHub = ghAvailable();
@@ -1151,8 +1152,8 @@ async function _runSingleFeature(args, description, providedLabel = '') {
 
         // Auto-commit after gate pass
         try {
-          execSync("git add -A", { cwd, shell: true, stdio: "pipe" });
-          const hasChanges = execSync("git diff --cached --stat", { cwd, encoding: "utf8", shell: true, stdio: "pipe" }).trim();
+          execFileSync("git", ["add", "-A"], { cwd, stdio: "pipe" });
+          const hasChanges = execFileSync("git", ["diff", "--cached", "--stat"], { cwd, encoding: "utf8", stdio: "pipe" }).trim();
           if (hasChanges) {
             execFileSync("git", ["commit", "-m", `feat: ${task.title.slice(0, 72)}`], { cwd, stdio: "pipe" });
             console.log(`  ${c.green}✓ Committed${c.reset}`);
@@ -1468,8 +1469,8 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   } catch { /* push failed — not fatal */ }
 
   // Remove worktree now that execution is complete
-  if (worktreePath) {
-    removeWorktree(worktreePath, mainCwd);
+  } finally {
+    if (worktreePath) removeWorktree(worktreePath, mainCwd);
   }
 
   const duration = Math.round((Date.now() - startTime) / 1000);

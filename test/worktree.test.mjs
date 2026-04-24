@@ -7,7 +7,7 @@ import { mkdirSync, rmSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
-import { slugToBranch, createWorktreeIfNeeded, removeWorktree, runGateInline } from "../bin/lib/run.mjs";
+import { slugToBranch, createWorktreeIfNeeded, removeWorktree, runGateInline, dispatchToAgent } from "../bin/lib/run.mjs";
 
 // ── slugToBranch ─────────────────────────────────────────────────
 
@@ -171,18 +171,65 @@ describe("runGateInline cwd injection", () => {
   });
 });
 
-// ── Branch name format ───────────────────────────────────────────
+// ── slugToBranch normalization ───────────────────────────────────
 
-describe("createWorktreeIfNeeded branch naming", () => {
-  it("branch would be feature/{slugToBranch(slug)}", () => {
+describe("slugToBranch normalization", () => {
+  it("produces feature/{slug} branch name format", () => {
     const slug = "my-feature";
     const expectedBranch = "feature/" + slugToBranch(slug);
     assert.equal(expectedBranch, "feature/my-feature");
   });
 
-  it("normalizes slug in branch name", () => {
+  it("normalizes underscores in branch name", () => {
     const slug = "my_feature_test";
     const branch = "feature/" + slugToBranch(slug);
     assert.equal(branch, "feature/my-feature-test");
+  });
+});
+
+// ── dispatchToAgent cwd injection ────────────────────────────────
+
+describe("dispatchToAgent cwd injection", () => {
+  it("forwards worktreePath as cwd to spawnSync for claude agent", () => {
+    const calls = [];
+    const mockSpawn = (cmd, args, opts) => {
+      calls.push({ cmd, args, opts });
+      return { status: 0, stdout: '{"result":"ok"}', stderr: "" };
+    };
+
+    const worktreePath = "/some/worktree/path";
+    dispatchToAgent("claude", "do the thing", worktreePath, mockSpawn);
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].opts.cwd, worktreePath, "spawnSync must receive worktreePath as cwd");
+  });
+
+  it("forwards worktreePath as cwd to spawnSync for codex agent", () => {
+    const calls = [];
+    const mockSpawn = (cmd, args, opts) => {
+      calls.push({ cmd, args, opts });
+      return { status: 0, stdout: "done", stderr: "" };
+    };
+
+    const worktreePath = "/another/worktree";
+    dispatchToAgent("codex", "do the thing", worktreePath, mockSpawn);
+
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].opts.cwd, worktreePath, "spawnSync must receive worktreePath as cwd");
+  });
+
+  it("cwd is distinct from process.cwd() when worktreePath differs", () => {
+    const calls = [];
+    const mockSpawn = (cmd, args, opts) => {
+      calls.push({ cmd, args, opts });
+      return { status: 0, stdout: '{"result":""}', stderr: "" };
+    };
+
+    const worktreePath = "/worktrees/my-feature";
+    assert.notEqual(worktreePath, process.cwd(), "test precondition: worktreePath must differ from cwd");
+    dispatchToAgent("claude", "brief", worktreePath, mockSpawn);
+
+    assert.equal(calls[0].opts.cwd, worktreePath);
+    assert.notEqual(calls[0].opts.cwd, process.cwd());
   });
 });
