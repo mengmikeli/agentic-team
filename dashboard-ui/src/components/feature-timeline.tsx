@@ -1,6 +1,6 @@
 import type { Feature } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { humanizeName, relativeTime } from '@/lib/utils';
+import { humanizeName, relativeTime, getActiveTask, truncate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Circle, Zap } from 'lucide-react';
 
@@ -40,6 +40,7 @@ export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelinePr
             const dateStr = feature.completedAt || feature._last_modified || feature.createdAt || '';
             const isActive = ['active', 'executing'].includes(feature.status);
             const isDone = feature.status === 'completed';
+            const activeTask = isActive ? getActiveTask(tasks) : null;
 
             return (
               <div
@@ -63,6 +64,14 @@ export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelinePr
                   <div className={cn("text-sm font-medium truncate", isActive && "text-primary")}>{humanizeName(feature.name)}</div>
                   <div className="text-xs text-muted-foreground font-mono tabular-nums">
                     {passed}/{tasks.length}
+                    {activeTask && (
+                      <span className="ml-1.5 font-sans text-primary truncate max-w-[12rem] inline-block align-bottom">
+                        · {truncate(activeTask.title, 30)}
+                        {activeTask.attempts != null && activeTask.attempts > 1 && (
+                          <span className="ml-1 opacity-70">×{activeTask.attempts}</span>
+                        )}
+                      </span>
+                    )}
                     {dateStr && <span className="ml-2">{relativeTime(dateStr)}</span>}
                   </div>
                 </div>

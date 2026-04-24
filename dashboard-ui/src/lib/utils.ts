@@ -1,8 +1,17 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { Task } from "@/types"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function isGateTask(task: Task): boolean {
+  return task.title === 'Quality gate passes';
+}
+
+export function getActiveTask(tasks: Task[]): Task | null {
+  return tasks.find(t => !isGateTask(t) && t.status === 'in-progress') ?? null;
 }
 
 export function formatTokens(n: number | null | undefined): string {

@@ -42,7 +42,14 @@ function TaskColumn({ title, tasks, emptyMessage, isActive }: { title: string; t
               <div className="flex items-start gap-2">
                 {getTaskIcon(task.status)}
                 <div className="flex-1 min-w-0">
-                  <div className="font-mono text-[10px] text-muted-foreground">{task.id}</div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="font-mono text-[10px] text-muted-foreground">{task.id}</div>
+                    {task.attempts != null && task.attempts > 1 && (
+                      <span className="inline-flex items-center px-1 rounded text-[9px] font-mono font-medium bg-primary/10 text-primary leading-tight">
+                        ×{task.attempts}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs">{truncate(task.description || task.title || '—', 60)}</div>
                 </div>
               </div>

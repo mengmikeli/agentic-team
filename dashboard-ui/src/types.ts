@@ -10,6 +10,7 @@ export interface Task {
   title: string;
   description?: string;
   status: 'pending' | 'in-progress' | 'passed' | 'failed' | 'blocked' | 'skipped';
+  attempts?: number;
   duration?: string;
   lastGate?: {
     verdict: 'passed' | 'failed' | 'blocked';

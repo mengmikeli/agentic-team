@@ -1,7 +1,7 @@
 import type { Feature } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { humanizeName, formatDuration, relativeTime } from '@/lib/utils';
+import { humanizeName, formatDuration, relativeTime, getActiveTask } from '@/lib/utils';
 import { Clock, Inbox, Zap } from 'lucide-react';
 
 interface StatusHeroProps {
@@ -14,7 +14,7 @@ export function StatusHero({ activeFeature, lastCompleted }: StatusHeroProps) {
     const tasks = (activeFeature.tasks || []).filter((t) => t.title !== "Quality gate passes");
     const passed = tasks.filter((t) => t.status === "passed").length;
     const blocked = tasks.filter((t) => t.status === "blocked").length;
-    const inProgress = tasks.find((t) => t.status === "in-progress");
+    const inProgress = getActiveTask(tasks);
     const currentTaskIndex = inProgress ? tasks.indexOf(inProgress) + 1 : passed + 1;
     const progress = tasks.length > 0 ? Math.round((passed / tasks.length) * 100) : 0;
     const duration = activeFeature.summary?.duration ||
@@ -53,7 +53,9 @@ export function StatusHero({ activeFeature, lastCompleted }: StatusHeroProps) {
                 <div className="text-xs text-muted-foreground truncate">
                   <span className="text-primary font-mono">▶ {currentTaskIndex}/{tasks.length}</span>
                   <span className="ml-1.5">{inProgress.title?.slice(0, 60)}</span>
-                  {(inProgress as any).attempts > 1 && <span className="text-muted-foreground ml-1">(attempt {(inProgress as any).attempts})</span>}
+                  {inProgress.attempts != null && inProgress.attempts > 1 && (
+                    <span className="ml-1 text-primary font-mono">(attempt {inProgress.attempts})</span>
+                  )}
                 </div>
               ) : passed < tasks.length ? (
                 <div className="text-xs text-muted-foreground">
