@@ -403,4 +403,117 @@ describe("brainstorm-cmd module", () => {
     const mod = await import("../bin/lib/brainstorm-cmd.mjs");
     assert.ok(typeof mod.cmdBrainstorm === "function", "should export cmdBrainstorm");
   });
+
+  it("exports buildInteractiveSpec function", async () => {
+    const mod = await import("../bin/lib/brainstorm-cmd.mjs");
+    assert.ok(typeof mod.buildInteractiveSpec === "function", "should export buildInteractiveSpec");
+  });
+
+  it("buildInteractiveSpec includes Requirements section", async () => {
+    const { buildInteractiveSpec } = await import("../bin/lib/brainstorm-cmd.mjs");
+    const spec = buildInteractiveSpec({
+      idea: "test feature",
+      problem: "test problem",
+      users: "developers",
+      constraints: "none",
+      requirements: ["Must be fast", "Must be reliable"],
+      acceptanceCriteria: ["Response under 100ms"],
+      notScope: "mobile",
+      approach1: "simple",
+      approach2: "robust",
+      preferred: "a",
+      technicalApproach: "Use a queue",
+      testingStrategy: "Unit tests + integration tests",
+      criteria: ["Tests pass"],
+    });
+    assert.ok(spec.includes("## Requirements"), "spec should include Requirements section");
+    assert.ok(spec.includes("Must be fast"), "spec should include requirements content");
+    assert.ok(spec.includes("Must be reliable"), "spec should include all requirements");
+  });
+
+  it("buildInteractiveSpec includes Acceptance Criteria section", async () => {
+    const { buildInteractiveSpec } = await import("../bin/lib/brainstorm-cmd.mjs");
+    const spec = buildInteractiveSpec({
+      idea: "test feature",
+      problem: "test problem",
+      users: "developers",
+      constraints: "",
+      requirements: [],
+      acceptanceCriteria: ["Given X, when Y, then Z"],
+      notScope: "",
+      approach1: "simple",
+      approach2: "robust",
+      preferred: "b",
+      technicalApproach: "",
+      testingStrategy: "e2e tests",
+      criteria: ["Done"],
+    });
+    assert.ok(spec.includes("## Acceptance Criteria"), "spec should include Acceptance Criteria section");
+    assert.ok(spec.includes("Given X, when Y, then Z"), "spec should include acceptance criteria content");
+  });
+
+  it("buildInteractiveSpec includes Technical Approach section", async () => {
+    const { buildInteractiveSpec } = await import("../bin/lib/brainstorm-cmd.mjs");
+    const spec = buildInteractiveSpec({
+      idea: "test feature",
+      problem: "test problem",
+      users: "developers",
+      constraints: "",
+      requirements: [],
+      acceptanceCriteria: [],
+      notScope: "",
+      approach1: "simple approach",
+      approach2: "robust approach",
+      preferred: "a",
+      technicalApproach: "Detailed technical plan here",
+      testingStrategy: "tests",
+      criteria: ["Done"],
+    });
+    assert.ok(spec.includes("## Technical Approach"), "spec should include Technical Approach section");
+    assert.ok(spec.includes("Detailed technical plan here"), "spec should include technical approach content");
+  });
+
+  it("buildInteractiveSpec includes Testing Strategy section", async () => {
+    const { buildInteractiveSpec } = await import("../bin/lib/brainstorm-cmd.mjs");
+    const spec = buildInteractiveSpec({
+      idea: "test feature",
+      problem: "test problem",
+      users: "developers",
+      constraints: "",
+      requirements: [],
+      acceptanceCriteria: [],
+      notScope: "",
+      approach1: "",
+      approach2: "",
+      preferred: "",
+      technicalApproach: "",
+      testingStrategy: "Jest unit tests with 90% coverage",
+      criteria: ["Done"],
+    });
+    assert.ok(spec.includes("## Testing Strategy"), "spec should include Testing Strategy section");
+    assert.ok(spec.includes("Jest unit tests with 90% coverage"), "spec should include testing strategy content");
+  });
+
+  it("buildInteractiveSpec includes all seven required sections", async () => {
+    const { buildInteractiveSpec } = await import("../bin/lib/brainstorm-cmd.mjs");
+    const spec = buildInteractiveSpec({
+      idea: "my feature",
+      problem: "solve X",
+      users: "users",
+      constraints: "none",
+      requirements: ["req1"],
+      acceptanceCriteria: ["ac1"],
+      notScope: "Y",
+      approach1: "A",
+      approach2: "B",
+      preferred: "a",
+      technicalApproach: "use C",
+      testingStrategy: "unit tests",
+      criteria: ["works"],
+    });
+    const sections = ["## Goal", "## Requirements", "## Acceptance Criteria", "## Technical Approach", "## Testing Strategy", "## Out of Scope", "## Done When"];
+    for (const section of sections) {
+      assert.ok(spec.includes(section), `spec should include ${section}`);
+    }
+  });
 });

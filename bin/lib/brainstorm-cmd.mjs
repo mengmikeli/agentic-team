@@ -84,6 +84,50 @@ SPEC_END`;
 
 // ── Interactive brainstorm (no agent) ───────────────────────────
 
+export function buildInteractiveSpec({ idea, problem, users, constraints, requirements, acceptanceCriteria, notScope, approach1, approach2, preferred, technicalApproach, testingStrategy, criteria }) {
+  const approachText = preferred && preferred.toLowerCase().startsWith("a")
+    ? (approach1 || "Minimal approach")
+    : preferred && preferred.toLowerCase().startsWith("b")
+    ? (approach2 || "Robust approach")
+    : (preferred || approach1 || "TBD");
+
+  const techSection = technicalApproach && technicalApproach.trim()
+    ? technicalApproach.trim()
+    : approachText;
+
+  return `# Feature: ${idea}
+
+## Goal
+${problem || idea}
+
+## Users
+${users || "TBD"}
+
+## Requirements
+${requirements.length > 0 ? requirements.map(r => `- ${r}`).join("\n") : `- ${constraints || "TBD"}`}
+
+## Acceptance Criteria
+${acceptanceCriteria.length > 0 ? acceptanceCriteria.map(a => `- ${a}`).join("\n") : "- TBD"}
+
+## Technical Approach
+${techSection}
+
+### Trade-offs
+- Option A (simple): ${approach1 || "N/A"}
+- Option B (robust): ${approach2 || "N/A"}
+- Selected: ${preferred || "TBD"}
+
+## Testing Strategy
+${testingStrategy || "TBD"}
+
+## Out of Scope
+${notScope ? `- ${notScope}` : "- TBD"}
+
+## Done When
+${criteria.map(c => `- [ ] ${c}`).join("\n")}
+`;
+}
+
 async function interactiveBrainstorm(idea, productContext) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   const ask = (q) => askLine(rl, q);
@@ -111,15 +155,46 @@ async function interactiveBrainstorm(idea, productContext) {
   const constraints = await ask(`${c.cyan}Any constraints or requirements? ${c.reset}`);
   const notScope = await ask(`${c.cyan}What's explicitly out of scope? ${c.reset}`);
 
-  // Step 3: Approaches
-  console.log(`\n${c.bold}── Approaches ──${c.reset}\n`);
+  // Step 3: Requirements
+  console.log(`\n${c.bold}── Requirements ──${c.reset}`);
+  console.log(`${c.dim}List specific requirements one per line. Empty line to finish.${c.reset}\n`);
+
+  const requirements = [];
+  let reqIdx = 1;
+  while (true) {
+    const req = await ask(`${c.cyan}  ${reqIdx}. ${c.reset}`);
+    if (!req.trim()) break;
+    requirements.push(req.trim());
+    reqIdx++;
+  }
+
+  // Step 4: Acceptance Criteria
+  console.log(`\n${c.bold}── Acceptance Criteria ──${c.reset}`);
+  console.log(`${c.dim}How will you know the feature is correct? One criterion per line.${c.reset}\n`);
+
+  const acceptanceCriteria = [];
+  let acIdx = 1;
+  while (true) {
+    const ac = await ask(`${c.cyan}  ${acIdx}. ${c.reset}`);
+    if (!ac.trim()) break;
+    acceptanceCriteria.push(ac.trim());
+    acIdx++;
+  }
+
+  // Step 5: Technical Approach
+  console.log(`\n${c.bold}── Technical Approach ──${c.reset}\n`);
   console.log(`${c.dim}Let me suggest some approaches. Enter your thoughts on each.${c.reset}\n`);
 
   const approach1 = await ask(`${c.cyan}Option A — Simple/minimal approach. What comes to mind? ${c.reset}`);
   const approach2 = await ask(`${c.cyan}Option B — Robust/scalable approach. Thoughts? ${c.reset}`);
   const preferred = await ask(`${c.cyan}Which approach do you prefer? (a/b/other): ${c.reset}`);
+  const technicalApproach = await ask(`${c.cyan}Describe the chosen technical approach in detail: ${c.reset}`);
 
-  // Step 4: Done criteria
+  // Step 6: Testing Strategy
+  console.log(`\n${c.bold}── Testing Strategy ──${c.reset}\n`);
+  const testingStrategy = await ask(`${c.cyan}How will this be tested? ${c.reset}`);
+
+  // Step 7: Done criteria
   console.log(`\n${c.bold}── Done When ──${c.reset}`);
   console.log(`${c.dim}Enter done criteria one per line. Empty line to finish.${c.reset}\n`);
 
@@ -139,40 +214,11 @@ async function interactiveBrainstorm(idea, productContext) {
     criteria.push("Quality gate passes");
   }
 
-  // Build spec
   const featureName = slugify(idea);
-  const approachText = preferred.toLowerCase().startsWith("a")
-    ? (approach1 || "Minimal approach")
-    : preferred.toLowerCase().startsWith("b")
-    ? (approach2 || "Robust approach")
-    : (preferred || approach1 || "TBD");
-
-  const spec = `# Feature: ${idea}
-
-## Goal
-${problem || idea}
-
-## Users
-${users || "TBD"}
-
-## Scope
-- ${idea}
-${constraints ? `- Constraints: ${constraints}` : ""}
-
-## Out of Scope
-${notScope ? `- ${notScope}` : "- TBD"}
-
-## Approach
-${approachText}
-
-### Trade-offs
-- Option A (simple): ${approach1 || "N/A"}
-- Option B (robust): ${approach2 || "N/A"}
-- Selected: ${preferred || "TBD"}
-
-## Done When
-${criteria.map(c => `- [ ] ${c}`).join("\n")}
-`;
+  const spec = buildInteractiveSpec({
+    idea, problem, users, constraints, requirements, acceptanceCriteria,
+    notScope, approach1, approach2, preferred, technicalApproach, testingStrategy, criteria,
+  });
 
   return { name: featureName, spec };
 }
