@@ -1,0 +1,18 @@
+# Progress: iteration-escalation
+
+**Started:** 2026-04-24T00:24:54.143Z
+**Tier:** functional
+**Tasks:** 8
+
+## Plan
+1. `STATE.json` task entries include a `gateWarningHistory` array (`[{iteration: N, layers: [...]}]`) written after each WARN verdict
+2. When the same compound-gate layer name appears in `gateWarningHistory` for ≥2 distinct iterations, the task is marked `blocked` with a synthetic critical finding naming the repeated layers and iteration numbers
+3. A retried task that received the same WARN layer twice is never retried a third time
+4. A task with different WARN layers in each iteration is still retried normally up to the existing retry limit
+5. The escalation event appears in `progress.md`
+6. All unit tests described in Scope pass
+7. The integration test described in Scope passes
+8. All existing tests continue to pass
+
+## Execution Log
+

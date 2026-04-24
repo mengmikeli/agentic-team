@@ -14,6 +14,7 @@ import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setPr
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
+import { recordWarningIteration, checkEscalation } from "./iteration-escalation.mjs";
 import { cmdInit } from "./init.mjs";
 import { validateHandshake, createHandshake } from "./handshake.mjs";
 import { buildContextBrief } from "./context.mjs";
@@ -1089,8 +1090,21 @@ async function _runSingleFeature(args, description) {
                 { severity: "warning", text: `🟡 compound-gate.mjs:0 — Thin review warning: ${compoundGateResult.layers.join(", ")}` },
                 ...findings,
               ];
+              recordWarningIteration(task, attempt, compoundGateResult.layers);
+              const warnState = readState(featureDir);
+              if (warnState) {
+                const warnTask = warnState.tasks?.find(t => t.id === task.id);
+                if (warnTask) { warnTask.gateWarningHistory = task.gateWarningHistory; writeState(featureDir, warnState); }
+              }
             }
             appendFileSync(evalPath, "\n\n" + compoundGateResult.section);
+            const escalation = checkEscalation(task.gateWarningHistory);
+            if (escalation) {
+              const escalMsg = `🔴 iteration-escalation — Persistent eval warning: ${escalation.layers.join(", ")} recurred in iterations ${escalation.iterations.join(", ")}`;
+              findings = [{ severity: "critical", text: escalMsg }, ...findings];
+              appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- 🔴 Iteration escalation: ${escalation.layers.join(", ")} recurred in iterations ${escalation.iterations.join(", ")}`);
+              console.log(`  ${c.red}⚠ Iteration escalation — ${escalation.layers.join(", ")} recurred in iterations ${escalation.iterations.join(", ")}${c.reset}`);
+            }
             const synth = computeVerdict(findings);
             console.log(`  ${c.dim}Review verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
             if (synth.critical > 0) {
@@ -1145,8 +1159,21 @@ async function _runSingleFeature(args, description) {
               { severity: "warning", text: `🟡 compound-gate.mjs:0 — Thin review warning: ${compoundGateResult.layers.join(", ")}` },
               ...findings,
             ];
+            recordWarningIteration(task, attempt, compoundGateResult.layers);
+            const warnStateP = readState(featureDir);
+            if (warnStateP) {
+              const warnTaskP = warnStateP.tasks?.find(t => t.id === task.id);
+              if (warnTaskP) { warnTaskP.gateWarningHistory = task.gateWarningHistory; writeState(featureDir, warnStateP); }
+            }
           }
           appendFileSync(join(taskDir, "eval.md"), "\n\n" + compoundGateResult.section);
+          const escalationP = checkEscalation(task.gateWarningHistory);
+          if (escalationP) {
+            const escalMsgP = `🔴 iteration-escalation — Persistent eval warning: ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}`;
+            findings = [{ severity: "critical", text: escalMsgP }, ...findings];
+            appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- 🔴 Iteration escalation: ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}`);
+            console.log(`  ${c.red}⚠ Iteration escalation — ${escalationP.layers.join(", ")} recurred in iterations ${escalationP.iterations.join(", ")}${c.reset}`);
+          }
           const synth = computeVerdict(findings);
           console.log(`  ${c.dim}Synthesized verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
           if (synth.critical > 0) {

@@ -1,0 +1,88 @@
+{
+  "version": "2.0",
+  "feature": "iteration-escalation",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`STATE.json` task entries include a `gateWarningHistory` array (`[{iteration: N, layers: [...]}]`) written after each WARN verdict",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 103
+    },
+    {
+      "id": "task-2",
+      "title": "When the same compound-gate layer name appears in `gateWarningHistory` for ≥2 distinct iterations, the task is marked `blocked` with a synthetic critical finding naming the repeated layers and iteration numbers",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 104
+    },
+    {
+      "id": "task-3",
+      "title": "A retried task that received the same WARN layer twice is never retried a third time",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 105
+    },
+    {
+      "id": "task-4",
+      "title": "A task with different WARN layers in each iteration is still retried normally up to the existing retry limit",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 106
+    },
+    {
+      "id": "task-5",
+      "title": "The escalation event appears in `progress.md`",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 107
+    },
+    {
+      "id": "task-6",
+      "title": "All unit tests described in Scope pass",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 108
+    },
+    {
+      "id": "task-7",
+      "title": "The integration test described in Scope passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 109
+    },
+    {
+      "id": "task-8",
+      "title": "All existing tests continue to pass",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 110
+    }
+  ],
+  "gates": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (3.362666ms)\n  ✔ returns null and does not write approval.json when createIssue fails (1.007959ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (0.861625ms)\n  ✔ skips project board calls when projectNumber is null (0.399708ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (0.355ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.313333ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.461333ms)\n✔ createApprovalIssue (7.751875ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.159791ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (0.259333ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (0.462333ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (0.194916ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.237125ms)\n✔ readApprovalState (1.426875ms)\n▶ waitForApproval\n  ✔ prints issue URL before pausing when getIssueUrl returns a URL (0.213542ms)\n  ✔ prints 'Waiting for approval (issue #N)...' before pausing (0.113583ms)\n  ✔ returns 'approved' when getProjectItemStatus returns 'Ready' on first poll (729.283875ms)\n  ✔ returns 'interrupted' immediately when getStoppingFn returns true before first poll (657.312625ms)\n  ✔ polls multiple times before returning 'approved' (696.887166ms)\n  ✔ returns 'interrupted' after sleep when stopping flag becomes true (675.613709ms)\n  ✔ uses APPROVAL_POLL_INTERVAL env var as sleep interval (0.64675ms)\n  ✔ defaults to 30000ms sleep when APPROVAL_POLL_INTERVAL is not set (0.175ms)\n  ✔ uses 30000ms default when APPROVAL_POLL_INTERVAL is invalid (0.156417ms)\n  ✔ prints elapsed t",
+      "stderr": "",
+      "timestamp": "2026-04-24T00:34:47.349Z",
+      "taskId": "task-1"
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T00:28:36.689Z"
+    }
+  ],
+  "createdAt": "2026-04-24T00:24:54.090Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T00:34:47.349Z",
+  "_write_nonce": "8b4c965ccc69d553"
+}
