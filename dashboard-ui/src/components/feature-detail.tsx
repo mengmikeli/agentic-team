@@ -8,7 +8,7 @@ interface FeatureDetailProps {
   onClose: () => void;
 }
 
-function fmtCost(v: number) { return Number.isFinite(v) ? `$${v.toFixed(4)}` : '—'; }
+function fmtCost(v: number) { return Number.isFinite(v) ? `$${v.toFixed(2)}` : '—'; }
 function fmtMs(v: number) {
   if (!Number.isFinite(v)) return '—';
   if (v >= 3_600_000) return `${(v / 3_600_000).toFixed(1)}h`;
@@ -115,6 +115,7 @@ function TokenBreakdown({ feature, tokenUsage }: { feature: Feature; tokenUsage:
                 <tr className="text-muted-foreground border-b border-border">
                   <th className="text-left pb-1 pr-2 font-normal">Phase</th>
                   <th className="text-right pb-1 pr-2 font-normal">Dispatches</th>
+                  <th className="text-right pb-1 pr-2 font-normal">Tokens</th>
                   <th className="text-right pb-1 pr-2 font-normal">Cost</th>
                   <th className="text-right pb-1 font-normal">Dur</th>
                 </tr>
@@ -124,6 +125,7 @@ function TokenBreakdown({ feature, tokenUsage }: { feature: Feature; tokenUsage:
                   <tr key={phase} className="border-b border-border/40 last:border-0">
                     <td className="py-1 pr-2 text-foreground">{phase}</td>
                     <td className="py-1 pr-2 text-right text-muted-foreground">{pu.dispatches}</td>
+                    <td className="py-1 pr-2 text-right text-muted-foreground">{fmtK((pu.inputTokens || 0) + (pu.cachedInput || 0) + (pu.outputTokens || 0))}</td>
                     <td className="py-1 pr-2 text-right text-foreground">{fmtCost(pu.costUsd)}</td>
                     <td className="py-1 text-right text-muted-foreground">{fmtMs(pu.durationMs)}</td>
                   </tr>

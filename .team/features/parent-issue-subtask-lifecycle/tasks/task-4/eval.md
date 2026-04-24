@@ -25,3 +25,38 @@
 **Verdict:** WARN
 **Layers tripped:** 1/5
 **Tripped layers:** fabricated-refs
+
+---
+
+## Security Deep-Dive — `agt finalize` closes parent approval issue
+
+**Reviewer:** security specialist
+**Verdict:** PASS
+
+### Files read
+- `bin/lib/finalize.mjs` (full, 150 lines)
+- `bin/lib/github.mjs` (lines 1–230)
+- `bin/lib/util.mjs` (lines 1–210)
+- `test/harness.test.mjs` (lines 370–466)
+- `test/integration.test.mjs` (lines 210–286)
+
+### Criteria
+
+**Approval issue closure — PASS**
+`finalize.mjs:133-139` reads `freshState.approvalIssueNumber` and calls `closeIssue(freshState.approvalIssueNumber, "Feature finalized — all tasks complete.")`. Wrapped in `try/catch` for best-effort semantics. `test/harness.test.mjs:377-426` exercises the full subprocess path with a fake `gh` binary, asserts `issuesClosed === 2`, and verifies issue `500` appears in the captured CLI call log. Test passes in gate output.
+
+**Shell/command injection — PASS**
+`github.mjs:8-20` uses `spawnSync("gh", args, {...})` where `args` is a JS array; no shell is invoked. `task.status` interpolated into the comment string (`finalize.mjs:121`) is passed as a discrete `--comment <value>` argument — shell metacharacters are inert.
+
+**STATE.json tamper guards — PASS (calibrated to threat model)**
+`finalize.mjs:21-24` rejects state where `_written_by !== "at-harness"`. `finalize.mjs:58-60` rejects state missing `_write_nonce`. Appropriate for a developer tool on a trusted local filesystem.
+
+### Findings
+
+🟡 `bin/lib/finalize.mjs:128` — `issuesClosed++` executes unconditionally after `closeIssue()`; `closeIssue` returns `false` (does not throw) when `gh` is unavailable, so the reported count can overstate actual GitHub closures. Check the return value: `if (closeIssue(...)) issuesClosed++`.
+
+🟡 `bin/lib/finalize.mjs:21-24` — `_written_by === "at-harness"` is a constant visible in source; trivially forgeable by anyone who can write STATE.json. Do not document as a security boundary.
+
+🔵 `bin/lib/finalize.mjs:125` — `projMatch` is computed but never used (dead code). Either implement the board-move call or remove the regex.
+
+🔵 `bin/lib/finalize.mjs:134` — `approvalIssueNumber` is falsy-checked but not validated as a positive integer; non-integer truthy values silently fail inside `gh`'s error (swallowed by `catch`). Add `Number.isInteger(freshState.approvalIssueNumber)` guard.

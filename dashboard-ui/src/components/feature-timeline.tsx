@@ -77,7 +77,7 @@ export function FeatureTimeline({ features, onFeatureSelect }: FeatureTimelinePr
                 </div>
                 {feature.tokenUsage?.total?.costUsd != null && (
                   <div className="flex-shrink-0 text-xs font-mono tabular-nums text-muted-foreground">
-                    ${feature.tokenUsage.total.costUsd.toFixed(4)}
+                    ${feature.tokenUsage.total.costUsd.toFixed(2)}
                   </div>
                 )}
               </div>
