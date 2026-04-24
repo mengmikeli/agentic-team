@@ -100,14 +100,14 @@
     {
       "id": "task-9",
       "title": "`agt init` help text or `agt help run` explains that \"Pending Approval\" and \"Ready\" columns must be added to the project board manually before using the outer loop",
-      "status": "pending",
+      "status": "blocked",
       "attempts": 1,
       "issueNumber": 90
     },
     {
       "id": "task-10",
       "title": "Unit tests pass for: issue creation writes `approvalIssueNumber`, poll resolves when status is \"Ready\", SIGINT during poll exits without corrupting state, re-entry guard skips issue creation when `approvalIssueNumber` exists",
-      "status": "pending",
+      "status": "blocked",
       "attempts": 1,
       "issueNumber": 91
     }

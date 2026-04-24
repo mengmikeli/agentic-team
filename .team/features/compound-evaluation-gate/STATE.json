@@ -107,14 +107,14 @@
     {
       "id": "task-10",
       "title": "Integration test with a detailed, code-referencing `eval.md` fixture passes the gate.",
-      "status": "pending",
+      "status": "blocked",
       "attempts": 1,
       "issueNumber": 101
     },
     {
       "id": "task-11",
       "title": "All existing tests continue to pass.",
-      "status": "pending",
+      "status": "blocked",
       "attempts": 1,
       "issueNumber": 102
     }
