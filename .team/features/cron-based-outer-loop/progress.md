@@ -26,3 +26,8 @@
 **Task 1: `agt cron-tick` queries the GitHub Project board and dispatches the first "Ready" issue to `runSingleFeature`**
 - 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
 
+### 2026-04-24 10:34:38
+**Task 2: `agt cron-tick` transitions the board item from "Ready" → "In Progress" before execution and → "Done" on success**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
