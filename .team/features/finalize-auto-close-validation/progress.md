@@ -20,3 +20,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 03:36:02
+**Task 2: Test: each closed task issue receives the correct comment (`"Task completed — gate passed."` for passed, status-specific for skipped)**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

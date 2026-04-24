@@ -145,3 +145,5 @@
 {"ts":"2026-04-24T03:20:22.669Z","event":"task-started","msg":"▶ Task 1/7: Test: `agt finalize` on a feature with 2 task issues returns `issuesClosed: 2` in JSON output"}
 {"ts":"2026-04-24T03:28:50.554Z","event":"task-passed","msg":"✓ Task 1/7: Test: `agt finalize` on a feature with 2 task issues returns `issuesClosed: 2` in JSON output"}
 {"ts":"2026-04-24T03:28:58.127Z","event":"task-started","msg":"▶ Task 2/7: Test: each closed task issue receives the correct comment (`\"Task completed — gate passed.\"` for passed, status-specific for skipped)"}
+{"ts":"2026-04-24T03:36:02.871Z","event":"task-passed","msg":"✓ Task 2/7: Test: each closed task issue receives the correct comment (`\"Task completed — gate passed.\"` for passed, status-specific for skipped)"}
+{"ts":"2026-04-24T03:36:09.541Z","event":"task-started","msg":"▶ Task 3/7: Test: `finalize` also closes `state.approvalIssueNumber` when present, and `issuesClosed` reflects it"}

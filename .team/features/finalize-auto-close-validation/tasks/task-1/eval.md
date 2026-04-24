@@ -1,31 +1,97 @@
-## Parallel Review Findings
+# Simplicity Review — finalize-auto-close-validation
 
-🟡 [architect] `bin/lib/finalize.mjs:116` — `readTrackingConfig()` is called unconditionally but `projMatch` is computed and never acted on; remove the block until project-board integration is actually implemented, to avoid phantom I/O on every finalize
-[architect] The `🟡` on `finalize.mjs:116` is the most notable architectural concern: dead/incomplete project-board integration code that pays I/O cost on every finalize while delivering nothing. Goes to backlog.
-🟡 [engineer] `bin/lib/finalize.mjs:115` — `state.approvalIssueNumber` is never closed; SPEC items 3 and 6 require it — add `// TODO: task-6 — close approvalIssueNumber here` so the gap is visible in source before that task ships
-🟡 [engineer] `bin/lib/finalize.mjs:128` — `issuesClosed++` fires unconditionally inside try; a silent `gh` failure still increments the count — change to `if (closeIssue(task.issueNumber, comment)) issuesClosed++`
-🟡 [product] bin/lib/finalize.mjs:123 — `closeIssue` return value discarded; `issuesClosed` inflates on `gh` failure, misleading callers about actual close count — fix: `if (closeIssue(task.issueNumber, comment)) issuesClosed++`
-🟡 [product] bin/lib/finalize.mjs:124 — Dead no-op block (`projMatch` computed, nothing called); implies project-board integration that doesn't exist — remove or complete before release
-🟡 [tester] `bin/lib/finalize.mjs:123` — `closeIssue` return value is discarded; `issuesClosed` increments even when close fails — change to `if (closeIssue(task.issueNumber, comment)) issuesClosed++`
-🟡 [tester] `bin/lib/finalize.mjs:124` — Dead code block: `projMatch` computed but never used; project board "done" status promised in comment is never set — either remove the block or call `setProjectItemStatus`
-🟡 [security] `test/harness.test.mjs:279` — Fake `gh` stub accepts all invocations silently; test asserts count only, not which issues were targeted — replace with a capturing stub that logs `$@` to a temp file and assert on the invocation log
-🟡 [security] `bin/lib/finalize.mjs:58` — `_write_nonce` tamper check tests presence only (`!state._write_nonce`), not authenticity; combined with the plain-string `_written_by` check, tamper detection is bypassable by anyone with filesystem write access — pre-existing; backlog to add HMAC-signed state writes
-[security] - The `issuesClosed` counter increments unconditionally regardless of whether `closeIssue` returns true — already flagged as 🟡 by the Tester review; the security implication is that the JSON output is a misleading audit signal under failure
-🟡 [simplicity] `bin/lib/finalize.mjs:124` — Dead code: `projMatch` computed but never used; `if (tracking)` block is a no-op that falsely implies project-board update occurs; remove or implement
-🔵 [architect] `test/harness.test.mjs:279` — Stub `gh` script does not record call arguments; a capturing stub (`write $@ to a temp file`) would let the test assert the correct issue numbers are targeted, not just the count
-🔵 [architect] `bin/lib/finalize.mjs:129` — Silent `catch` is appropriate for best-effort semantics, but adding `issueCloseFailed` to the output JSON would make partial failures observable to callers
-🔵 [engineer] `test/harness.test.mjs:279` — Stub records no call arguments; cannot assert which issue numbers or comment strings were dispatched to `gh issue close`
-🔵 [product] test/harness.test.mjs:279 — `gh` stub does not record which issue numbers were targeted; a capturing stub would protect against regressions in argument correctness
-🔵 [tester] `test/harness.test.mjs:277` — Missing test for `gh` exit non-zero → `issuesClosed` should be 0, but the discarded return value means it would report 2 — add a failure-path test to catch the regression
-🔵 [tester] `test/harness.test.mjs:277` — No assertion on the comment text passed to `closeIssue`; a capturing stub would guard against silent regressions
-🔵 [security] `bin/lib/finalize.mjs:124` — Dead block: `readTrackingConfig()` I/O paid and `projMatch` computed on every finalize, but no action taken; misleading comment implies project-board update happens — remove until implementation is complete (also flagged by Tester/Architect/Simplicity)
-🔵 [simplicity] `test/harness.test.mjs:308` — Duplicates `harnessJSON` last-line JSON parsing; extend `harnessJSON` to accept optional `{ env }` to allow reuse and remove the raw `execFileSync` call
-🔵 [simplicity] `test/harness.test.mjs:278` — `mkdtempSync` / `tmpdir` used at line 278 but imported at lines 364–365; move to the top-of-file import block
+**Role:** Simplicity reviewer
+**Task:** Test: each closed task issue receives the correct comment (`"Task completed — gate passed."` for passed, status-specific for skipped)
+**Verdict:** PASS (with backlog items)
 
-🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
+---
 
-## Compound Gate
+## Files Opened and Read
 
-**Verdict:** WARN
-**Layers tripped:** 1/5
-**Tripped layers:** fabricated-refs
+- `.team/features/finalize-auto-close-validation/tasks/task-1/handshake.json`
+- `.team/features/finalize-auto-close-validation/tasks/task-2/handshake.json`
+- `.team/features/finalize-auto-close-validation/tasks/task-2/artifacts/test-output.txt`
+- `bin/lib/finalize.mjs` (full file, 142 lines)
+- `test/harness.test.mjs` (lines 1–30, 260–415)
+
+---
+
+## Per-Criterion Results
+
+### 1. Does the test actually verify what was claimed?
+
+**PASS — direct evidence.**
+
+Test output (lines 390–392 of test-output.txt):
+```
+✔ posts correct comment to passed task issue ('Task completed — gate passed.') (496.240167ms)
+✔ posts status-specific comment to skipped task issue ('Feature finalized. Task status: skipped.') (285.841291ms)
+✔ returns issuesClosed: 2 when feature has 2 tasks with issueNumber (215.078ms)
+```
+
+Tests read `gh-calls.log` (the captured stub output) and assert the exact comment strings appear. This is behavioural proof, not structural assertion.
+
+### 2. Test structure — cognitive load
+
+**WARN — three tests share ~90% boilerplate with no helper.**
+
+Each of the three new tests (lines 277–325, 327–375, 377–415) independently:
+1. Creates a `mkdtempSync` `fakeBinDir`
+2. Writes a `gh` stub shell script to it
+3. Creates a feature dir and writes `STATE.json`
+4. Calls `execFileSync` with `PATH` override
+5. Parses JSON from the last non-empty line of stdout
+6. Cleans up in `finally`
+
+Total: ~130 lines for three cases that differ in task status, issue number, feature dir name, and expected comment string. A shared `runFinalizeWithFakeGh(featureDir, tasks)` helper would collapse this to ~60 lines and make the per-case intent immediately legible.
+
+The two comment-checking tests also re-implement the JSON-extraction logic that `harnessJSON` (test lines 23–30) already provides — they can't reuse it because they need a custom `PATH`. Extending `harnessJSON` to accept `{ env }` options would eliminate both the duplication and the raw `execFileSync` calls at test lines 306 and 356.
+
+### 3. Import order — `mkdtempSync` / `tmpdir`
+
+**WARN — imports appear after first use.**
+
+`mkdtempSync` is first used at line 278; `tmpdir` at line 278. Both are imported at lines 464–465, over 180 lines later. JavaScript hoists `import` declarations so this is not a runtime error, but the test file becomes confusing to read: you reach a symbol at line 278 without a nearby declaration. This was already flagged in the prior eval.md (`🔵 [simplicity] test/harness.test.mjs:278`); this review escalates it to 🟡 because it compounds with the other structural issues.
+
+### 4. Dead code in `finalize.mjs:124–127`
+
+**WARN — no-op block earns full I/O cost and adds misleading indirection.**
+
+```js
+if (tracking) {
+  const projMatch = String(tracking.statusFieldId || "").match(/\d+/);
+  // Best-effort: move to done on project board
+}
+```
+
+`projMatch` is computed and thrown away. `readTrackingConfig()` is called unconditionally on line 116 (filesystem read on every finalize). The comment implies a project-board update happens — it does not. This is not new code introduced by this task, but it is code the tests now exercise (or fail to), and it increases the cognitive surface of `finalize.mjs` for every future reader. Pre-existing finding; already in backlog via multiple prior reviewers.
+
+### 5. `issuesClosed` over-counts on `closeIssue` failure
+
+**WARN — counter increments regardless of `closeIssue` return value.**
+
+```js
+closeIssue(task.issueNumber, comment);   // return value discarded
+// ...
+issuesClosed++;                           // always increments
+```
+
+The new tests assert `issuesClosed === 1` / `=== 2` using a stub that always succeeds, so they pass. But the counter will over-report in production when `gh` exits non-zero. The new tests do not cover this failure path. Pre-existing finding; already in backlog via multiple prior reviewers.
+
+---
+
+## Findings
+
+🟡 test/harness.test.mjs:277 — Three new tests repeat identical boilerplate (fake-gh setup, STATE.json write, execFileSync, JSON parse, cleanup); extract a shared `runFinalizeWithFakeGh(dir, tasks)` helper to halve the line count and surface intent
+🟡 test/harness.test.mjs:278 — `mkdtempSync` and `tmpdir` are used here but imported at lines 464–465; move imports to the top-of-file block to match the rest of the file
+🟡 test/harness.test.mjs:306 — Inline JSON extraction (`lines.split...filter(Boolean)...JSON.parse`) duplicates the logic in `harnessJSON`; extend `harnessJSON` to accept an optional `env` object so these tests can use it instead of raw `execFileSync`
+🟡 bin/lib/finalize.mjs:124 — Dead no-op block: `projMatch` is computed but never used; `readTrackingConfig()` pays filesystem I/O on every finalize while delivering nothing; remove until project-board integration is implemented (pre-existing — backlog)
+🔵 test/harness.test.mjs:277 — Neither comment-checking test asserts the issue number passed to `gh`; a capturing stub already logs `$@`, so adding `assert.ok(ghCalls.includes("301"))` would guard against argument-order regressions at no cost
+
+---
+
+## Overall Verdict
+
+**PASS**
+
+The new tests are correct, they pass, and they verify the exact strings claimed by the task. The complexity problems are real but not blocking: they are maintenance debt, not correctness issues. All 🟡 items go to backlog.
