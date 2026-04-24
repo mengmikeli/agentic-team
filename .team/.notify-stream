@@ -217,3 +217,4 @@
 {"ts":"2026-04-24T11:02:33.670Z","event":"feature-complete","msg":"Feature complete: cron-based-outer-loop — 0/9 done, 3 blocked, 63m 13s, $206.04"}
 {"ts":"2026-04-24T11:05:49.341Z","event":"feature-started","msg":"▶ Feature: execution-report (7 tasks planned)"}
 {"ts":"2026-04-24T11:08:41.971Z","event":"task-started","msg":"▶ Task 1/7: `agt report <feature>` prints a readable report to stdout for a completed feature"}
+{"ts":"2026-04-24T11:29:56.177Z","event":"task-started","msg":"▶ Task 2/7: Report includes all five sections: header, task summary, cost breakdown, blocked/failed tasks, recommendations"}

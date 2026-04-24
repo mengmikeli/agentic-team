@@ -20,3 +20,7 @@
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
+### 2026-04-24 11:29:53
+**Task 1: `agt report <feature>` prints a readable report to stdout for a completed feature**
+- 🔴 Iteration escalation: fabricated-refs recurred in iterations 1, 2
+
