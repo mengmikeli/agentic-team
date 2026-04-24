@@ -5,17 +5,6 @@ import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
 import { readState } from "./util.mjs";
 
-function formatDuration(startIso, endIso) {
-  if (!startIso) return "N/A";
-  const startMs = new Date(startIso).getTime();
-  const endMs = endIso ? new Date(endIso).getTime() : Date.now();
-  const mins = Math.round((endMs - startMs) / 60000);
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  const rem = mins % 60;
-  return rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
-}
-
 export function buildReport(state) {
   const lines = [];
   const feature = state.feature || "unknown";
@@ -25,7 +14,20 @@ export function buildReport(state) {
 
   // Section 1: Header
   const isComplete = status === "completed";
-  const duration = formatDuration(state.createdAt, state.completedAt || state._last_modified);
+  let duration = "N/A";
+  if (state.createdAt) {
+    const startMs = new Date(state.createdAt).getTime();
+    const endIso = state.completedAt || state._last_modified;
+    const endMs = endIso ? new Date(endIso).getTime() : Date.now();
+    const mins = Math.round((endMs - startMs) / 60000);
+    if (mins < 60) {
+      duration = `${mins}m`;
+    } else {
+      const hours = Math.floor(mins / 60);
+      const rem = mins % 60;
+      duration = rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
+    }
+  }
   const statusLabel = isComplete ? "completed" : `${status} (in progress)`;
   lines.push(`# Execution Report: ${feature}`);
   lines.push(`Status: ${statusLabel}  |  Duration: ${duration}  |  Tasks: ${tasks.length}`);
@@ -48,10 +50,18 @@ export function buildReport(state) {
   lines.push("## Cost Breakdown");
   const passGates = gates.filter(g => g.verdict === "PASS").length;
   const failGates = gates.filter(g => g.verdict === "FAIL").length;
-  lines.push(`  Total cost (USD):         N/A (see \`agt metrics\`)`);
+  const totalCostUsd = state.tokenUsage?.total?.costUsd;
+  const totalCost = totalCostUsd != null
+    ? `$${totalCostUsd.toFixed(4)}`
+    : `N/A (see \`agt metrics\`)`;
+  const byPhase = state.tokenUsage?.byPhase;
+  const perPhase = byPhase
+    ? Object.entries(byPhase).map(([k, v]) => `${k}: $${v.costUsd?.toFixed(4) ?? "N/A"}`).join(", ")
+    : `N/A (see \`agt metrics\`)`;
+  lines.push(`  Total cost (USD):         ${totalCost}`);
   lines.push(`  Dispatches (transitions): ${state.transitionCount ?? 0}`);
   lines.push(`  Gate runs:                ${gates.length}  (${passGates} pass / ${failGates} fail)`);
-  lines.push(`  Per-phase split:          N/A (see \`agt metrics\`)`);
+  lines.push(`  Per-phase split:          ${perPhase}`);
   lines.push("");
 
   // Section 4: Blocked / Failed Tasks

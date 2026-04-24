@@ -131,22 +131,6 @@ describe("buildReport", () => {
   });
 
   it("handles null/undefined task.status in blocked/failed section without throwing", () => {
-    const state = makeState({
-      tasks: [
-        { id: "task-1", title: "Bad task", status: null, attempts: 0 },
-        { id: "task-2", title: "No status", attempts: 0 },
-      ],
-    });
-    // Filter tasks as buildReport does — blocked or failed; override to test the guard
-    // Force them into the problem section by using status: "blocked" with null title
-    const state2 = makeState({
-      tasks: [
-        { id: "task-1", status: null, attempts: 0 },
-      ],
-    });
-    // Patch: buildReport filters on status === "blocked" || "failed", so null won't appear
-    // Test the guard directly by injecting a "blocked" task with null status via monkey-patching
-    // Actually just verify that a blocked task with null title doesn't throw
     const state3 = makeState({
       tasks: [
         { id: "task-1", status: "blocked", attempts: 0 },
