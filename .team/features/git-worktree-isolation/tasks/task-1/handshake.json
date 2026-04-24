@@ -1,0 +1,14 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added slugToBranch, createWorktreeIfNeeded, and removeWorktree helpers to run.mjs. Modified _runSingleFeature() to create a git worktree at .team/worktrees/{slug} on branch feature/{slug} before dispatching tasks, pass the worktree cwd to runGateInline, and remove the worktree after finalization. Added test/worktree.test.mjs with 11 unit tests; all 637 tests pass.",
+  "timestamp": "2026-04-24T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "test/worktree.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

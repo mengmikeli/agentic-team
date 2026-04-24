@@ -49,14 +49,14 @@ function harness(...args) {
 
 // ── Inline gate runner (bypasses harness subprocess issues on Windows) ──
 
-function runGateInline(cmd, featureDir, taskId) {
+function runGateInline(cmd, featureDir, taskId, cwd = process.cwd()) {
   let exitCode = 0;
   let stdout = "";
   let stderr = "";
 
   try {
     stdout = execSync(cmd, {
-      cwd: process.cwd(),
+      cwd,
       encoding: "utf8",
       timeout: 120000,
       shell: true,
@@ -145,6 +145,33 @@ function runGateInline(cmd, featureDir, taskId) {
   } catch { /* best-effort */ }
 
   return { ok: true, verdict, exitCode, stdout: stdout.slice(0, 4096), stderr: stderr.slice(0, 4096) };
+}
+
+// ── Git worktree helpers ─────────────────────────────────────────
+
+export function slugToBranch(slug) {
+  return slug
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9\-\.]/g, "")
+    .slice(0, 72);
+}
+
+export function createWorktreeIfNeeded(slug, mainCwd) {
+  const worktreePath = join(mainCwd, ".team", "worktrees", slug);
+  const branchName = "feature/" + slugToBranch(slug);
+  if (existsSync(worktreePath)) {
+    console.log(`  ${c.dim}Reusing existing worktree: ${worktreePath}${c.reset}`);
+    return worktreePath;
+  }
+  execSync(`git worktree add "${worktreePath}" -b "${branchName}"`, { cwd: mainCwd, shell: true, stdio: "pipe" });
+  console.log(`  ${c.green}✓ Worktree created: ${worktreePath} (${branchName})${c.reset}`);
+  return worktreePath;
+}
+
+export function removeWorktree(worktreePath, mainCwd) {
+  try {
+    execSync(`git worktree remove --force "${worktreePath}"`, { cwd: mainCwd, shell: true, stdio: "pipe" });
+  } catch { /* already gone or not a worktree — not fatal */ }
 }
 
 // ── Agent dispatch ──────────────────────────────────────────────
@@ -719,8 +746,9 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   resetRunUsage();
 
   if (!description) description = args.filter(a => !a.startsWith("-")).join(" ") || null;
-  const cwd = process.cwd();
-  const teamDir = join(cwd, ".team");
+  const mainCwd = process.cwd();
+  let cwd = mainCwd;
+  const teamDir = join(mainCwd, ".team");
   const maxRetries = parseInt(getFlag(args, "retries") || "3", 10);
   const dryRun = args.includes("--dry-run");
   const flowOverride = getFlag(args, "flow");
@@ -811,7 +839,7 @@ async function _runSingleFeature(args, description, providedLabel = '') {
   }
 
   const featureDir = join(teamDir, "features", featureName);
-  const gateCmd = detectGateCommand(cwd);
+  const gateCmd = detectGateCommand(mainCwd);
   const agent = findAgent();
 
   // ── Print banner ──
@@ -859,6 +887,16 @@ async function _runSingleFeature(args, description, providedLabel = '') {
       }
     }
     console.log(`${c.green}✓${c.reset} Feature trackable: ${initState.status}`);
+  }
+
+  // ── Create git worktree for isolated execution ──
+
+  let worktreePath = null;
+  try {
+    worktreePath = createWorktreeIfNeeded(featureName, mainCwd);
+    cwd = worktreePath;
+  } catch (err) {
+    console.log(`  ${c.yellow}⚠ Could not create worktree — running in main repo: ${err.message}${c.reset}`);
   }
 
   // ── Read or create spec ──
@@ -1110,7 +1148,7 @@ async function _runSingleFeature(args, description, providedLabel = '') {
 
       // Run quality gate — inline to avoid Windows subprocess issues
       console.log(`  ${c.dim}Running gate: ${gateCmd}${c.reset}`);
-      const gateResult = runGateInline(gateCmd, featureDir, task.id);
+      const gateResult = runGateInline(gateCmd, featureDir, task.id, cwd);
 
       if (gateResult.verdict === "PASS") {
         passed = true;
@@ -1435,6 +1473,12 @@ async function _runSingleFeature(args, description, providedLabel = '') {
       console.log(`${c.green}✓ Pushed${c.reset}`);
     }
   } catch { /* no upstream or push failed — not fatal */ }
+
+  // Remove worktree now that execution is complete
+  if (worktreePath) {
+    removeWorktree(worktreePath, mainCwd);
+    cwd = mainCwd;
+  }
 
   const duration = Math.round((Date.now() - startTime) / 1000);
   const durationStr = duration > 60 ? `${Math.floor(duration / 60)}m ${duration % 60}s` : `${duration}s`;
