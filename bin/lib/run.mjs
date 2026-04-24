@@ -948,6 +948,9 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   }
   tasks = recovery.tasks;
 
+  // Write planned tasks to STATE.json immediately so dashboard shows them
+  syncFromHarness(featureDir, tasks);
+
   // Notify start
   harness("notify", "--event", "feature-started", "--msg",
     `▶ Feature: ${featureName} (${tasks.length} tasks planned)`);
