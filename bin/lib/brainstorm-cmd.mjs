@@ -62,14 +62,20 @@ Write your analysis and then produce a complete SPEC.md in this format:
 ## Goal
 {One clear sentence describing the outcome}
 
-## Scope
-{Concrete list of what's included}
+## Requirements
+{Concrete list of functional and non-functional requirements}
+
+## Acceptance Criteria
+{Specific, verifiable conditions that must be true for the feature to be complete}
+
+## Technical Approach
+{Technical approach with trade-offs discussed}
+
+## Testing Strategy
+{How the feature will be tested}
 
 ## Out of Scope
 {Explicit list of what's excluded}
-
-## Approach
-{Technical approach with trade-offs discussed}
 
 ## Done When
 - [ ] {Concrete, verifiable criterion}
@@ -95,16 +101,18 @@ export function buildInteractiveSpec({ idea, problem, users, constraints, requir
     ? technicalApproach.trim()
     : approachText;
 
+  const allRequirements = [
+    ...(constraints && constraints.trim() ? [constraints.trim()] : []),
+    ...requirements,
+  ];
+
   return `# Feature: ${idea}
 
 ## Goal
 ${problem || idea}
 
-## Users
-${users || "TBD"}
-
 ## Requirements
-${requirements.length > 0 ? requirements.map(r => `- ${r}`).join("\n") : `- ${constraints || "TBD"}`}
+${allRequirements.length > 0 ? allRequirements.map(r => `- ${r}`).join("\n") : "- TBD"}
 
 ## Acceptance Criteria
 ${acceptanceCriteria.length > 0 ? acceptanceCriteria.map(a => `- ${a}`).join("\n") : "- TBD"}

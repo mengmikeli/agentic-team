@@ -161,3 +161,5 @@
 {"ts":"2026-04-24T04:07:53.116Z","event":"feature-started","msg":"▶ Feature: document-driven-development (10 tasks planned)"}
 {"ts":"2026-04-24T04:11:14.957Z","event":"task-started","msg":"▶ Task 1/10: `templates/SPEC.md` contains all seven sections: Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope, Done When — each with a brief comment explaining what to write there."}
 {"ts":"2026-04-24T04:22:52.792Z","event":"task-started","msg":"▶ Task 2/10: `agt brainstorm` (interactive mode) prompts the user for Requirements, Acceptance Criteria, Technical Approach, and Testing Strategy in addition to the existing prompts."}
+{"ts":"2026-04-24T04:29:41.411Z","event":"feature-started","msg":"▶ Feature: label-threading-outer-loop-passes-p-n-labels-throu (2 tasks planned)"}
+{"ts":"2026-04-24T04:29:54.901Z","event":"task-started","msg":"▶ Task 1/2: Label threading — Outer loop passes `[P#/#N]` labels through to inner loop's `runSingleFeature`. GitHub issues and CLI banner show roadmap position."}

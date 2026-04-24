@@ -678,7 +678,7 @@ export async function outerLoop(args, deps) {
       // Agent didn't write SPEC.md — create a minimal one from the description
       console.log(`  ${c.yellow}⚠ SPEC.md not written by agent. Creating minimal spec.${c.reset}`);
       mkdirSync(featureDir, { recursive: true });
-      const minimalSpec = `# Feature: ${priority.name}\n\n## Goal\n${priorityDescription}\n\n## Scope\n- ${priorityDescription}\n\n## Out of Scope\n- TBD\n\n## Done When\n- [ ] Feature implemented and tests pass\n- [ ] Quality gate passes\n`;
+      const minimalSpec = `# Feature: ${priority.name}\n\n## Goal\n${priorityDescription}\n\n## Requirements\n- ${priorityDescription}\n\n## Acceptance Criteria\n- TBD\n\n## Technical Approach\nTBD\n\n## Testing Strategy\nTBD\n\n## Out of Scope\n- TBD\n\n## Done When\n- [ ] Feature implemented and tests pass\n- [ ] Quality gate passes\n`;
       writeFileSync(specPath, minimalSpec);
     }
     console.log();

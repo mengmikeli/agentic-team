@@ -695,7 +695,7 @@ Add flow selection to agt run.
     assert.ok(existsSync(specPath), "Minimal SPEC.md should have been created");
     const spec = readFileSync(specPath, "utf8");
     assert.ok(spec.includes("## Goal"));
-    assert.ok(spec.includes("## Scope"));
+    assert.ok(spec.includes("## Requirements"));
   });
 
   it("creates approval issue and proceeds after approval", async () => {

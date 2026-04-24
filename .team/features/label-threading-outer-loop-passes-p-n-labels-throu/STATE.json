@@ -1,0 +1,38 @@
+{
+  "version": "2.0",
+  "feature": "label-threading-outer-loop-passes-p-n-labels-throu",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "Label threading — Outer loop passes `[P#/#N]` labels through to inner loop's `runSingleFeature`. GitHub issues and CLI banner show roadmap position.",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 136,
+      "lastTransition": "2026-04-24T04:29:52.541Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-2",
+      "title": "Quality gate passes",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 137
+    }
+  ],
+  "gates": [],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T04:29:52.541Z"
+    }
+  ],
+  "createdAt": "2026-04-24T04:29:41.362Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T04:29:54.903Z",
+  "_write_nonce": "f632dc8906b1e313"
+}
