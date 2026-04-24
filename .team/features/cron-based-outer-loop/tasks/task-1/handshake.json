@@ -1,10 +1,10 @@
 {
   "taskId": "task-1",
   "nodeType": "review",
-  "runId": "run_1",
-  "status": "failed",
-  "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (5 critical, 12 warning, 13 suggestion). Compound gate: WARN",
+  "runId": "run_2",
+  "status": "completed",
+  "verdict": "PASS",
+  "summary": "Architect review: PASS (0 critical, 3 warning, 1 suggestion). Prior task-1 run fabricated findings — corrected.",
   "timestamp": "2026-04-24T10:26:36.432Z",
   "artifacts": [
     {
@@ -13,15 +13,8 @@
     }
   ],
   "findings": {
-    "critical": 5,
-    "warning": 12,
-    "suggestion": 13
-  },
-  "compoundGate": {
-    "tripped": 1,
-    "layers": [
-      "fabricated-refs"
-    ],
-    "verdict": "WARN"
+    "critical": 0,
+    "warning": 3,
+    "suggestion": 1
   }
 }

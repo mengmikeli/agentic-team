@@ -212,3 +212,4 @@
 {"ts":"2026-04-24T09:58:37.264Z","event":"feature-started","msg":"▶ Feature: cron-based-outer-loop (9 tasks planned)"}
 {"ts":"2026-04-24T10:02:29.350Z","event":"task-started","msg":"▶ Task 1/9: `agt cron-tick` queries the GitHub Project board and dispatches the first \"Ready\" issue to `runSingleFeature`"}
 {"ts":"2026-04-24T10:26:38.991Z","event":"task-started","msg":"▶ Task 2/9: `agt cron-tick` transitions the board item from \"Ready\" → \"In Progress\" before execution and → \"Done\" on success"}
+{"ts":"2026-04-24T10:45:10.015Z","event":"task-started","msg":"▶ Task 3/9: `agt cron-tick` transitions the board item back to \"Ready\" on failure, with a GitHub comment explaining the error"}
