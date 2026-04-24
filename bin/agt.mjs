@@ -372,7 +372,7 @@ switch (command) {
     function readFeatures(projectPath) {
       const featDir = join(projectPath, ".team", "features");
       if (!fs.existsSync(featDir)) return [];
-      const agtRunning = isAgtRunning() && hasRecentActivity(projectPath);
+      const agtRunning = isAgtRunning(); // process-based only; activity check caused false pauses during brainstorm
       try {
         return fs.readdirSync(featDir, { withFileTypes: true })
           .filter(d => d.isDirectory())
