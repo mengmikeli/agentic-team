@@ -1,0 +1,44 @@
+## Parallel Review Findings
+
+[architect] - `resetRunUsage()` confirmed at `run.mjs:715` — the prior eval's 🔴 "zero callers" finding was fabricated
+🟡 [architect] `bin/lib/run.mjs:279` — codex path returns no `usage`/`cost` and never calls `trackUsage()`; features built with codex silently show "No token data available" with no explanation; add comment marking this as a known limitation of codex's output format
+🟡 [architect] `dashboard-ui/src/App.tsx:52` — `handleFeatureSelect` and `handleFeatureChange` are functionally identical one-liners; two names with different signatures imply semantic distinction that does not exist; consolidate to one handler to prevent future divergence confusion
+🟡 [engineer] `dashboard-ui/src/components/feature-detail.tsx:126` — `tokenUsage.total` accessed without null guard; partial STATE.json write (crash during writeState at run.mjs:1387) could produce `tokenUsage` without `total`, crashing the panel with TypeError; use `tokenUsage.total?.costUsd ?? 0`
+🟡 [engineer] `bin/lib/run.mjs:279` — codex path never calls `trackUsage()`; features built via codex silently produce `tokenUsage: null`; add explicit console warning or UI label explaining the codex limitation
+🟡 [engineer] `dashboard-ui/src/App.tsx:52` — `handleFeatureSelect` and `handleFeatureChange` are identical one-liners; consolidate to one handler to eliminate reader confusion
+🟡 [product] `bin/lib/run.mjs:279` — Codex agent path never calls `trackUsage()` and returns no `usage`/`cost` fields; codex users always see "No token data available" with no explanation. The primary UX of this feature delivers zero value to that user class. Fix: show an explicit "Token tracking unavailable (codex agent)" label when `tokenUsage` is null.
+🟡 [product] `dashboard-ui/src/components/feature-detail.tsx:126` — `tokenUsage.total.costUsd` accessed without null guard on `.total`; a partially-written STATE.json causes TypeError and blanks the panel. Add `tokenUsage.total?.costUsd ?? 0`.
+🟡 [product] `.team/features/dashboard-token-breakdown-feature-detail-view-clic/SPEC.md:7` — "Done when" criteria are verbatim copies of the goal title, not independently testable. Causes ambiguous review cycles. Future specs must include discrete acceptance criteria.
+[product] **Scope note:** The prior task-1 review returned FAIL with 12 "critical" findings, but the compound gate correctly identified those as fabricated (tripped `fabricated-refs` twice). The implementation is correct — `resetRunUsage()` is called at `run.mjs:715` and 20+ token-usage tests pass. The two real issues are the codex silent gap and null guard, both filed as backlog 🟡s above.
+🟡 [tester] `dashboard-ui/src/components/feature-detail.tsx:1` — Zero UI component tests; the SPEC criterion "click a feature to see per-task cost, phase breakdown, run duration" cannot be verified by `npm test` since no test renders `FeatureDetail` or exercises the click interaction; add Vitest/RTL tests for at minimum: empty state, populated state, and close button
+🟡 [tester] `dashboard-ui/src/components/feature-detail.tsx:126` — `fmtCost(tokenUsage.total.costUsd)` accessed without null guard on `.total`; a partial STATE.json write (crash mid-finalize) yields `tokenUsage: { byTask: {}, byPhase: {} }` without `.total`, throwing TypeError and blanking the panel; no test covers this crash path; add `tokenUsage.total?.costUsd ?? 0`
+🟡 [tester] `bin/lib/run.mjs:279` — codex agent path returns without calling `trackUsage()`; any feature built via codex silently shows "No token data available" with no explanation; untested and undocumented as intentional; add a comment or labelled fallback
+[tester] **Summary:** The gate passes on 566 backend tests. The primary deliverable (click-to-detail UI) is implemented in `feature-detail.tsx` and `feature-timeline.tsx` but is **entirely untested by the gate**. The two most actionable backlog items are the UI test gap (🟡) and the `tokenUsage.total` null crash path (🟡). The codex silent path (🟡) is an architectural gap with no user explanation. Evaluation written to `tasks/task-2/eval.md`.
+🟡 [security] `bin/agt.mjs:449` — `/api/state?path=` + all-interface binding (`server.listen` line 586) exposes STATE.json — now including `tokenUsage` cost data — to local-network clients via unvalidated path parameter. Pre-existing; impact slightly elevated by this feature. Validate `path` against registered project roots before reading.
+[security] **Verdict: PASS** — 566/566 tests green, no new critical security vulnerabilities. The pre-existing path traversal issue (🟡, already in backlog) is the only finding of note; it now marginally exposes cost figures via the same vector. No XSS, no injection, no authentication bypass introduced.
+🟡 [simplicity] `dashboard-ui/src/App.tsx:52` — `handleFeatureSelect` and `handleFeatureChange` are functionally identical; consolidate to one handler `(name: string | null) => setSelectedFeature(name)` to remove false semantic distinction
+🔵 [architect] `dashboard-ui/src/components/feature-detail.tsx:126` — `tokenUsage.total.costUsd` accessed without null guard on `.total`; safe under normal operation but corrupt STATE.json where `tokenUsage` exists without `total` throws TypeError; add `tokenUsage.total?.costUsd ?? 0` guard
+🔵 [architect] `dashboard-ui/src/components/feature-detail.tsx:38` — `taskMap` allocated unconditionally before the `tokenUsage` null check at line 53; wasted allocation on the "No token data" path; move inside the truthy block
+🔵 [architect] `dashboard-ui/src/components/feature-detail.tsx:12` — `fmtMs` has no hours branch; runs ≥1h render as e.g. "120.0m"; add hours case before the minutes branch
+🔵 [architect] `bin/lib/run.mjs:197` — task `.phase` label frozen at first dispatch; `setUsageContext()` shifts phase context but does not update the bucket label; add comment marking this as intentional
+🔵 [engineer] `dashboard-ui/src/components/feature-detail.tsx:11` — `fmtCost`/`fmtK` call `.toFixed()` without `Number.isFinite(v)` guard; corrupted STATE.json null fields throw TypeError; return `"—"` for non-finite inputs
+🔵 [engineer] `dashboard-ui/src/components/feature-detail.tsx:12` — `fmtMs` has no hours branch; a 2-hour run renders as "120.0m"; add hours branch before minutes
+🔵 [engineer] `dashboard-ui/src/components/feature-detail.tsx:38` — `taskMap` allocated unconditionally before the `tokenUsage` null check; move inside the truthy block
+🔵 [engineer] `bin/lib/run.mjs:197` — task `phase` label frozen at first dispatch; `setUsageContext("review", ...)` shifts phase context but does not update existing task bucket label; add comment documenting as intentional
+🔵 [product] `dashboard-ui/src/App.tsx:52` — `handleFeatureSelect` and `handleFeatureChange` are functionally identical one-liners; consolidate to remove false semantic distinction.
+🔵 [product] `dashboard-ui/src/components/feature-detail.tsx:12` — `fmtMs()` has no hours branch; runs >60 min render as "120.0m".
+🔵 [tester] `dashboard-ui/src/components/feature-detail.tsx:11` — `fmtCost`/`fmtMs`/`fmtK` lack `Number.isFinite(v)` guard; corrupted STATE.json values render as "NaN$"; return `"—"` for non-finite inputs
+🔵 [tester] `dashboard-ui/src/components/feature-detail.tsx:12` — `fmtMs` has no hours branch; 2-hour runs display as "120.0m"; add `if (v >= 3_600_000) return \`${(v/3_600_000).toFixed(1)}h\``
+🔵 [tester] `dashboard-ui/src/components/feature-detail.tsx:38` — `taskMap` allocated unconditionally before the `tokenUsage` null check at line 53; move inside the truthy branch
+🔵 [security] `dashboard-ui/src/components/feature-detail.tsx:126` — `tokenUsage.total.costUsd` accessed without null guard on `.total`; partial STATE.json crash-write throws TypeError and blanks the panel. Add `tokenUsage.total?.costUsd ?? 0`.
+🔵 [security] `dashboard-ui/src/components/feature-detail.tsx:11` — `fmtCost`/`fmtMs`/`fmtK` call `.toFixed()` with no `Number.isFinite` guard; `null.toFixed()` throws TypeError on corrupt STATE.json values. Return `"—"` for non-finite inputs.
+🔵 [simplicity] `dashboard-ui/src/components/feature-detail.tsx:38` — `taskMap` built unconditionally before `tokenUsage` null check at line 53; move inside the truthy block to avoid Map allocation on the empty-state path
+🔵 [simplicity] `dashboard-ui/src/components/feature-detail.tsx:12` — `fmtMs` has no hours branch; runs >60 min render as "120.0m"; add `if (v >= 3_600_000) return \`${(v/3_600_000).toFixed(1)}h\`` before the minutes branch
+
+🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
+
+## Compound Gate
+
+**Verdict:** WARN
+**Layers tripped:** 1/5
+**Tripped layers:** fabricated-refs

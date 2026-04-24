@@ -173,3 +173,4 @@
 {"ts":"2026-04-24T04:55:17.162Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (9 tasks planned)"}
 {"ts":"2026-04-24T04:59:18.526Z","event":"task-started","msg":"▶ Task 1/9: `task.reviewRounds` field exists in STATE.json and increments by 1 each time a review phase produces a FAIL verdict (critical findings > 0 or compound gate FAIL)."}
 {"ts":"2026-04-24T05:11:41.803Z","event":"task-started","msg":"▶ Task 2/2: Quality gate passes"}
+{"ts":"2026-04-24T05:15:41.846Z","event":"task-started","msg":"▶ Task 2/9: When `task.reviewRounds` reaches 3, the task is immediately blocked (no further retry attempts) with `lastReason = \"review-escalation: 3 rounds exceeded\"`."}
