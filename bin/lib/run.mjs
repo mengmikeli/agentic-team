@@ -885,8 +885,6 @@ async function _runSingleFeature(args, description, providedLabel = '') {
     console.log(`${c.green}✓${c.reset} Feature trackable: ${initState.status}`);
   }
 
-  // ── Create git worktree for isolated execution ──
-
   // ── Read or create spec ──
 
   const specPath = join(featureDir, "SPEC.md");
