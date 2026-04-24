@@ -25,3 +25,8 @@
 - Verdict: ✅ PASS (attempt 1)
 - Gate: `npm test` — exit 0
 
+### 2026-04-24 03:42:17
+**Task 3: Test: `finalize` also closes `state.approvalIssueNumber` when present, and `issuesClosed` reflects it**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+

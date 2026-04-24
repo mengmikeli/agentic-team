@@ -464,6 +464,46 @@ describe("at-harness", () => {
         rmSync(fakeBinDir, { recursive: true, force: true });
       }
     });
+
+    it("silently skips tasks without issueNumber and does not affect count", () => {
+      const fakeBinDir = mkdtempSync(join(tmpdir(), "fake-gh-"));
+      writeFileSync(join(fakeBinDir, "gh"), "#!/bin/sh\necho ok\nexit 0\n", { mode: 0o755 });
+
+      const featureDir = join(testDir, "features", "no-issue-skip-test");
+      mkdirSync(featureDir, { recursive: true });
+      const state = {
+        version: "2.0",
+        feature: "no-issue-skip-test",
+        status: "active",
+        tasks: [
+          { id: "t1", status: "passed", issueNumber: 201 },
+          { id: "t2", status: "passed" },
+        ],
+        gates: [],
+        transitionCount: 2,
+        transitionHistory: [],
+        createdAt: new Date().toISOString(),
+        _written_by: "at-harness",
+        _last_modified: new Date().toISOString(),
+        _write_nonce: "abcd1234abcd1234",
+      };
+      writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(state, null, 2));
+
+      try {
+        const out = execFileSync("node", [harnessPath, "finalize", "--dir", join("features", "no-issue-skip-test")], {
+          encoding: "utf8",
+          cwd: testDir,
+          timeout: 10000,
+          env: { ...process.env, PATH: `${fakeBinDir}:${process.env.PATH}` },
+        });
+        const lines = out.trim().split("\n").filter(Boolean);
+        const result = JSON.parse(lines[lines.length - 1]);
+        assert.equal(result.finalized, true);
+        assert.equal(result.issuesClosed, 1);
+      } finally {
+        rmSync(fakeBinDir, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("metrics", () => {

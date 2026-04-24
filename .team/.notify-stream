@@ -147,3 +147,6 @@
 {"ts":"2026-04-24T03:28:58.127Z","event":"task-started","msg":"▶ Task 2/7: Test: each closed task issue receives the correct comment (`\"Task completed — gate passed.\"` for passed, status-specific for skipped)"}
 {"ts":"2026-04-24T03:36:02.871Z","event":"task-passed","msg":"✓ Task 2/7: Test: each closed task issue receives the correct comment (`\"Task completed — gate passed.\"` for passed, status-specific for skipped)"}
 {"ts":"2026-04-24T03:36:09.541Z","event":"task-started","msg":"▶ Task 3/7: Test: `finalize` also closes `state.approvalIssueNumber` when present, and `issuesClosed` reflects it"}
+{"ts":"2026-04-24T03:42:17.980Z","event":"task-passed","msg":"✓ Task 3/7: Test: `finalize` also closes `state.approvalIssueNumber` when present, and `issuesClosed` reflects it"}
+{"ts":"2026-04-24T03:42:22.356Z","event":"progress","msg":"Progress: 3/7 done, 0 blocked."}
+{"ts":"2026-04-24T03:42:24.753Z","event":"task-started","msg":"▶ Task 4/7: Test: tasks without `issueNumber` are skipped silently and do not affect the count"}
