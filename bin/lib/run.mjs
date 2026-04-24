@@ -552,7 +552,7 @@ function initProgressLog(featureDir, featureName, tasks, tier) {
 // Exported for testing. Mutates state in-place and returns tasks to use.
 // Returns { tasks, recovered: bool }.
 export function applyCrashRecovery(state, plannedTasks, featureDir) {
-  if (state && state.status === "executing") {
+  if (state && (state.status === "executing" || state.status === "active")) {
     const crashedAt = state._last_modified;
     const recoveredTasks = Array.isArray(state.tasks) ? state.tasks : plannedTasks;
 

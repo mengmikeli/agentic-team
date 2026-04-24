@@ -694,13 +694,23 @@ export async function outerLoop(args, deps) {
 
     if (stopping) break;
 
-    // Check if this feature is already completed
+    // Check if this feature is already completed (genuinely, not fake-completed)
     const featureDir = join(teamDir, "features", featureName);
     const existingState = readState(featureDir);
-    if (existingState && existingState.status === "completed") {
-      console.log(`  ${c.yellow}⚠ Feature "${featureName}" already completed. Marking roadmap and continuing.${c.reset}`);
-      markRoadmapItemDone(productPath, priority.name);
-      continue;
+    if (existingState && (existingState.status === "completed" || existingState.status === "failed")) {
+      const tasks = existingState.tasks || [];
+      const passed = tasks.filter(t => t.status === "passed").length;
+      if (tasks.length === 0 || passed >= Math.ceil(tasks.length * 0.5)) {
+        console.log(`  ${c.yellow}⚠ Feature "${featureName}" already completed (${passed}/${tasks.length} passed). Skipping.${c.reset}`);
+        markRoadmapItemDone(productPath, priority.name);
+        continue;
+      } else {
+        console.log(`  ${c.yellow}⚠ Feature "${featureName}" previously failed (${passed}/${tasks.length} passed). Starting fresh.${c.reset}`);
+        existingState.status = "active";
+        existingState.tasks = [];
+        existingState._previous_runs_failed = (existingState._previous_runs_failed || 0) + 1;
+        writeState(featureDir, existingState);
+      }
     }
 
     // ── Step 2: BRAINSTORM ──────────────────────────────────────
