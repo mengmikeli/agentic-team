@@ -1,116 +1,88 @@
 ## PM Review — parent-issue-subtask-lifecycle
 
-**Reviewer role:** Product Manager
+**Reviewer role:** Product Manager (independent audit)
 **Task reviewed:** No extra project board columns or config changes are required — existing status flow is sufficient
-**Scope:** Full feature "Done When" criteria verification, focused on project board criterion
-
----
-
-## Files Read
-
-- `.team/features/parent-issue-subtask-lifecycle/SPEC.md` (full)
-- `.team/features/parent-issue-subtask-lifecycle/progress.md` (full)
-- `.team/features/parent-issue-subtask-lifecycle/tasks/task-{1-6}/handshake.json` (all)
-- `.team/features/parent-issue-subtask-lifecycle/tasks/task-{1-5}/eval.md` (all)
-- `bin/lib/run.mjs:920–962` (issue creation, checklist append)
-- `bin/lib/run.mjs:1290–1362` (escalation paths, gate-pass tick)
-- `bin/lib/github.mjs:120–173` (getIssueBody, editIssue, tickChecklistItem, markChecklistItemBlocked, buildTasksChecklist)
-- `bin/lib/finalize.mjs:110–150` (approval issue close)
-- `test/parent-checklist.test.mjs` (full, 152 lines)
-- `task-6/artifacts/test-output.txt` (617 tests, 0 fail, exit 0)
+**Scope:** Full feature "Done When" criteria verification
+**Files read:**
+- `.team/features/parent-issue-subtask-lifecycle/SPEC.md`
+- `.team/features/parent-issue-subtask-lifecycle/progress.md`
+- All task handshake.json files (task-1 through task-6)
+- All task eval.md files (task-1 through task-6, task-engineer, task-pm-review, task-security)
+- `bin/lib/run.mjs` lines 1082–1093, 1290–1370
+- `bin/lib/finalize.mjs` (full, 150 lines)
+- `bin/lib/github.mjs` (git diff for new `buildTaskIssueBody`, lines 141–173)
+- `test/parent-checklist.test.mjs` (git diff for updated tests)
+- `.team/features/parent-issue-subtask-lifecycle/tasks/task-6/artifacts/test-output.txt` (lines 1–200)
+- `git show 9715e63` (final commit diff)
+- `git show bacb532` (prior commit stat)
 
 ---
 
 ## Overall Verdict: PASS
 
-The core user value is delivered. All seven "Done When" criteria are met — including the specific task under review (no new board columns or config). One spec-body requirement (skipped-task checklist marker) is unimplemented but absent from the "Done When" checklist; it goes to backlog. Three silent-failure patterns are flagged as warnings.
+All seven "Done When" criteria are met. The test suite passes (617/617, exit 0). No critical findings. Seven 🟡 warnings are appropriate for backlog — none block merge.
 
 ---
 
 ## Per-Criterion Results
 
-### Criterion 6 (Task Under Review): No extra project board columns or config changes are required
-
-**Result: PASS**
-
-**Evidence:**
-- `run.mjs:940` — task issues call `addToProject(issueNum, projectNum)` using the existing project number from `PROJECT.md`. No new columns, fields, or option IDs introduced.
-- `run.mjs:1354` — `setProjectItemStatus(task.issueNumber, projectNum, "done")` uses the pre-existing "done" status. No new status value added.
-- `finalize.mjs:116–127` — `readTrackingConfig()` and `projMatch` are dead code; the board-move call was explicitly left unimplemented. This confirms the decision to stay within existing board configuration.
-- No changes to `PROJECT.md`, `.team/tracking.json`, or any board configuration files.
-
-The parent issue is already added to the project board by the approval gate (in `outer-loop.mjs`); this feature adds nothing on top of that.
+| # | Criterion | Result | Evidence |
+|---|---|---|---|
+| 1 | `## Tasks` checklist appended to parent after planning | ✅ PASS | `run.mjs:952–960`; `buildTasksChecklist` unit-tested in `parent-checklist.test.mjs:8–57` |
+| 2 | Gate pass → `- [x]` in checklist | ✅ PASS | `run.mjs:1354–1360`; guard fixed to `if (parentBody !== null)` in commit 9715e63 |
+| 3 | Max review rounds (escalated) → `⚠️ blocked` marker | ✅ PASS | `run.mjs:1292–1308` (`shouldEscalate` path) calls `markChecklistItemBlocked`; criterion naming maps to this path |
+| 4 | Each task issue body contains `Part of #N` | ✅ PASS | `buildTaskIssueBody` in `github.mjs` (added commit 9715e63) includes `Number.isInteger()` guard; injection risk addressed |
+| 5 | `agt finalize` closes parent approval issue | ✅ PASS | `finalize.mjs:133–139`; `harness.test.mjs:377–426` subprocess test confirms with fake `gh`, asserts `issuesClosed === 2` |
+| 6 | **No extra project board columns or config required** | ✅ PASS | No new columns, fields, or option IDs in any changed file; `run.mjs:940` and `run.mjs:1353` reuse existing project infrastructure; dead code in `finalize.mjs:116–127` confirms board-move was explicitly deferred |
+| 7 | All existing tests still pass | ✅ PASS | Gate output (task-6): 617 pass, 0 fail, exit 0 |
 
 ---
 
-### Criterion 1: After `agt run` creates task issues, the parent issue body gains a `## Tasks` checklist
+## Criterion 6 Detail (Task Under Review)
 
-**Result: PASS**
-
-**Evidence:** `run.mjs:951–960` — calls `buildTasksChecklist(tasks)`, then `getIssueBody` / `editIssue`. Guard at line 956 prevents double-appending. `github.mjs:167–173` builds the `\n\n## Tasks\n- [ ] title (#N)` format. Seven unit tests at `test/parent-checklist.test.mjs:8–57` cover format, empty list, tasks without issue numbers — all pass.
-
----
-
-### Criterion 2: When a task gate passes, its checklist line updates from `- [ ]` to `- [x]`
-
-**Result: PASS**
-
-**Evidence:** `run.mjs:1355–1361` — on gate PASS, calls `getIssueBody` → `tickChecklistItem` → `editIssue`. `github.mjs:141–149` performs regex replace with special-character escaping and replacement-function wrapper. Six unit tests at `test/parent-checklist.test.mjs:59–95` cover tick, no-match, already-ticked, and falsy-guard cases — all pass.
+**Evidence for PASS:**
+- `run.mjs:940` — task issues call `addToProject(issueNum, projectNum)` using the pre-existing project number from `PROJECT.md`. No new board configuration.
+- `run.mjs:1353` — `setProjectItemStatus(task.issueNumber, projectNum, "done")` uses the pre-existing `"done"` status option. No new status value.
+- `finalize.mjs:116–127` — `readTrackingConfig()` and `projMatch` are dead code; the "move to done on project board" comment has no implementation, confirming the deliberate decision to stay within existing board config.
+- No changes to `PROJECT.md`, any tracking config file, or board option IDs across all commits in the feature branch.
+- The parent approval issue is already added to the project board by the approval gate in `outer-loop.mjs` — this feature adds nothing on top of that.
 
 ---
 
-### Criterion 3: When a task hits max review rounds (escalated), its checklist line shows the `⚠️ blocked` marker
-
-**Result: PASS (review-round escalation only)**
-
-**Evidence:** `run.mjs:1297–1303` — review-round escalation path calls `markChecklistItemBlocked` and `editIssue`. This is the path the criterion explicitly names ("max review rounds"). Six unit tests at `test/parent-checklist.test.mjs:97–133` cover the blocked format — all pass.
-
-**Gap (backlog):** The iteration-escalation path (`run.mjs:1311–1317`) does NOT call `markChecklistItemBlocked`. A task blocked by compound-gate recurrence (`escalationFired`) leaves its checklist line as `- [ ] title (#N)` — inconsistent with the spec body requirement "When a task is blocked/escalated." Not in "Done When" as a separate criterion; file as backlog.
-
----
-
-### Criterion 4: Each task issue body contains `Part of #N`
-
-**Result: PASS**
-
-**Evidence:** `run.mjs:929–932` — `backLink` is set when `state.approvalIssueNumber` is truthy and appended to the issue body. Two tests at `test/parent-checklist.test.mjs:135–152` pass. **Note:** both tests are tautologies — they construct the expected string inline without importing or calling production code, so they would pass even if `run.mjs:929` were deleted. Flagged as backlog coverage gap.
-
----
-
-### Criterion 5: `agt finalize` closes the parent approval issue
-
-**Result: PASS**
-
-**Evidence:** `finalize.mjs:133–139` — closes `freshState.approvalIssueNumber` with comment "Feature finalized — all tasks complete." Definitive test at `test/harness.test.mjs:377–426` uses a real fake-gh binary, asserts `issuesClosed === 2`, and asserts "500" appears in the `gh` call log. Test passes (line 414 in gate output).
-
----
-
-### Criterion 7: All existing tests still pass
-
-**Result: PASS**
-
-**Evidence:** Gate output (task-6): 617 pass, 0 fail, exit 0.
-
----
-
-## Spec Gap: Skipped-task checklist marker
+## Spec Gap: Iteration-Escalation and Skipped-Task Checklist Markers
 
 **Not in "Done When" — backlog only.**
 
-SPEC.md body specifies: `- [x] Task title (#N) *(skipped)*` when a task is skipped. The skip path at `run.mjs:1086–1092` does NOT call any checklist update — no `markChecklistItemSkipped` function exists. This is a spec-body requirement absent from the "Done When" checklist. The inconsistency means this was never a merge blocker, but it represents observable user-facing behavior gap (a skipped task stays `- [ ]` in the parent checklist). File as backlog.
+The SPEC body specifies two additional checklist update cases not covered by Done When criteria:
+
+1. `run.mjs:1311` — `escalationFired` (iteration-escalation) path does NOT call `markChecklistItemBlocked`. Tasks blocked via compound-gate recurrence stay `- [ ] title (#N)` while review-escalated tasks show `⚠️ blocked`. Inconsistent parent-issue state visible to users.
+
+2. `run.mjs:1086` — User-skip path calls `commentIssue` but never updates the parent checklist. SPEC body requires `- [x] Task title (#N) *(skipped)*`. No `markChecklistItemSkipped` function exists.
+
+Neither is in the "Done When" checklist; neither blocks merge. Both go to backlog.
+
+---
+
+## Note on Eval File Staleness
+
+The `task-engineer/eval.md`, this file (prior version), and `task-security/eval.md` were all written as part of the parallel review cycle for the first attempt at task-6. They flag `if (parentBody)` at `run.mjs:1299/1357` and Markdown injection at `run.mjs:929` as open 🟡 items. These issues were **fixed in the same commit (9715e63)** that added those eval files:
+- `if (parentBody !== null)` applied at both locations (confirmed by reading current `run.mjs:1298` and `run.mjs:1356`)
+- `buildTaskIssueBody` with `Number.isInteger()` guard replaces the inline interpolation
+
+The eval files are artifacts of an intermediate review state. The current code is correct.
 
 ---
 
 ## Findings
 
-🟡 `bin/lib/run.mjs:1086` — Skip path does not update the parent checklist; SPEC.md body requires `- [x] Task title (#N) *(skipped)*`; no `markChecklistItemSkipped` function exists; add call mirroring the escalation block at lines 1297–1302
+🟡 `bin/lib/finalize.mjs:9` — `setProjectItemStatus` imported but never called; dead import misleads contributors into thinking board status is updated at finalize time; remove to accurately reflect that no board config changes are needed
 
-🟡 `bin/lib/run.mjs:1311` — Iteration-escalation (`escalationFired`) path does not call `markChecklistItemBlocked`; blocked tasks via this path leave a `- [ ]` item while review-escalated tasks show `⚠️ blocked`; inconsistent parent-issue state visible to users
+🟡 `bin/lib/finalize.mjs:123` — `issuesClosed++` fires unconditionally after `closeIssue()`; `closeIssue` returns `false` (never throws) on gh failure; `catch {}` at lines 129 and 138 is dead; `issuesClosed` count overstates actual GitHub closures; fix: `if (closeIssue(...)) issuesClosed++` at both call sites
 
-🟡 `bin/lib/run.mjs:1357` — `if (parentBody)` coerces `""` to falsy; `getIssueBody` returns `""` for a valid issue with empty body, silently skipping the checklist tick; use `if (parentBody !== null)` to match the documented return contract (same pattern at lines 1299 and 956)
+🟡 `bin/lib/run.mjs:1311` — iteration-escalation (`escalationFired`) path does not call `markChecklistItemBlocked`; blocked tasks via compound-gate recurrence leave parent checklist as `- [ ]` while review-escalated tasks show `⚠️ blocked`; inconsistent user-visible state in parent issue; add `getIssueBody`/`markChecklistItemBlocked`/`editIssue` pattern matching run.mjs:1296–1302 → backlog
 
-🟡 `test/parent-checklist.test.mjs:136` — Both back-link tests are tautologies; removing `backLink` from `run.mjs:929` leaves them green; add a mocked integration test that stubs `createIssue` and asserts the stub received a body containing `Part of #${approvalIssueNumber}`
+🟡 `bin/lib/run.mjs:1086` — user-skip path does not update parent checklist; SPEC body requires `- [x] Task title (#N) *(skipped)*`; no `markChecklistItemSkipped` function exists → backlog
 
-🔵 `bin/lib/finalize.mjs:124–127` — Dead code: `projMatch` computed from `readTrackingConfig()` but never used; comment says "Best-effort: move to done on project board" but no call follows; remove or implement to avoid misleading future contributors
+🔵 `dashboard-ui/src/components/feature-detail.tsx` — unrelated dashboard UI formatting changes (token display `toFixed(4)→toFixed(2)`, new "Tokens" column) bundled in the "no-config-changes" verification commit (bacb532); correct changes but violates atomic-commit discipline; file separately in future
 
-🔵 `bin/lib/finalize.mjs:128` — `issuesClosed++` fires unconditionally after `closeIssue(...)`; `closeIssue` returns `false` (does not throw) on `gh` failure, inflating the reported count; change to `if (closeIssue(...)) issuesClosed++` (same at line 137)
+🔵 `bin/lib/finalize.mjs:124-127` — dead code: `projMatch` computed from `readTrackingConfig()` but never used; comment says "Best-effort: move to done on project board" with no implementation; remove to prevent misleading future contributors about whether board sync is wired

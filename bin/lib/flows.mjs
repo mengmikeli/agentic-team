@@ -185,9 +185,10 @@ export function mergeReviewFindings(findings) {
       // Format: 🔴 [role] file:line — … (emoji anchors severity at line-start)
       const emojiRe = /^([🔴🟡🔵])\s*/u;
       const m = p.text.match(emojiRe);
+      const label = (f.role === "simplicity" && p.severity === "critical") ? "simplicity veto" : f.role;
       const prefixedText = m
-        ? `${m[1]} [${f.role}] ${p.text.slice(m[0].length)}`
-        : `[${f.role}] ${p.text}`;
+        ? `${m[1]} [${label}] ${p.text.slice(m[0].length)}`
+        : `[${label}] ${p.text}`;
       allFindings.push({ severity: p.severity, text: prefixedText });
     }
   }

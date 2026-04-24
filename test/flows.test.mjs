@@ -4,6 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "../bin/lib/flows.mjs";
+import { parseFindings, computeVerdict } from "../bin/lib/synthesize.mjs";
 
 describe("FLOWS", () => {
   it("defines light-review with gate only", () => {
@@ -241,6 +242,35 @@ describe("mergeReviewFindings", () => {
     const merged = mergeReviewFindings(findings);
     assert.ok(typeof merged === "string");
     assert.ok(merged.includes("## Parallel Review Findings"));
+  });
+
+  it("labels simplicity 🔴 as [simplicity veto]", () => {
+    const findings = [
+      { role: "simplicity", ok: false, output: "🔴 lib/util.mjs:10 — dead code: unused helper" },
+    ];
+    const merged = mergeReviewFindings(findings);
+    assert.ok(merged.includes("[simplicity veto]"), "critical simplicity finding must be labeled [simplicity veto]");
+  });
+
+  it("labels simplicity 🟡 as plain [simplicity] (not veto)", () => {
+    const findings = [
+      { role: "simplicity", ok: true, output: "🟡 lib/util.mjs:20 — consider simplifying" },
+    ];
+    const merged = mergeReviewFindings(findings);
+    assert.ok(merged.includes("[simplicity]"), "warning simplicity finding should be plain [simplicity]");
+    assert.ok(!merged.includes("[simplicity veto]"), "warning must not be labeled [simplicity veto]");
+  });
+
+  it("simplicity 🔴 causes FAIL even when all other roles pass with no criticals", () => {
+    const findings = [
+      { role: "architect",  ok: true, output: "🔵 a.mjs:1 — minor suggestion" },
+      { role: "engineer",   ok: true, output: "No findings." },
+      { role: "simplicity", ok: false, output: "🔴 lib/unused.mjs:5 — dead code: remove unused export" },
+    ];
+    const merged = mergeReviewFindings(findings);
+    const parsed = parseFindings(merged);
+    const result = computeVerdict(parsed);
+    assert.equal(result.verdict, "FAIL", "any 🔴 finding (including simplicity veto) must produce FAIL verdict");
   });
 });
 

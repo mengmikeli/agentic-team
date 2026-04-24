@@ -1,0 +1,76 @@
+{
+  "version": "2.0",
+  "feature": "simplicity-reviewer-with-veto",
+  "status": "executing",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "`roles/simplicity.md` names the four veto categories and requires 🔴 for each, replacing the \"don't block\" anti-pattern.",
+      "status": "in-progress",
+      "attempts": 0,
+      "issueNumber": 166,
+      "lastTransition": "2026-04-24T07:43:35.604Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-2",
+      "title": "`mergeReviewFindings()` tags 🔴 simplicity findings with `[simplicity veto]` in the merged output.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 167
+    },
+    {
+      "id": "task-3",
+      "title": "Unit test: simplicity 🔴 finding → overall `FAIL` verdict even when all other roles produce no criticals.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 168
+    },
+    {
+      "id": "task-4",
+      "title": "Unit test: simplicity 🟡 finding (non-veto) → overall `PASS`, `backlog: true`.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 169
+    },
+    {
+      "id": "task-5",
+      "title": "Unit test: merged output for simplicity 🔴 contains `[simplicity veto]` label.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 170
+    },
+    {
+      "id": "task-6",
+      "title": "All existing synthesize and parallel-review tests continue to pass.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 171
+    }
+  ],
+  "gates": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test test/*.test.mjs\n\n▶ isGateTask\n  ✔ returns true for quality gate task (0.627542ms)\n  ✔ returns false for regular task (0.058792ms)\n  ✔ returns false when title is undefined (0.041458ms)\n  ✔ is case-sensitive (0.040709ms)\n✔ isGateTask (1.655792ms)\n▶ getActiveTask\n  ✔ returns null for empty task list (0.097042ms)\n  ✔ returns null when all tasks are pending (0.049667ms)\n  ✔ returns null when all tasks are passed (0.037459ms)\n  ✔ returns the in-progress task (0.045084ms)\n  ✔ returns the first in-progress task when multiple exist (0.074458ms)\n  ✔ skips gate task even when it is in-progress (0.057875ms)\n  ✔ returns null when only gate task is in-progress (0.240875ms)\n  ✔ returns correct task with attempts field present (0.120042ms)\n✔ getActiveTask (0.953958ms)\n  \u001b[33m⚠ Could not add issue #99 to project board — approval polling may not work.\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity missing) — treating as corrupt to prevent gate bypass.\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  ⚠ approval.json exists but could not be parsed — treating as corrupt (will not re-create issue).\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (1s elapsed)\u001b[0m\n  \u001b[36mApproval required → https://github.com/mengmikeli/agentic-team/issues/42\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (1s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 5s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  \u001b[36mWaiting for approval (issue #42)... (poll every 30s)\u001b[0m\n  \u001b[33m⚠ APPROVAL_POLL_INTERVAL=not-a-number is out of range [1000, 3600000] — using default 30s.\u001b[0m\n  \u001b[2mPolling issue #42 — status: Pending Approval (0s elapsed)\u001b[0m\n  \u001b[2mPolling issue #42 — status: Ready (0s elapsed)\u001b[0m\n  ⚠ approval.json has no valid integrity signature (_integrity mismatch) — treating as corrupt to prevent gate bypass.\n▶ createApprovalIssue\n  ✔ writes approval.json with issueNumber and pending status when issue creation succeeds (3.483917ms)\n  ✔ returns null and does not write approval.json when createIssue fails (1.841333ms)\n  ✔ still writes approval.json when addToProject returns null (board warning only) (2.617083ms)\n  ✔ skips project board calls when projectNumber is null (1.126416ms)\n  ✔ reads SPEC.md content and passes it to createIssue as the body (1.160208ms)\n  ✔ passes 'awaiting-approval' label to createIssue (0.3495ms)\n  ✔ calls setProjectItemStatus with 'pending-approval' status when addToProject succeeds (0.3685ms)\n✔ createApprovalIssue (11.935875ms)\n▶ readApprovalState\n  ✔ returns null when approval.json does not exist (0.690583ms)\n  ✔ returns parsed object when approval.json is valid JSON with correct signature (1.168333ms)\n  ✔ returns { corrupt: true } when approval.json is valid JSON but missing _integrity signature (1.113875ms)\n  ✔ returns { corrupt: true } when approval.json contains invalid JSON (1.263667ms)\n  ✔ corrupt state does not expose issueNumber (so outer loop skips create branch) (0.244458ms)\n✔ readApprovalState (4.868458ms)\n▶ waitForApproval\n  ✔ p",
+      "stderr": "",
+      "timestamp": "2026-04-24T07:46:41.728Z",
+      "taskId": "task-1"
+    }
+  ],
+  "transitionCount": 1,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-24T07:43:35.604Z"
+    }
+  ],
+  "createdAt": "2026-04-24T07:40:54.550Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-24T07:46:41.728Z",
+  "_write_nonce": "d94a152013c6ba5b"
+}

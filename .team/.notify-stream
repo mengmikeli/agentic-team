@@ -195,3 +195,7 @@
 {"ts":"2026-04-24T07:09:31.605Z","event":"task-started","msg":"▶ Task 5/7: `agt finalize` closes the parent approval issue (confirm this already works or fix it)"}
 {"ts":"2026-04-24T07:17:38.741Z","event":"task-passed","msg":"✓ Task 5/7: `agt finalize` closes the parent approval issue (confirm this already works or fix it)"}
 {"ts":"2026-04-24T07:17:45.865Z","event":"task-started","msg":"▶ Task 6/7: No extra project board columns or config changes are required — existing status flow is sufficient"}
+{"ts":"2026-04-24T07:36:24.423Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in parent-issue-subtask-lifecycle — stopping execution"}
+{"ts":"2026-04-24T07:36:24.531Z","event":"feature-complete","msg":"Feature complete: parent-issue-subtask-lifecycle — 3/7 done, 3 blocked, 99m 10s, $123.72"}
+{"ts":"2026-04-24T07:40:54.598Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (6 tasks planned)"}
+{"ts":"2026-04-24T07:43:37.920Z","event":"task-started","msg":"▶ Task 1/6: `roles/simplicity.md` names the four veto categories and requires 🔴 for each, replacing the \"don't block\" anti-pattern."}
