@@ -1,4 +1,4 @@
-# Simplicity Review — mergeReviewFindings() [simplicity veto] tagging
+# Tester Review — mergeReviewFindings() [simplicity veto] tagging
 
 ## Overall Verdict: PASS
 
@@ -6,70 +6,52 @@
 
 ## Files Read
 - `bin/lib/flows.mjs` (lines 177–202) — mergeReviewFindings implementation
-- `bin/lib/synthesize.mjs` (lines 1–79) — parseFindings (called by mergeReviewFindings)
-- `test/flows.test.mjs` (lines 194–278) — mergeReviewFindings test suite
-- `.team/features/simplicity-reviewer-with-veto/tasks/task-2/artifacts/test-output.txt` — gate test output
+- `bin/lib/synthesize.mjs` (lines 1–49) — parseFindings and computeVerdict
+- `test/flows.test.mjs` (lines 194–287) — mergeReviewFindings test suite
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-2/artifacts/test-output.txt` (lines 333–343) — gate test output for mergeReviewFindings suite
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-1/handshake.json`
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-2/handshake.json`
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-2/eval.md`
 
 ---
 
 ## Per-Criterion Results
 
-### 1. Dead code
-**PASS** — No unused variables, imports, or unreachable branches introduced. `label` (line 188) is consumed immediately in `prefixedText` (lines 189–191). No commented-out code.
+### 1. Core veto labeling — simplicity 🔴 → [simplicity veto]
+**PASS** — `flows.mjs:188` ternary fires on `f.role === "simplicity" && p.severity === "critical"`.
+Test at `flows.test.mjs:247` asserts `merged.includes("[simplicity veto]")`. Verified passing in `test-output.txt:339`.
 
-### 2. Premature abstraction
-**PASS** — No new abstractions introduced. The change is a single inline ternary expression.
+### 2. Non-veto labeling — simplicity 🟡 → plain [simplicity]
+**PASS** — Test at `flows.test.mjs:255` asserts `merged.includes("[simplicity]")` AND `!merged.includes("[simplicity veto]")`. Verified passing in `test-output.txt:340`.
 
-### 3. Unnecessary indirection
-**PASS** — No new wrappers, re-exports, or delegation chains added.
+### 3. Non-veto labeling — simplicity 🔵 → plain [simplicity]
+**PASS** — Test at `flows.test.mjs:267` asserts `merged.includes("[simplicity]")` AND `!merged.includes("[simplicity veto]")`. Verified passing in `test-output.txt:341`.
 
-### 4. Gold-plating
-**PASS** — The `[simplicity veto]` label is a direct stated requirement (task description). No config options, feature flags, or speculative extensibility. Both branches of the ternary are exercised by the test suite.
+### 4. Verdict propagation — simplicity 🔴 causes FAIL
+**PASS** — Test at `flows.test.mjs:276` runs `computeVerdict(parseFindings(merged))` and asserts `verdict === "FAIL"`. Verified passing in `test-output.txt:342`.
 
----
-
-## Change Under Review (flows.mjs lines 185–191)
-
-```js
-const emojiRe = /^([🔴🟡🔵])\s*/u;
-const m = p.text.match(emojiRe);
-const label = (f.role === "simplicity" && p.severity === "critical") ? "simplicity veto" : f.role;
-const prefixedText = m
-  ? `${m[1]} [${label}] ${p.text.slice(m[0].length)}`
-  : `[${label}] ${p.text}`;
-```
-
-The only substantive addition is the `label` ternary on line 188. It is minimal, readable, and directly implements the requirement.
+### 5. Severity detection chain
+**PASS** — `parseFindings` (synthesize.mjs:23) classifies lines containing `🔴` as `severity: "critical"`. The `label` ternary at `flows.mjs:188` correctly uses `p.severity === "critical"` as the gate condition. Both functions are consistent.
 
 ---
 
-## Test Evidence
+## Coverage Gaps
 
-From `task-2/artifacts/test-output.txt` (gate passed, exit code 0):
+### Unresolved carry-over from prior cycle
+`test/flows.test.mjs:320` — No `buildReviewBrief` test for the `"simplicity"` role. Removal of veto content from `roles/simplicity.md` would go undetected. Flagged in previous cycle (task-2/eval.md:12) and remains unresolved.
 
-```
-▶ mergeReviewFindings
-  ✔ combines findings from multiple roles into a single report
-  ✔ sorts findings: critical before warning before suggestion
-  ✔ prefixes each finding with the role name
-  ✔ handles empty output gracefully
-  ✔ returns a string with a heading
-  ✔ labels simplicity 🔴 as [simplicity veto]
-  ✔ labels simplicity 🟡 as plain [simplicity] (not veto)
-  ✔ simplicity 🔴 causes FAIL even when all other roles pass with no criticals
-✔ mergeReviewFindings (0.512667ms)
-```
+### New gaps identified this cycle
 
-All 8 tests pass including the two new tests for the veto-labeling behavior.
+**Gap A — mixed-severity simplicity output not tested**
+No test where a single simplicity role output contains both a 🔴 and a 🟡 finding. The existing tests exercise the two branches of the label ternary in separate invocations but never within one `mergeReviewFindings` call where both branches fire for the same role. The loop at `flows.mjs:182–194` handles this correctly by inspection, but it is untested.
 
----
-
-## Pre-existing Issues (not introduced by this PR)
-
-`emojiRe` regex (`/^([🔴🟡🔵])\s*/u`) is defined inside the inner loop, recreating the object on every iteration. This is pre-existing code and not a veto-category issue.
+**Gap B — no negative assertion for non-simplicity 🔴**
+The "combines findings from multiple roles" test at `flows.test.mjs:195` checks that `security` 🔴 produces `[security]` but does not assert `!merged.includes("[simplicity veto]")`. A regression widening the ternary condition would not be caught.
 
 ---
 
 ## Findings
 
-No findings.
+🟡 test/flows.test.mjs:320 — No `buildReviewBrief` test for the "simplicity" role; removal of veto content from `roles/simplicity.md` goes undetected — add a test asserting the brief includes simplicity-specific keywords (e.g. "dead code", "gold-plating") — pre-existing, unresolved two cycles
+🔵 test/flows.test.mjs:194 — No test for a single simplicity output containing both 🔴 and 🟡 findings; add a mixed-severity case to verify 🔴 gets [simplicity veto] and 🟡 gets plain [simplicity] in the same invocation
+🔵 test/flows.test.mjs:195 — "combines findings from multiple roles" does not assert `[simplicity veto]` is absent for non-simplicity 🔴 findings; add `assert.ok(!merged.includes("[simplicity veto]"))` to guard against accidental label expansion
