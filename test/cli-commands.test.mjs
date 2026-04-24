@@ -333,6 +333,23 @@ describe("agt help <command>", () => {
     assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
   });
 
+  it("agt help cron-tick shows usage and examples", () => {
+    const result = runAgt(["help", "cron-tick"], tmpDir);
+    assert.ok(result.ok, "help cron-tick should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("cron-tick"), "should mention cron-tick command");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
+  it("agt help cron-setup shows usage, flags, and examples", () => {
+    const result = runAgt(["help", "cron-setup"], tmpDir);
+    assert.ok(result.ok, "help cron-setup should exit 0");
+    assert.ok(result.stdout.includes("Usage:"), "should show Usage:");
+    assert.ok(result.stdout.includes("cron-setup"), "should mention cron-setup command");
+    assert.ok(result.stdout.includes("--interval"), "should list --interval flag");
+    assert.ok(result.stdout.includes("Examples:"), "should show Examples:");
+  });
+
   it("agt help <unknown> exits non-zero and shows error", () => {
     const result = runAgt(["help", "nonexistent-command"], tmpDir);
     assert.ok(!result.ok, "should exit non-zero for unknown command");

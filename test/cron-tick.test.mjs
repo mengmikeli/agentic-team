@@ -7,7 +7,7 @@ import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
-import { cmdCronTick } from "../bin/lib/cron.mjs";
+import { cmdCronTick, cmdCronSetup } from "../bin/lib/cron.mjs";
 
 function createTmpDir() {
   const dir = join(tmpdir(), `cron-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
@@ -208,5 +208,115 @@ describe("cmdCronTick", () => {
     }
 
     assert.equal(exitCode, 1, "Should exit 1 when tracking config is missing");
+  });
+
+  // ── 6. Missing project number ──────────────────────────────────
+
+  it("exits 1 when project number cannot be found", async () => {
+    const deps = {
+      readTrackingConfig: () => ({
+        statusFieldId: "field-123",
+        statusOptions: {
+          "todo": "opt-todo",
+          "in-progress": "opt-inprogress",
+          "done": "opt-done",
+          "ready": "opt-ready",
+        },
+      }),
+      readProjectNumber: () => null,
+      listProjectItems: () => [],
+      runSingleFeature: async () => {},
+      setProjectItemStatus: () => false,
+      commentIssue: () => false,
+      lockFile: () => ({ acquired: true, release: () => {} }),
+    };
+
+    try {
+      await cmdCronTick([], deps);
+    } catch (e) {
+      // process.exit throws in test
+    }
+
+    assert.equal(exitCode, 1, "Should exit 1 when project number is missing");
+  });
+
+  // ── 7. Missing Ready option ID ─────────────────────────────────
+
+  it("exits 1 when Ready option ID is not configured", async () => {
+    const deps = {
+      readTrackingConfig: () => ({
+        statusFieldId: "field-123",
+        statusOptions: {
+          "todo": "opt-todo",
+          "in-progress": "opt-inprogress",
+          "done": "opt-done",
+          // no "ready" key
+        },
+      }),
+      readProjectNumber: () => 42,
+      listProjectItems: () => [],
+      runSingleFeature: async () => {},
+      setProjectItemStatus: () => false,
+      commentIssue: () => false,
+      lockFile: () => ({ acquired: true, release: () => {} }),
+    };
+
+    try {
+      await cmdCronTick([], deps);
+    } catch (e) {
+      // process.exit throws in test
+    }
+
+    assert.equal(exitCode, 1, "Should exit 1 when Ready option ID is not configured");
+  });
+});
+
+// ── cmdCronSetup tests ────────────────────────────────────────────
+
+describe("cmdCronSetup", () => {
+  let logs;
+  let origLog;
+
+  beforeEach(() => {
+    logs = [];
+    origLog = console.log;
+    console.log = (...a) => { logs.push(a.join(" ")); };
+  });
+
+  afterEach(() => {
+    console.log = origLog;
+  });
+
+  it("prints a crontab line with the default 30-minute interval", () => {
+    cmdCronSetup([]);
+    const output = logs.join("\n");
+    assert.ok(output.includes("*/30 * * * *"), `Expected */30 in output: ${output}`);
+    assert.ok(output.includes("cron-tick"), "Should include cron-tick command");
+    assert.ok(output.includes("cron.log"), "Should include log path");
+  });
+
+  it("respects --interval flag", () => {
+    cmdCronSetup(["--interval", "15"]);
+    const output = logs.join("\n");
+    assert.ok(output.includes("*/15 * * * *"), `Expected */15 in output: ${output}`);
+  });
+
+  it("defaults to 30 when interval is negative", () => {
+    cmdCronSetup(["--interval", "-5"]);
+    const output = logs.join("\n");
+    assert.ok(output.includes("*/30 * * * *"), `Expected */30 for negative interval in output: ${output}`);
+  });
+
+  it("defaults to 30 when interval is zero", () => {
+    cmdCronSetup(["--interval", "0"]);
+    const output = logs.join("\n");
+    assert.ok(output.includes("*/30 * * * *"), `Expected */30 for zero interval in output: ${output}`);
+  });
+
+  it("single-quotes paths in the crontab line", () => {
+    cmdCronSetup([]);
+    const cronLine = logs.find(l => l.includes("* * * *"));
+    assert.ok(cronLine, "Should have a crontab line");
+    assert.ok(cronLine.includes("'"), "Paths should be single-quoted for shell safety");
   });
 });

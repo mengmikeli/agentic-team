@@ -54,9 +54,15 @@ export async function cmdCronTick(args = [], deps = {}) {
   } = deps;
 
   // Read tracking config — required for project board access
-  const tracking = _readTrackingConfig();
+  const tracking = _readTrackingConfig(join(cwd, ".team", "PROJECT.md"));
   if (!tracking) {
     console.log("cron-tick: not configured (no PROJECT.md tracking section with required field IDs)");
+    process.exit(1);
+  }
+
+  // Pre-flight: ensure Ready status option is configured so we can revert on failure
+  if (!tracking.statusOptions["ready"]) {
+    console.log("cron-tick: 'Ready Option ID' is not configured in PROJECT.md tracking section");
     process.exit(1);
   }
 
@@ -90,7 +96,9 @@ export async function cmdCronTick(args = [], deps = {}) {
 
     // Take the first ready item
     const item = readyItems[0];
-    const { issueNumber, title } = item;
+    const { issueNumber } = item;
+    // Sanitize title: strip newlines and control chars to prevent prompt injection
+    const title = (item.title || "").replace(/[\r\n\x00-\x1f\x7f]/g, " ").trim().slice(0, 200);
 
     console.log(`cron-tick: dispatching issue #${issueNumber} — ${title}`);
 
@@ -123,11 +131,14 @@ export async function cmdCronTick(args = [], deps = {}) {
  * @param {string[]} args - CLI args; supports --interval <n> (default: 30)
  */
 export function cmdCronSetup(args = []) {
-  const interval = parseInt(getFlag(args, "interval", "30"), 10) || 30;
+  const rawInterval = parseInt(getFlag(args, "interval", "30"), 10);
+  const interval = (!rawInterval || rawInterval < 1) ? 30 : rawInterval;
   const cwd = process.cwd();
   const agtPath = process.argv[1];
 
-  const cronLine = `*/${interval} * * * * cd ${cwd} && PATH=${process.env.PATH} ${agtPath} cron-tick >> ${cwd}/.team/cron.log 2>&1`;
+  // Single-quote paths to handle spaces (macOS/Linux safe)
+  const quotePath = (p) => `'${p.replace(/'/g, "'\\''")}'`;
+  const cronLine = `*/${interval} * * * * cd ${quotePath(cwd)} && PATH=${process.env.PATH} ${quotePath(agtPath)} cron-tick >> ${quotePath(cwd + "/.team/cron.log")} 2>&1`;
 
   console.log("Add this line to your crontab (run: crontab -e):\n");
   console.log(cronLine);
