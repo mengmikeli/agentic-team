@@ -153,7 +153,6 @@ describe("runSimplifyPass — skip conditions", () => {
 describe("runSimplifyPass — agent dispatch and gate re-run", () => {
   it("dispatches agent when code files are changed", () => {
     const dispatches = [];
-    let revParseCount = 0;
     const execFn = (cmd, _opts) => {
       if (cmd.includes("merge-base")) return "basesha\n";
       if (cmd.includes("rev-parse HEAD")) return "sha1\n";
@@ -348,6 +347,82 @@ describe("runSimplifyPass — agent dispatch and gate re-run", () => {
     assert.equal(result.reverted, true);
     assert.equal(result.filesChanged, 0);
     assert.equal(revertCmds.length, 1, "should run git reset --hard on gate exception");
+  });
+});
+
+// ── Full branch diff — not per-task ──────────────────────────────
+
+describe("runSimplifyPass — full branch diff (not per-task)", () => {
+  it("computes merge-base against main branch", () => {
+    const cmds = [];
+    const execFn = (cmd, _opts) => {
+      cmds.push(cmd);
+      if (cmd.includes("merge-base")) return "featurebase\n";
+      if (cmd.includes("rev-parse HEAD")) return "sha1\n";
+      if (cmd.includes("--name-only featurebase..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("--name-only HEAD")) return "";
+      return "";
+    };
+    runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: () => ({ ok: true }),
+      runGateFn: () => ({ verdict: "PASS", exitCode: 0 }),
+      execFn,
+    });
+    const mergeBaseCmd = cmds.find(c => c.includes("merge-base"));
+    assert.ok(mergeBaseCmd, "must call git merge-base");
+    assert.ok(
+      mergeBaseCmd.includes("main") || mergeBaseCmd.includes("master"),
+      `merge-base must reference main or master, got: ${mergeBaseCmd}`
+    );
+  });
+
+  it("uses merge-base SHA as diff range start — full branch, not per-task", () => {
+    let capturedDiffCmd = "";
+    const execFn = (cmd, _opts) => {
+      if (cmd.includes("merge-base")) return "abc123feature\n";
+      if (cmd.includes("rev-parse HEAD")) return "sha1\n";
+      if (cmd.includes("--name-only") && !capturedDiffCmd) {
+        capturedDiffCmd = cmd;
+        return "src/index.mjs\n";
+      }
+      return "";
+    };
+    runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: () => ({ ok: true }),
+      runGateFn: () => ({ verdict: "PASS", exitCode: 0 }),
+      execFn,
+    });
+    assert.ok(
+      capturedDiffCmd.includes("abc123feature..HEAD"),
+      `git diff must use merge-base..HEAD range, got: ${capturedDiffCmd}`
+    );
+  });
+
+  it("falls back to master when main is unavailable", () => {
+    const cmds = [];
+    const execFn = (cmd, _opts) => {
+      cmds.push(cmd);
+      if (cmd.includes("merge-base") && cmd.includes("main")) throw new Error("no main");
+      if (cmd.includes("merge-base") && cmd.includes("master")) return "masterbase\n";
+      if (cmd.includes("rev-parse HEAD")) return "sha1\n";
+      if (cmd.includes("--name-only masterbase..HEAD")) return "src/util.mjs\n";
+      if (cmd.includes("--name-only HEAD")) return "";
+      return "";
+    };
+    const dispatches = [];
+    runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: (a, brief) => { dispatches.push(brief); return { ok: true }; },
+      runGateFn: () => ({ verdict: "PASS", exitCode: 0 }),
+      execFn,
+    });
+    assert.equal(dispatches.length, 1, "should dispatch when master fallback succeeds");
+    assert.ok(dispatches[0].includes("src/util.mjs"), "brief must list files from master-based diff");
   });
 });
 
