@@ -1,10 +1,10 @@
 {
   "taskId": "task-3",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Verified existing implementation satisfies task-3 spec: on review-round escalation, run.mjs:1351-1352 calls buildEscalationSummary (title + round count + deduplicated findings table from handshake-round-N.json archives) and posts it via commentIssue(task.issueNumber, ...). Added a focused acceptance test in test/review-escalation.test.mjs asserting the posted comment body contains all three required parts (task title, round count phrase, dedup findings table) with verified dedup of overlapping findings across 3 rounds. Full suite: 582/582 pass.",
+  "summary": "Verified existing implementation satisfies task-3 spec: on review-round escalation, run.mjs:1351-1352 calls buildEscalationSummary (title + round count + deduplicated findings table from handshake-round-N.json archives) and posts it via commentIssue(task.issueNumber, ...). Acceptance test in test/review-escalation.test.mjs asserts the posted comment body contains all three required parts (task title, round count phrase, dedup findings table) with verified dedup of overlapping findings across 3 rounds. Full suite: 582/582 pass.",
   "timestamp": "2026-04-25T00:00:00Z",
   "artifacts": [
     { "type": "code", "path": "test/review-escalation.test.mjs" },
