@@ -177,3 +177,42 @@ Scope is narrow — forwarding an explicit `cwd` to `spawnSync`/`execSync`. The 
 🔵 bin/lib/run.mjs:60 — Pre-existing `execSync(cmd, { shell: true })` is a command-injection sink if `gateCmd` ever sources from untrusted input. Out of scope for this task; document that gate commands must originate from trusted feature config.
 🔵 bin/lib/run.mjs:309 — `_spawnFn("sleep", [String(wait)])` is POSIX-only; on Windows the 429 backoff silently no-ops, undermining the API-quota protection. Replace with a Node timer.
 🔵 bin/lib/run.mjs:1202 — `git add -A` after gate-pass auto-stages everything in the worktree; safe under worktree isolation, but document that any pre-commit hook running inside the worktree is implicitly trusted (its output flows downstream into reviewer phases).
+
+---
+
+# PM Review (re-review after commit 29567bd) — task-3
+
+## Verdict: PASS
+
+The earlier PM/Tester/Architect/Security/Engineer rounds in this file all flagged a 🟡 on `runGateInline` retaining a `cwd = process.cwd()` default. **That finding is now stale.** Commit 97f0f47 + 29567bd dropped the default and added a thrown error guard on both functions. I re-read the live source and tests to confirm.
+
+## Files I actually opened and read
+- `.team/features/git-worktree-isolation/tasks/task-3/handshake.json`
+- `bin/lib/run.mjs` (lines 40–140, 280–340)
+- `test/worktree.test.mjs` (lines 240–312)
+
+## Claims vs evidence (current source)
+
+| Builder claim | Evidence | Result |
+|---|---|---|
+| `runGateInline` throws when cwd omitted | run.mjs:53–54 — `function runGateInline(cmd, featureDir, taskId, cwd)` followed by `if (!cwd) throw new Error("runGateInline: cwd is required …")`. **No default param.** | PASS |
+| `dispatchToAgent` throws when cwd omitted | run.mjs:283–284 — same guard, no default. | PASS |
+| Codex spawn now passes `env: { ...process.env }` | run.mjs:328 — present, parity with claude branch (run.mjs:296). | PASS |
+| Negative tests lock the contract | test/worktree.test.mjs:245-265 — three `assert.throws(/cwd is required/)` cases covering omitted arg (runGate), explicit undefined (runGate), and dispatch path. | PASS |
+| No regressions | Gate output (truncated) shows the full suite running across 25 files; handshake reports 0 findings. | PASS |
+
+## PM lens
+
+- **Spec match**: Spec phrase "no implicit `process.cwd()` fallback when a worktree is active" is implemented as an unconditional required-cwd contract — stricter than the literal spec, and the right interpretation given the feature intent.
+- **User value**: Real. Future callers cannot accidentally leak the parent repo's cwd into a spawned agent or gate command. Worktree isolation is now a runtime invariant, not a convention.
+- **Scope discipline**: In scope. The codex `env` parity addition is a small justified parity fix (same options bag), not creep.
+- **Acceptance verifiable from spec**: Yes. The negative tests are the literal expression of "no implicit fallback."
+
+## Findings (this round)
+
+🟡 .team/features/git-worktree-isolation/tasks/task-3/ — No `artifacts/test-output.txt` exists for this task; gate stdout was provided in-band but not persisted to disk. File to backlog so future audits can reproduce gate evidence.
+🔵 test/worktree.test.mjs:259 — Negative dispatch test covers `claude` only; symmetric `codex` negative test would round out coverage. Optional.
+🔵 .team/features/git-worktree-isolation/tasks/task-3/eval.md — Earlier 🟡 findings in this file (PM/Tester/Architect/Security all on run.mjs:53 default) are now obsolete. Worth a note above each so future readers don't backlog already-fixed issues.
+
+## Conclusion
+Implementation matches the task description and the broader worktree-isolation feature intent. The required-cwd contract is enforced at both call sites and locked in by direct negative tests. PASS with one yellow flag for the missing test-output artifact (backlog only — does not block).

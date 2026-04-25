@@ -1,58 +1,61 @@
-# Engineer Review — task-3
+# Engineer Review — task-3 (git-worktree-isolation)
 
 ## Verdict: PASS
 
 ## Task
 `dispatchToAgent` and `runGateInline` both honor the worktree `cwd` parameter (no implicit `process.cwd()` fallback when a worktree is active).
 
-## Files I actually opened and read
-- `bin/lib/run.mjs` (lines 40–140, 270–330, 1180–1220)
-- `test/worktree.test.mjs` (lines 160–278)
+## Files actually opened
+- `bin/lib/run.mjs` (lines 40–151, 275–335, 1075–1095)
+- `bin/lib/review.mjs` (cwd grep)
+- `bin/lib/outer-loop.mjs` (cwd grep)
+- `bin/lib/brainstorm-cmd.mjs` (cwd grep)
+- `test/worktree.test.mjs` (diff + grep)
+- `git diff HEAD~3 HEAD -- bin/lib/run.mjs test/worktree.test.mjs`
 - `.team/features/git-worktree-isolation/tasks/task-3/handshake.json`
 
-## Evidence verified
+## Implementation correctness
 
-### `dispatchToAgent` (bin/lib/run.mjs:282)
-- Signature: `dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync)` — `cwd` is a required positional with no default.
-- Claude branch (run.mjs:289–295) forwards `cwd` to `_spawnFn` opts.
-- Codex branch (run.mjs:321–326) forwards `cwd` to `_spawnFn` opts.
-- Test `test/worktree.test.mjs:235-247` asserts spawn mock receives `worktreePath` as `opts.cwd`; `:263-276` asserts `opts.cwd !== process.cwd()` when they differ.
+- **`runGateInline` (run.mjs:53–54)** — default `cwd = process.cwd()` was removed; explicit `if (!cwd) throw` guards entry. The `cwd` is forwarded directly to `execSync` at line 60–61. Correct.
+- **`dispatchToAgent` (run.mjs:283–284)** — same guard pattern. `cwd` is forwarded to both the `claude` (line 293) and `codex` (line 325) `spawnSync` invocations. Both branches now also pass `env: { ...process.env }` (claude:296, codex:328), achieving the parity claimed in the handshake.
+- **All call sites pass an explicit `cwd`** — verified via grep:
+  - `run.mjs:1085, 1165, 1198, 1222, 1410, 1460` — uses local `cwd` var (worktreePath when active, `process.cwd()` otherwise).
+  - `review.mjs:202, 214` — uses `cwd = process.cwd()` from `cmdReview` scope.
+  - `outer-loop.mjs:676, 750, 876` — `cwd = process.cwd()` at line 600.
+  - `brainstorm-cmd.mjs:254` — `cwd = process.cwd()` at line 237.
+- No call site relies on the removed default. The contract is testable and tested.
 
-### `runGateInline` (bin/lib/run.mjs:53)
-- Signature: `runGateInline(cmd, featureDir, taskId, cwd = process.cwd())` — has a `process.cwd()` default fallback (see findings).
-- Forwards `cwd` to `execSync` (run.mjs:60).
-- Test `test/worktree.test.mjs:181-191` runs `pwd` and asserts stdout equals `realpathSync(tmpDir)`, proving the cwd is honored at OS level.
+## Tests / evidence
+- `npm test` → 544 tests, 542 pass, 0 fail, 2 skipped (32.5s). Re-ran during this review.
+- New negative-path tests (`test/worktree.test.mjs:235–266`) cover:
+  - `runGateInline` throws when `cwd` omitted (positional null arg)
+  - `runGateInline` throws when `cwd` is explicitly `undefined`
+  - `dispatchToAgent` throws when `cwd` is `undefined`
+- All three pass.
 
-### Call site (bin/lib/run.mjs:1195)
-- `runGateInline(gateCmd, featureDir, task.id, cwd)` — passes the worktree path explicitly.
-- Source-assertion test `test/worktree.test.mjs:223-230` regex-checks this exact call shape.
-- Subsequent `git add/commit` (run.mjs:1202-1205) and `dispatchToAgent` (run.mjs:1219) reuse the same `cwd`, so the worktree boundary holds across gate → commit → review.
+## Code quality / error handling
 
-### Re-ran tests locally
-`node --test test/worktree.test.mjs` → **25 pass / 0 fail / 0 skipped** (139 ms). Cwd-injection suites all green.
+- The `if (!cwd) throw` form is concise and correctly rejects `undefined`, `null`, and `""`. An empty string is also a sensible reject (callers should never legitimately pass it).
+- Error messages are explicit and grep-able.
+- `env: { ...process.env }` shallow-copies the parent env into both spawns — consistent with `harness()` at run.mjs:40.
+- Outer `try/catch` (run.mjs:333) still wraps both branches, but the contract `throw` happens *before* the `try`, so it propagates synchronously to the caller — intended fail-fast behavior.
 
 ## Per-criterion
 
 | Criterion | Result | Evidence |
 |---|---|---|
-| `dispatchToAgent` forwards cwd to spawn (claude) | PASS | run.mjs:291; worktree.test.mjs:246 |
-| `dispatchToAgent` forwards cwd to spawn (codex) | PASS | run.mjs:323; worktree.test.mjs:260 |
-| `runGateInline` forwards cwd to execSync | PASS | run.mjs:60; worktree.test.mjs:188 |
-| Production call site passes worktree cwd | PASS | run.mjs:1195; worktree.test.mjs:226 |
-| No regressions in full suite | PASS | gate output: 539/0/2 |
-| Edge case: cwd ≠ process.cwd() actually exercised | PASS | worktree.test.mjs:271,275 |
-
-## Edge cases I checked
-- Non-zero exit propagation: `runGateInline` `verdict = "FAIL"` covered (worktree.test.mjs:198-201).
-- Default fallback path: not directly tested, but no caller relies on it (only call site is run.mjs:1195 which always passes cwd).
-- Codex branch lacks `env: { ...process.env }` plumbing (claude branch has it at run.mjs:294). Not in scope here, just noted.
+| `runGateInline` honors `cwd`, no implicit fallback | PASS | run.mjs:53–61, test:247–256 |
+| `dispatchToAgent` honors `cwd`, no implicit fallback | PASS | run.mjs:283–328, test:260–266 |
+| All call sites pass an explicit `cwd` | PASS | grep across run/review/outer-loop/brainstorm-cmd |
+| Negative tests prove the contract | PASS | worktree.test.mjs:235–266 (3 new tests, all pass) |
+| Full test suite still green | PASS | 542 pass / 0 fail / 2 skipped |
+| Codex/claude env parity | PASS | run.mjs:296 and 328 |
+| No obvious inefficiencies | PASS | guards are O(1) |
 
 ## Findings
 
-🟡 bin/lib/run.mjs:53 — `runGateInline` retains `cwd = process.cwd()` default. The spec literally says "no implicit `process.cwd()` fallback when a worktree is active." The current default is dormant (only call site always passes cwd) but is a latent footgun for future callers. Drop the default to make `cwd` required.
-🔵 bin/lib/run.mjs:321 — `codex` branch in `dispatchToAgent` doesn't forward `env: { ...process.env }` like the `claude` branch (run.mjs:294). Consistency fix; not part of this task.
-🔵 test/worktree.test.mjs:226 — `_runSingleFeature wiring` test uses a regex over source. Brittle to formatting. A behavioral test (e.g., mock `runGateInline` and assert call args) would be more robust. Already flagged in PM eval.
-🔵 .team/features/git-worktree-isolation/tasks/task-3/ — No `artifacts/test-output.txt` was written for this task. The gate handshake summary references results but the artifact file isn't on disk. Minor reproducibility gap.
+🔵 bin/lib/run.mjs:284 — Consider tightening to `if (typeof cwd !== "string" || !cwd)` so a numeric/object accidentally passed is rejected with the same error rather than silently accepted by `spawnSync`. Optional.
+🔵 test/worktree.test.mjs:262 — `dispatchToAgent` negative test only covers the `claude` agent path; symmetric `codex` coverage would harden the contract, though the guard runs before the agent branch so behavior is identical. Optional.
 
-## Conclusion
-Implementation matches spec. Tests directly assert the contract for both functions, and I reproduced the green run locally. PASS with one yellow flag for the latent default fallback.
+## Notes
+Small, surgical change with strong test coverage. The contract is enforced at the function boundary, all production call sites comply, and the full suite is green. No blocking issues.
