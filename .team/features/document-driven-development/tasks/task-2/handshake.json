@@ -1,14 +1,15 @@
 {
   "taskId": "task-2",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Replaced the auto-stub SPEC.md creation in bin/lib/run.mjs with a hard error that names the missing SPEC.md path and points users at `agt brainstorm <feature>`. Added a regression test in test/cli-commands.test.mjs covering the non-zero exit and message contents.",
+  "summary": "Tightened the regression test for missing SPEC.md to pin exit code to 1, assert the full 'agt brainstorm my-feature' hint, and verify no auto-stub side effect. Routed the failure messages in bin/lib/run.mjs through console.error for clean stdout/stderr separation. Full test suite 581/581 green.",
   "timestamp": "2026-04-25T00:00:00Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/run.mjs" },
-    { "type": "code", "path": "test/cli-commands.test.mjs" }
+    { "type": "code", "path": "test/cli-commands.test.mjs" },
+    { "type": "log", "path": ".team/features/document-driven-development/tasks/task-2/artifacts/test-output.txt" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
