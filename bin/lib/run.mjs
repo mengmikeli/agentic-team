@@ -284,24 +284,35 @@ export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
 
   try {
     if (agent === "claude") {
-      const result = _spawnFn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
-        encoding: "utf8",
-        cwd,
-        timeout: 600000, // 10 min max per task
-        stdio: ["pipe", "pipe", "pipe"],
-        env: { ...process.env },
-      });
-      let output = result.stdout || "";
-      let parsed = null;
-      try {
-        parsed = JSON.parse(output);
-        trackUsage(parsed);
-        output = parsed.result || "";
-      } catch {
-        // fallback: treat as plain text (old claude versions)
+      const MAX_RETRIES = 3;
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const result = _spawnFn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
+          encoding: "utf8",
+          cwd,
+          timeout: 600000,
+          stdio: ["pipe", "pipe", "pipe"],
+          env: { ...process.env },
+        });
+        let output = result.stdout || "";
+        let parsed = null;
+        try {
+          parsed = JSON.parse(output);
+          trackUsage(parsed);
+          output = parsed.result || "";
+        } catch {}
+
+        // Retry on rate limit (429)
+        const is429 = (result.stderr || "").includes("429") || (result.stderr || "").includes("rate limit");
+        if (is429 && attempt < MAX_RETRIES) {
+          const wait = attempt * 30;
+          console.log(`  ${c.yellow}Rate limited (429). Waiting ${wait}s before retry ${attempt + 1}/${MAX_RETRIES}...${c.reset}`);
+          _spawnFn("sleep", [String(wait)], { stdio: "pipe" });
+          continue;
+        }
+
+        if (output) console.log(`  ${c.dim}${output.slice(0, 2000)}${c.reset}`);
+        return { ok: result.status === 0, output, error: result.stderr || "", usage: parsed?.usage || null, cost: parsed?.total_cost_usd || null };
       }
-      if (output) console.log(`  ${c.dim}${output.slice(0, 2000)}${c.reset}`);
-      return { ok: result.status === 0, output, error: result.stderr || "", usage: parsed?.usage || null, cost: parsed?.total_cost_usd || null };
     }
 
     if (agent === "codex") {
