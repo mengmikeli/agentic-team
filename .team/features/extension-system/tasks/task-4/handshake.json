@@ -1,16 +1,16 @@
 {
   "taskId": "task-4",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Implemented the `artifactEmit` extension hook: added `runArtifactEmit` to `run.mjs` which writes returned artifact content to the task artifacts directory and returns descriptors merged into the gate handshake. Also fixed the dead-code traversal guard in `extension-loader.mjs` (unreachable branch identified in the simplicity review) and added 10 new tests covering both the `fireExtension('artifactEmit', ...)` fan-out and the `runArtifactEmit` write/descriptor logic.",
+  "summary": "Fixed parseFindings() false-positive (startsWith vs includes) that caused reviewer lines referencing prior 🔴 findings to be misclassified as critical — root cause of the previous review FAIL. Preserved artifactEmitExtras and executeRunPaths in both review handshake paths, added resetRegistry() at _runSingleFeature start to prevent extension leakage across features, and added 5 new tests covering handshake merge integration, path registration, and parseFindings regression prevention.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
+    { "type": "code", "path": "bin/lib/synthesize.mjs" },
     { "type": "code", "path": "bin/lib/run.mjs" },
-    { "type": "code", "path": "bin/lib/extension-registry.mjs" },
-    { "type": "code", "path": "bin/lib/extension-loader.mjs" },
-    { "type": "code", "path": "test/extension-system.test.mjs" }
+    { "type": "code", "path": "test/extension-system.test.mjs" },
+    { "type": "code", "path": "test/synthesize.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
