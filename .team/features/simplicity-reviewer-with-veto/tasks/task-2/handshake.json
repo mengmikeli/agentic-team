@@ -1,10 +1,10 @@
 {
   "taskId": "task-2",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Extracted evaluateSimplicityOutput() into flows.mjs to make the simplicity-review logic testable. Updated run.mjs to use this helper with explicit SKIP handling (logged warning) when agent output is empty, replacing the silent no-op. Added 6 new tests covering SKIP on empty/null output, FAIL on 🔴 findings, PASS on 🟡 findings, and the !reviewFailed guard behavior — all 590 tests pass.",
+  "summary": "Verified the build-verify flow's dedicated simplicity-review phase forces overall verdict FAIL on a 🔴 finding. Wiring confirmed: FLOWS['build-verify'].phases includes 'simplicity-review' (flows.mjs:34); evaluateSimplicityOutput (flows.mjs:210) returns SKIP/PASS/FAIL; run.mjs:1271-1296 gates the phase on !reviewFailed and sets reviewFailed=true on critical findings. Full test suite green: 590/590 pass.",
   "timestamp": "2026-04-25T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/flows.mjs" },
