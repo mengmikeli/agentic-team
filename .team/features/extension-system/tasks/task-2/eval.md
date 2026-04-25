@@ -442,3 +442,564 @@ Core integration is correctly implemented: `verdictAppend` fires after `parseFin
 Two backlog warnings: the `cmdSynthesize` integration path is entirely untested (a regression in the wiring would be invisible), and the gate output is truncated so the verdictAppend test run is unconfirmed. Two suggestions address documentation gaps for the compound-gate interaction and the missing spec file.
 
 **PASS with two backlog warnings.**
+
+---
+
+# Architect Review — task-2: verdictAppend (current state)
+
+**Reviewer role:** Architect
+**Date:** 2026-04-26
+**Overall verdict: PASS**
+
+---
+
+## Files Read
+
+- `bin/lib/synthesize.mjs` (full — 168 lines)
+- `bin/lib/extension-registry.mjs` (full — 46 lines)
+- `bin/lib/extension-runner.mjs` (full — 39 lines)
+- `bin/lib/extension-loader.mjs` (full — 57 lines)
+- `bin/lib/compound-gate.mjs` (full — 207 lines)
+- `test/extension-system.test.mjs` (full — 547 lines)
+- `.team/features/extension-system/tasks/task-2/handshake.json`
+- `.team/features/extension-system/tasks/task-2/eval.md` (all prior reviews)
+
+---
+
+## Prior Architect 🟡 Finding Resolution
+
+All three 🟡 items from the previous Architect review are confirmed resolved in current source:
+
+| Prior Finding | Status | Evidence |
+|---|---|---|
+| `synthesize.mjs:121` mutable reference to findings array | **RESOLVED** | `findings: [...findings]` at line 121 — shallow copy passed; extension cannot mutate base array |
+| No `cmdSynthesize` e2e test calling with live verdictAppend extension | **RESOLVED** | `test/extension-system.test.mjs:435–477` — full integration test via `cmdSynthesize(["--input", tmpFile])` with registered extension; asserts FAIL verdict, critical count, and finding text |
+| `synthesize.mjs:126` O(n²) `findings = [...findings, f]` in inner loop | **RESOLVED** | `findings.push(f)` at line 128; severity now validated against allowlist `["critical","warning","suggestion"].includes(f.severity)` — Engineer 🟡 also closed |
+
+---
+
+## Per-Criterion Results
+
+### 1. Sequencing — PASS
+
+**Direct code trace** (`synthesize.mjs:116–155`):
+1. `parseFindings(text)` → base findings (line 116)
+2. `fireExtension("verdictAppend", { findings: [...findings], phase: "review" }, repoRoot)` (line 121)
+3. Validated merge with allowlist guard (lines 122–130)
+4. `runCompoundGate(findings, repoRoot)` — enriched array (line 134)
+5. `computeVerdict(findings)` — enriched array including any gate prepend (line 155)
+
+Both compound gate and verdict computation receive the full post-extension findings set. Claimed sequencing verified.
+
+### 2. Error isolation — PASS
+
+Three isolation layers confirmed in current code:
+- `runHook` (runner.mjs:35–38): per-hook try/catch returns `null` on any error or timeout
+- `fireExtension` (registry.mjs:41): `result != null` filter removes null/undefined results
+- `cmdSynthesize` (synthesize.mjs:120/131): outer try/catch with `/* extensions must never break synthesis */` comment
+
+A crashing or hanging extension cannot surface through to synthesis output.
+
+### 3. Boundary design — PASS (prior issue resolved, new concern flagged)
+
+**Resolved:** `synthesize.mjs:121` now passes `[...findings]` — a shallow copy. An extension calling `payload.findings.push(...)` modifies only the copy; the base `findings` array is unchanged before the validation loop.
+
+**New concern:** Extension-injected findings participate in ALL active compound gate layers — `thin-content`, `missing-code-refs`, `low-uniqueness`, `aspirational-claims` (compound-gate.mjs:182–193). An extension author who injects a finding without a `file:line` reference will silently trip `missing-code-refs` if no other non-suggestion finding has a file ref. This coupling between the extension contract and the compound gate's heuristics is architecturally undocumented. The `detectFabricatedRefs` layer is currently disabled (compound-gate.mjs:188–189), but if re-enabled, extension-injected file references would be particularly vulnerable to false-positive fabrication detection since the gate cannot verify cross-process file paths in extension-injected text.
+
+### 4. Test coverage — PASS
+
+All five claimed unit tests verified in `test/extension-system.test.mjs:296–433`. The cmdSynthesize integration test at lines 435–477 (added to close prior gap) exercises the full stack: file input, extension injection, compound gate, verdict computation. Console.log and process.exitCode are correctly saved and restored within the test.
+
+The integration test at line 453 uses `setExtensions()` called before `cmdSynthesize` — since `cmdSynthesize` imports `fireExtension` which reads `_extensions` lazily, this relies on `resetRegistry()` being called in `beforeEach` (line 299). Confirmed at line 299. Ordering is correct.
+
+### 5. System boundaries — PASS
+
+`synthesize.mjs` introduces no new imports. `fireExtension` remains the single entrypoint to the extension subsystem. The `verdictAppend` payload/return contract is documented in `extension-registry.mjs:27–33` JSDoc alongside the existing `promptAppend` contract. No new coupling introduced.
+
+---
+
+## Findings
+
+🟡 bin/lib/synthesize.mjs:134 — Extension-injected findings participate in all active compound gate layers without any documented contract; an extension returning a finding without a `file:line` reference will trip `missing-code-refs` if it is the only non-suggestion finding; document at the merge block that extension findings must conform to the standard finding format (severity emoji + file:line + description) to avoid false-positive gate failures
+
+🔵 bin/lib/synthesize.mjs:165 — Extension-injected findings are serialized as `{ severity, text }` with no source field; when debugging a verdictAppend-driven FAIL, operators cannot identify which extension injected a finding; consider a debug-level log of injected findings (analogous to the promptAppend audit trail suggestion carried from task-1)
+
+🔵 bin/lib/synthesize.mjs:121 — `phase: "review"` hardcoded with no comment documenting that verdictAppend fires only at the review-phase synthesize call site; add a brief comment for consistency with the analogous build-only boundary documented (but still pending) for promptAppend
+
+---
+
+## Summary
+
+All three prior Architect 🟡 warnings are resolved: the mutable reference side-channel is closed by shallow copy, O(n²) rebuild replaced with `push`, and a cmdSynthesize integration test now exercises the full wiring. Module boundaries remain clean with no new coupling. One new 🟡: extension findings participate in compound gate heuristics without a documented format contract, creating a silent trap for extension authors whose findings lack file references. Two 🔵 suggestions for output debuggability and phase boundary documentation. No blockers.
+
+---
+
+# Product Manager Review (Run 2) — task-2: verdictAppend merged before compound gate
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Overall Verdict:** PASS
+
+---
+
+## Context
+
+This is a second PM review pass conducted after the `fix: harden verdictAppend merging in synthesize.mjs` commit. The prior PM review (above) identified two backlog warnings: (1) no `cmdSynthesize` integration test, and (2) mutable findings reference. Both have since been addressed in the current code. This review evaluates the post-fix state.
+
+---
+
+## Files Actually Read
+
+- `.team/features/extension-system/tasks/task-2/handshake.json`
+- `bin/lib/synthesize.mjs` (168 lines — full)
+- `bin/lib/extension-registry.mjs` (46 lines — full)
+- `bin/lib/extension-runner.mjs` (39 lines — full)
+- `bin/lib/extension-loader.mjs` (57 lines — full)
+- `test/extension-system.test.mjs` (547 lines — full, verdictAppend section lines 294–477)
+- `test/synthesize.test.mjs` (lines 183–260 — CLI tests, grepped for verdictAppend — no matches)
+
+---
+
+## Handshake Claims vs. Evidence
+
+| Claim | Evidence | Status |
+|---|---|---|
+| verdictAppend fires after parseFindings | `synthesize.mjs:116` calls parseFindings; block starts line 120 | ✓ |
+| verdictAppend fires before runCompoundGate | `synthesize.mjs:134` runs after block | ✓ |
+| verdictAppend fires before computeVerdict | `synthesize.mjs:155` runs after block | ✓ |
+| Returned findings validated (severity + text) | `synthesize.mjs:125` — `["critical","warning","suggestion"].includes(f.severity) && typeof f.text === "string"` | ✓ |
+| Merged so both gate and verdict see full set | Single `findings` array used at lines 134 and 155 | ✓ |
+| fireExtension JSDoc updated | `extension-registry.mjs:27–33` — verdictAppend payload and return documented | ✓ |
+| 5 unit tests added | `test/extension-system.test.mjs:294–477` — 6 tests present (5 claimed, 6 delivered) | ✓+ |
+
+All claimed artifact files exist on disk and match their described roles.
+
+---
+
+## Per-Criterion Results
+
+### Core requirement: verdictAppend fires after parseFindings and before compound gate + computeVerdict — PASS
+
+**Direct code trace** (`synthesize.mjs:116–155`):
+1. `parseFindings(text)` → initial findings (line 116)
+2. `fireExtension("verdictAppend", { findings: [...findings], phase: "review" }, repoRoot)` (line 121) — shallow copy passed, extension cannot inject findings by reference
+3. Per-finding validation + merge into `findings` (lines 122–130)
+4. `runCompoundGate(findings, repoRoot)` — enriched findings (line 134)
+5. `computeVerdict(findings)` — same enriched findings (line 155)
+
+Sequencing matches requirement. No code path bypasses the merge before either gate or verdict.
+
+### Validation and error isolation — PASS
+
+`synthesize.mjs:123–130`: validated on `Array.isArray`, severity allowlist `["critical","warning","suggestion"]`, and `typeof f.text === "string"`. Outer `try/catch` at lines 120/131 prevents any extension failure from breaking synthesis. All three prior reviewer concerns (allowlist, mutable reference, O(n²)) are resolved.
+
+### cmdSynthesize integration test — PASS
+
+`test/extension-system.test.mjs:435–477`: calls `cmdSynthesize(["--input", tmpFile])` with a registered `verdictAppend` extension via `setExtensions`, verifies `result.verdict === "FAIL"` and that the injected finding appears in `result.findings`. The prior PM finding (wiring entirely untested) is resolved.
+
+### Gate output confirms tests ran — GAP
+
+The gate output provided in the review brief is truncated at `test/cli-commands.test.mjs`. Results for `test/extension-system.test.mjs` — which contains all 6 verdictAppend tests — are absent from the visible output. I cannot independently confirm those tests passed in the gate run.
+
+---
+
+## Findings
+
+🟡 `.team/features/extension-system/tasks/task-2/handshake.json:1` — Gate output truncates before extension-system.test.mjs results; the 6 verdictAppend tests (including the cmdSynthesize integration test at line 435) are unconfirmed as passing; require full test output or `artifacts/test-output.txt` attachment to close this gap
+
+🔵 `.team/features/extension-system/tasks/task-2/handshake.json:12` — Handshake claims 5 unit tests; the delivered code contains 6 (the extra being the cmdSynthesize integration test); update handshake summary to reflect actual count
+
+🔵 `.team/features/extension-system/` — No `spec.md` exists; acceptance criteria were verified against handshake summary only; require `spec.md` at sprint-init for future features
+
+---
+
+## Summary
+
+All prior PM backlog warnings (untested `cmdSynthesize` wiring, mutable findings reference) are resolved in the post-fix code. Core requirement is correctly implemented and verifiable by direct code trace. One warning remains: the gate output is truncated and the verdictAppend test run is unconfirmed. Two suggestions address documentation hygiene.
+
+**PASS** (1 warning → backlog)
+
+
+---
+
+# Simplicity Review — task-2: verdictAppend merge into computeVerdict
+
+**Reviewer role:** Simplicity Advocate
+**Date:** 2026-04-26
+**Overall Verdict:** PASS (1 warning → backlog)
+
+---
+
+## Files Read
+
+- `bin/lib/synthesize.mjs` (full — lines 1–167)
+- `bin/lib/extension-registry.mjs` (full — lines 1–46)
+- `bin/lib/extension-loader.mjs` (full — lines 1–57)
+- `bin/lib/extension-runner.mjs` (full — lines 1–39)
+- `bin/agt-harness.mjs` (full — lines 1–43)
+- `test/extension-system.test.mjs` (full — lines 1–547)
+- `test/synthesize-compound.test.mjs` (full — lines 1–139)
+
+---
+
+## Veto Category Results
+
+### 1. Dead code — PASS
+
+No unused imports, variables, functions, or unreachable branches in the new code.
+- `fireExtension` import in `synthesize.mjs:13` is used at line 121.
+- All branches in the `extResults` merge loop are reachable.
+- No commented-out code introduced.
+
+### 2. Premature abstraction — PASS
+
+No new abstractions introduced by this PR. `verdictAppend` is a new capability string threaded through the existing `fireExtension` dispatcher. The only new "moving part" is the 13-line merge block inline in `cmdSynthesize`.
+
+`fireExtension` now has 2 production call sites (`run.mjs:1163` for `promptAppend`, `synthesize.mjs:121` for `verdictAppend`), so it earns its abstraction.
+
+### 3. Unnecessary indirection — PASS
+
+The merge block (`synthesize.mjs:118–131`) is direct inline code. No wrapper function, no helper, no new abstraction layer introduced.
+
+### 4. Gold-plating — PASS
+
+`phase: "review"` at line 121 is one of two live values (`"build"` is used in `run.mjs:1163`). This is a real discriminator giving extensions context about which lifecycle phase fired them — not a speculative config option with a single value ever used.
+
+---
+
+## Complexity Concerns (non-blocking)
+
+### 🟡 Missing `await` on now-async cmdSynthesize in agt-harness.mjs
+
+This PR changed `cmdSynthesize` from `function` to `async function` (synthesize.mjs:82) but did not update the call site:
+
+```
+case "synthesize": cmdSynthesize(args);     break;
+```
+
+In practice Node.js keeps the event loop alive for the pending async work, so the verdictAppend hook fires. However, fire-and-forget at a CLI entry point is an anti-pattern: if `process.exit()` is ever added to another case, or a caller wraps agt-harness in a way that doesn't idle the event loop, the extension hook silently does not run. No other command in the switch is async — this inconsistency was introduced directly by this PR.
+
+### 🔵 Stale file-level comment in extension-system.test.mjs
+
+Line 2 says "Focuses on: promptAppend hook being appended to the agent brief before dispatchToAgent()" — now stale since the file also covers verdictAppend integration.
+
+---
+
+## Test verification
+
+Ran `NODE_ENV=test node --test test/extension-system.test.mjs` directly:
+- 25 tests, 25 pass, 0 fail — including all 6 verdictAppend tests and the cmdSynthesize integration test.
+
+Ran `NODE_ENV=test node --test test/synthesize.test.mjs test/synthesize-compound.test.mjs`:
+- 39 tests, 37 pass, 2 skipped (marked `.skip`), 0 fail.
+
+---
+
+## Findings
+
+🟡 bin/agt-harness.mjs:23 — `cmdSynthesize` was changed to `async` in this PR but the call site was not updated with `await`; fire-and-forget is fragile at a CLI entry point — add `await` and wrap the switch in a top-level async IIFE
+
+🔵 test/extension-system.test.mjs:2 — File header comment is stale ("Focuses on: promptAppend...before dispatchToAgent()"); update to reflect that the file also covers verdictAppend integration
+
+---
+
+# Engineer Review — task-2: verdictAppend merge (current state)
+
+**Reviewer role:** Engineer
+**Date:** 2026-04-26
+**Overall verdict: PASS** (1 warning → backlog)
+
+---
+
+## Files Read
+
+- `bin/lib/synthesize.mjs` (full — 168 lines)
+- `bin/lib/extension-registry.mjs` (full — 46 lines)
+- `bin/lib/extension-runner.mjs` (full — 39 lines)
+- `bin/lib/extension-loader.mjs` (full — 57 lines)
+- `test/extension-system.test.mjs` (full — 547 lines)
+- `.team/features/extension-system/tasks/task-2/eval.md` (prior reviews)
+
+---
+
+## Correction to Prior Engineer Review
+
+The previous Engineer review (lines 66–131 of this file) contains two inaccurate findings that would create unnecessary backlog items if acted on:
+
+- 🟡 claimed "Severity not validated against allowlist" at synthesize.mjs:125 — **WRONG**. The current code at line 125 uses `["critical", "warning", "suggestion"].includes(f.severity)`, which is exactly the recommended allowlist check.
+- 🔵 claimed "findings = [...findings, f] spreads the whole array" (O(n²)) — **WRONG**. The current code at line 126 uses `findings.push(f)` directly.
+
+These were real defects at some prior commit; they have since been fixed. The Architect (current state) review confirms both resolutions correctly.
+
+---
+
+## Correction to Prior Architect "RESOLVED" Claim
+
+The Architect (current state) review marks the "mutable reference" side-channel as **RESOLVED** because `[...findings]` is now passed. This is only partially accurate. See finding below.
+
+---
+
+## Per-Criterion Results
+
+### 1. Hook fires at correct position — PASS
+
+`synthesize.mjs:116–155` execution order verified by direct code trace:
+`parseFindings` (116) → `fireExtension("verdictAppend", ...)` (121) → validated merge (122–130) → `runCompoundGate(findings, repoRoot)` (134) → `computeVerdict(findings)` (155). Both gate and verdict receive the post-extension findings array. ✓
+
+### 2. Severity validation and merge guard — PASS
+
+`synthesize.mjs:125`: `["critical", "warning", "suggestion"].includes(f.severity) && typeof f.text === "string"`. Allowlist-validated. Non-array, null, and invalid-severity findings are all rejected. ✓
+
+### 3. Error isolation — PASS
+
+`runHook` catch (runner.mjs:35–38) + `fireExtension` null filter (registry.mjs:41) + outer try/catch (synthesize.mjs:120/131). An extension that throws, hangs, or returns null cannot surface through synthesis. ✓
+
+### 4. Array mutation prevented — PASS
+
+`[...findings]` at line 121 creates a new array. An extension calling `payload.findings.push(x)` only affects the copy; the base `findings` array is unchanged. ✓ (Array-level)
+
+### 5. Object mutation — FAIL (open side-channel)
+
+`[...findings]` is a **shallow copy**: the new array contains the same object references as `findings`. An extension calling `payload.findings[0].severity = "suggestion"` mutates the shared finding object. Since this mutation occurs before `runCompoundGate(findings, ...)` at line 134 and `computeVerdict(findings)` at line 155, a pre-existing critical finding can be silently downgraded to suggestion, flipping a FAIL verdict to PASS.
+
+The array-push bypass is closed; the object-mutation bypass is not. No test covers this path.
+
+**Evidence**: `payload.findings[0] === findings[0]` is `true` after `[...findings]`. Mutation of any shared finding object propagates to the base `findings` array.
+
+### 6. Integration test coverage — PASS
+
+`test/extension-system.test.mjs:435–477` calls `cmdSynthesize(["--input", tmpFile])` with a registered `verdictAppend` extension via `setExtensions`. Asserts `result.verdict === "FAIL"` and confirms the injected finding appears in `result.findings`. The full `synthesize.mjs:118–131` path is exercised. ✓
+
+---
+
+## Edge Cases Verified
+
+| Case | Status | Notes |
+|---|---|---|
+| Extension returns non-array findings | ✓ Tested | test line 356 |
+| Extension returns finding with wrong type for severity/text | ✓ Tested | test line 378; production uses allowlist, not just typeof |
+| Extension throws | ✓ Tested | runHook + cmdSynthesize catch |
+| Extension injects critical → FAIL verdict (full stack) | ✓ Tested | test line 435 |
+| Extension mutates `payload.findings[0].severity` → original corrupted | ✗ Not tested | Real bypass; see warning below |
+| `typeof f.severity` vs `includes()` guard divergence in unit test | ✗ Not tested | Test at line 399 uses looser guard than production |
+
+---
+
+## Findings
+
+🟡 bin/lib/synthesize.mjs:121 — `[...findings]` closes the array-push side-channel but finding objects are still shared references; an extension setting `payload.findings[0].severity = "suggestion"` mutates the original critical before compound gate and computeVerdict run, silently flipping FAIL to PASS; fix: `findings.map(f => ({...f}))` to snapshot objects at the boundary
+
+🔵 test/extension-system.test.mjs:399 — manual merge guard uses `typeof f.severity === "string"` (looser than the production allowlist `includes()` at synthesize.mjs:125); a finding with `{ severity: "invalid", text: "..." }` passes this test's filter but is rejected by production; divergence between test guard and production guard is a documentation hazard even though the integration test at line 435 covers the real path
+
+
+---
+
+# Tester Review (Run 2) — task-2: verdictAppend merge into computeVerdict
+
+**Reviewer role:** Tester
+**Date:** 2026-04-26
+**Overall Verdict:** PASS (2 warnings → backlog)
+
+---
+
+## Files Read
+
+- `bin/lib/synthesize.mjs` (full, current state)
+- `bin/lib/extension-registry.mjs` (full)
+- `bin/lib/extension-runner.mjs` (full)
+- `bin/lib/extension-loader.mjs` (full)
+- `test/extension-system.test.mjs` (full — 547 lines)
+- `test/synthesize.test.mjs` (full)
+- `test/synthesize-compound.test.mjs` (full)
+- `.team/features/extension-system/tasks/task-2/handshake.json`
+
+---
+
+## Improvements Confirmed From Prior Reviews
+
+| Prior finding | Current state |
+|---|---|
+| No allowlist on severity | `synthesize.mjs:125` — `["critical","warning","suggestion"].includes(f.severity)` — CLOSED |
+| O(n²) spread in inner loop | `synthesize.mjs:128` — `findings.push(f)` — CLOSED |
+| No `cmdSynthesize` integration test | `test/extension-system.test.mjs:435–477` — full stack integration test added — CLOSED |
+| `payload.findings.push()` bypass | `synthesize.mjs:121` — `[...findings]` creates new array, push won't affect base — CLOSED |
+
+6 tests now exist in `verdictAppend integration` (handshake claims 5; integration test was added after handshake was written).
+
+---
+
+## Per-Criterion Results
+
+### 1. Integration test exercises full wiring — PASS
+
+`test/extension-system.test.mjs:435–477`: calls `cmdSynthesize(["--input", tmpFile])` with a live `verdictAppend` extension via `setExtensions`. Asserts `verdict === "FAIL"`, `critical >= 1`, and the injected finding text appears in `result.findings`. The full path — parseFindings → verdictAppend → merge → runCompoundGate → computeVerdict — is exercised.
+
+### 2. Validation guards tested — PASS with gap
+
+The allowlist guard at `synthesize.mjs:125` is correct. Tests at lines 356 and 378 cover non-array findings and missing properties. Gap: no test exercises an extension returning `{ severity: "invalid-value", text: "🟡 a.mjs:1 — text" }` through `cmdSynthesize` to confirm the allowlist rejects it. The allowlist exists but its rejection behavior is unverified end-to-end.
+
+### 3. Shallow copy protects array structure but not object internals — OPEN
+
+`synthesize.mjs:121` passes `[...findings]` — a new array containing shared object references. `payload.findings.push()` correctly cannot affect the base array (closed). However, `payload.findings[0].severity = "critical"` DOES mutate the original object via shared reference, since `findings[0]` and `payload.findings[0]` point to the same object in memory. The validation loop at lines 122–130 only validates items from the extension's return value (`r.findings`) — it never re-validates objects already in `findings`. An extension can change an existing warning to critical without going through the merge guard. No test covers this path.
+
+### 4. Compound gate × verdictAppend interaction — untested
+
+`synthesize.mjs:134` runs `runCompoundGate(findings, repoRoot)` on the enriched set. Correct. But the integration test at line 435 asserts on `verdict` and `critical`, not on `result.compoundGate.*`. No test confirms that extension-injected findings are visible to the compound gate.
+
+---
+
+## Edge Cases Checked
+
+| Case | Tested? | Notes |
+|---|---|---|
+| Extension injects critical → FAIL via cmdSynthesize | ✅ | line 435 |
+| Non-array `.findings` rejected | ✅ | line 356 |
+| Missing severity or text property rejected | ✅ | line 378 |
+| Invalid severity string (`"invalid"`) rejected | ❌ | Allowlist exists; no end-to-end test |
+| Extension mutates existing finding object (`payload.findings[0].severity = "critical"`) | ❌ | Shared ref; bypasses merge guard; no test |
+| Compound gate output reflects extension findings | ❌ | No assertion on `result.compoundGate.*` |
+
+---
+
+## Findings
+
+🟡 test/extension-system.test.mjs:378 — No test verifies that `{ severity: "invalid", text: "🟡 a.mjs:1 — text" }` is rejected by `cmdSynthesize`; allowlist at `synthesize.mjs:125` is present but rejection is unverified end-to-end; add a cmdSynthesize integration test asserting the invalid finding does not appear in `result.findings`
+
+🟡 bin/lib/synthesize.mjs:121 — `[...findings]` shallow-copies the array but shares object references; `payload.findings[0].severity = "critical"` mutates the original finding before compound gate runs and bypasses merge validation; no test covers this; either deep-clone individual objects before passing, or add a test that mutates an input finding object and asserts the original severity is unchanged in output
+
+🔵 test/extension-system.test.mjs:435 — Integration test asserts `verdict` and `critical` but not `result.compoundGate.*`; add an assertion (e.g., `compoundGate.tripped === 0`) to lock compound gate visibility of extension findings
+
+🔵 test/extension-system.test.mjs:342 — Manual merge simulation uses `typeof f.severity === "string"` while production uses `includes()`; superseded by the cmdSynthesize integration test at line 435; consider replacing to remove the divergent validation predicate
+
+---
+
+## Summary
+
+Core behavior is correct and the wiring gap is closed by the integration test. Two genuine coverage gaps remain: (1) invalid severity rejection is never asserted end-to-end; (2) extension mutation of shared finding objects bypasses merge validation and is untested. Neither is a blocker, but both are regression risks for the backlog.
+
+**PASS** (2 warnings → backlog)
+
+---
+
+# Security Review — task-2: verdictAppend findings merged into computeVerdict
+
+**Reviewer role:** Security Specialist
+**Date:** 2026-04-26
+**Overall verdict: PASS** (2 warnings → backlog)
+
+---
+
+## Files Read
+
+- `bin/lib/synthesize.mjs` (full — 168 lines)
+- `bin/lib/extension-registry.mjs` (full — 46 lines)
+- `bin/lib/extension-runner.mjs` (full — 39 lines)
+- `bin/lib/extension-loader.mjs` (full — 57 lines)
+- `test/extension-system.test.mjs` (full — 547 lines, verdictAppend section lines 294–477)
+- `test/synthesize-compound.test.mjs` (full — 139 lines)
+
+---
+
+## Threat Model
+
+**Adversaries considered:**
+1. Malicious or compromised extension loaded from `.team/extensions/` or `~/.team/extensions/`
+2. Attacker controlling CLI arguments in an automated CI/CD pipeline (e.g., PR-triggered harness runs that pass `--repo-root`)
+3. Supply chain compromise writing a malicious `.mjs` file into an extension directory
+
+**Primary security surface for this task:** Can a bad extension corrupt the verdict in ways the validation was meant to prevent — specifically, can it cause a FAIL to become a PASS?
+
+---
+
+## Per-Criterion Results
+
+### 1. Injection of findings via return value — PASS
+
+`synthesize.mjs:123–128` validates all extension-returned findings against:
+- `Array.isArray(r.findings)` — rejects non-array ✓
+- `["critical","warning","suggestion"].includes(f.severity)` — allowlist, not just typeof ✓
+- `typeof f.text === "string"` — type check ✓
+
+Invalid severity values ("crit", "CRITICAL", empty string) are rejected at the gate. Finding objects that pass this guard are the only ones added to the verdict-driving `findings` array.
+
+### 2. Array-push injection via shared reference — PASS (resolved)
+
+`synthesize.mjs:121` passes `{ findings: [...findings], phase: "review" }`. The spread creates a new array. An extension calling `payload.findings.push(x)` inserts into the copy only; the base `findings` array used by `runCompoundGate` (line 134) and `computeVerdict` (line 155) is unaffected. The push-based validation bypass is closed.
+
+### 3. Object-mutation bypass via shared object references — WARNING
+
+`[...findings]` copies the array structure but the individual finding objects are **shared references**. `payload.findings[0] === findings[0]` is `true`. An extension can call:
+
+```js
+verdictAppend: async (payload) => {
+  payload.findings.forEach(f => { f.severity = "suggestion"; });
+  return { findings: [] };
+}
+```
+
+The objects in the outer `findings` array have their severity mutated before `runCompoundGate(findings, repoRoot)` at line 134 and `computeVerdict(findings)` at line 155 execute. A review with pre-existing critical findings (`verdict: "FAIL"`) becomes all-suggestions (`verdict: "PASS"`). The extension's explicit return value is empty so the merge validation loop at lines 122–130 never sees the corrupted items — they were already in `findings` before the loop ran.
+
+This is confirmed by both the Tester Run 2 and Engineer (current state) reviews. No test verifies the mutation path. The fix requires deep-copying the finding objects: `findings.map(f => ({ ...f }))`.
+
+**Exploitability calibration:** Requires a malicious or supply-chain-compromised extension. Extensions already execute arbitrary code, so this is a defense-in-depth concern rather than a privilege escalation. The risk is an extension that appears cooperative (returns `{ findings: [] }`) while silently undermining the verdict system — harder to detect in an audit than one that injects explicit findings.
+
+### 4. `--repo-root` arbitrary code execution — WARNING (carry-forward)
+
+`synthesize.mjs:107–109` reads `--repo-root` from CLI args without validation:
+
+```js
+const repoRoot = repoRootIdx !== -1 && restArgs[repoRootIdx + 1]
+  ? restArgs[repoRootIdx + 1]
+  : process.cwd();
+```
+
+This flows to `fireExtension("verdictAppend", ..., repoRoot)` → `loadExtensions(cwd)` → `import(filePath)`. An attacker who controls `--repo-root` in an automated pipeline can point it to a directory of malicious `.mjs` files and achieve arbitrary code execution at the pipeline's privilege level. Carry-forward from the prior Security Review; unaddressed in this task.
+
+### 5. Error isolation — PASS
+
+Three concentric catch layers confirmed:
+- `runHook` (runner.mjs:35–38): per-hook try/catch returns `null`
+- `fireExtension` (registry.mjs:41): `result != null` filter
+- `cmdSynthesize` (synthesize.mjs:120/131): outer try/catch with `/* extensions must never break synthesis */`
+
+A crashing, timing-out, or null-returning extension cannot propagate through to synthesis output.
+
+### 6. `setExtensions()` production guard — PASS
+
+`extension-registry.mjs:16–18` throws `Error("setExtensions() is only available in test environments")` when `NODE_ENV !== "test"`. An in-process extension cannot replace the registry at runtime to inject itself.
+
+### 7. No-cap on injected findings count — SUGGESTION (carry-forward)
+
+`synthesize.mjs:123`: no limit on how many findings an extension can inject in a single call. Combined with the push-based loop at line 128, a runaway extension returning tens of thousands of findings causes O(n) memory growth and O(n) JSON serialization overhead. Low probability; add a per-extension cap (e.g., 100 findings) with silent truncation. Carry-forward from prior Security Review.
+
+---
+
+## Edge Cases Checked
+
+| Case | Result |
+|---|---|
+| Extension `push`es finding onto `payload.findings` | Fixed — push targets array copy ✓ |
+| Extension mutates `payload.findings[0].severity = "suggestion"` | Bypasses merge guard — shared object reference ✗ |
+| Extension returns `{ severity: "invalid", text: "🟡 a.mjs:1 — text" }` | Blocked by allowlist at line 125 ✓ |
+| Extension returns `{ findings: "string" }` | Blocked by `Array.isArray` at line 123 ✓ |
+| Extension returns `null` | Filtered at `fireExtension` before reaching merge ✓ |
+| Extension throws | Caught by `runHook`, returns `null`, filtered ✓ |
+| `--repo-root` pointing to attacker-controlled directory | Arbitrary code execution via `import()` ✗ (medium risk in CI/CD) |
+
+---
+
+## Findings
+
+🟡 bin/lib/synthesize.mjs:121 — `[...findings]` closes the array-push bypass but finding objects are shared references; an extension calling `payload.findings[0].severity = "suggestion"` silently downgrades pre-existing critical findings before compound gate and computeVerdict run, flipping FAIL to PASS; fix: deep-copy individual objects at the boundary: `findings.map(f => ({ ...f }))`
+
+🟡 bin/lib/synthesize.mjs:107 — `--repo-root` CLI argument flows directly to `loadExtensions()` → dynamic `import()`; an attacker controlling this argument in a CI/CD pipeline achieves arbitrary code execution; document that `--repo-root` must not be user-controlled in automated pipelines, or validate it stays within `process.cwd()`; carry-forward from prior security review
+
+🔵 bin/lib/synthesize.mjs:123 — No per-extension cap on injected findings count; a runaway extension returning thousands of findings causes memory pressure and slow JSON serialization; add a per-extension limit (e.g., 100 findings) with silent truncation; carry-forward from prior security review
+
+---
+
+## Summary
+
+No critical findings block merge. The core security properties of `verdictAppend` are sound: the return-value injection path has correct allowlist validation and array-level mutation is prevented by the shallow copy. The two backlog warnings are defense-in-depth issues: object-property mutation (a stealthy verdict suppression bypass) and the `--repo-root` code execution vector in CI/CD. Neither is a privilege escalation from what extensions can already do, but both reduce the detectability of a compromised extension's behavior.
+
+**PASS** (2 warnings → backlog)
