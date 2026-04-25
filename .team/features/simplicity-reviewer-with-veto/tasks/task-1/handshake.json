@@ -1,14 +1,13 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Added two tests in test/flows.test.mjs verifying that buildReviewBrief with the 'simplicity' role injects unique role-file content (premature abstraction / gold-plating). All 582 tests pass. Marked item #15 as Done in .team/PRODUCT.md.",
-  "timestamp": "2026-04-25T00:00:00.000Z",
+  "summary": "Removed dead assertion from buildReviewBrief simplicity role test. The always-true check for 'complexity'/'over-engineer' was unreachable since getRoleFocus unconditionally injects those strings. The unique-term test (premature abstraction/gold-plating) and veto/FAIL test (line 276-289) remain and correctly cover the feature. 581 tests pass.",
+  "timestamp": "2026-04-25T00:00:00Z",
   "artifacts": [
-    { "type": "code", "path": "test/flows.test.mjs" },
-    { "type": "code", "path": ".team/PRODUCT.md" }
+    { "type": "code", "path": "test/flows.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
