@@ -9,8 +9,8 @@ import { join } from "node:path";
 import { runHook, isCircuitBroken, resetCircuitBreakers } from "../bin/lib/extension-runner.mjs";
 import { fireExtension, resetRegistry, setExtensions } from "../bin/lib/extension-registry.mjs";
 import { loadExtensions } from "../bin/lib/extension-loader.mjs";
-import { runExecuteRunCommands, runArtifactEmit } from "../bin/lib/run.mjs";
-import { existsSync, readFileSync } from "node:fs";
+import { runExecuteRunCommands, runArtifactEmit, mergeExtrasIntoHandshake, buildReviewArtifacts } from "../bin/lib/run.mjs";
+import { existsSync, readFileSync, writeFileSync, readdirSync, mkdtempSync } from "node:fs";
 
 // ── extension-runner tests ──────────────────────────────────────────────────
 
@@ -547,7 +547,6 @@ describe("fireExtension — executeRun", () => {
 
 describe("executeRun — spawn, artifact, and failure detection", () => {
   it("stores stdout as cli-output artifact when command runs", async () => {
-    const { existsSync, readFileSync } = await import("node:fs");
     const artDir = join(tmpdir(), `ext-art-${Date.now()}`);
     await mkdir(artDir, { recursive: true });
     try {
@@ -564,7 +563,6 @@ describe("executeRun — spawn, artifact, and failure detection", () => {
   });
 
   it("stores stderr in artifact when command writes to stderr", async () => {
-    const { existsSync, readFileSync } = await import("node:fs");
     const artDir = join(tmpdir(), `ext-art-${Date.now()}`);
     await mkdir(artDir, { recursive: true });
     try {
@@ -581,14 +579,12 @@ describe("executeRun — spawn, artifact, and failure detection", () => {
   });
 
   it("command runs in the provided cwd", async () => {
-    const { mkdtempSync } = await import("node:fs");
     const artDir = join(tmpdir(), `ext-art-cwd-${Date.now()}`);
     await mkdir(artDir, { recursive: true });
     const cwdDir = mkdtempSync(join(tmpdir(), "ext-cwd-"));
     try {
       const result = runExecuteRunCommands([{ command: "pwd" }], artDir, cwdDir);
       assert.ok(!result.failed, "pwd command should not fail");
-      const { readFileSync, readdirSync } = await import("node:fs");
       const files = readdirSync(artDir);
       assert.ok(files.length > 0, "at least one artifact file should be written");
       const content = readFileSync(join(artDir, files[0]), "utf8");
@@ -735,12 +731,12 @@ describe("runArtifactEmit", () => {
         [{ artifacts: [{ type: "cli-output", path: "ext-report.txt", content: "hello output" }] }],
         artDir,
       );
-      const outFile = join(artDir, "ext-report.txt");
+      const outFile = join(artDir, "0-ext-report.txt");
       assert.ok(existsSync(outFile), "content file should be written");
       assert.ok(readFileSync(outFile, "utf8").includes("hello output"));
       assert.equal(extras.length, 1);
       assert.equal(extras[0].type, "cli-output");
-      assert.equal(extras[0].path, "artifacts/ext-report.txt");
+      assert.equal(extras[0].path, "artifacts/0-ext-report.txt");
     } finally {
       await rm(artDir, { recursive: true, force: true });
     }
@@ -756,9 +752,9 @@ describe("runArtifactEmit", () => {
       );
       assert.equal(extras.length, 1);
       assert.equal(extras[0].type, "evaluation");
-      assert.equal(extras[0].path, "artifacts/review.md");
+      assert.equal(extras[0].path, "artifacts/0-review.md");
       // No file written (no content)
-      assert.ok(!existsSync(join(artDir, "review.md")));
+      assert.ok(!existsSync(join(artDir, "0-review.md")));
     } finally {
       await rm(artDir, { recursive: true, force: true });
     }
@@ -779,7 +775,7 @@ describe("runArtifactEmit", () => {
         artDir,
       );
       assert.equal(extras.length, 1);
-      assert.equal(extras[0].path, "artifacts/ok.mjs");
+      assert.equal(extras[0].path, "artifacts/0-ok.mjs");
     } finally {
       await rm(artDir, { recursive: true, force: true });
     }
@@ -811,7 +807,7 @@ describe("runArtifactEmit", () => {
         artDir,
       );
       assert.equal(extras.length, 1);
-      assert.equal(extras[0].path, "artifacts/good.mjs");
+      assert.equal(extras[0].path, "artifacts/0-good.mjs");
     } finally {
       await rm(artDir, { recursive: true, force: true });
     }
@@ -832,8 +828,7 @@ describe("runArtifactEmit", () => {
 // ── handshake merge integration ────────────────────────────────────────────
 
 describe("artifactEmit handshake merge", () => {
-  it("artifactEmitExtras land in handshake.json after merge", async () => {
-    const { writeFileSync } = await import("node:fs");
+  it("mergeExtrasIntoHandshake writes extension artifacts to handshake.json", async () => {
     const taskDir = join(tmpdir(), `hs-merge-${Date.now()}`);
     const artDir = join(taskDir, "artifacts");
     await mkdir(artDir, { recursive: true });
@@ -850,16 +845,29 @@ describe("artifactEmit handshake merge", () => {
       );
       assert.equal(extras.length, 1);
 
-      // Run the same merge logic as _runSingleFeature (run.mjs:1335-1345)
-      const hs = JSON.parse(readFileSync(gateHsPath, "utf8"));
-      hs.artifacts = [...(hs.artifacts || []), ...extras];
-      writeFileSync(gateHsPath, JSON.stringify(hs, null, 2) + "\n");
+      // Call the production merge function (run.mjs mergeExtrasIntoHandshake)
+      mergeExtrasIntoHandshake(gateHsPath, extras);
 
       // Assert final handshake contains the extension descriptor
       const final = JSON.parse(readFileSync(gateHsPath, "utf8"));
       assert.equal(final.artifacts.length, 2, "handshake should contain original + extension artifact");
-      assert.ok(final.artifacts.some(a => a.path === "artifacts/report.txt"), "extension descriptor should be in handshake.artifacts");
+      assert.ok(final.artifacts.some(a => a.path.includes("report.txt")), "extension descriptor should be in handshake.artifacts");
       assert.ok(final.artifacts.some(a => a.path === "src/foo.mjs"), "original gate artifact should be preserved");
+    } finally {
+      await rm(taskDir, { recursive: true, force: true });
+    }
+  });
+
+  it("mergeExtrasIntoHandshake is a no-op when extras is empty", async () => {
+    const taskDir = join(tmpdir(), `hs-merge-empty-${Date.now()}`);
+    await mkdir(taskDir, { recursive: true });
+    try {
+      const gateHs = { taskId: "task-4", artifacts: [{ type: "code", path: "src/foo.mjs" }] };
+      const gateHsPath = join(taskDir, "handshake.json");
+      writeFileSync(gateHsPath, JSON.stringify(gateHs, null, 2) + "\n");
+      mergeExtrasIntoHandshake(gateHsPath, []);
+      const result = JSON.parse(readFileSync(gateHsPath, "utf8"));
+      assert.equal(result.artifacts.length, 1, "no extras added when empty");
     } finally {
       await rm(taskDir, { recursive: true, force: true });
     }
@@ -961,5 +969,59 @@ export default {
     await rm(tmpDir, { recursive: true, force: true });
     const exts = await loadExtensions(tmpDir);
     assert.deepEqual(exts, []);
+  });
+});
+
+// ── buildReviewArtifacts — review handshake allExtras regression ─────────────
+
+describe("buildReviewArtifacts", () => {
+  it("includes allExtras and eval.md in review handshake artifacts", () => {
+    const allExtras = [
+      { type: "cli-output", path: "artifacts/0-ext-report.txt" },
+      { type: "cli-output", path: "artifacts/ext-run-cmd.txt" },
+    ];
+    const result = buildReviewArtifacts(allExtras);
+    assert.equal(result.length, 3, "should contain both extension extras and eval.md");
+    assert.ok(result.some(a => a.path === "artifacts/0-ext-report.txt"), "artifactEmit extra should be in review handshake");
+    assert.ok(result.some(a => a.path === "artifacts/ext-run-cmd.txt"), "executeRun path should be in review handshake");
+    assert.ok(result.some(a => a.path === "eval.md"), "eval.md should always be present");
+  });
+
+  it("includes only eval.md when allExtras is empty", () => {
+    const result = buildReviewArtifacts([]);
+    assert.equal(result.length, 1);
+    assert.deepEqual(result[0], { type: "evaluation", path: "eval.md" });
+  });
+
+  it("written review handshake contains allExtras and eval.md (regression for run.mjs:1455,1533)", async () => {
+    const taskDir = join(tmpdir(), `review-hs-${Date.now()}`);
+    const artDir = join(taskDir, "artifacts");
+    await mkdir(artDir, { recursive: true });
+    try {
+      // Simulate artifactEmitExtras from runArtifactEmit
+      const artifactEmitExtras = runArtifactEmit(
+        [{ artifacts: [{ type: "cli-output", path: "ext-report.txt", content: "data" }] }],
+        artDir,
+      );
+      // Simulate executeRunPaths
+      const executeRunPaths = [{ type: "cli-output", path: "artifacts/ext-run-cmd.txt" }];
+      const allExtras = [...artifactEmitExtras, ...executeRunPaths];
+
+      // Build review artifacts (same pattern as run.mjs:1455 and run.mjs:1533)
+      const reviewArtifacts = buildReviewArtifacts(allExtras);
+
+      // Write the review handshake to disk
+      const hsPath = join(taskDir, "handshake.json");
+      const hs = { taskId: "task-4", nodeType: "review", artifacts: reviewArtifacts };
+      writeFileSync(hsPath, JSON.stringify(hs, null, 2) + "\n");
+
+      // Read back and assert both extension and eval artifacts appear
+      const written = JSON.parse(readFileSync(hsPath, "utf8"));
+      assert.ok(written.artifacts.some(a => a.path.includes("ext-report.txt")), "artifactEmit artifact should be in review handshake");
+      assert.ok(written.artifacts.some(a => a.path === "artifacts/ext-run-cmd.txt"), "executeRun artifact should be in review handshake");
+      assert.ok(written.artifacts.some(a => a.path === "eval.md"), "eval.md should be in review handshake");
+    } finally {
+      await rm(taskDir, { recursive: true, force: true });
+    }
   });
 });

@@ -348,24 +348,49 @@ export function runExecuteRunCommands(commands, artifactsDir, cwd) {
  */
 export function runArtifactEmit(results, artifactsDir) {
   const extras = [];
+  let idx = 0;
   for (const r of results) {
     if (!r || !Array.isArray(r.artifacts)) continue;
     for (const art of r.artifacts) {
       if (!art || typeof art.type !== "string" || typeof art.path !== "string") continue;
-      // Sanitize: strip path separators, normalize to safe filename
-      const safeName = art.path
+      // Sanitize: strip path separators, normalize to safe filename; prefix with index to prevent collisions
+      const base = art.path
         .replace(/[/\\]/g, "_")
         .replace(/[^a-zA-Z0-9._-]/g, "-")
         .replace(/^-+|-+$/g, "") || "artifact.txt";
+      const safeName = `${idx++}-${base}`;
       if (typeof art.content === "string") {
         try {
-          writeFileSync(join(artifactsDir, safeName), art.content);
+          writeFileSync(join(artifactsDir, safeName), art.content.slice(0, 10 * 1024 * 1024));
         } catch { /* non-fatal — artifact write failure never blocks the pipeline */ }
       }
       extras.push({ type: art.type, path: "artifacts/" + safeName });
     }
   }
   return extras;
+}
+
+/**
+ * Merge extension artifact descriptors into an existing handshake.json.
+ * No-op if extras is empty or the handshake file does not exist.
+ */
+export function mergeExtrasIntoHandshake(hsPath, extras) {
+  if (!extras || extras.length === 0) return;
+  try {
+    if (existsSync(hsPath)) {
+      const hs = JSON.parse(readFileSync(hsPath, "utf8"));
+      hs.artifacts = [...(hs.artifacts || []), ...extras];
+      writeFileSync(hsPath, JSON.stringify(hs, null, 2) + "\n");
+    }
+  } catch { /* best-effort — merge failure never blocks the pipeline */ }
+}
+
+/**
+ * Build the artifacts array for a review handshake.
+ * Combines all extension extras with the evaluation document.
+ */
+export function buildReviewArtifacts(allExtras) {
+  return [...allExtras, { type: "evaluation", path: "eval.md" }];
 }
 
 export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
@@ -1339,16 +1364,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
 
       // Merge artifactEmit extras and executeRun artifact paths into the gate handshake
       const allExtras = [...artifactEmitExtras, ...executeRunPaths];
-      if (allExtras.length > 0) {
-        try {
-          const gateHsPath = join(taskDir, "handshake.json");
-          if (existsSync(gateHsPath)) {
-            const gateHs = JSON.parse(readFileSync(gateHsPath, "utf8"));
-            gateHs.artifacts = [...(gateHs.artifacts || []), ...allExtras];
-            writeFileSync(gateHsPath, JSON.stringify(gateHs, null, 2) + "\n");
-          }
-        } catch { /* best-effort */ }
-      }
+      mergeExtrasIntoHandshake(join(taskDir, "handshake.json"), allExtras);
 
       if (gateResult.verdict === "PASS") {
         passed = true;
@@ -1436,7 +1452,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
               status: synth.critical > 0 ? "failed" : "completed",
               verdict: synth.verdict,
               summary: `Review: ${synth.verdict} (${synth.critical} critical, ${synth.warning} warning, ${synth.suggestion} suggestion). Compound gate: ${compoundGateResult.verdict}`,
-              artifacts: [...allExtras, { type: "evaluation", path: "eval.md" }],
+              artifacts: buildReviewArtifacts(allExtras),
               findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
               compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
             });
@@ -1514,7 +1530,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
             status: synth.critical > 0 ? "failed" : "completed",
             verdict: synth.verdict,
             summary: `Parallel review: ${synth.verdict} (${synth.critical} critical, ${synth.warning} warning, ${synth.suggestion} suggestion). Compound gate: ${compoundGateResult.verdict}`,
-            artifacts: [...allExtras, { type: "evaluation", path: "eval.md" }],
+            artifacts: buildReviewArtifacts(allExtras),
             findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
             compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
           });
