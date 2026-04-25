@@ -21,7 +21,3 @@ tasks:
   - title: Write tests for the CLI command
     hint: Add test cases covering the happy path and error cases
 flow: build-verify
-tier: null
-createdAt: "2026-04-25T00:00:00.000Z"
-usageCount: 0
-lastUsedAt: null
