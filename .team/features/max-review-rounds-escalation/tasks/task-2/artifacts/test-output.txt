@@ -1,0 +1,52 @@
+▶ incrementReviewRounds
+  ✔ initializes reviewRounds to 1 when field is absent (0.370042ms)
+  ✔ increments from existing value (0.038292ms)
+  ✔ increments from 0 to 1 (0.035125ms)
+  ✔ mutates the task object in place (0.032042ms)
+  ✔ does not modify other task fields (0.278334ms)
+✔ incrementReviewRounds (1.219417ms)
+▶ shouldEscalate
+  ✔ returns false when reviewRounds is 0 (0.058542ms)
+  ✔ returns false when reviewRounds is 1 (0.03725ms)
+  ✔ returns false when reviewRounds is 2 (0.040167ms)
+  ✔ returns true when reviewRounds equals MAX_REVIEW_ROUNDS (3) (0.044083ms)
+  ✔ returns true when reviewRounds exceeds MAX_REVIEW_ROUNDS (0.062833ms)
+  ✔ returns false when reviewRounds field is absent (0.0335ms)
+  ✔ respects custom maxRounds parameter (0.034ms)
+  ✔ counter only increments on review FAIL — caller-controlled semantics (0.03175ms)
+✔ shouldEscalate (0.460542ms)
+▶ MAX_REVIEW_ROUNDS constant
+  ✔ is exported and equals 3 (0.032625ms)
+✔ MAX_REVIEW_ROUNDS constant (0.065042ms)
+▶ deduplicateFindings
+  ✔ returns empty array for no findings (0.477125ms)
+  ✔ keeps unique findings (0.03325ms)
+  ✔ deduplicates findings with identical text (0.025417ms)
+  ✔ deduplicates across rounds — same finding appearing multiple times (0.048917ms)
+  ✔ preserves first occurrence when deduplicating (0.021458ms)
+✔ deduplicateFindings (0.646333ms)
+▶ buildEscalationComment
+  ✔ includes task title and round count (0.045167ms)
+  ✔ shows fallback when no findings (0.01875ms)
+  ✔ renders findings table with severity icons (0.0345ms)
+  ✔ escapes pipe characters in finding text (0.020166ms)
+✔ buildEscalationComment (0.149708ms)
+▶ buildEscalationSummary
+  ✔ reads round handshakes and builds comment (0.800583ms)
+  ✔ handles missing round files gracefully (0.270167ms)
+  ✔ returns fallback comment when no round files exist (0.156625ms)
+✔ buildEscalationSummary (1.254375ms)
+▶ integration: 3 consecutive review FAILs → task blocked
+  ✔ escalates to blocked with correct lastReason after MAX_REVIEW_ROUNDS review fails (0.050666ms)
+  ✔ does not block after 1 review fail — retry continues normally (0.030417ms)
+  ✔ does not block after 2 review fails (0.036459ms)
+  ✔ records progress entry on escalation (0.030833ms)
+✔ integration: 3 consecutive review FAILs → task blocked (0.178375ms)
+ℹ tests 30
+ℹ suites 7
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 62.297791
