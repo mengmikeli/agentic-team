@@ -50,7 +50,8 @@ function harness(...args) {
 
 // ── Inline gate runner (bypasses harness subprocess issues on Windows) ──
 
-export function runGateInline(cmd, featureDir, taskId, cwd = process.cwd()) {
+export function runGateInline(cmd, featureDir, taskId, cwd) {
+  if (!cwd) throw new Error("runGateInline: cwd is required (no implicit process.cwd() fallback)");
   let exitCode = 0;
   let stdout = "";
   let stderr = "";
@@ -280,6 +281,7 @@ export function findAgent() {
 }
 
 export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
+  if (!cwd) throw new Error("dispatchToAgent: cwd is required (no implicit process.cwd() fallback)");
   console.log(`  ${c.dim}Dispatching to ${agent}...${c.reset}`);
 
   try {
@@ -323,6 +325,7 @@ export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
         cwd,
         timeout: 600000,
         stdio: ["pipe", "pipe", "pipe"],
+        env: { ...process.env },
       });
       if (result.stdout) console.log(`  ${c.dim}${result.stdout.slice(0, 2000)}${c.reset}`);
       return { ok: result.status === 0, output: result.stdout || "", error: result.stderr || "" };

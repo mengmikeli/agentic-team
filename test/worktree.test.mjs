@@ -231,6 +231,41 @@ describe("_runSingleFeature wiring", () => {
 });
 
 
+describe("required-cwd contract (no implicit fallback)", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), "required-cwd-test-"));
+  });
+
+  afterEach(() => {
+    try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+  });
+
+  it("runGateInline throws when cwd is omitted", () => {
+    assert.throws(
+      () => runGateInline("node --version", tmpDir, null),
+      /cwd is required/
+    );
+  });
+
+  it("runGateInline throws when cwd is undefined explicitly", () => {
+    assert.throws(
+      () => runGateInline("node --version", tmpDir, null, undefined),
+      /cwd is required/
+    );
+  });
+
+  it("dispatchToAgent throws when cwd is omitted", () => {
+    const mockSpawn = () => ({ status: 0, stdout: "", stderr: "" });
+    assert.throws(
+      () => dispatchToAgent("claude", "brief", undefined, mockSpawn),
+      /cwd is required/
+    );
+  });
+});
+
+
 describe("dispatchToAgent cwd injection", () => {
   it("forwards worktreePath as cwd to spawnSync for claude agent", () => {
     const calls = [];
