@@ -1,0 +1,13 @@
+{
+  "taskId": "task-12",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added a 'Git Worktrees' section to PLAYBOOK.md documenting the worktree layout (.team/worktrees/<slug> with branch feature/<slug>), lifecycle (created on agt run, preserved on failure, removed on success), and manual inspection/cleanup commands (git worktree list, git -C ... status, git worktree remove --force, git branch -D, git worktree prune). No code changes were needed; all 558 existing tests continue to pass.",
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "docs", "path": "PLAYBOOK.md" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

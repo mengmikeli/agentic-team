@@ -179,6 +179,71 @@ gh release create v{X.Y} --title "v{X.Y} — {Title}" --notes "{notes}"
 
 ---
 
+## Git Worktrees
+
+Each feature run executes in an isolated git worktree so agent file changes stay
+on a dedicated branch and cannot interfere with `main` or with other features
+running in parallel.
+
+### Layout
+
+```
+<repo>/
+  .team/
+    worktrees/
+      <slug>/          ← isolated working tree (e.g. "my-feature")
+        ...            ← full repo checkout on branch feature/<slug>
+```
+
+- **Slug** — derived from the feature name: lowercased, spaces/underscores → `-`,
+  non-alphanumeric characters stripped, capped at 72 characters.
+- **Branch** — `feature/<slug>` (uses `-B` so re-running resets the branch to HEAD).
+- **Lifetime** — created by `agt run` before dispatching agents, removed on clean
+  completion; **preserved on failure** so the next `agt run` can pick up where it
+  left off.
+
+### Inspect
+
+```bash
+# List all worktrees (main + any active feature worktrees)
+git worktree list
+
+# Show git log inside a specific worktree
+git -C .team/worktrees/<slug> log --oneline -10
+
+# Check uncommitted changes in a preserved worktree
+git -C .team/worktrees/<slug> status
+```
+
+### Manual cleanup
+
+If `agt run` crashed and left a worktree behind, or you want to discard a
+partially-built feature:
+
+```bash
+# 1. Remove the worktree directory and its git registration
+git worktree remove --force .team/worktrees/<slug>
+
+# 2. (Optional) Delete the branch if you do not need the commits
+git branch -d feature/<slug>    # safe delete — fails if unmerged
+git branch -D feature/<slug>    # force delete
+```
+
+> **Tip:** `agt run` automatically reuses an existing `.team/worktrees/<slug>` on
+> re-invocation — manual pruning is only needed when you want a clean slate or to
+> free disk space.
+
+### Prune stale git registrations
+
+After an abnormal exit, git may retain admin entries pointing to deleted
+directories. Clean them up with:
+
+```bash
+git worktree prune
+```
+
+---
+
 ## Deploy
 
 Three environments, each with a distinct purpose:
