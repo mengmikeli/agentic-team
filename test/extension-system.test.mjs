@@ -291,6 +291,148 @@ describe("promptAppend brief integration", () => {
   });
 });
 
+// ── verdictAppend integration ───────────────────────────────────────────────
+
+describe("verdictAppend integration", () => {
+  beforeEach(() => {
+    resetRegistry();
+    resetCircuitBreakers();
+  });
+
+  it("returns findings array from extension", async () => {
+    setExtensions([
+      {
+        name: "verdict-ext",
+        version: "1.0.0",
+        capabilities: ["verdictAppend"],
+        hooks: {
+          verdictAppend: async () => ({
+            findings: [{ severity: "warning", text: "🟡 ext.mjs:1 — extension warning message" }],
+          }),
+        },
+      },
+    ]);
+    const results = await fireExtension("verdictAppend", { findings: [], phase: "review" });
+    assert.equal(results.length, 1);
+    assert.ok(Array.isArray(results[0].findings));
+    assert.equal(results[0].findings[0].severity, "warning");
+  });
+
+  it("merging extension findings affects computeVerdict output", async () => {
+    const { computeVerdict } = await import("../bin/lib/synthesize.mjs");
+    setExtensions([
+      {
+        name: "critical-ext",
+        version: "1.0.0",
+        capabilities: ["verdictAppend"],
+        hooks: {
+          verdictAppend: async () => ({
+            findings: [{ severity: "critical", text: "🔴 ext.mjs:1 — critical issue from extension" }],
+          }),
+        },
+      },
+    ]);
+
+    const basefindings = [{ severity: "suggestion", text: "🔵 foo.mjs:1 — minor note" }];
+    let allFindings = [...basefindings];
+
+    const extResults = await fireExtension("verdictAppend", { findings: basefindings, phase: "review" });
+    for (const r of extResults) {
+      if (r && Array.isArray(r.findings)) {
+        for (const f of r.findings) {
+          if (f && typeof f.severity === "string" && typeof f.text === "string") {
+            allFindings = [...allFindings, f];
+          }
+        }
+      }
+    }
+
+    // Without extension: PASS; with extension critical finding: FAIL
+    assert.equal(computeVerdict(basefindings).verdict, "PASS");
+    assert.equal(computeVerdict(allFindings).verdict, "FAIL");
+    assert.equal(allFindings.length, 2);
+  });
+
+  it("ignores extension results with non-array findings", async () => {
+    setExtensions([
+      {
+        name: "bad-ext",
+        version: "1.0.0",
+        capabilities: ["verdictAppend"],
+        hooks: {
+          verdictAppend: async () => ({ findings: "not-an-array" }),
+        },
+      },
+    ]);
+
+    const results = await fireExtension("verdictAppend", { findings: [], phase: "review" });
+    let merged = [];
+    for (const r of results) {
+      if (r && Array.isArray(r.findings)) {
+        merged = [...merged, ...r.findings];
+      }
+    }
+    assert.deepEqual(merged, []);
+  });
+
+  it("skips individual findings with missing severity or text", async () => {
+    setExtensions([
+      {
+        name: "partial-ext",
+        version: "1.0.0",
+        capabilities: ["verdictAppend"],
+        hooks: {
+          verdictAppend: async () => ({
+            findings: [
+              { severity: "warning" },             // missing text
+              { text: "🟡 foo.mjs:1 — text only" }, // missing severity
+              { severity: "warning", text: "🟡 foo.mjs:2 — valid finding here" },
+            ],
+          }),
+        },
+      },
+    ]);
+
+    const results = await fireExtension("verdictAppend", { findings: [], phase: "review" });
+    let merged = [];
+    for (const r of results) {
+      if (r && Array.isArray(r.findings)) {
+        for (const f of r.findings) {
+          if (f && typeof f.severity === "string" && typeof f.text === "string") {
+            merged.push(f);
+          }
+        }
+      }
+    }
+    // Only the valid finding passes through
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0].text, "🟡 foo.mjs:2 — valid finding here");
+  });
+
+  it("passes current findings and phase in payload", async () => {
+    let captured;
+    setExtensions([
+      {
+        name: "capture-ext",
+        version: "1.0.0",
+        capabilities: ["verdictAppend"],
+        hooks: {
+          verdictAppend: async (payload) => {
+            captured = payload;
+            return { findings: [] };
+          },
+        },
+      },
+    ]);
+
+    const inputFindings = [{ severity: "warning", text: "🟡 a.mjs:1 — something" }];
+    await fireExtension("verdictAppend", { findings: inputFindings, phase: "review" });
+    assert.ok(Array.isArray(captured.findings));
+    assert.equal(captured.findings.length, 1);
+    assert.equal(captured.phase, "review");
+  });
+});
+
 // ── loadExtensions tests ────────────────────────────────────────────────────
 
 describe("loadExtensions", () => {

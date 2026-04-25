@@ -10,6 +10,7 @@
 
 import { readFileSync, appendFileSync } from "fs";
 import { runCompoundGate } from "./compound-gate.mjs";
+import { fireExtension } from "./extension-registry.mjs";
 
 /**
  * Parse review text for severity-tagged findings.
@@ -78,7 +79,7 @@ export function verifyFormat(text) {
   };
 }
 
-export function cmdSynthesize(args) {
+export async function cmdSynthesize(args) {
   const isVerify = args[0] === "verify";
   const restArgs = isVerify ? args.slice(1) : args;
 
@@ -113,6 +114,21 @@ export function cmdSynthesize(args) {
   }
 
   let findings = parseFindings(text);
+
+  // Extension hook: verdictAppend — let extensions inject extra findings before
+  // compound gate and computeVerdict see them
+  try {
+    const extResults = await fireExtension("verdictAppend", { findings, phase: "review" }, repoRoot);
+    for (const r of extResults) {
+      if (r && Array.isArray(r.findings)) {
+        for (const f of r.findings) {
+          if (f && typeof f.severity === "string" && typeof f.text === "string") {
+            findings = [...findings, f];
+          }
+        }
+      }
+    }
+  } catch { /* extensions must never break synthesis */ }
 
   // Run compound gate before computing verdict
   const gateResult = runCompoundGate(findings, repoRoot);

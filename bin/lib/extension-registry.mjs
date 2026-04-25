@@ -24,10 +24,12 @@ export function setExtensions(list) {
  *
  * @param {string} capability - Hook name, e.g. "promptAppend"
  * @param {object} payload    - Hook-specific payload passed to each extension
- *   - promptAppend payload: { prompt: string, taskId: string, phase: string }
+ *   - promptAppend payload:   { prompt: string, taskId: string, phase: string }
+ *   - verdictAppend payload:  { findings: Finding[], phase: string }
  * @param {string} [cwd]      - Working directory used to locate .team/extensions/
- * @returns {Promise<Array<{append: string}>>} Non-null results from each extension.
- *   - promptAppend return: { append: string } — content appended to the agent brief
+ * @returns {Promise<Array>} Non-null results from each extension.
+ *   - promptAppend return:  { append: string } — content appended to the agent brief
+ *   - verdictAppend return: { findings: Finding[] } — extra findings merged before compound gate
  * Never throws — errors are swallowed at the runHook level.
  */
 export async function fireExtension(capability, payload, cwd = process.cwd()) {
