@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (2 critical, 1 warning, 6 suggestion). Compound gate: WARN",
-  "timestamp": "2026-04-25T02:08:06.751Z",
+  "summary": "Parallel review: FAIL (1 critical, 1 warning, 14 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T06:32:44.666Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,30 +13,23 @@
     }
   ],
   "findings": {
-    "critical": 2,
+    "critical": 1,
     "warning": 1,
-    "suggestion": 6
+    "suggestion": 14
   },
   "compoundGate": {
-    "tripped": 2,
-    "layers": [
-      "missing-code-refs",
-      "fabricated-refs"
-    ],
-    "verdict": "WARN"
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
   },
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 compound-gate.mjs:0 — Thin review warning: missing-code-refs, fabricated-refs"
+      "text": "🟡 bin/lib/flows.mjs:100 — `gateOutput` is interpolated raw inside a triple-backtick block; an adversary controlling test stdout can break out of the fence and inject instructions into 6 reviewer agents launched with `--permission-mode bypassPermissions` (run.mjs:337). Escape nested backticks or use a randomized fence delimiter."
     },
     {
       "severity": "critical",
-      "text": "Ran `node --test test/flows.test.mjs` → 39/39 pass. New synthesis-header test passes; no regressions in existing merge/verdict tests. Critical risk (header lines re-parsed as findings) is correctly mitigated by using text labels instead of severity emojis — verified by the still-passing `simplicity 🔴 causes FAIL` test which exercises the production verdict path on merged output."
-    },
-    {
-      "severity": "critical",
-      "text": "No 🔴 or 🟡 findings. All four veto categories (dead code, premature abstraction, unnecessary indirection, gold-plating) are clear. Change is ~20 inline lines in one function, no new abstractions, all 582 tests pass. Eval written to `.team/features/multi-perspective-code-review/tasks/task-2/eval-simplicity.md`."
+      "text": "No 🔴 or 🟡 findings. Synthesis-header change is ~30 lines, single-purpose, no new abstractions, no config knobs, no dead code. Tests (562/562 pass) verify header shape, ordering, and non-reparsability. None of the four veto categories apply. Eval at `.team/features/multi-perspective-code-review/tasks/task-5/eval-simplicity.md`."
     }
   ]
 }

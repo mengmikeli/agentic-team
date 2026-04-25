@@ -1,0 +1,63 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (4 critical, 5 warning, 15 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T06:20:37.070Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 4,
+    "warning": 5,
+    "suggestion": 15
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "🟡 bin/lib/parallel-reviews.mjs:24 — Synthetic crash finding uses fake `review/${role}.mjs:0` path that trips compound-gate's fabricated-refs layer; switch to a sentinel like `🔴 [reviewer-crash:${role}] — …` and whitelist that prefix in compound-gate so fail-closed and shallow-review signals don't conflate"
+    },
+    {
+      "severity": "critical",
+      "text": "Builder claims verified against code + 581/581 test pass. Implementation is correct: 6-way concurrency confirmed by start-before-resolve test, cwd forwarding tested, fail-closed synthetic 🔴 on `ok:false` covered."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parallel-reviews.mjs:20 — No `.catch` on the dispatch promise; a rejected dispatch would bypass fail-closed and crash the run. Add `.catch(err => ({ role, ok:false, output: synthetic(err) }))`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/flows.mjs:0 — Spec AC #2 (synthesis header with totals + per-role count table in `mergeReviewFindings`) is not yet implemented; file as a follow-up task before closing the feature."
+    },
+    {
+      "severity": "critical",
+      "text": "🔵 bin/lib/run.mjs:1189 — Consider logging which roles returned 🔴 at completion for faster triage."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parallel-reviews.mjs:20 — No `.catch` on dispatch promise; a rejecting/throwing dispatch crashes the whole `Promise.all` instead of fail-closing. Real binding always resolves so not exploitable today, but contract advertises fail-closed."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/build-verify-parallel-review.test.mjs:27-54 — Source-regex assertions on run.mjs are brittle (whitespace/rename break them without behavior change). Prefer behavioral tests."
+    },
+    {
+      "severity": "warning",
+      "text": "🔵 test/build-verify-parallel-review.test.mjs:101 — Add a `simplicity` 🟡 case to lock that `[simplicity veto]` is critical-only."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 or 🟡. Threat surface is local dev tooling only; no auth/secrets/PII/network boundary touched by this change. Fail-closed synthetic 🔴 on crashed reviewer is correctly implemented and test-covered. Eval written to `.team/features/multi-perspective-code-review/tasks/task-1/eval-security.md`."
+    }
+  ]
+}

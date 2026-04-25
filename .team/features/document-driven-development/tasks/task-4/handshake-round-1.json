@@ -1,0 +1,35 @@
+{
+  "taskId": "task-4",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 1 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T07:59:19.695Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 1,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "No 🔴 or 🟡 findings from the product lens. Eval written to `.team/features/document-driven-development/tasks/task-6/eval-product.md`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/run-spec-gate.test.mjs:105 — Test uses `--dry-run`, so the task's \"dispatch, gates\" claims are unverified; add a non-dry-run assertion or dispatcher stub."
+    }
+  ]
+}

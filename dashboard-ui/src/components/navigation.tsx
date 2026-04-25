@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Project } from '@/types';
 import { cn } from '@/lib/utils';
 import { Sun, Moon, Zap } from 'lucide-react';
@@ -116,29 +116,72 @@ export function Navigation({
 
         {/* Project tabs — accent underline */}
         {currentTab === 'project' && projects.length > 1 && (
-          <div className="flex items-center gap-0 -mb-px overflow-x-auto scrollbar-none" role="tablist" aria-label="Project selector">
-            {projects.map((project) => {
-              const isActive = currentProject?.name === project.name;
-              return (
-                <button
-                  key={project.name}
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => onProjectChange(project)}
-                  className={cn(
-                    "px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors",
-                    isActive
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {project.name}
-                </button>
-              );
-            })}
-          </div>
+          <ProjectTabs projects={projects} currentProject={currentProject} onProjectChange={onProjectChange} />
         )}
       </div>
     </nav>
+  );
+}
+
+function ProjectTabs({ projects, currentProject, onProjectChange }: {
+  projects: Project[];
+  currentProject: Project | null;
+  onProjectChange: (p: Project) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  const updateIndicator = useCallback(() => {
+    if (!currentProject || !containerRef.current) return;
+    const tab = tabRefs.current.get(currentProject.name);
+    if (!tab) return;
+    // Scroll active tab into view
+    tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    // Update indicator position after scroll settles
+    requestAnimationFrame(() => {
+      const containerRect = containerRef.current!.getBoundingClientRect();
+      const tabRect = tab.getBoundingClientRect();
+      setIndicator({
+        left: tabRect.left - containerRect.left + containerRef.current!.scrollLeft,
+        width: tabRect.width,
+      });
+    });
+  }, [currentProject]);
+
+  useEffect(() => {
+    updateIndicator();
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [updateIndicator]);
+
+  return (
+    <div ref={containerRef} className="relative flex items-center gap-0 -mb-px overflow-x-auto scrollbar-none" role="tablist" aria-label="Project selector">
+      {/* Sliding indicator */}
+      <div
+        className="absolute bottom-0 h-0.5 bg-primary rounded-full transition-all duration-300 ease-out"
+        style={{ left: indicator.left, width: indicator.width }}
+      />
+      {projects.map((project) => {
+        const isActive = currentProject?.name === project.name;
+        return (
+          <button
+            key={project.name}
+            ref={(el) => { if (el) tabRefs.current.set(project.name, el); }}
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onProjectChange(project)}
+            className={cn(
+              "px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 border-transparent transition-colors duration-200",
+              isActive
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {project.name}
+          </button>
+        );
+      })}
+    </div>
   );
 }

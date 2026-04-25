@@ -1,0 +1,681 @@
+{
+  "version": "2.0",
+  "feature": "max-review-rounds-escalation",
+  "status": "completed",
+  "tasks": [
+    {
+      "id": "task-1",
+      "title": "After 3 consecutive review FAILs on the same task, the 4th attempt does not run; task is transitioned to `blocked` with reason `review-escalation: 3 rounds exceeded`.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 347,
+      "lastTransition": "2026-04-25T08:17:54.634Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-2",
+      "title": "A markdown comment titled `## Review-Round Escalation: <task title>` is posted to the task's GitHub issue with a deduplicated severity/finding table.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 348,
+      "lastTransition": "2026-04-25T08:21:59.204Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-3",
+      "title": "Findings with identical text across rounds appear once in the table.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 349,
+      "lastTransition": "2026-04-25T08:23:26.955Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-4",
+      "title": "Parent approval issue body is updated to reference the escalation.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 350,
+      "lastTransition": "2026-04-25T08:24:52.603Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-5",
+      "title": "`STATE.json` for the task contains `reviewRounds: 3` after the cap is hit.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 351,
+      "lastTransition": "2026-04-25T08:26:17.847Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-6",
+      "title": "`handshake-round-1.json`, `handshake-round-2.json`, `handshake-round-3.json` exist in the task directory.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 352,
+      "lastTransition": "2026-04-25T08:27:44.483Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-7",
+      "title": "`progress.md` has a 🔴 line noting the escalation.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 353,
+      "lastTransition": "2026-04-25T08:30:29.495Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-8",
+      "title": "Subsequent feature tasks are not executed once a task escalates (loop breaks).",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 354,
+      "lastTransition": "2026-04-25T08:35:10.530Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-9",
+      "title": "Successful review (no critical findings) does NOT increment `reviewRounds`.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 355,
+      "lastTransition": "2026-04-25T08:39:21.164Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-10",
+      "title": "`bin/lib/review-escalation.mjs` exports the 5 functions + constant listed above.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 356,
+      "lastTransition": "2026-04-25T08:43:44.950Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-11",
+      "title": "`bin/lib/run.mjs` integrates increment + per-round archive write on every review FAIL path (single + multi-perspective).",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 357,
+      "lastTransition": "2026-04-25T08:49:00.650Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-12",
+      "title": "`bin/lib/run.mjs` checks `shouldEscalate` before retry dispatch and performs the full escalation sequence (comment, parent body update, transition blocked, progress log, loop break).",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 358,
+      "lastTransition": "2026-04-25T08:51:42.287Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-13",
+      "title": "`test/review-escalation.test.mjs` covers all exported functions; `npm test` passes.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 359,
+      "lastTransition": "2026-04-25T08:53:08.480Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-14",
+      "title": "`STATE.json` `reviewRounds` survives a `agt run` restart (persisted via `writeState`).",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 360,
+      "lastTransition": "2026-04-25T08:54:34.504Z",
+      "ticks": 1
+    },
+    {
+      "id": "task-15",
+      "title": "PRODUCT.md roadmap entry #19 marked ✅ Done.",
+      "status": "passed",
+      "attempts": 1,
+      "issueNumber": 361,
+      "lastTransition": "2026-04-25T08:55:59.173Z",
+      "ticks": 1
+    }
+  ],
+  "gates": [
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (52.922375ms)\n  ✔ shows audit command in help (51.780666ms)\n  ✔ shows brainstorm command in help (53.179166ms)\n  ✔ help text includes all three new commands with descriptions (52.426375ms)\n✔ CLI help text (210.891375ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.831ms)\n  ✔ prints review header (68.327583ms)\n✔ agt review (135.247959ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.220166ms)\n  ✔ runs audit with .team/ present and reports structure (108.312625ms)\n  ✔ detects missing required files (108.580334ms)\n  ✔ reports feature with issues (110.260083ms)\n  ✔ shows summary line (51.907541ms)\n✔ agt audit (430.442458ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.72925ms)\n✔ agt brainstorm (20010.890458ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (198.944334ms)\n  ✔ agt run with --dry-run shows tasks without executing (155.689708ms)\n✔ smart entry flow (agt run no args) (354.751584ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.677792ms)\n  ✔ agt help init shows usage and examples (52.315583ms)\n  ✔ agt help status shows usage and examples (52.237042ms)\n  ✔ agt help review shows usage and examples (51.948875ms)\n  ✔ agt help audit shows usage and examples (52.807167ms)\n  ✔ agt help brainstorm shows usage and examples (51.05175ms)\n  ✔ agt help doctor shows usage and examples (54.083042ms)\n  ✔ agt help cron-tick shows usage and examples (51.595292ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (49.501791ms)\n  ✔ agt help <unknown> exits non-zero and shows error (49.623084ms)\n  ✔ agt help (no subcommand) lists all commands (53.187875ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.600083ms)\n  ✔ agt help run shows Prerequisites section for board setup (51.157417ms)\n✔ agt help <command> (674.04725ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.7775ms)\n✔ audit-cmd module (3.801375ms)\n▶ review module\n  ✔ can be imported without errors (3.267334ms)\n✔ review module (3.288334ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.253833ms)\n  ✔ exports buildInteractiveSpec function (0.035416ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.089042ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.036167ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.032042ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.0335ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.048ms)\n✔ brainstorm-cmd module (0.574709ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.648125ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.065833ms)\n  ✔ does not trip when all findings are suggestions (0.032334ms)\n  ✔ does not trip for empty findings (0.027916ms)\n  ✔ trips on 'seems correct' phrase (0.03125ms)\n✔ detectThinContent (1.289ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.132209ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.041084ms)\n  ✔ does not trip when all findings are suggestions (0.041583ms)\n  ✔ does not trip for empty fin",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:14:23.453Z",
+      "taskId": "task-1"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (53.566709ms)\n  ✔ shows audit command in help (51.175834ms)\n  ✔ shows brainstorm command in help (53.97425ms)\n  ✔ help text includes all three new commands with descriptions (52.593583ms)\n✔ CLI help text (211.8405ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.389333ms)\n  ✔ prints review header (66.450625ms)\n✔ agt review (132.920084ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.805334ms)\n  ✔ runs audit with .team/ present and reports structure (108.158917ms)\n  ✔ detects missing required files (110.350583ms)\n  ✔ reports feature with issues (112.190209ms)\n  ✔ shows summary line (51.255625ms)\n✔ agt audit (433.928542ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20008.009208ms)\n✔ agt brainstorm (20008.119167ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (180.849667ms)\n  ✔ agt run with --dry-run shows tasks without executing (155.716666ms)\n✔ smart entry flow (agt run no args) (336.661875ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.505208ms)\n  ✔ agt help init shows usage and examples (55.4245ms)\n  ✔ agt help status shows usage and examples (51.816959ms)\n  ✔ agt help review shows usage and examples (52.36775ms)\n  ✔ agt help audit shows usage and examples (56.287916ms)\n  ✔ agt help brainstorm shows usage and examples (57.642709ms)\n  ✔ agt help doctor shows usage and examples (53.49325ms)\n  ✔ agt help cron-tick shows usage and examples (51.090833ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.617959ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.183042ms)\n  ✔ agt help (no subcommand) lists all commands (50.522542ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (54.967167ms)\n  ✔ agt help run shows Prerequisites section for board setup (55.821917ms)\n✔ agt help <command> (695.01325ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.956ms)\n✔ audit-cmd module (3.985209ms)\n▶ review module\n  ✔ can be imported without errors (3.71725ms)\n✔ review module (3.745791ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.271542ms)\n  ✔ exports buildInteractiveSpec function (0.041125ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.110583ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.040417ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.032375ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.059208ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.074709ms)\n✔ brainstorm-cmd module (0.699125ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.756083ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.0795ms)\n  ✔ does not trip when all findings are suggestions (0.034625ms)\n  ✔ does not trip for empty findings (0.029916ms)\n  ✔ trips on 'seems correct' phrase (0.032625ms)\n✔ detectThinContent (1.45725ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.151083ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.045792ms)\n  ✔ does not trip when all findings are suggestions (0.043292ms)\n  ✔ does not trip for empty f",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:19:53.895Z",
+      "taskId": "task-2"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (56.945209ms)\n  ✔ shows audit command in help (55.600083ms)\n  ✔ shows brainstorm command in help (51.352958ms)\n  ✔ help text includes all three new commands with descriptions (52.5115ms)\n✔ CLI help text (217.299708ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.360458ms)\n  ✔ prints review header (66.173084ms)\n✔ agt review (133.617459ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.828166ms)\n  ✔ runs audit with .team/ present and reports structure (110.258709ms)\n  ✔ detects missing required files (108.58ms)\n  ✔ reports feature with issues (110.205208ms)\n  ✔ shows summary line (50.766334ms)\n✔ agt audit (430.813917ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (15277.53025ms)\n✔ agt brainstorm (15277.5755ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (166.066875ms)\n  ✔ agt run with --dry-run shows tasks without executing (160.224333ms)\n✔ smart entry flow (agt run no args) (326.355959ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (53.33325ms)\n  ✔ agt help init shows usage and examples (52.52775ms)\n  ✔ agt help status shows usage and examples (52.046834ms)\n  ✔ agt help review shows usage and examples (53.573541ms)\n  ✔ agt help audit shows usage and examples (53.271416ms)\n  ✔ agt help brainstorm shows usage and examples (52.491ms)\n  ✔ agt help doctor shows usage and examples (53.804333ms)\n  ✔ agt help cron-tick shows usage and examples (53.326083ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (53.519084ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.848166ms)\n  ✔ agt help (no subcommand) lists all commands (56.882917ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (58.04675ms)\n  ✔ agt help run shows Prerequisites section for board setup (60.817875ms)\n✔ agt help <command> (705.769042ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (4.356125ms)\n✔ audit-cmd module (4.385709ms)\n▶ review module\n  ✔ can be imported without errors (3.751542ms)\n✔ review module (3.780125ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.28875ms)\n  ✔ exports buildInteractiveSpec function (0.035834ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.104084ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.039958ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.034208ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.035375ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.054458ms)\n✔ brainstorm-cmd module (0.64675ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.82175ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.071375ms)\n  ✔ does not trip when all findings are suggestions (0.034459ms)\n  ✔ does not trip for empty findings (0.031042ms)\n  ✔ trips on 'seems correct' phrase (0.032166ms)\n✔ detectThinContent (1.545667ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.14925ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.041209ms)\n  ✔ does not trip when all findings are suggestions (0.042625ms)\n  ✔ does not trip for empty findi",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:22:57.601Z",
+      "taskId": "task-3"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (52.541292ms)\n  ✔ shows audit command in help (50.504875ms)\n  ✔ shows brainstorm command in help (53.294334ms)\n  ✔ help text includes all three new commands with descriptions (51.181292ms)\n✔ CLI help text (208.073875ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.14875ms)\n  ✔ prints review header (66.597042ms)\n✔ agt review (133.829792ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.286917ms)\n  ✔ runs audit with .team/ present and reports structure (109.522417ms)\n  ✔ detects missing required files (107.922375ms)\n  ✔ reports feature with issues (109.3335ms)\n  ✔ shows summary line (51.2405ms)\n✔ agt audit (429.471792ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (14211.957083ms)\n✔ agt brainstorm (14212.000292ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (160.040125ms)\n  ✔ agt run with --dry-run shows tasks without executing (159.650167ms)\n✔ smart entry flow (agt run no args) (319.756375ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.929375ms)\n  ✔ agt help init shows usage and examples (53.134917ms)\n  ✔ agt help status shows usage and examples (52.57325ms)\n  ✔ agt help review shows usage and examples (53.57925ms)\n  ✔ agt help audit shows usage and examples (52.918ms)\n  ✔ agt help brainstorm shows usage and examples (52.966042ms)\n  ✔ agt help doctor shows usage and examples (51.835958ms)\n  ✔ agt help cron-tick shows usage and examples (52.377041ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (50.389459ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.847125ms)\n  ✔ agt help (no subcommand) lists all commands (50.566917ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.917ms)\n  ✔ agt help run shows Prerequisites section for board setup (51.874958ms)\n✔ agt help <command> (679.171334ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.764125ms)\n✔ audit-cmd module (3.789958ms)\n▶ review module\n  ✔ can be imported without errors (3.261916ms)\n✔ review module (3.284791ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.253417ms)\n  ✔ exports buildInteractiveSpec function (0.037292ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.088583ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.036667ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.031042ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.032542ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.048458ms)\n✔ brainstorm-cmd module (0.575291ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.74575ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.086333ms)\n  ✔ does not trip when all findings are suggestions (0.038292ms)\n  ✔ does not trip for empty findings (0.031417ms)\n  ✔ trips on 'seems correct' phrase (0.033958ms)\n✔ detectThinContent (1.4325ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.134792ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.049875ms)\n  ✔ does not trip when all findings are suggestions (0.0425ms)\n  ✔ does not trip for empty find",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:24:23.256Z",
+      "taskId": "task-4"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (57.256833ms)\n  ✔ shows audit command in help (50.585125ms)\n  ✔ shows brainstorm command in help (51.451667ms)\n  ✔ help text includes all three new commands with descriptions (51.291708ms)\n✔ CLI help text (211.358583ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.19525ms)\n  ✔ prints review header (65.521625ms)\n✔ agt review (131.799917ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.470584ms)\n  ✔ runs audit with .team/ present and reports structure (218.414583ms)\n  ✔ detects missing required files (150.795417ms)\n  ✔ reports feature with issues (110.784333ms)\n  ✔ shows summary line (51.6065ms)\n✔ agt audit (583.327625ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (14233.066792ms)\n✔ agt brainstorm (14233.107333ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (159.205542ms)\n  ✔ agt run with --dry-run shows tasks without executing (161.186333ms)\n✔ smart entry flow (agt run no args) (320.4515ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (54.531458ms)\n  ✔ agt help init shows usage and examples (53.959875ms)\n  ✔ agt help status shows usage and examples (53.686375ms)\n  ✔ agt help review shows usage and examples (52.89325ms)\n  ✔ agt help audit shows usage and examples (52.2145ms)\n  ✔ agt help brainstorm shows usage and examples (52.841583ms)\n  ✔ agt help doctor shows usage and examples (52.503583ms)\n  ✔ agt help cron-tick shows usage and examples (50.576333ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.356375ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.872166ms)\n  ✔ agt help (no subcommand) lists all commands (51.655ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.694041ms)\n  ✔ agt help run shows Prerequisites section for board setup (52.091583ms)\n✔ agt help <command> (681.134791ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.818292ms)\n✔ audit-cmd module (3.844958ms)\n▶ review module\n  ✔ can be imported without errors (3.29725ms)\n✔ review module (3.320292ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.254333ms)\n  ✔ exports buildInteractiveSpec function (0.034667ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.092291ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.036ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.033541ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.032417ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.053208ms)\n✔ brainstorm-cmd module (0.585417ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.771ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.077542ms)\n  ✔ does not trip when all findings are suggestions (0.039ms)\n  ✔ does not trip for empty findings (0.030916ms)\n  ✔ trips on 'seems correct' phrase (0.033416ms)\n✔ detectThinContent (1.440583ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.1465ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.052042ms)\n  ✔ does not trip when all findings are suggestions (0.043417ms)\n  ✔ does not trip for empty findings ",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:25:49.081Z",
+      "taskId": "task-5"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (53.815708ms)\n  ✔ shows audit command in help (54.43375ms)\n  ✔ shows brainstorm command in help (52.676625ms)\n  ✔ help text includes all three new commands with descriptions (53.549709ms)\n✔ CLI help text (215.088292ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (71.212334ms)\n  ✔ prints review header (69.925083ms)\n✔ agt review (141.233666ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (53.968083ms)\n  ✔ runs audit with .team/ present and reports structure (117.391667ms)\n  ✔ detects missing required files (114.47075ms)\n  ✔ reports feature with issues (118.136375ms)\n  ✔ shows summary line (53.542083ms)\n✔ agt audit (457.70825ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (14242.03025ms)\n✔ agt brainstorm (14242.075333ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (159.227917ms)\n  ✔ agt run with --dry-run shows tasks without executing (161.666416ms)\n✔ smart entry flow (agt run no args) (320.954209ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (53.320292ms)\n  ✔ agt help init shows usage and examples (53.556541ms)\n  ✔ agt help status shows usage and examples (53.829917ms)\n  ✔ agt help review shows usage and examples (54.564333ms)\n  ✔ agt help audit shows usage and examples (52.146291ms)\n  ✔ agt help brainstorm shows usage and examples (53.4035ms)\n  ✔ agt help doctor shows usage and examples (53.19275ms)\n  ✔ agt help cron-tick shows usage and examples (52.708084ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.476542ms)\n  ✔ agt help <unknown> exits non-zero and shows error (52.562792ms)\n  ✔ agt help (no subcommand) lists all commands (51.91125ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.537583ms)\n  ✔ agt help run shows Prerequisites section for board setup (54.362ms)\n✔ agt help <command> (688.829458ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.823125ms)\n✔ audit-cmd module (3.848792ms)\n▶ review module\n  ✔ can be imported without errors (3.281833ms)\n✔ review module (3.304292ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.249041ms)\n  ✔ exports buildInteractiveSpec function (0.032958ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.089417ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.035375ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.031125ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.032334ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.049292ms)\n✔ brainstorm-cmd module (0.566333ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.744041ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.088583ms)\n  ✔ does not trip when all findings are suggestions (0.0375ms)\n  ✔ does not trip for empty findings (0.031333ms)\n  ✔ trips on 'seems correct' phrase (0.03325ms)\n✔ detectThinContent (1.425208ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.142208ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.0465ms)\n  ✔ does not trip when all findings are suggestions (0.043125ms)\n  ✔ does not trip for empty fi",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:27:14.585Z",
+      "taskId": "task-6"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (52.013042ms)\n  ✔ shows audit command in help (52.191833ms)\n  ✔ shows brainstorm command in help (52.196625ms)\n  ✔ help text includes all three new commands with descriptions (51.731375ms)\n✔ CLI help text (208.703375ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (69.651625ms)\n  ✔ prints review header (67.152375ms)\n✔ agt review (136.8915ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.845417ms)\n  ✔ runs audit with .team/ present and reports structure (111.464125ms)\n  ✔ detects missing required files (111.675375ms)\n  ✔ reports feature with issues (110.962ms)\n  ✔ shows summary line (52.859583ms)\n✔ agt audit (438.984959ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (15815.688959ms)\n✔ agt brainstorm (15815.729833ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (159.67ms)\n  ✔ agt run with --dry-run shows tasks without executing (161.051084ms)\n✔ smart entry flow (agt run no args) (320.784917ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (55.464917ms)\n  ✔ agt help init shows usage and examples (59.141ms)\n  ✔ agt help status shows usage and examples (58.567833ms)\n  ✔ agt help review shows usage and examples (54.497584ms)\n  ✔ agt help audit shows usage and examples (56.255ms)\n  ✔ agt help brainstorm shows usage and examples (58.734375ms)\n  ✔ agt help doctor shows usage and examples (58.17075ms)\n  ✔ agt help cron-tick shows usage and examples (51.652542ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.384542ms)\n  ✔ agt help <unknown> exits non-zero and shows error (52.241208ms)\n  ✔ agt help (no subcommand) lists all commands (51.4645ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.212583ms)\n  ✔ agt help run shows Prerequisites section for board setup (50.618625ms)\n✔ agt help <command> (709.6875ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.819875ms)\n✔ audit-cmd module (3.845292ms)\n▶ review module\n  ✔ can be imported without errors (3.330542ms)\n✔ review module (3.354041ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.259042ms)\n  ✔ exports buildInteractiveSpec function (0.040042ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.101417ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.043625ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.032666ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.038042ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.057334ms)\n✔ brainstorm-cmd module (0.629958ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.687833ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.072584ms)\n  ✔ does not trip when all findings are suggestions (0.033084ms)\n  ✔ does not trip for empty findings (0.029125ms)\n  ✔ trips on 'seems correct' phrase (0.032708ms)\n✔ detectThinContent (1.326792ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.134208ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.042917ms)\n  ✔ does not trip when all findings are suggestions (0.041792ms)\n  ✔ does not trip for empty findin",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:28:50.838Z",
+      "taskId": "task-7"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (53.423083ms)\n  ✔ shows audit command in help (51.6435ms)\n  ✔ shows brainstorm command in help (51.791041ms)\n  ✔ help text includes all three new commands with descriptions (51.240333ms)\n✔ CLI help text (208.631125ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.505208ms)\n  ✔ prints review header (65.156083ms)\n✔ agt review (132.756958ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (53.027125ms)\n  ✔ runs audit with .team/ present and reports structure (112.676917ms)\n  ✔ detects missing required files (109.703208ms)\n  ✔ reports feature with issues (109.399125ms)\n  ✔ shows summary line (51.487167ms)\n✔ agt audit (436.485416ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.218291ms)\n✔ agt brainstorm (20010.386458ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (195.152083ms)\n  ✔ agt run with --dry-run shows tasks without executing (157.726125ms)\n✔ smart entry flow (agt run no args) (353.002584ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.699583ms)\n  ✔ agt help init shows usage and examples (51.094667ms)\n  ✔ agt help status shows usage and examples (51.796958ms)\n  ✔ agt help review shows usage and examples (50.59875ms)\n  ✔ agt help audit shows usage and examples (50.490875ms)\n  ✔ agt help brainstorm shows usage and examples (51.946583ms)\n  ✔ agt help doctor shows usage and examples (50.816625ms)\n  ✔ agt help cron-tick shows usage and examples (51.910583ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.054875ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.707334ms)\n  ✔ agt help (no subcommand) lists all commands (51.125917ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.328333ms)\n  ✔ agt help run shows Prerequisites section for board setup (51.015541ms)\n✔ agt help <command> (666.844208ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.660833ms)\n✔ audit-cmd module (3.683792ms)\n▶ review module\n  ✔ can be imported without errors (3.179ms)\n✔ review module (3.198167ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.242041ms)\n  ✔ exports buildInteractiveSpec function (0.032334ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.088958ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.035166ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.0305ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.031542ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.049583ms)\n✔ brainstorm-cmd module (0.55575ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.457459ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.076ms)\n  ✔ does not trip when all findings are suggestions (0.036167ms)\n  ✔ does not trip for empty findings (0.030542ms)\n  ✔ trips on 'seems correct' phrase (0.033042ms)\n✔ detectThinContent (1.430667ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.138875ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.045542ms)\n  ✔ does not trip when all findings are suggestions (0.042834ms)\n  ✔ does not trip for empt",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:33:49.895Z",
+      "taskId": "task-8"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (52.360667ms)\n  ✔ shows audit command in help (51.42525ms)\n  ✔ shows brainstorm command in help (51.393459ms)\n  ✔ help text includes all three new commands with descriptions (51.508333ms)\n✔ CLI help text (207.269125ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (65.984834ms)\n  ✔ prints review header (67.052959ms)\n✔ agt review (133.121708ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.610208ms)\n  ✔ runs audit with .team/ present and reports structure (107.825875ms)\n  ✔ detects missing required files (107.912125ms)\n  ✔ reports feature with issues (109.0035ms)\n  ✔ shows summary line (51.970917ms)\n✔ agt audit (428.489334ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.425709ms)\n✔ agt brainstorm (20010.584167ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (194.852375ms)\n  ✔ agt run with --dry-run shows tasks without executing (154.045792ms)\n✔ smart entry flow (agt run no args) (349.027042ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.528583ms)\n  ✔ agt help init shows usage and examples (50.886292ms)\n  ✔ agt help status shows usage and examples (52.313875ms)\n  ✔ agt help review shows usage and examples (50.103375ms)\n  ✔ agt help audit shows usage and examples (51.472083ms)\n  ✔ agt help brainstorm shows usage and examples (51.706625ms)\n  ✔ agt help doctor shows usage and examples (50.884041ms)\n  ✔ agt help cron-tick shows usage and examples (50.850416ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (50.818125ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.3565ms)\n  ✔ agt help (no subcommand) lists all commands (51.928667ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.423917ms)\n  ✔ agt help run shows Prerequisites section for board setup (52.342ms)\n✔ agt help <command> (666.873041ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.801ms)\n✔ audit-cmd module (3.831417ms)\n▶ review module\n  ✔ can be imported without errors (3.294208ms)\n✔ review module (3.317875ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.25925ms)\n  ✔ exports buildInteractiveSpec function (0.035583ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.091083ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.036ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.031875ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.034166ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.0525ms)\n✔ brainstorm-cmd module (0.588292ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.410958ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.095875ms)\n  ✔ does not trip when all findings are suggestions (0.043208ms)\n  ✔ does not trip for empty findings (0.032542ms)\n  ✔ trips on 'seems correct' phrase (0.035042ms)\n✔ detectThinContent (1.370292ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.1395ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.049542ms)\n  ✔ does not trip when all findings are suggestions (0.044833ms)\n  ✔ does not trip for empty findi",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:37:54.041Z",
+      "taskId": "task-9"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (53.947125ms)\n  ✔ shows audit command in help (51.600458ms)\n  ✔ shows brainstorm command in help (51.068625ms)\n  ✔ help text includes all three new commands with descriptions (53.502542ms)\n✔ CLI help text (210.717125ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (68.98325ms)\n  ✔ prints review header (64.295792ms)\n✔ agt review (133.363333ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.784208ms)\n  ✔ runs audit with .team/ present and reports structure (109.489ms)\n  ✔ detects missing required files (107.286583ms)\n  ✔ reports feature with issues (108.755625ms)\n  ✔ shows summary line (51.529625ms)\n✔ agt audit (428.016042ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20011.082167ms)\n✔ agt brainstorm (20011.259ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (198.548125ms)\n  ✔ agt run with --dry-run shows tasks without executing (154.866541ms)\n✔ smart entry flow (agt run no args) (353.544417ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.956208ms)\n  ✔ agt help init shows usage and examples (51.851083ms)\n  ✔ agt help status shows usage and examples (52.124375ms)\n  ✔ agt help review shows usage and examples (51.621125ms)\n  ✔ agt help audit shows usage and examples (50.173584ms)\n  ✔ agt help brainstorm shows usage and examples (50.625958ms)\n  ✔ agt help doctor shows usage and examples (52.613291ms)\n  ✔ agt help cron-tick shows usage and examples (51.800292ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.447292ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.27575ms)\n  ✔ agt help (no subcommand) lists all commands (52.283167ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (52.121917ms)\n  ✔ agt help run shows Prerequisites section for board setup (51.116542ms)\n✔ agt help <command> (671.275917ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.67575ms)\n✔ audit-cmd module (3.699042ms)\n▶ review module\n  ✔ can be imported without errors (3.271959ms)\n✔ review module (3.292583ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.259375ms)\n  ✔ exports buildInteractiveSpec function (0.03675ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.089042ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.036417ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.0315ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.032125ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.051875ms)\n✔ brainstorm-cmd module (0.585667ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.745084ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.087833ms)\n  ✔ does not trip when all findings are suggestions (0.039ms)\n  ✔ does not trip for empty findings (0.03275ms)\n  ✔ trips on 'seems correct' phrase (0.033875ms)\n✔ detectThinContent (1.446458ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.145042ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.045709ms)\n  ✔ does not trip when all findings are suggestions (0.042708ms)\n  ✔ does not trip for empty fi",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:41:29.206Z",
+      "taskId": "task-10"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (53.986709ms)\n  ✔ shows audit command in help (52.007583ms)\n  ✔ shows brainstorm command in help (51.344416ms)\n  ✔ help text includes all three new commands with descriptions (51.187292ms)\n✔ CLI help text (209.0895ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.599291ms)\n  ✔ prints review header (65.016792ms)\n✔ agt review (131.701334ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.422958ms)\n  ✔ runs audit with .team/ present and reports structure (110.055ms)\n  ✔ detects missing required files (108.387333ms)\n  ✔ reports feature with issues (108.265125ms)\n  ✔ shows summary line (51.3925ms)\n✔ agt audit (429.686667ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.741042ms)\n✔ agt brainstorm (20010.917167ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (194.842125ms)\n  ✔ agt run with --dry-run shows tasks without executing (156.565084ms)\n✔ smart entry flow (agt run no args) (351.54075ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (50.861167ms)\n  ✔ agt help init shows usage and examples (52.012ms)\n  ✔ agt help status shows usage and examples (50.567584ms)\n  ✔ agt help review shows usage and examples (51.184417ms)\n  ✔ agt help audit shows usage and examples (50.085208ms)\n  ✔ agt help brainstorm shows usage and examples (53.415458ms)\n  ✔ agt help doctor shows usage and examples (51.261166ms)\n  ✔ agt help cron-tick shows usage and examples (52.319833ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (50.543166ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.18825ms)\n  ✔ agt help (no subcommand) lists all commands (51.585916ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (52.15375ms)\n  ✔ agt help run shows Prerequisites section for board setup (51.014459ms)\n✔ agt help <command> (668.450125ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.705458ms)\n✔ audit-cmd module (3.728375ms)\n▶ review module\n  ✔ can be imported without errors (3.2495ms)\n✔ review module (3.269917ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.251583ms)\n  ✔ exports buildInteractiveSpec function (0.035291ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.090208ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.035042ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.031542ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.032583ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.049917ms)\n✔ brainstorm-cmd module (0.574209ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.758708ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.074458ms)\n  ✔ does not trip when all findings are suggestions (0.036666ms)\n  ✔ does not trip for empty findings (0.03125ms)\n  ✔ trips on 'seems correct' phrase (0.033083ms)\n✔ detectThinContent (1.418583ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.1365ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.045625ms)\n  ✔ does not trip when all findings are suggestions (0.044333ms)\n  ✔ does not trip for empty find",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:46:04.303Z",
+      "taskId": "task-11"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (52.518458ms)\n  ✔ shows audit command in help (51.926834ms)\n  ✔ shows brainstorm command in help (53.114583ms)\n  ✔ help text includes all three new commands with descriptions (50.960292ms)\n✔ CLI help text (209.13825ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.043708ms)\n  ✔ prints review header (66.573291ms)\n✔ agt review (132.698833ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.933333ms)\n  ✔ runs audit with .team/ present and reports structure (109.140541ms)\n  ✔ detects missing required files (106.990125ms)\n  ✔ reports feature with issues (109.476ms)\n  ✔ shows summary line (51.723ms)\n✔ agt audit (428.42875ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.917125ms)\n✔ agt brainstorm (20011.058084ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (194.691667ms)\n  ✔ agt run with --dry-run shows tasks without executing (155.364833ms)\n✔ smart entry flow (agt run no args) (350.169709ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (50.629417ms)\n  ✔ agt help init shows usage and examples (51.011291ms)\n  ✔ agt help status shows usage and examples (51.196958ms)\n  ✔ agt help review shows usage and examples (52.444709ms)\n  ✔ agt help audit shows usage and examples (50.92425ms)\n  ✔ agt help brainstorm shows usage and examples (50.53025ms)\n  ✔ agt help doctor shows usage and examples (51.273458ms)\n  ✔ agt help cron-tick shows usage and examples (51.749958ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (50.164584ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.292125ms)\n  ✔ agt help (no subcommand) lists all commands (51.372583ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.6555ms)\n  ✔ agt help run shows Prerequisites section for board setup (51.494458ms)\n✔ agt help <command> (665.008666ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.78725ms)\n✔ audit-cmd module (3.814709ms)\n▶ review module\n  ✔ can be imported without errors (3.327959ms)\n✔ review module (3.351541ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.256625ms)\n  ✔ exports buildInteractiveSpec function (0.035458ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.092583ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.037792ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.03225ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.03425ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.049916ms)\n✔ brainstorm-cmd module (0.59ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.746792ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.083334ms)\n  ✔ does not trip when all findings are suggestions (0.037834ms)\n  ✔ does not trip for empty findings (0.032083ms)\n  ✔ trips on 'seems correct' phrase (0.033667ms)\n✔ detectThinContent (1.420917ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.136916ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.043958ms)\n  ✔ does not trip when all findings are suggestions (0.042083ms)\n  ✔ does not trip for empty findi",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:50:14.712Z",
+      "taskId": "task-12"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (53.504792ms)\n  ✔ shows audit command in help (51.098292ms)\n  ✔ shows brainstorm command in help (52.3705ms)\n  ✔ help text includes all three new commands with descriptions (51.462875ms)\n✔ CLI help text (209.040459ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.1575ms)\n  ✔ prints review header (65.744917ms)\n✔ agt review (132.988167ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.644917ms)\n  ✔ runs audit with .team/ present and reports structure (109.318541ms)\n  ✔ detects missing required files (108.196834ms)\n  ✔ reports feature with issues (109.096958ms)\n  ✔ shows summary line (51.212667ms)\n✔ agt audit (428.634916ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (14141.938333ms)\n✔ agt brainstorm (14141.980583ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (158.053709ms)\n  ✔ agt run with --dry-run shows tasks without executing (160.221584ms)\n✔ smart entry flow (agt run no args) (318.332584ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (55.583208ms)\n  ✔ agt help init shows usage and examples (53.750292ms)\n  ✔ agt help status shows usage and examples (53.630541ms)\n  ✔ agt help review shows usage and examples (52.632375ms)\n  ✔ agt help audit shows usage and examples (54.781791ms)\n  ✔ agt help brainstorm shows usage and examples (55.077625ms)\n  ✔ agt help doctor shows usage and examples (53.68675ms)\n  ✔ agt help cron-tick shows usage and examples (52.287834ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.491375ms)\n  ✔ agt help <unknown> exits non-zero and shows error (49.733708ms)\n  ✔ agt help (no subcommand) lists all commands (50.874834ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (50.815583ms)\n  ✔ agt help run shows Prerequisites section for board setup (52.041ms)\n✔ agt help <command> (686.64375ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.780834ms)\n✔ audit-cmd module (3.805833ms)\n▶ review module\n  ✔ can be imported without errors (3.285875ms)\n✔ review module (3.307ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.259709ms)\n  ✔ exports buildInteractiveSpec function (0.035042ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.095125ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.050042ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.041792ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.03725ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.051333ms)\n✔ brainstorm-cmd module (0.623042ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.402959ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.07ms)\n  ✔ does not trip when all findings are suggestions (0.032292ms)\n  ✔ does not trip for empty findings (0.027292ms)\n  ✔ trips on 'seems correct' phrase (0.030583ms)\n✔ detectThinContent (1.309708ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.135125ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.041417ms)\n  ✔ does not trip when all findings are suggestions (0.042208ms)\n  ✔ does not trip for empty fin",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:52:38.509Z",
+      "taskId": "task-13"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (54.908083ms)\n  ✔ shows audit command in help (51.565125ms)\n  ✔ shows brainstorm command in help (52.0015ms)\n  ✔ help text includes all three new commands with descriptions (51.590958ms)\n✔ CLI help text (210.6375ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.277917ms)\n  ✔ prints review header (66.42275ms)\n✔ agt review (132.783125ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.977125ms)\n  ✔ runs audit with .team/ present and reports structure (110.217542ms)\n  ✔ detects missing required files (108.12775ms)\n  ✔ reports feature with issues (108.894125ms)\n  ✔ shows summary line (52.00975ms)\n✔ agt audit (430.401917ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (14262.02ms)\n✔ agt brainstorm (14262.062459ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (162.106834ms)\n  ✔ agt run with --dry-run shows tasks without executing (159.258ms)\n✔ smart entry flow (agt run no args) (321.425ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (66.903375ms)\n  ✔ agt help init shows usage and examples (53.841875ms)\n  ✔ agt help status shows usage and examples (52.700459ms)\n  ✔ agt help review shows usage and examples (52.781125ms)\n  ✔ agt help audit shows usage and examples (52.788ms)\n  ✔ agt help brainstorm shows usage and examples (52.95775ms)\n  ✔ agt help doctor shows usage and examples (53.52525ms)\n  ✔ agt help cron-tick shows usage and examples (50.926084ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (52.923042ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.3815ms)\n  ✔ agt help (no subcommand) lists all commands (50.969292ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.845417ms)\n  ✔ agt help run shows Prerequisites section for board setup (52.015959ms)\n✔ agt help <command> (694.85425ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.778917ms)\n✔ audit-cmd module (3.804209ms)\n▶ review module\n  ✔ can be imported without errors (3.264667ms)\n✔ review module (3.287875ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.249375ms)\n  ✔ exports buildInteractiveSpec function (0.0335ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.105166ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.035583ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.031125ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.0335ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.050791ms)\n✔ brainstorm-cmd module (0.5865ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.657292ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.074542ms)\n  ✔ does not trip when all findings are suggestions (0.033167ms)\n  ✔ does not trip for empty findings (0.028958ms)\n  ✔ trips on 'seems correct' phrase (0.032209ms)\n✔ detectThinContent (1.303042ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.129958ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.041583ms)\n  ✔ does not trip when all findings are suggestions (0.0435ms)\n  ✔ does not trip for empty findings (0.045292m",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:54:05.731Z",
+      "taskId": "task-14"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (52.999791ms)\n  ✔ shows audit command in help (52.132042ms)\n  ✔ shows brainstorm command in help (51.697709ms)\n  ✔ help text includes all three new commands with descriptions (51.144792ms)\n✔ CLI help text (208.496584ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (65.980042ms)\n  ✔ prints review header (65.290208ms)\n✔ agt review (131.349709ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.594542ms)\n  ✔ runs audit with .team/ present and reports structure (108.781333ms)\n  ✔ detects missing required files (108.475917ms)\n  ✔ reports feature with issues (109.51725ms)\n  ✔ shows summary line (51.340666ms)\n✔ agt audit (428.86925ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (14090.302542ms)\n✔ agt brainstorm (14090.344125ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (159.090042ms)\n  ✔ agt run with --dry-run shows tasks without executing (161.241958ms)\n✔ smart entry flow (agt run no args) (320.392416ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (54.697958ms)\n  ✔ agt help init shows usage and examples (53.449625ms)\n  ✔ agt help status shows usage and examples (53.129334ms)\n  ✔ agt help review shows usage and examples (53.189542ms)\n  ✔ agt help audit shows usage and examples (53.486333ms)\n  ✔ agt help brainstorm shows usage and examples (53.806792ms)\n  ✔ agt help doctor shows usage and examples (52.970875ms)\n  ✔ agt help cron-tick shows usage and examples (50.7985ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.225416ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.505875ms)\n  ✔ agt help (no subcommand) lists all commands (50.997084ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (50.815625ms)\n  ✔ agt help run shows Prerequisites section for board setup (52.37075ms)\n✔ agt help <command> (681.726458ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.673375ms)\n✔ audit-cmd module (3.697625ms)\n▶ review module\n  ✔ can be imported without errors (3.207292ms)\n✔ review module (3.227959ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.255416ms)\n  ✔ exports buildInteractiveSpec function (0.033083ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.091041ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.036166ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.031583ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.034125ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.050833ms)\n✔ brainstorm-cmd module (0.578833ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.681917ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.068417ms)\n  ✔ does not trip when all findings are suggestions (0.033208ms)\n  ✔ does not trip for empty findings (0.028625ms)\n  ✔ trips on 'seems correct' phrase (0.031709ms)\n✔ detectThinContent (1.328042ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.133417ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.045542ms)\n  ✔ does not trip when all findings are suggestions (0.04325ms)\n  ✔ does not trip fo",
+      "stderr": "",
+      "timestamp": "2026-04-25T08:55:31.143Z",
+      "taskId": "task-15"
+    }
+  ],
+  "transitionCount": 30,
+  "transitionHistory": [
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:12:41.746Z"
+    },
+    {
+      "taskId": "task-1",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:17:54.634Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:17:58.439Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:21:59.204Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:22:02.479Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:23:26.955Z"
+    },
+    {
+      "taskId": "task-4",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:23:30.335Z"
+    },
+    {
+      "taskId": "task-4",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:24:52.603Z"
+    },
+    {
+      "taskId": "task-5",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:24:55.884Z"
+    },
+    {
+      "taskId": "task-5",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:26:17.847Z"
+    },
+    {
+      "taskId": "task-6",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:26:21.427Z"
+    },
+    {
+      "taskId": "task-6",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:27:44.483Z"
+    },
+    {
+      "taskId": "task-7",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:27:50.887Z"
+    },
+    {
+      "taskId": "task-7",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:30:29.495Z"
+    },
+    {
+      "taskId": "task-8",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:30:33.226Z"
+    },
+    {
+      "taskId": "task-8",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:35:10.530Z"
+    },
+    {
+      "taskId": "task-9",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:35:13.773Z"
+    },
+    {
+      "taskId": "task-9",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:39:21.164Z"
+    },
+    {
+      "taskId": "task-10",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:39:24.294Z"
+    },
+    {
+      "taskId": "task-10",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:43:44.950Z"
+    },
+    {
+      "taskId": "task-11",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:43:48.117Z"
+    },
+    {
+      "taskId": "task-11",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:49:00.650Z"
+    },
+    {
+      "taskId": "task-12",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:49:03.995Z"
+    },
+    {
+      "taskId": "task-12",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:51:42.287Z"
+    },
+    {
+      "taskId": "task-13",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:51:45.492Z"
+    },
+    {
+      "taskId": "task-13",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:53:08.480Z"
+    },
+    {
+      "taskId": "task-14",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:53:11.783Z"
+    },
+    {
+      "taskId": "task-14",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:54:34.505Z"
+    },
+    {
+      "taskId": "task-15",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T08:54:37.698Z"
+    },
+    {
+      "taskId": "task-15",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T08:55:59.173Z"
+    }
+  ],
+  "createdAt": "2026-04-25T08:10:57.822Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-25T08:56:13.052Z",
+  "_write_nonce": "42317383979f5f76",
+  "_runStartedAt": "2026-04-25T08:10:57.825Z",
+  "roadmapLabel": "P4/#19",
+  "completedAt": "2026-04-25T08:56:02.287Z",
+  "summary": {
+    "tasks": 15,
+    "passed": 15,
+    "skipped": 0,
+    "retries": 0,
+    "transitions": 30,
+    "gates": 15,
+    "duration": "45m"
+  },
+  "tokenUsage": {
+    "byTask": {
+      "task-1": {
+        "dispatches": 7,
+        "inputTokens": 138,
+        "cachedInput": 4796749,
+        "outputTokens": 42096,
+        "costUsd": 14.42654925,
+        "durationMs": 806077,
+        "phase": "build"
+      },
+      "task-2": {
+        "dispatches": 7,
+        "inputTokens": 122,
+        "cachedInput": 3980723,
+        "outputTokens": 28997,
+        "costUsd": 12.092005499999999,
+        "durationMs": 687391,
+        "phase": "build"
+      },
+      "task-3": {
+        "dispatches": 7,
+        "inputTokens": 0,
+        "cachedInput": 0,
+        "outputTokens": 0,
+        "costUsd": 0,
+        "durationMs": 173101,
+        "phase": "build"
+      },
+      "task-4": {
+        "dispatches": 7,
+        "inputTokens": 0,
+        "cachedInput": 0,
+        "outputTokens": 0,
+        "costUsd": 0,
+        "durationMs": 173520,
+        "phase": "build"
+      },
+      "task-5": {
+        "dispatches": 7,
+        "inputTokens": 0,
+        "cachedInput": 0,
+        "outputTokens": 0,
+        "costUsd": 0,
+        "durationMs": 171462,
+        "phase": "build"
+      },
+      "task-6": {
+        "dispatches": 7,
+        "inputTokens": 0,
+        "cachedInput": 0,
+        "outputTokens": 0,
+        "costUsd": 0,
+        "durationMs": 175493,
+        "phase": "build"
+      },
+      "task-7": {
+        "dispatches": 7,
+        "inputTokens": 37,
+        "cachedInput": 624773,
+        "outputTokens": 2368,
+        "costUsd": 2.0454,
+        "durationMs": 297358,
+        "phase": "build"
+      },
+      "task-8": {
+        "dispatches": 7,
+        "inputTokens": 73,
+        "cachedInput": 1742626,
+        "outputTokens": 9992,
+        "costUsd": 4.8970275,
+        "durationMs": 424732,
+        "phase": "build"
+      },
+      "task-9": {
+        "dispatches": 7,
+        "inputTokens": 78,
+        "cachedInput": 1786964,
+        "outputTokens": 10299,
+        "costUsd": 5.4851595,
+        "durationMs": 443812,
+        "phase": "build"
+      },
+      "task-10": {
+        "dispatches": 7,
+        "inputTokens": 67,
+        "cachedInput": 1281939,
+        "outputTokens": 8063,
+        "costUsd": 4.2109965,
+        "durationMs": 423065,
+        "phase": "build"
+      },
+      "task-11": {
+        "dispatches": 7,
+        "inputTokens": 94,
+        "cachedInput": 2490002,
+        "outputTokens": 16167,
+        "costUsd": 8.071688250000001,
+        "durationMs": 620065,
+        "phase": "build"
+      },
+      "task-12": {
+        "dispatches": 7,
+        "inputTokens": 61,
+        "cachedInput": 1003525,
+        "outputTokens": 5050,
+        "costUsd": 4.2272782499999995,
+        "durationMs": 357603,
+        "phase": "build"
+      },
+      "task-13": {
+        "dispatches": 7,
+        "inputTokens": 0,
+        "cachedInput": 0,
+        "outputTokens": 0,
+        "costUsd": 0,
+        "durationMs": 174762,
+        "phase": "build"
+      },
+      "task-14": {
+        "dispatches": 7,
+        "inputTokens": 0,
+        "cachedInput": 0,
+        "outputTokens": 0,
+        "costUsd": 0,
+        "durationMs": 169972,
+        "phase": "build"
+      },
+      "task-15": {
+        "dispatches": 7,
+        "inputTokens": 0,
+        "cachedInput": 0,
+        "outputTokens": 0,
+        "costUsd": 0,
+        "durationMs": 168037,
+        "phase": "build"
+      }
+    },
+    "byPhase": {
+      "brainstorm": {
+        "dispatches": 1,
+        "inputTokens": 126,
+        "cachedInput": 230525,
+        "outputTokens": 1993,
+        "costUsd": 0.8608515000000001,
+        "durationMs": 35297
+      },
+      "build": {
+        "dispatches": 15,
+        "inputTokens": 100,
+        "cachedInput": 3245743,
+        "outputTokens": 20616,
+        "costUsd": 8.9826315,
+        "durationMs": 849591
+      },
+      "review": {
+        "dispatches": 90,
+        "inputTokens": 570,
+        "cachedInput": 14461558,
+        "outputTokens": 102416,
+        "costUsd": 46.473473250000005,
+        "durationMs": 4416859
+      }
+    },
+    "total": {
+      "dispatches": 106,
+      "inputTokens": 796,
+      "cachedInput": 17937826,
+      "outputTokens": 125025,
+      "costUsd": 56.316956250000004,
+      "durationMs": 5301747
+    }
+  }
+}

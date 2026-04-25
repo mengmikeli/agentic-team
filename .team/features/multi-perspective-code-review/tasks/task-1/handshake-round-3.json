@@ -1,0 +1,71 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (5 critical, 6 warning, 17 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T06:27:03.499Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 5,
+    "warning": 6,
+    "suggestion": 17
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parallel-reviews.mjs:21 — Sentinel `[reviewer-crash:<role>]` is duplicated as a regex literal at `compound-gate.mjs:33`; extract a shared constant so the contract cannot drift."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical, no 🟡 warnings. Full evaluation written to `tasks/task-1/eval-engineer.md`."
+    },
+    {
+      "severity": "critical",
+      "text": "- **Correctness**: PASS — three failure layers (sync throw, reject, ok:false) all fail-closed with 🔴 sentinel; covered by tests at lines 145–192."
+    },
+    {
+      "severity": "critical",
+      "text": "- **Error handling**: PASS — all paths converge to a 🔴 finding consumed by `computeVerdict`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 .team/features/multi-perspective-code-review/tasks/task-1/handshake.json:1 — Builder claims 559/559 tests pass but artifact shows 581/581; reconcile handshake to source artifact."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/build-verify-parallel-review.test.mjs:27 — Source-text regex assertions on `runSource` will false-fail on benign refactors; pair each regex check with a behavioral test driving the review phase via its public entry point."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical or 🟡 warning findings. The parallel dispatch reuses the same `spawn(..., { shell: false })` argv path as the existing single-review code, so no new injection surface is introduced. Fail-closed semantics (synthetic 🔴 for crashed/rejected/thrown dispatches) are correctly implemented and tested."
+    },
+    {
+      "severity": "warning",
+      "text": "**Verdict: PASS** (with 🟡 backlog items)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:357 — `runParallelReviews` is a 5-line delegate-only wrapper with a single call site (1191) that only binds `dispatchToAgentAsync`. Inline at the call site or use `.bind(null, dispatchToAgentAsync)`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/flows.mjs:34 — Phase names `\"review\"` and `\"multi-review\"` now drive identical parallel-review behavior via the unified guard at `run.mjs:1188`. Consolidate to one name or document the back-compat intent in code."
+    },
+    {
+      "severity": "critical",
+      "text": "Evidence: 581/581 tests pass (test-output.txt). Sentinel `[reviewer-crash:<role>]` verified at parallel-reviews.mjs:21 and exempted in compound-gate.mjs:33,43. Sync-throw + Promise.reject fail-closed paths covered by tests at lines 166–192. Simplicity-veto tag conditional verified at flows.mjs:188 with both 🔴 (tag) and 🟡 (no tag) test coverage."
+    }
+  ]
+}

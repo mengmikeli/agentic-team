@@ -1,20 +1,20 @@
 ## Parallel Review Findings
 
-[product] Implementation matches spec (SPEC.md:7-11, 83-85): `hasSimplicityVeto` is pure, exported, wired into the multi-review FAIL path; 🔴 simplicity findings carry the `[simplicity veto]` tag. This iteration's delta — extracting `SIMPLICITY_VETO_TAG` per the architect's prior 🔵 — is in-scope, behavior-preserving, and gate output (598 tests pass) confirms no regression. Tester's integration-test suggestion is correctly deferred to backlog.
-[tester] Ran `node --test test/synthesize.test.mjs test/flows.test.mjs` → 82/82 pass. The refactor (extract `SIMPLICITY_VETO_TAG`) is a pure constant extraction with no behavior change. All veto edge cases are covered: empty/null/undefined inputs, 🟡/🔵 simplicity not vetoed, 🔴 non-simplicity not vetoed, parseFindings round-trip, immutability, and end-to-end FAIL verdict.
-🔵 [architect] bin/lib/flows.mjs:191 — `SIMPLICITY_VETO_TAG.slice(1, -1)` round-trips brackets that the template literal re-adds; export the bare label and let `hasSimplicityVeto` wrap it.
-🔵 [architect] bin/lib/run.mjs:1317 — (carry-over) `parseFindings(merged)` re-parses already-structured findings.
-🔵 [engineer] bin/lib/synthesize.mjs:52 — Consider exporting `SIMPLICITY_VETO_LABEL = "simplicity veto"` and deriving `SIMPLICITY_VETO_TAG` from it, so flows.mjs:191 uses the label directly instead of `SIMPLICITY_VETO_TAG.slice(1, -1)`.
-🔵 [product] bin/lib/flows.mjs:191 — `SIMPLICITY_VETO_TAG.slice(1, -1)` re-strips brackets just added to the constant; consider exporting the unbracketed label as canonical. Cosmetic, non-blocking.
-🔵 [tester] bin/lib/flows.mjs:191 — `SIMPLICITY_VETO_TAG.slice(1, -1)` brittle-couples to the bracket characters; export a bare label and derive the bracketed tag once.
-🔵 [tester] test/synthesize.test.mjs:263 — Add a direct value assertion on `SIMPLICITY_VETO_TAG` so a typo fails at the unit level, not only via the merger round-trip.
-🔵 [simplicity] bin/lib/flows.mjs:191 — `SIMPLICITY_VETO_TAG.slice(1, -1)` strips brackets the constant just added, then `[${label}]` re-adds them; consider exporting an unbracketed label or inlining here. Cosmetic only.
-
-🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs
-🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2
+🔵 [architect] bin/lib/synthesize.mjs:58 — `text.includes(SIMPLICITY_VETO_TAG)` matches anywhere in a finding line; if reviewers ever quote the tag in prose, anchor to the role-prefix slot with `/^[🔴🟡🔵]\s*\[simplicity veto\]/u`
+[architect] Evidence: handshake task-4 claims (label exported synthesize.mjs:39, direct prefix flows.mjs:202, defensive `hasSimplicityVeto` synthesize.mjs:55–79, 573/573 green) all verified against the source and test-output.txt. Single-source-of-truth and fail-closed layering are clean. No 🔴/🟡 from the architect lens. Full eval written to `.team/features/multi-perspective-code-review/tasks/task-4/eval-architect.md`.
+🔵 [engineer] bin/lib/synthesize.mjs:58 — `hasSimplicityVeto` substring-matches `[simplicity veto]` anywhere in `f.text`. A reviewer quoting the tag in their own fix suggestion would trip the veto. Consider anchoring on the role-prefix position (e.g., `^[🔴🟡🔵]\s+\[simplicity veto\]\s`) or documenting the substring contract in JSDoc.
+[engineer] - `flows.mjs:202` — labels simplicity-🔴 directly with the bare label, single bracket-wrap at line 204; no regex round-trip.
+[product] The acceptance criterion is verifiable from the spec alone, scope is disciplined (verification-only, no spurious code churn), and the defensive `hasSimplicityVeto` belt-and-braces delivers the stated user value (simplicity 🔴 cannot be silently downgraded). Eval written to `tasks/task-4/eval-pm.md`.
+[security] - Test artifact (task-4/artifacts/test-output.txt) shows the simplicity-veto path is covered ("simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved")
+🔵 [simplicity veto] bin/lib/synthesize.mjs:77 — Veto branch in `computeVerdict` is structurally redundant (every `[simplicity veto]`-tagged finding is already 🔴 critical); add a one-line comment noting it's a SPEC-required defensive guard for future bypass paths.
+[simplicity veto] No 🔴 veto categories triggered (no dead code, no premature abstraction, no unnecessary indirection, no gold-plating beyond the SPEC-mandated defensive helper). 573/573 tests pass. Eval written to `tasks/task-4/eval-simplicity.md`.
+🔵 [architect] bin/lib/flows.mjs:202 — Role/severity ternary is inline; if a second role ever earns veto power, extract `vetoLabelFor(role, severity)` rather than chaining
+🔵 [tester] bin/lib/synthesize.mjs:58 — `text.includes(SIMPLICITY_VETO_TAG)` could false-positive on reviewer prose containing the literal substring; add a regression test pinning that tag-in-prose is ignored or anchor to a finding-prefix pattern.
+🔵 [tester] test/synthesize.test.mjs:333 — Pin behavior for a 🔵 suggestion-severity finding carrying `[simplicity veto]` (today it FAILs defensively; make explicit).
+🔵 [simplicity] bin/lib/synthesize.mjs:45 — `SIMPLICITY_VETO_TAG` exported but only consumed by tests; consider keeping module-local and deriving in test from `SIMPLICITY_VETO_LABEL`.
 
 ## Compound Gate
 
-**Verdict:** WARN
-**Layers tripped:** 1/5
-**Tripped layers:** fabricated-refs
+**Verdict:** PASS
+**Layers tripped:** 0/5
+**All layers passed**

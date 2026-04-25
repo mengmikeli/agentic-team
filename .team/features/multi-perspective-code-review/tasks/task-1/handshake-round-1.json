@@ -1,0 +1,59 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (4 critical, 4 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T06:14:46.420Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 4,
+    "warning": 4,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "- `mergeReviewFindings` (flows.mjs:177–202) correctly relabels simplicity 🔴 as `[simplicity veto]`, preserves 🟡/🔵 as `[simplicity]`"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 test/build-verify-parallel-review.test.mjs:60 — Add a test that when a role returns `{ok: false, output: \"\"}` the merged result still surfaces a critical/warning finding; today a crashed reviewer is indistinguishable from a clean one at run.mjs:1196-1199."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/run.mjs:360 — `output: result.output || \"\"` swallows reviewer failures. Inject a synthetic finding when `result.ok === false`, or have `mergeReviewFindings` count failed roles and fail-closed; otherwise build-verify can ship green when a reviewer never ran."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 test/build-verify-parallel-review.test.mjs:42 — No assertion that the 6 reviews run concurrently. Add a stub-based test (mock `dispatchToAgentAsync` to record start order vs resolve order) so a regression to sequential execution is caught."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/build-verify-parallel-review.test.mjs:42 — `runParallelReviews` is not asserted to forward `cwd` to each role's dispatch; add a test that all 6 calls receive the same `cwd`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1198 — `roleFindings.map(f => f.output||\"\").join(\"\\n\")` re-parses what `mergeReviewFindings` just parsed; drift between eval.md and synthesized verdict would not be caught."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:336 — `--permission-mode bypassPermissions` runs all 6 parallel reviewers with full tool access; combined with raw `gateOutput` embedded in the brief (flows.mjs:100), this is a latent prompt-injection vector via crafted dependency test output. Pre-existing — track in backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/flows.mjs:34 — Phases `review` and `multi-review` now drive identical behavior; track follow-up to collapse to a single phase name so the FLOWS contract reflects what actually runs."
+    }
+  ]
+}

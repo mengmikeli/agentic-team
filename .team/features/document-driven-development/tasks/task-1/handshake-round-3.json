@@ -1,0 +1,47 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 2 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T07:30:12.357Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 2,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/outer-loop.mjs:304 — `buildSpecBrief` hand-keys a `bodies` map; new sections in `PRD_SECTIONS` silently render as `{TBD}` body text. Backlog: parity test asserting `Object.keys(bodies)` ⊇ `PRD_SECTIONS`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/spec.mjs:42 — `default: \"TBD\"` in `defaultSectionBody` silently swallows new sections. Backlog: throw on unknown section, or add exhaustiveness test."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 / 🟡 findings."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 / 🟡 findings. Coverage is proportionate to the change: round-trip generation↔validation is asserted in `test/spec.test.mjs`, drift is guarded in `test/outer-loop.test.mjs:389`, and `tasks/task-1/artifacts/test-output.txt` confirms 580/580 passing. Eval written to `task-1/eval-tester.md`."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 or 🟡 from the simplicity lens. The four veto categories are clean:"
+    }
+  ]
+}

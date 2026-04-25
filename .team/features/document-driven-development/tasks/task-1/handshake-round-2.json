@@ -1,0 +1,55 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (4 critical, 3 warning, 9 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T07:26:38.625Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 4,
+    "warning": 3,
+    "suggestion": 9
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/outer-loop.mjs:304 — `buildSpecBrief` hand-keys a `bodies` map; backlog: parity test asserting `Object.keys(bodies)` ⊇ `PRD_SECTIONS`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/spec.mjs:42 — `default: \"TBD\"` in `defaultSectionBody` silently swallows new sections; backlog: throw or add exhaustiveness test."
+    },
+    {
+      "severity": "critical",
+      "text": "- Prior round's 🔴 (`run.mjs:933` 2-section spec contradicting `validateSpecFile`) is resolved."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 / 🟡 findings. Eval appended to `.team/features/document-driven-development/tasks/task-1/eval.md`."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/spec.mjs:57 — `sections` parameter on `buildMinimalSpec` has no caller-side override; drop it and reference `PRD_SECTIONS` directly."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/spec.mjs:81 — `sections` parameter on `buildSpecTemplate` has no caller-side override; drop it and reference `PRD_SECTIONS` directly."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/spec.mjs:42 — `default:` branch of `defaultSectionBody` is unreachable once `sections` is no longer pluggable."
+    }
+  ]
+}

@@ -1,4 +1,36 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+// Swipe gesture detection for mobile project switching
+function useSwipe(onSwipeLeft: () => void, onSwipeRight: () => void) {
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+  
+  const handleTouchEnd = useCallback((e: TouchEvent) => {
+    if (!touchStart.current) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    const dy = e.changedTouches[0].clientY - touchStart.current.y;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    // Horizontal swipe: must travel >80px and be more horizontal than vertical
+    if (absDx > 80 && absDx > absDy * 1.5) {
+      if (dx < 0) onSwipeLeft();
+      else onSwipeRight();
+    }
+    touchStart.current = null;
+  }, [onSwipeLeft, onSwipeRight]);
+  
+  useEffect(() => {
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [handleTouchStart, handleTouchEnd]);
+}
 import type { Project } from './types';
 import { useProjects } from './hooks/use-projects';
 import { useFeatures } from './hooks/use-features';
@@ -45,6 +77,21 @@ function App() {
       localStorage.setItem('agt-dashboard-project', currentProject.name);
     }
   }, [currentProject]);
+
+  // Swipe left = next project, swipe right = previous project
+  const swipeToNext = useCallback(() => {
+    if (!currentProject || projects.length <= 1) return;
+    const idx = projects.findIndex(p => p.name === currentProject.name);
+    if (idx < projects.length - 1) handleProjectChange(projects[idx + 1]);
+  }, [currentProject, projects]);
+  
+  const swipeToPrev = useCallback(() => {
+    if (!currentProject || projects.length <= 1) return;
+    const idx = projects.findIndex(p => p.name === currentProject.name);
+    if (idx > 0) handleProjectChange(projects[idx - 1]);
+  }, [currentProject, projects]);
+  
+  useSwipe(swipeToNext, swipeToPrev);
 
   const handleProjectChange = (project: Project) => {
     setCurrentProject(project);

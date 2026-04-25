@@ -1,0 +1,39 @@
+{
+  "taskId": "task-4",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 2 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T08:05:23.354Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 2,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "**Verdict: PASS** (no 🔴/🟡)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/run-spec-gate.test.mjs:124 — STATE.json assertion is gated by `if (existsSync(statePath))`; if STATE.json is never written the check silently passes. Drop the guard so the \"state-based assertion\" actually fails loudly."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/run-spec-gate.test.mjs:124 — STATE.json assertion wrapped in `if (existsSync(...))` silently no-ops if planner skips persisting state; require existence or move assertion outside conditional."
+    }
+  ]
+}

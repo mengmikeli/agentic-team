@@ -6,54 +6,31 @@
     {
       "id": "task-1",
       "title": "A `build-verify` run dispatches 6 parallel reviews (one per role in `PARALLEL_REVIEW_ROLES`) and merges them via `mergeReviewFindings`.",
-      "status": "passed",
-      "attempts": 1,
-      "issueNumber": 237,
-      "lastTransition": "2026-04-25T02:02:31.341Z",
+      "status": "blocked",
+      "attempts": 0,
+      "issueNumber": 320,
+      "lastTransition": "2026-04-25T06:27:04.900Z",
       "ticks": 1,
-      "gateWarningHistory": [
-        {
-          "iteration": 1,
-          "layers": [
-            "fabricated-refs"
-          ]
-        }
-      ]
+      "reviewRounds": 3,
+      "lastReason": "review-escalation: 3 rounds exceeded"
     },
     {
       "id": "task-2",
       "title": "The merged output starts with a synthesis header showing total severity counts and a per-role count table, followed by the severity-ranked findings.",
-      "status": "blocked",
-      "attempts": 0,
-      "issueNumber": 238,
-      "lastTransition": "2026-04-25T02:12:06.996Z",
+      "status": "passed",
+      "attempts": 2,
+      "issueNumber": 321,
+      "lastTransition": "2026-04-25T06:39:24.935Z",
       "ticks": 1,
-      "gateWarningHistory": [
-        {
-          "iteration": 1,
-          "layers": [
-            "missing-code-refs",
-            "fabricated-refs"
-          ]
-        },
-        {
-          "iteration": 2,
-          "layers": [
-            "missing-code-refs",
-            "fabricated-refs"
-          ]
-        }
-      ],
-      "reviewRounds": 2,
-      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
+      "reviewRounds": 1
     },
     {
       "id": "task-3",
       "title": "A 🔴 from any role in `build-verify` produces overall verdict FAIL (existing `computeVerdict` behavior).",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 239,
-      "lastTransition": "2026-04-25T02:22:44.740Z",
+      "issueNumber": 322,
+      "lastTransition": "2026-04-25T06:49:08.602Z",
       "ticks": 1,
       "gateWarningHistory": [
         {
@@ -65,7 +42,6 @@
         {
           "iteration": 2,
           "layers": [
-            "missing-code-refs",
             "fabricated-refs"
           ]
         }
@@ -78,81 +54,67 @@
       "title": "A 🔴 simplicity finding in either flow is tagged `[simplicity veto]` and forces FAIL via `hasSimplicityVeto` (unchanged from current behavior).",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 240,
-      "lastTransition": "2026-04-25T02:33:30.594Z",
+      "issueNumber": 323,
+      "lastTransition": "2026-04-25T07:04:58.124Z",
       "ticks": 1,
-      "gateWarningHistory": [
-        {
-          "iteration": 1,
-          "layers": [
-            "fabricated-refs"
-          ]
-        },
-        {
-          "iteration": 2,
-          "layers": [
-            "fabricated-refs"
-          ]
-        }
-      ],
-      "reviewRounds": 2,
-      "lastReason": "Iteration escalation: same compound-gate layer recurred across multiple iterations"
+      "reviewRounds": 3,
+      "lastReason": "review-escalation: 3 rounds exceeded"
     },
     {
       "id": "task-5",
       "title": "`light-review` runs do not invoke any reviewer.",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 241
+      "issueNumber": 324
     },
     {
       "id": "task-6",
       "title": "`npm test` is green; new unit tests cover the synthesis header.",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 242
+      "issueNumber": 325
     },
     {
       "id": "task-7",
       "title": "`mergeReviewFindings` in `bin/lib/flows.mjs` emits the synthesis header (totals + per-role table) and is covered by unit tests for empty, single-role, multi-role, and simplicity-veto cases.",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 243
+      "issueNumber": 326
     },
     {
       "id": "task-8",
       "title": "`bin/lib/run.mjs` `review` phase (build-verify) dispatches the full `PARALLEL_REVIEW_ROLES` panel via `runParallelReviews` and reuses the same post-review pipeline as `multi-review` (compound gate, escalation, eval.md, handshake, verdict).",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 244
+      "issueNumber": 327
     },
     {
       "id": "task-9",
       "title": "The dedicated single-role + tag-on-simplicity dispatch in the `review` branch is removed; simplicity findings still get `[simplicity veto]` tagging via `mergeReviewFindings` and `hasSimplicityVeto` still forces FAIL.",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 245
+      "issueNumber": 328
     },
     {
       "id": "task-10",
       "title": "Integration tests for `build-verify` cover: any-role 🔴 → FAIL; all clean → PASS; simplicity-only 🔴 → FAIL with veto tag.",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 246
+      "issueNumber": 329
     },
     {
       "id": "task-11",
       "title": "`light-review` behavior unchanged (verified by existing tests remaining green).",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 247
+      "issueNumber": 330
     },
     {
       "id": "task-12",
       "title": "`npm test` passes locally with all new and existing tests green.",
       "status": "blocked",
       "attempts": 0,
-      "issueNumber": 248
+      "issueNumber": 331
     }
   ],
   "gates": [
@@ -218,9 +180,99 @@
       "stderr": "",
       "timestamp": "2026-04-25T02:31:48.588Z",
       "taskId": "task-4"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.393958ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.091041ms)\n  ✔ there is no longer a separate single-role review branch (0.101ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.090833ms)\n  ✔ review phase merges results via mergeReviewFindings (0.073667ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.064792ms)\n✔ build-verify dispatches parallel multi-role review (1.717042ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.247834ms)\n  ✔ all-clean → PASS, no veto tag (0.075208ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.070125ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.482667ms)\n▶ CLI help text\n  ✔ shows review command in help (55.308958ms)\n  ✔ shows audit command in help (55.043167ms)\n  ✔ shows brainstorm command in help (52.925917ms)\n  ✔ help text includes all three new commands with descriptions (52.316666ms)\n✔ CLI help text (216.208042ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (69.518625ms)\n  ✔ prints review header (68.673417ms)\n✔ agt review (138.279625ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.444292ms)\n  ✔ runs audit with .team/ present and reports structure (109.8915ms)\n  ✔ detects missing required files (109.084333ms)\n  ✔ reports feature with issues (109.905209ms)\n  ✔ shows summary line (51.03425ms)\n✔ agt audit (431.53ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20007.585916ms)\n✔ agt brainstorm (20007.812417ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (203.110958ms)\n  ✔ agt run with --dry-run shows tasks without executing (154.290708ms)\n✔ smart entry flow (agt run no args) (357.505917ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.282583ms)\n  ✔ agt help init shows usage and examples (51.411208ms)\n  ✔ agt help status shows usage and examples (52.829291ms)\n  ✔ agt help review shows usage and examples (51.055125ms)\n  ✔ agt help audit shows usage and examples (52.294417ms)\n  ✔ agt help brainstorm shows usage and examples (51.187125ms)\n  ✔ agt help doctor shows usage and examples (51.6455ms)\n  ✔ agt help cron-tick shows usage and examples (51.691833ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (52.281666ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.749958ms)\n  ✔ agt help (no subcommand) lists all commands (50.789792ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.596292ms)\n  ✔ agt help run shows Prerequisites section for board setup (52.032792ms)\n✔ agt help <command> (672.106209ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.795833ms)\n✔ audit-cmd module (3.821541ms)\n▶ review module\n  ✔ can be imported without errors (3.214708ms)\n✔ review module (3.237291ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.252458ms)\n  ✔ exports buildInteractiveSpec function (0.036084ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.089125ms)\n  ✔ buildInteractiveSpec includes Acceptance Crite",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:10:30.691Z",
+      "taskId": "task-1"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.685625ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.099958ms)\n  ✔ there is no longer a separate single-role review branch (0.086166ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.093125ms)\n  ✔ review phase merges results via mergeReviewFindings (0.063875ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.045333ms)\n✔ build-verify dispatches parallel multi-role review (1.601625ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.221333ms)\n  ✔ all-clean → PASS, no veto tag (0.072083ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.059417ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.432083ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.832417ms)\n  ✔ forwards the same cwd to every role's dispatch (0.149709ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.251541ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.281958ms)\n▶ CLI help text\n  ✔ shows review command in help (53.526333ms)\n  ✔ shows audit command in help (57.134292ms)\n  ✔ shows brainstorm command in help (53.057292ms)\n  ✔ help text includes all three new commands with descriptions (51.339542ms)\n✔ CLI help text (215.644875ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.41875ms)\n  ✔ prints review header (66.937542ms)\n✔ agt review (133.445125ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.24775ms)\n  ✔ runs audit with .team/ present and reports structure (109.680333ms)\n  ✔ detects missing required files (112.552416ms)\n  ✔ reports feature with issues (111.019417ms)\n  ✔ shows summary line (51.615375ms)\n✔ agt audit (436.277791ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20009.7715ms)\n✔ agt brainstorm (20009.926083ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (197.335916ms)\n  ✔ agt run with --dry-run shows tasks without executing (154.423125ms)\n✔ smart entry flow (agt run no args) (351.875084ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.585417ms)\n  ✔ agt help init shows usage and examples (52.249291ms)\n  ✔ agt help status shows usage and examples (50.931042ms)\n  ✔ agt help review shows usage and examples (52.194208ms)\n  ✔ agt help audit shows usage and examples (52.969208ms)\n  ✔ agt help brainstorm shows usage and examples (51.890583ms)\n  ✔ agt help doctor shows usage and examples (54.540833ms)\n  ✔ agt help cron-tick shows usage and examples (52.198375ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (52.51875ms)\n  ✔ agt help <unknown> exits non-zero and shows error (52.685416ms)\n  ✔ agt help (no subcommand) lists all commands (53.406667ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (51.463917ms)\n  ✔ agt help run shows Prerequisites section for board setup (52.135041ms)\n✔ agt help <command> (681.019125ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (3.828792ms)\n✔ au",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:18:00.786Z",
+      "taskId": "task-1"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.45375ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.1005ms)\n  ✔ there is no longer a separate single-role review branch (0.098625ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.079458ms)\n  ✔ review phase merges results via mergeReviewFindings (0.052625ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.056625ms)\n✔ build-verify dispatches parallel multi-role review (1.9055ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.2085ms)\n  ✔ all-clean → PASS, no veto tag (0.059458ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.062459ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.406958ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.914458ms)\n  ✔ forwards the same cwd to every role's dispatch (0.15275ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.245667ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.208458ms)\n  ✔ throwing dispatch (sync) fail-closes (0.145291ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.036292ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.768709ms)\n▶ CLI help text\n  ✔ shows review command in help (55.81775ms)\n  ✔ shows audit command in help (54.727708ms)\n  ✔ shows brainstorm command in help (52.593167ms)\n  ✔ help text includes all three new commands with descriptions (51.759ms)\n✔ CLI help text (215.548041ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.944916ms)\n  ✔ prints review header (70.412ms)\n✔ agt review (138.462583ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (55.506459ms)\n  ✔ runs audit with .team/ present and reports structure (120.974209ms)\n  ✔ detects missing required files (121.793833ms)\n  ✔ reports feature with issues (120.59425ms)\n  ✔ shows summary line (55.997708ms)\n✔ agt audit (475.05175ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.058125ms)\n✔ agt brainstorm (20010.200625ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (213.333833ms)\n  ✔ agt run with --dry-run shows tasks without executing (171.091958ms)\n✔ smart entry flow (agt run no args) (384.572667ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (56.721875ms)\n  ✔ agt help init shows usage and examples (56.52125ms)\n  ✔ agt help status shows usage and examples (55.818417ms)\n  ✔ agt help review shows usage and examples (56.846708ms)\n  ✔ agt help audit shows usage and examples (57.765667ms)\n  ✔ agt help brainstorm shows usage and examples (58.343083ms)\n  ✔ agt help doctor shows usage and examples (56.32675ms)\n  ✔ agt help cron-tick shows usage and examples (54.995042ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (56.608375ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.781ms)\n  ✔ agt help (no subcommand) lists all commands (52.633875ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board colu",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:24:02.948Z",
+      "taskId": "task-1"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.41725ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.09ms)\n  ✔ there is no longer a separate single-role review branch (0.095333ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.07475ms)\n  ✔ review phase merges results via mergeReviewFindings (0.048875ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.056292ms)\n✔ build-verify dispatches parallel multi-role review (1.616292ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.247833ms)\n  ✔ all-clean → PASS, no veto tag (0.068083ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.076125ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.472292ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.881541ms)\n  ✔ forwards the same cwd to every role's dispatch (0.158917ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.247208ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.210875ms)\n  ✔ throwing dispatch (sync) fail-closes (0.141542ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.040958ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.744167ms)\n▶ CLI help text\n  ✔ shows review command in help (52.10175ms)\n  ✔ shows audit command in help (51.157208ms)\n  ✔ shows brainstorm command in help (51.280542ms)\n  ✔ help text includes all three new commands with descriptions (51.928167ms)\n✔ CLI help text (207.016875ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (65.863542ms)\n  ✔ prints review header (65.917625ms)\n✔ agt review (131.865917ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.508875ms)\n  ✔ runs audit with .team/ present and reports structure (109.077917ms)\n  ✔ detects missing required files (109.197583ms)\n  ✔ reports feature with issues (109.648708ms)\n  ✔ shows summary line (53.093583ms)\n✔ agt audit (432.688916ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20008.61125ms)\n✔ agt brainstorm (20008.739ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (179.079917ms)\n  ✔ agt run with --dry-run shows tasks without executing (160.483834ms)\n✔ smart entry flow (agt run no args) (339.673458ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (55.077708ms)\n  ✔ agt help init shows usage and examples (52.896959ms)\n  ✔ agt help status shows usage and examples (53.0095ms)\n  ✔ agt help review shows usage and examples (53.493291ms)\n  ✔ agt help audit shows usage and examples (52.757416ms)\n  ✔ agt help brainstorm shows usage and examples (53.491167ms)\n  ✔ agt help doctor shows usage and examples (52.864334ms)\n  ✔ agt help cron-tick shows usage and examples (52.607875ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (54.138333ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.543875ms)\n  ✔ agt help (no subcommand) lists all commands (57.803834ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' b",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:30:17.696Z",
+      "taskId": "task-2"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.376292ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.089416ms)\n  ✔ there is no longer a separate single-role review branch (0.090708ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.073834ms)\n  ✔ review phase merges results via mergeReviewFindings (0.050625ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.059542ms)\n✔ build-verify dispatches parallel multi-role review (1.281375ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.237625ms)\n  ✔ all-clean → PASS, no veto tag (0.069334ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.075333ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.456375ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.879917ms)\n  ✔ forwards the same cwd to every role's dispatch (0.168917ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.264917ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.221667ms)\n  ✔ throwing dispatch (sync) fail-closes (0.152958ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.039125ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.794708ms)\n▶ CLI help text\n  ✔ shows review command in help (53.427958ms)\n  ✔ shows audit command in help (52.426041ms)\n  ✔ shows brainstorm command in help (54.158333ms)\n  ✔ help text includes all three new commands with descriptions (51.562ms)\n✔ CLI help text (212.375625ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.657958ms)\n  ✔ prints review header (65.879208ms)\n✔ agt review (132.621125ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.34975ms)\n  ✔ runs audit with .team/ present and reports structure (108.39475ms)\n  ✔ detects missing required files (107.640667ms)\n  ✔ reports feature with issues (111.816708ms)\n  ✔ shows summary line (50.855458ms)\n✔ agt audit (430.563167ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20009.524041ms)\n✔ agt brainstorm (20009.677667ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (196.024958ms)\n  ✔ agt run with --dry-run shows tasks without executing (156.346167ms)\n✔ smart entry flow (agt run no args) (352.48625ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.673084ms)\n  ✔ agt help init shows usage and examples (52.167625ms)\n  ✔ agt help status shows usage and examples (52.499125ms)\n  ✔ agt help review shows usage and examples (51.5965ms)\n  ✔ agt help audit shows usage and examples (52.563083ms)\n  ✔ agt help brainstorm shows usage and examples (51.28175ms)\n  ✔ agt help doctor shows usage and examples (51.330167ms)\n  ✔ agt help cron-tick shows usage and examples (52.867375ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (50.017708ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.811042ms)\n  ✔ agt help (no subcommand) lists all commands (51.478291ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Read",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:35:06.079Z",
+      "taskId": "task-2"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.348875ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.088125ms)\n  ✔ there is no longer a separate single-role review branch (0.093625ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.075625ms)\n  ✔ review phase merges results via mergeReviewFindings (0.045667ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.052417ms)\n✔ build-verify dispatches parallel multi-role review (1.428333ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.229583ms)\n  ✔ all-clean → PASS, no veto tag (0.066458ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.074833ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.445625ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.856958ms)\n  ✔ forwards the same cwd to every role's dispatch (0.175625ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.25275ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.198041ms)\n  ✔ throwing dispatch (sync) fail-closes (0.144833ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.039291ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.739375ms)\n▶ CLI help text\n  ✔ shows review command in help (51.955583ms)\n  ✔ shows audit command in help (52.8925ms)\n  ✔ shows brainstorm command in help (52.582791ms)\n  ✔ help text includes all three new commands with descriptions (52.682708ms)\n✔ CLI help text (210.7075ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.298625ms)\n  ✔ prints review header (67.458041ms)\n✔ agt review (133.840542ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (51.219917ms)\n  ✔ runs audit with .team/ present and reports structure (109.503667ms)\n  ✔ detects missing required files (110.023416ms)\n  ✔ reports feature with issues (112.156333ms)\n  ✔ shows summary line (52.197917ms)\n✔ agt audit (435.265ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20005.838208ms)\n✔ agt brainstorm (20005.924083ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (178.218625ms)\n  ✔ agt run with --dry-run shows tasks without executing (156.057917ms)\n✔ smart entry flow (agt run no args) (334.370166ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.2115ms)\n  ✔ agt help init shows usage and examples (50.828834ms)\n  ✔ agt help status shows usage and examples (51.303625ms)\n  ✔ agt help review shows usage and examples (51.665208ms)\n  ✔ agt help audit shows usage and examples (51.545083ms)\n  ✔ agt help brainstorm shows usage and examples (50.296ms)\n  ✔ agt help doctor shows usage and examples (51.111667ms)\n  ✔ agt help cron-tick shows usage and examples (50.662583ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.760834ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.0025ms)\n  ✔ agt help (no subcommand) lists all commands (51.818875ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' boa",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:41:37.430Z",
+      "taskId": "task-3"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.412042ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.0915ms)\n  ✔ there is no longer a separate single-role review branch (0.094125ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.077166ms)\n  ✔ review phase merges results via mergeReviewFindings (0.04875ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.052375ms)\n✔ build-verify dispatches parallel multi-role review (1.348833ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.2385ms)\n  ✔ all-clean → PASS, no veto tag (0.067833ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.074958ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.462667ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.896292ms)\n  ✔ forwards the same cwd to every role's dispatch (0.169666ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.259708ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.206292ms)\n  ✔ throwing dispatch (sync) fail-closes (0.148584ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.040459ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.790333ms)\n▶ CLI help text\n  ✔ shows review command in help (52.691333ms)\n  ✔ shows audit command in help (51.081875ms)\n  ✔ shows brainstorm command in help (50.21825ms)\n  ✔ help text includes all three new commands with descriptions (51.123958ms)\n✔ CLI help text (205.669ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (66.748833ms)\n  ✔ prints review header (66.937083ms)\n✔ agt review (133.77025ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.697541ms)\n  ✔ runs audit with .team/ present and reports structure (110.330791ms)\n  ✔ detects missing required files (107.604666ms)\n  ✔ reports feature with issues (108.281209ms)\n  ✔ shows summary line (51.738708ms)\n✔ agt audit (428.813292ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20011.039ms)\n✔ agt brainstorm (20011.203459ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (194.905916ms)\n  ✔ agt run with --dry-run shows tasks without executing (153.27975ms)\n✔ smart entry flow (agt run no args) (348.305916ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.904ms)\n  ✔ agt help init shows usage and examples (51.560625ms)\n  ✔ agt help status shows usage and examples (51.064875ms)\n  ✔ agt help review shows usage and examples (51.833917ms)\n  ✔ agt help audit shows usage and examples (51.735916ms)\n  ✔ agt help brainstorm shows usage and examples (50.905666ms)\n  ✔ agt help doctor shows usage and examples (51.479458ms)\n  ✔ agt help cron-tick shows usage and examples (52.056209ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.726792ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.669125ms)\n  ✔ agt help (no subcommand) lists all commands (52.469291ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:46:44.457Z",
+      "taskId": "task-3"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.677209ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.087542ms)\n  ✔ there is no longer a separate single-role review branch (0.093417ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.075834ms)\n  ✔ review phase merges results via mergeReviewFindings (0.046917ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.04875ms)\n✔ build-verify dispatches parallel multi-role review (1.521666ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.243167ms)\n  ✔ all-clean → PASS, no veto tag (0.065667ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.090875ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.475667ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.855875ms)\n  ✔ forwards the same cwd to every role's dispatch (0.159667ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.259917ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.197458ms)\n  ✔ throwing dispatch (sync) fail-closes (0.137583ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.038167ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.71675ms)\n▶ CLI help text\n  ✔ shows review command in help (52.277833ms)\n  ✔ shows audit command in help (52.955125ms)\n  ✔ shows brainstorm command in help (51.494458ms)\n  ✔ help text includes all three new commands with descriptions (51.897792ms)\n✔ CLI help text (209.193084ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.195ms)\n  ✔ prints review header (66.16775ms)\n✔ agt review (133.442167ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (52.729333ms)\n  ✔ runs audit with .team/ present and reports structure (109.052375ms)\n  ✔ detects missing required files (109.771875ms)\n  ✔ reports feature with issues (109.694625ms)\n  ✔ shows summary line (52.051833ms)\n✔ agt audit (433.458ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.997459ms)\n✔ agt brainstorm (20011.168166ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (195.339417ms)\n  ✔ agt run with --dry-run shows tasks without executing (153.870875ms)\n✔ smart entry flow (agt run no args) (349.332208ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (52.571291ms)\n  ✔ agt help init shows usage and examples (51.845292ms)\n  ✔ agt help status shows usage and examples (51.307208ms)\n  ✔ agt help review shows usage and examples (52.481334ms)\n  ✔ agt help audit shows usage and examples (51.015584ms)\n  ✔ agt help brainstorm shows usage and examples (52.581625ms)\n  ✔ agt help doctor shows usage and examples (52.068042ms)\n  ✔ agt help cron-tick shows usage and examples (51.158959ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.218417ms)\n  ✔ agt help <unknown> exits non-zero and shows error (51.480333ms)\n  ✔ agt help (no subcommand) lists all commands (51.497541ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Read",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:53:58.142Z",
+      "taskId": "task-4"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.413625ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.091208ms)\n  ✔ there is no longer a separate single-role review branch (0.093ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.0765ms)\n  ✔ review phase merges results via mergeReviewFindings (0.048375ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.051708ms)\n✔ build-verify dispatches parallel multi-role review (1.353333ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.249083ms)\n  ✔ all-clean → PASS, no veto tag (0.068083ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.075916ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.46875ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.858375ms)\n  ✔ forwards the same cwd to every role's dispatch (0.169417ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.249208ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.231875ms)\n  ✔ throwing dispatch (sync) fail-closes (0.152375ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.038708ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.762208ms)\n▶ CLI help text\n  ✔ shows review command in help (52.701166ms)\n  ✔ shows audit command in help (51.745125ms)\n  ✔ shows brainstorm command in help (51.1975ms)\n  ✔ help text includes all three new commands with descriptions (51.759625ms)\n✔ CLI help text (207.99675ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.681458ms)\n  ✔ prints review header (67.004958ms)\n✔ agt review (134.765875ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (52.285541ms)\n  ✔ runs audit with .team/ present and reports structure (109.894417ms)\n  ✔ detects missing required files (108.409667ms)\n  ✔ reports feature with issues (110.164625ms)\n  ✔ shows summary line (52.501875ms)\n✔ agt audit (433.434625ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.347042ms)\n✔ agt brainstorm (20010.516667ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (197.199416ms)\n  ✔ agt run with --dry-run shows tasks without executing (155.658625ms)\n✔ smart entry flow (agt run no args) (352.979375ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.1295ms)\n  ✔ agt help init shows usage and examples (50.913459ms)\n  ✔ agt help status shows usage and examples (53.479ms)\n  ✔ agt help review shows usage and examples (51.28ms)\n  ✔ agt help audit shows usage and examples (52.335709ms)\n  ✔ agt help brainstorm shows usage and examples (51.237584ms)\n  ✔ agt help doctor shows usage and examples (53.918333ms)\n  ✔ agt help cron-tick shows usage and examples (51.721084ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.292084ms)\n  ✔ agt help <unknown> exits non-zero and shows error (52.570375ms)\n  ✔ agt help (no subcommand) lists all commands (52.107625ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board ",
+      "stderr": "",
+      "timestamp": "2026-04-25T06:58:45.268Z",
+      "taskId": "task-4"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/active-task-utils.test.mjs test/build-verify-parallel-review.test.mjs test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/smoke-terminates.test.mjs test/sprint-analytics.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ build-verify dispatches parallel multi-role review\n  ✔ flow definition still includes the 'review' phase (back-compat) (0.357ms)\n  ✔ review-phase branch in run.mjs guards on both 'review' and 'multi-review' (0.090041ms)\n  ✔ there is no longer a separate single-role review branch (0.088542ms)\n  ✔ review phase calls runParallelReviews with PARALLEL_REVIEW_ROLES (0.078667ms)\n  ✔ review phase merges results via mergeReviewFindings (0.045208ms)\n  ✔ dispatch fan-out is exactly 6 roles (0.051917ms)\n✔ build-verify dispatches parallel multi-role review (1.201458ms)\n▶ mergeReviewFindings end-to-end verdict (build-verify semantics)\n  ✔ any-role 🔴 → FAIL via computeVerdict on merged text (0.237625ms)\n  ✔ all-clean → PASS, no veto tag (0.068458ms)\n  ✔ simplicity-only 🔴 → FAIL with [simplicity veto] tag preserved (0.080333ms)\n✔ mergeReviewFindings end-to-end verdict (build-verify semantics) (0.465417ms)\n▶ runParallelReviews concurrency + fail-closed semantics\n  ✔ dispatches all 6 roles concurrently (start-before-resolve order) (0.851458ms)\n  ✔ forwards the same cwd to every role's dispatch (0.155958ms)\n  ✔ crashed reviewer (ok:false, output:'') surfaces synthetic 🔴 finding (0.285042ms)\n  ✔ rejecting dispatch promise fail-closes (no Promise.all crash) (0.221791ms)\n  ✔ throwing dispatch (sync) fail-closes (0.158ms)\n  ✔ simplicity 🟡 (warning, not 🔴) does NOT add [simplicity veto] tag (0.042958ms)\n✔ runParallelReviews concurrency + fail-closed semantics (1.795667ms)\n▶ CLI help text\n  ✔ shows review command in help (52.24625ms)\n  ✔ shows audit command in help (51.586ms)\n  ✔ shows brainstorm command in help (51.317833ms)\n  ✔ help text includes all three new commands with descriptions (52.294875ms)\n✔ CLI help text (207.999208ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (67.388834ms)\n  ✔ prints review header (66.726458ms)\n✔ agt review (134.192792ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (50.550292ms)\n  ✔ runs audit with .team/ present and reports structure (106.557375ms)\n  ✔ detects missing required files (106.315958ms)\n  ✔ reports feature with issues (108.185791ms)\n  ✔ shows summary line (52.550209ms)\n✔ agt audit (424.338917ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20010.590542ms)\n✔ agt brainstorm (20010.753667ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (199.621208ms)\n  ✔ agt run with --dry-run shows tasks without executing (153.960917ms)\n✔ smart entry flow (agt run no args) (353.703125ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (51.241083ms)\n  ✔ agt help init shows usage and examples (51.904667ms)\n  ✔ agt help status shows usage and examples (51.374042ms)\n  ✔ agt help review shows usage and examples (51.068916ms)\n  ✔ agt help audit shows usage and examples (50.469375ms)\n  ✔ agt help brainstorm shows usage and examples (51.42175ms)\n  ✔ agt help doctor shows usage and examples (51.706084ms)\n  ✔ agt help cron-tick shows usage and examples (52.222167ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (51.333125ms)\n  ✔ agt help <unknown> exits non-zero and shows error (50.763ms)\n  ✔ agt help (no subcommand) lists all commands (52.269792ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' bo",
+      "stderr": "",
+      "timestamp": "2026-04-25T07:02:57.181Z",
+      "taskId": "task-4"
     }
   ],
-  "transitionCount": 8,
+  "transitionCount": 16,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -277,88 +329,145 @@
       "status": "blocked",
       "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
       "timestamp": "2026-04-25T02:33:30.594Z"
+    },
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T06:05:02.878Z"
+    },
+    {
+      "taskId": "task-1",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "review-escalation: 3 rounds exceeded",
+      "timestamp": "2026-04-25T06:27:04.900Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T06:27:04.949Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "in-progress",
+      "status": "passed",
+      "reason": null,
+      "timestamp": "2026-04-25T06:39:24.935Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T06:39:28.305Z"
+    },
+    {
+      "taskId": "task-3",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "Iteration escalation: same compound-gate layer recurred across multiple iterations",
+      "timestamp": "2026-04-25T06:49:08.602Z"
+    },
+    {
+      "taskId": "task-4",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-25T06:49:08.652Z"
+    },
+    {
+      "taskId": "task-4",
+      "from": "in-progress",
+      "status": "blocked",
+      "reason": "review-escalation: 3 rounds exceeded",
+      "timestamp": "2026-04-25T07:04:58.124Z"
     }
   ],
   "createdAt": "2026-04-25T01:55:22.676Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-25T02:33:30.692Z",
-  "_write_nonce": "b646fbc5a9e00c8f",
-  "_runStartedAt": "2026-04-25T01:55:22.680Z",
+  "_last_modified": "2026-04-25T07:04:58.224Z",
+  "_write_nonce": "5cb5b0bf4baf9240",
+  "_runStartedAt": "2026-04-25T06:03:32.745Z",
   "roadmapLabel": "P4/#16",
   "tokenUsage": {
     "byTask": {
       "task-1": {
-        "dispatches": 7,
-        "inputTokens": 143,
-        "cachedInput": 4600269,
-        "outputTokens": 38183,
-        "costUsd": 13.158296250000001,
-        "durationMs": 779992,
+        "dispatches": 21,
+        "inputTokens": 499,
+        "cachedInput": 18869754,
+        "outputTokens": 166519,
+        "costUsd": 55.10346450000001,
+        "durationMs": 3031376,
         "phase": "build"
       },
       "task-2": {
         "dispatches": 14,
-        "inputTokens": 236,
-        "cachedInput": 6642036,
-        "outputTokens": 53647,
-        "costUsd": 19.0039005,
-        "durationMs": 1244255,
+        "inputTokens": 311,
+        "cachedInput": 10597474,
+        "outputTokens": 91073,
+        "costUsd": 30.466975499999997,
+        "durationMs": 1806587,
         "phase": "build"
       },
       "task-3": {
         "dispatches": 14,
-        "inputTokens": 229,
-        "cachedInput": 6348760,
-        "outputTokens": 45572,
-        "costUsd": 17.969762250000002,
-        "durationMs": 1271124,
+        "inputTokens": 290,
+        "cachedInput": 9805423,
+        "outputTokens": 71978,
+        "costUsd": 27.734834250000002,
+        "durationMs": 1334376,
         "phase": "build"
       },
       "task-4": {
-        "dispatches": 14,
-        "inputTokens": 244,
-        "cachedInput": 7642893,
-        "outputTokens": 61264,
-        "costUsd": 21.998972999999996,
-        "durationMs": 1264302,
+        "dispatches": 21,
+        "inputTokens": 423,
+        "cachedInput": 13815281,
+        "outputTokens": 126362,
+        "costUsd": 40.63205775,
+        "durationMs": 2355491,
         "phase": "build"
       }
     },
     "byPhase": {
       "brainstorm": {
         "dispatches": 1,
-        "inputTokens": 14,
-        "cachedInput": 342864,
-        "outputTokens": 3427,
-        "costUsd": 1.14552825,
-        "durationMs": 62123
+        "inputTokens": 10,
+        "cachedInput": 172478,
+        "outputTokens": 1968,
+        "costUsd": 0.6781027500000001,
+        "durationMs": 34200
       },
       "build": {
         "dispatches": 4,
-        "inputTokens": 87,
-        "cachedInput": 3798675,
-        "outputTokens": 28116,
-        "costUsd": 10.529929500000001,
-        "durationMs": 569071
+        "inputTokens": 118,
+        "cachedInput": 5806448,
+        "outputTokens": 35663,
+        "costUsd": 14.585852249999999,
+        "durationMs": 797414
       },
       "review": {
-        "dispatches": 45,
-        "inputTokens": 765,
-        "cachedInput": 21435283,
-        "outputTokens": 170550,
-        "costUsd": 61.6010025,
-        "durationMs": 3990602
+        "dispatches": 66,
+        "inputTokens": 1405,
+        "cachedInput": 47281484,
+        "outputTokens": 420269,
+        "costUsd": 139.35147974999995,
+        "durationMs": 7730416
       }
     },
     "total": {
-      "dispatches": 50,
-      "inputTokens": 866,
-      "cachedInput": 25576822,
-      "outputTokens": 202093,
-      "costUsd": 73.27646024999999,
-      "durationMs": 4621796
+      "dispatches": 71,
+      "inputTokens": 1533,
+      "cachedInput": 53260410,
+      "outputTokens": 457900,
+      "costUsd": 154.61543474999993,
+      "durationMs": 8562030
     }
   },
   "completedAt": "2026-04-25T03:21:23.285Z",
-  "_reconciled_at": "2026-04-25T03:21:23.285Z"
+  "_reconciled_at": "2026-04-25T07:06:27.467Z",
+  "_previous_runs_failed": 1
 }

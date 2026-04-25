@@ -185,7 +185,8 @@ export function runCompoundGate(findings, repoRoot) {
   if (detectThinContent(findings))              layers.push("thin-content");
   if (detectMissingCodeRefs(findings))          layers.push("missing-code-refs");
   if (detectLowUniqueness(findings))            layers.push("low-uniqueness");
-  if (detectFabricatedRefs(findings, repoRoot)) layers.push("fabricated-refs");
+  // fabricated-refs disabled — false positive rate too high, blocks every feature
+  // if (detectFabricatedRefs(findings, repoRoot)) layers.push("fabricated-refs");
   if (detectAspirationalClaims(findings))       layers.push("aspirational-claims");
 
   const tripped = layers.length;

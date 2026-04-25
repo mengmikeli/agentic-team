@@ -1,23 +1,20 @@
 ## Parallel Review Findings
 
-[engineer] No 🔴 or 🟡 findings.
-[security] Security surface for this change is minimal: pure markdown string formatting with no auth, secrets, file paths, shell, eval, or HTML rendering. Inputs are defensively coerced (`f.output || ""`, `f.role || "reviewer"`). The synthesis header deliberately avoids leading severity emojis so `parseFindings` (which anchors `/^([🔴🟡🔵])/u`) cannot misinterpret synthesis lines as findings — verified by reading the regex at line 189 and confirming the simplicity-veto test still passes.
-🔵 [architect] bin/lib/flows.mjs:215 — When `findings` is empty, `tableRows` is empty and the table renders a header with no rows; consider an explicit "no reviewers" placeholder. Cosmetic only.
-🔵 [engineer] bin/lib/flows.mjs:214 — Empty `perRole` still emits a header-only table; consider skipping table when no findings.
-🔵 [engineer] bin/lib/flows.mjs:215 — Per-role row order is insertion-order; consider sorting for deterministic output.
-🔵 [tester] test/flows.test.mjs:325 — Add a case for `mergeReviewFindings([])` to lock empty-input rendering (table header with no rows).
-🔵 [tester] test/flows.test.mjs:325 — Add a case where the same role appears in two entries to assert per-role counts accumulate rather than overwrite.
-🔵 [tester] test/flows.test.mjs:325 — Add a case where a role's `output` parses to zero findings, asserting it still renders a 0/0/0 row (locks current `perRole` seeding behavior at flows.mjs:185).
-🔵 [tester] bin/lib/flows.mjs:215 — Per-role table row order is `Map` insertion order; consider deterministic sort (e.g. by `PARALLEL_REVIEW_ROLES` index) so output isn't sensitive to caller ordering.
-🔵 [tester] test/flows.test.mjs:312 — Assert the literal `**Totals:**` label, not just numeric substrings, to catch label-typo regressions.
-🔵 [tester] .team/features/multi-perspective-code-review/tasks/task-2/artifacts/ — Empty directory; no `test-output.txt` captured. Process gap — builders should drop test output here for reviewers.
-🔵 [simplicity] bin/lib/flows.mjs:217 — When `findings` is empty, `tableRows` is empty and the rendered table is header-only; cosmetic, not a blocker.
-
-🟡 compound-gate.mjs:0 — Thin review warning: missing-code-refs, fabricated-refs
-🔴 iteration-escalation — Persistent eval warning: missing-code-refs, fabricated-refs recurred in iterations 1, 2
+[security] - The previously flagged fence-escape in `buildReviewBrief` (round-1 🟡) is **resolved** by commit fc1f177 (dynamic fence at `flows.mjs:88-91`).
+🔵 [architect] bin/lib/flows.mjs:194 — `perRole` seeded only from input findings; a future caller passing a subset would silently drop roles from the synthesis table. Seed from `PARALLEL_REVIEW_ROLES` for stability.
+🔵 [architect] bin/lib/flows.mjs:214 — `totals` recomputed by re-iterating `allFindings` though `perRole` already holds the same tallies. Sum from `perRole.values()` once.
+🔵 [architect] bin/lib/flows.mjs:182 — `mergeReviewFindings` now does merge + tag + render-synthesis + render-findings. If more sections accrete, split compute from render.
+🔵 [tester] test/flows.test.mjs:325 — Add `mergeReviewFindings([])` defensive test to lock empty-input shape against an early-return refactor.
+🔵 [tester] test/flows.test.mjs:325 — Add a `zero-finding role still appears` test to pin the `ensureRole` seeding at flows.mjs:194.
+🔵 [tester] test/build-verify-parallel-review.test.mjs:194 — Extend crashed-reviewer test to assert the synthesis row reads `| <role> | 1 | 0 | 0 |`.
+🔵 [tester] bin/lib/flows.mjs:229 — Role rows are alphabetical; either pin with a test or sort by `PARALLEL_REVIEW_ROLES` for canonical lens order.
+🔵 [tester] bin/lib/flows.mjs:202 — Per-role tally key is raw `f.role` while label can be `simplicity veto`; lock "one row per reviewer, not per label" with a test or comment.
+🔵 [security] bin/lib/flows.mjs:175 — `PARALLEL_REVIEW_ROLES` is exported and mutable; `Object.freeze(...)` would harden against accidental mutation altering dispatch fan-out. Optional.
+🔵 [simplicity] bin/lib/flows.mjs:214-215 — `totals` could be derived from `perRole` instead of re-iterating `allFindings`; optional.
+🔵 [simplicity] bin/lib/flows.mjs:219-228 — Template literal would read slightly cleaner than array+join; optional.
 
 ## Compound Gate
 
-**Verdict:** WARN
-**Layers tripped:** 2/5
-**Tripped layers:** missing-code-refs, fabricated-refs
+**Verdict:** PASS
+**Layers tripped:** 0/5
+**All layers passed**

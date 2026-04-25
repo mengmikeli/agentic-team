@@ -1,0 +1,83 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 13 warning, 8 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T07:13:15.013Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 13,
+    "suggestion": 8
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/outer-loop.mjs:306 — Agent-brief SPEC template hardcodes seven section headers; render from `PRD_SECTIONS` or add a parity test."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/outer-loop.mjs:756 — `minimalSpec` template inlines section names; build from `PRD_SECTIONS`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/brainstorm-cmd.mjs:62 — Brainstorm scaffold duplicates the section list."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/brainstorm-cmd.mjs:111 — Second scaffold template with same inline duplication."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/outer-loop.mjs:306 — `buildSpecBrief` hardcodes the seven section headings; derive from `PRD_SECTIONS`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/outer-loop.mjs:756 — `minimalSpec` template duplicates the seven headings"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/brainstorm-cmd.mjs:62 — agent-mode brainstorm template duplicates the headings"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/brainstorm-cmd.mjs:111 — interactive brainstorm template duplicates the headings"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/brainstorm-cmd.mjs:60 — Agent-mode brief hardcodes section list; backlog: derive from `PRD_SECTIONS`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/brainstorm-cmd.mjs:109 — `buildInteractiveSpec` template hardcodes headings; backlog: drive from `PRD_SECTIONS`."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/run.mjs:933 — Spec-creation path not migrated to `PRD_SECTIONS`; emits a 2-section spec that `validateSpecFile` would reject. Route through a shared `buildMinimalSpec(PRD_SECTIONS)` helper, and add a regression test asserting the file it writes passes `validateSpecFile`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/spec.test.mjs (missing) — No contract test for the new module. Add: length === 7, deepEqual to canonical ordered list, and `Object.isFrozen(PRD_SECTIONS) === true`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/outer-loop.test.mjs:244 — No drift test between `PRD_SECTIONS` and the hardcoded section list in `buildSpecBrief` (outer-loop.mjs:306–329) and the priority minimalSpec (outer-loop.mjs:756)."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/outer-loop.test.mjs:317 — No negative test that `### Goal` (h3) is rejected; pin the `^##\\s+` anchoring so a future regex relaxation is caught."
+    }
+  ]
+}

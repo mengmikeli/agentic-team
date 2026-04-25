@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (1 critical, 3 warning, 1 suggestion). Compound gate: WARN",
-  "timestamp": "2026-04-25T03:03:00.613Z",
+  "summary": "Parallel review: FAIL (1 critical, 2 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T07:40:52.729Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -14,32 +14,26 @@
   ],
   "findings": {
     "critical": 1,
-    "warning": 3,
-    "suggestion": 1
+    "warning": 2,
+    "suggestion": 12
   },
   "compoundGate": {
-    "tripped": 1,
-    "layers": [
-      "fabricated-refs"
-    ],
-    "verdict": "WARN"
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
   },
   "findingsList": [
     {
+      "severity": "warning",
+      "text": "🟡 test/run-spec-gate.test.mjs:59 — Assert `exitCode === 2` (not just non-zero) to lock in the distinct exit-code contract from SPEC.md Technical Approach."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/run-spec-gate.test.mjs:79 — Add assertion that `STATE.json`/task list was not created, matching SPEC acceptance bullet \"exit code 2, no STATE.json task list created\"."
+    },
+    {
       "severity": "critical",
-      "text": "🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2"
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs"
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 test/cli-commands.test.mjs:266 — Add a regression test for roadmap-pick mode (`agt run` no args) hitting the missing-SPEC.md gate; only the explicit-name branch is covered."
-    },
-    {
-      "severity": "warning",
-      "text": "- The change resolves the 🟡/🔵 backlog items raised by prior reviewers without introducing new complexity"
+      "text": "No 🔴 or 🟡. The implementation is minimal: ~12-line diff replacing silent auto-stub with explicit failure (print → notify → `exit(2)`). Veto categories all clean — `buildMinimalSpec` is not orphaned (still used at `bin/lib/outer-loop.mjs:740`), no new abstraction, no indirection, no gold-plating. Comment at `run.mjs:932` correctly documents intent (non-obvious \"why\")."
     }
   ]
 }

@@ -291,3 +291,58 @@
 {"ts":"2026-04-25T04:10:20.600Z","event":"feature-complete","msg":"Feature complete: max-review-rounds-escalation — 0/17 done, 3 blocked, 35m 44s, $84.09"}
 {"ts":"2026-04-25T05:07:59.688Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (13 tasks planned)"}
 {"ts":"2026-04-25T05:10:06.880Z","event":"task-started","msg":"▶ Task 1/13: `roles/simplicity.md` documents the four veto categories with concrete examples."}
+{"ts":"2026-04-25T05:24:21.930Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (13 tasks planned)"}
+{"ts":"2026-04-25T05:26:23.270Z","event":"task-started","msg":"▶ Task 1/13: `roles/simplicity.md` documents the four veto categories with concrete examples."}
+{"ts":"2026-04-25T05:36:06.827Z","event":"task-started","msg":"▶ Task 2/13: `PARALLEL_REVIEW_ROLES` in `bin/lib/flows.mjs` contains `\"simplicity\"`."}
+{"ts":"2026-04-25T05:45:40.894Z","event":"task-started","msg":"▶ Task 3/13: `mergeReviewFindings()` rewrites the role label to `simplicity veto` for critical simplicity findings only."}
+{"ts":"2026-04-25T06:02:57.157Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in simplicity-reviewer-with-veto — stopping execution"}
+{"ts":"2026-04-25T06:02:58.316Z","event":"feature-complete","msg":"Feature complete: simplicity-reviewer-with-veto — 0/13 done, 3 blocked, 38m 36s, $76.61"}
+{"ts":"2026-04-25T06:03:32.824Z","event":"feature-started","msg":"▶ Feature: multi-perspective-code-review (12 tasks planned)"}
+{"ts":"2026-04-25T06:05:05.089Z","event":"task-started","msg":"▶ Task 1/12: A `build-verify` run dispatches 6 parallel reviews (one per role in `PARALLEL_REVIEW_ROLES`) and merges them via `mergeReviewFindings`."}
+{"ts":"2026-04-25T06:27:07.147Z","event":"task-started","msg":"▶ Task 2/12: The merged output starts with a synthesis header showing total severity counts and a per-role count table, followed by the severity-ranked findings."}
+{"ts":"2026-04-25T06:39:24.986Z","event":"task-passed","msg":"✓ Task 2/12: The merged output starts with a synthesis header showing total severity counts and a per-role count table, followed by the severity-ranked findings."}
+{"ts":"2026-04-25T06:39:30.517Z","event":"task-started","msg":"▶ Task 3/12: A 🔴 from any role in `build-verify` produces overall verdict FAIL (existing `computeVerdict` behavior)."}
+{"ts":"2026-04-25T06:49:10.934Z","event":"task-started","msg":"▶ Task 4/12: A 🔴 simplicity finding in either flow is tagged `[simplicity veto]` and forces FAIL via `hasSimplicityVeto` (unchanged from current behavior)."}
+{"ts":"2026-04-25T07:04:58.175Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in multi-perspective-code-review — stopping execution"}
+{"ts":"2026-04-25T07:04:59.394Z","event":"feature-complete","msg":"Feature complete: multi-perspective-code-review — 1/12 done, 3 blocked, 61m 27s, $154.62"}
+{"ts":"2026-04-25T07:05:31.088Z","event":"feature-started","msg":"▶ Feature: document-driven-development (15 tasks planned)"}
+{"ts":"2026-04-25T07:07:19.018Z","event":"task-started","msg":"▶ Task 1/15: A single exported constant (e.g. `PRD_SECTIONS` in `bin/lib/outer-loop.mjs` or a new `bin/lib/spec.mjs`) defines the seven required sections; all spec-related code paths import it."}
+{"ts":"2026-04-25T07:30:15.910Z","event":"task-started","msg":"▶ Task 2/15: `agt run my-feature` with no `SPEC.md` exits non-zero with a message naming the missing file and pointing at `agt brainstorm`."}
+{"ts":"2026-04-25T07:47:31.091Z","event":"task-started","msg":"▶ Task 3/15: `agt run my-feature` with a `SPEC.md` that is missing one or more required sections exits non-zero, lists the missing sections, and does NOT modify the file or run any tasks."}
+{"ts":"2026-04-25T07:53:42.409Z","event":"task-passed","msg":"✓ Task 3/15: `agt run my-feature` with a `SPEC.md` that is missing one or more required sections exits non-zero, lists the missing sections, and does NOT modify the file or run any tasks."}
+{"ts":"2026-04-25T07:53:47.945Z","event":"task-started","msg":"▶ Task 4/15: `agt run my-feature` with a fully valid `SPEC.md` proceeds exactly as today (planning, dispatch, gates)."}
+{"ts":"2026-04-25T08:09:31.654Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in document-driven-development — stopping execution"}
+{"ts":"2026-04-25T08:09:32.828Z","event":"feature-complete","msg":"Feature complete: document-driven-development — 1/15 done, 3 blocked, 64m 2s, $149.92"}
+{"ts":"2026-04-25T08:10:57.871Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (15 tasks planned)"}
+{"ts":"2026-04-25T08:12:43.883Z","event":"task-started","msg":"▶ Task 1/15: After 3 consecutive review FAILs on the same task, the 4th attempt does not run; task is transitioned to `blocked` with reason `review-escalation: 3 rounds exceeded`."}
+{"ts":"2026-04-25T08:17:54.683Z","event":"task-passed","msg":"✓ Task 1/15: After 3 consecutive review FAILs on the same task, the 4th attempt does not run; task is transitioned to `blocked` with reason `review-escalation: 3 rounds exceeded`."}
+{"ts":"2026-04-25T08:18:00.575Z","event":"task-started","msg":"▶ Task 2/15: A markdown comment titled `## Review-Round Escalation: <task title>` is posted to the task's GitHub issue with a deduplicated severity/finding table."}
+{"ts":"2026-04-25T08:21:59.253Z","event":"task-passed","msg":"✓ Task 2/15: A markdown comment titled `## Review-Round Escalation: <task title>` is posted to the task's GitHub issue with a deduplicated severity/finding table."}
+{"ts":"2026-04-25T08:22:04.720Z","event":"task-started","msg":"▶ Task 3/15: Findings with identical text across rounds appear once in the table."}
+{"ts":"2026-04-25T08:23:27.005Z","event":"task-passed","msg":"✓ Task 3/15: Findings with identical text across rounds appear once in the table."}
+{"ts":"2026-04-25T08:23:32.485Z","event":"task-started","msg":"▶ Task 4/15: Parent approval issue body is updated to reference the escalation."}
+{"ts":"2026-04-25T08:24:52.654Z","event":"task-passed","msg":"✓ Task 4/15: Parent approval issue body is updated to reference the escalation."}
+{"ts":"2026-04-25T08:24:58.106Z","event":"task-started","msg":"▶ Task 5/15: `STATE.json` for the task contains `reviewRounds: 3` after the cap is hit."}
+{"ts":"2026-04-25T08:26:17.901Z","event":"task-passed","msg":"✓ Task 5/15: `STATE.json` for the task contains `reviewRounds: 3` after the cap is hit."}
+{"ts":"2026-04-25T08:26:23.583Z","event":"task-started","msg":"▶ Task 6/15: `handshake-round-1.json`, `handshake-round-2.json`, `handshake-round-3.json` exist in the task directory."}
+{"ts":"2026-04-25T08:27:44.536Z","event":"task-passed","msg":"✓ Task 6/15: `handshake-round-1.json`, `handshake-round-2.json`, `handshake-round-3.json` exist in the task directory."}
+{"ts":"2026-04-25T08:27:52.985Z","event":"task-started","msg":"▶ Task 7/15: `progress.md` has a 🔴 line noting the escalation."}
+{"ts":"2026-04-25T08:30:29.545Z","event":"task-passed","msg":"✓ Task 7/15: `progress.md` has a 🔴 line noting the escalation."}
+{"ts":"2026-04-25T08:30:33.179Z","event":"progress","msg":"Progress: 7/15 done, 0 blocked."}
+{"ts":"2026-04-25T08:30:35.412Z","event":"task-started","msg":"▶ Task 8/15: Subsequent feature tasks are not executed once a task escalates (loop breaks)."}
+{"ts":"2026-04-25T08:35:10.586Z","event":"task-passed","msg":"✓ Task 8/15: Subsequent feature tasks are not executed once a task escalates (loop breaks)."}
+{"ts":"2026-04-25T08:35:16.453Z","event":"task-started","msg":"▶ Task 9/15: Successful review (no critical findings) does NOT increment `reviewRounds`."}
+{"ts":"2026-04-25T08:39:21.215Z","event":"task-passed","msg":"✓ Task 9/15: Successful review (no critical findings) does NOT increment `reviewRounds`."}
+{"ts":"2026-04-25T08:39:26.512Z","event":"task-started","msg":"▶ Task 10/15: `bin/lib/review-escalation.mjs` exports the 5 functions + constant listed above."}
+{"ts":"2026-04-25T08:43:45.002Z","event":"task-passed","msg":"✓ Task 10/15: `bin/lib/review-escalation.mjs` exports the 5 functions + constant listed above."}
+{"ts":"2026-04-25T08:43:50.292Z","event":"task-started","msg":"▶ Task 11/15: `bin/lib/run.mjs` integrates increment + per-round archive write on every review FAIL path (single + multi-perspective)."}
+{"ts":"2026-04-25T08:49:00.700Z","event":"task-passed","msg":"✓ Task 11/15: `bin/lib/run.mjs` integrates increment + per-round archive write on every review FAIL path (single + multi-perspective)."}
+{"ts":"2026-04-25T08:49:06.163Z","event":"task-started","msg":"▶ Task 12/15: `bin/lib/run.mjs` checks `shouldEscalate` before retry dispatch and performs the full escalation sequence (comment, parent body update, transition blocked, progress log, loop break)."}
+{"ts":"2026-04-25T08:51:42.337Z","event":"task-passed","msg":"✓ Task 12/15: `bin/lib/run.mjs` checks `shouldEscalate` before retry dispatch and performs the full escalation sequence (comment, parent body update, transition blocked, progress log, loop break)."}
+{"ts":"2026-04-25T08:51:47.657Z","event":"task-started","msg":"▶ Task 13/15: `test/review-escalation.test.mjs` covers all exported functions; `npm test` passes."}
+{"ts":"2026-04-25T08:53:08.531Z","event":"task-passed","msg":"✓ Task 13/15: `test/review-escalation.test.mjs` covers all exported functions; `npm test` passes."}
+{"ts":"2026-04-25T08:53:14.423Z","event":"task-started","msg":"▶ Task 14/15: `STATE.json` `reviewRounds` survives a `agt run` restart (persisted via `writeState`)."}
+{"ts":"2026-04-25T08:54:34.555Z","event":"task-passed","msg":"✓ Task 14/15: `STATE.json` `reviewRounds` survives a `agt run` restart (persisted via `writeState`)."}
+{"ts":"2026-04-25T08:54:40.130Z","event":"task-started","msg":"▶ Task 15/15: PRODUCT.md roadmap entry #19 marked ✅ Done."}
+{"ts":"2026-04-25T08:55:59.225Z","event":"task-passed","msg":"✓ Task 15/15: PRODUCT.md roadmap entry #19 marked ✅ Done."}
+{"ts":"2026-04-25T08:56:14.165Z","event":"feature-complete","msg":"Feature complete: max-review-rounds-escalation — 15/15 done, 0 blocked, 45m 16s, $56.32"}

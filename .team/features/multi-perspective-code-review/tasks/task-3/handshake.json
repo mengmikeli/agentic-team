@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (2 critical, 1 warning, 2 suggestion). Compound gate: WARN",
-  "timestamp": "2026-04-25T02:22:44.694Z",
+  "summary": "Parallel review: FAIL (10 critical, 1 warning, 0 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T06:49:08.556Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,14 +13,13 @@
     }
   ],
   "findings": {
-    "critical": 2,
+    "critical": 10,
     "warning": 1,
-    "suggestion": 2
+    "suggestion": 0
   },
   "compoundGate": {
-    "tripped": 2,
+    "tripped": 1,
     "layers": [
-      "missing-code-refs",
       "fabricated-refs"
     ],
     "verdict": "WARN"
