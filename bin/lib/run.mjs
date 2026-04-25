@@ -1202,6 +1202,58 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
         }
       }
 
+      // Extension hook: executeRun — spawn extension-provided commands in task cwd before gate
+      let executeRunFailed = false;
+      try {
+        const executeRunResults = await fireExtension("executeRun", { taskId: task.id, cwd }, cwd);
+        for (const r of executeRunResults) {
+          if (!r || typeof r.command !== "string" || !r.command.trim()) continue;
+          const cmd = r.command.trim();
+          let exitCode = 0;
+          let cmdOut = "";
+          let cmdErr = "";
+          try {
+            cmdOut = execSync(cmd, {
+              cwd,
+              encoding: "utf8",
+              timeout: 60000,
+              maxBuffer: 10 * 1024 * 1024,
+              shell: true,
+              stdio: ["pipe", "pipe", "pipe"],
+            });
+          } catch (err) {
+            exitCode = err.status ?? 1;
+            cmdOut = err.stdout || "";
+            cmdErr = err.stderr || err.message || "";
+          }
+          // Store stdout/stderr as cli-output artifact
+          const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
+          const artifactFile = join(artifactsDir, `ext-run-${slug}.txt`);
+          writeFileSync(artifactFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+          console.log(`  ${c.dim}executeRun: "${cmd.slice(0, 50)}" → exit ${exitCode}${c.reset}`);
+          if (exitCode !== 0 && r.required === true) {
+            executeRunFailed = true;
+            lastFailure = `executeRun required command failed: "${cmd}" exited ${exitCode}\nstdout: ${cmdOut.slice(0, 500)}\nstderr: ${cmdErr.slice(0, 500)}`;
+          }
+        }
+      } catch { /* extensions must never break the pipeline */ }
+
+      if (executeRunFailed) {
+        console.log(`  ${c.red}✗ executeRun FAIL${c.reset}`);
+        appendProgress(featureDir, `**Task ${i + 1}: ${task.title}**\n- Verdict: ❌ FAIL (attempt ${task.attempts}/${maxRetries})\n- executeRun required command failed`);
+        if (attempt === maxRetries) {
+          harness("transition", "--task", task.id, "--status", "blocked",
+            "--dir", featureDir, "--reason", `executeRun failed after ${maxRetries} attempts`);
+          harness("notify", "--event", "task-blocked", "--msg",
+            `✗ Task ${i + 1}/${tasks.length}: ${task.title} — executeRun failed after ${maxRetries} attempts`);
+          blocked++;
+          syncTaskState();
+          console.log(`  ${c.red}✗ Blocked after ${maxRetries} attempts${c.reset}\n`);
+          pushTaskStatus(featureDir, task.id, "blocked", { issueNumber: task.issueNumber, lastReason: `executeRun failed after ${maxRetries} attempts` });
+        }
+        continue;
+      }
+
       // Run quality gate — inline to avoid Windows subprocess issues
       console.log(`  ${c.dim}Running gate: ${gateCmd}${c.reset}`);
       const gateResult = runGateInline(gateCmd, featureDir, task.id, cwd);

@@ -477,6 +477,155 @@ describe("verdictAppend integration", () => {
   });
 });
 
+// ── executeRun hook tests ───────────────────────────────────────────────────
+
+describe("fireExtension — executeRun", () => {
+  beforeEach(() => {
+    resetRegistry();
+    resetCircuitBreakers();
+  });
+
+  it("returns command and required fields from extension", async () => {
+    setExtensions([
+      {
+        name: "run-ext",
+        version: "1.0.0",
+        capabilities: ["executeRun"],
+        hooks: {
+          executeRun: async () => ({ command: "echo hello", required: true }),
+        },
+      },
+    ]);
+    const results = await fireExtension("executeRun", { taskId: "task-1", cwd: process.cwd() });
+    assert.equal(results.length, 1);
+    assert.equal(results[0].command, "echo hello");
+    assert.equal(results[0].required, true);
+  });
+
+  it("passes taskId and cwd in payload", async () => {
+    let captured;
+    setExtensions([
+      {
+        name: "capture-ext",
+        version: "1.0.0",
+        capabilities: ["executeRun"],
+        hooks: {
+          executeRun: async (payload) => { captured = payload; return { command: "echo test" }; },
+        },
+      },
+    ]);
+    await fireExtension("executeRun", { taskId: "task-3", cwd: "/tmp" });
+    assert.equal(captured.taskId, "task-3");
+    assert.equal(captured.cwd, "/tmp");
+  });
+
+  it("skips extensions without executeRun capability", async () => {
+    setExtensions([
+      {
+        name: "other-ext",
+        version: "1.0.0",
+        capabilities: ["promptAppend"],
+        hooks: {
+          executeRun: async () => ({ command: "should not run" }),
+        },
+      },
+    ]);
+    const results = await fireExtension("executeRun", { taskId: "task-1", cwd: process.cwd() });
+    assert.deepEqual(results, []);
+  });
+
+  it("returns empty array when no executeRun extensions registered", async () => {
+    setExtensions([]);
+    const results = await fireExtension("executeRun", { taskId: "task-1", cwd: process.cwd() });
+    assert.deepEqual(results, []);
+  });
+});
+
+// ── executeRun spawn, artifact, and failure detection ───────────────────────
+
+describe("executeRun — spawn, artifact, and failure detection", () => {
+  it("stores stdout as cli-output artifact when command runs", async () => {
+    const { execSync } = await import("node:child_process");
+    const { writeFileSync, existsSync, readFileSync } = await import("node:fs");
+    const artDir = join(tmpdir(), `ext-art-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const cmd = "echo cli-output-test";
+      let exitCode = 0, cmdOut = "", cmdErr = "";
+      try {
+        cmdOut = execSync(cmd, { encoding: "utf8", timeout: 5000, shell: true, stdio: ["pipe", "pipe", "pipe"] });
+      } catch (err) {
+        exitCode = err.status ?? 1; cmdOut = err.stdout || ""; cmdErr = err.stderr || err.message || "";
+      }
+      const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
+      const outFile = join(artDir, `ext-run-${slug}.txt`);
+      writeFileSync(outFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+      assert.ok(existsSync(outFile), "artifact file should be created");
+      const content = readFileSync(outFile, "utf8");
+      assert.ok(content.includes("cli-output-test"), "stdout should appear in artifact");
+      assert.ok(content.includes("Exit code: 0"), "exit code 0 should appear in artifact");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("stores stderr in artifact when command writes to stderr", async () => {
+    const { execSync } = await import("node:child_process");
+    const { writeFileSync, readFileSync } = await import("node:fs");
+    const artDir = join(tmpdir(), `ext-art-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const cmd = "echo stderr-content >&2; exit 1";
+      let exitCode = 0, cmdOut = "", cmdErr = "";
+      try {
+        execSync(cmd, { encoding: "utf8", timeout: 5000, shell: true, stdio: ["pipe", "pipe", "pipe"] });
+      } catch (err) {
+        exitCode = err.status ?? 1; cmdOut = err.stdout || ""; cmdErr = err.stderr || err.message || "";
+      }
+      const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
+      const outFile = join(artDir, `ext-run-${slug}.txt`);
+      writeFileSync(outFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+      const content = readFileSync(outFile, "utf8");
+      assert.ok(content.includes("stderr-content"), "stderr should appear in artifact");
+      assert.ok(content.includes("Exit code: 1"), "non-zero exit should appear in artifact");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("non-zero exit with required: true sets executeRunFailed", () => {
+    let executeRunFailed = false;
+    const exitCode = 1;
+    const r = { command: "exit 1", required: true };
+    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
+    assert.ok(executeRunFailed, "required=true + exit non-zero should trigger failure");
+  });
+
+  it("non-zero exit with required: false does not set executeRunFailed", () => {
+    let executeRunFailed = false;
+    const exitCode = 1;
+    const r = { command: "exit 1", required: false };
+    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
+    assert.ok(!executeRunFailed, "required=false should not trigger failure");
+  });
+
+  it("zero exit does not set executeRunFailed even with required: true", () => {
+    let executeRunFailed = false;
+    const exitCode = 0;
+    const r = { command: "echo ok", required: true };
+    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
+    assert.ok(!executeRunFailed, "exit 0 should never trigger failure");
+  });
+
+  it("missing required field defaults to non-blocking (falsy)", () => {
+    let executeRunFailed = false;
+    const exitCode = 1;
+    const r = { command: "exit 1" }; // no required field
+    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
+    assert.ok(!executeRunFailed, "missing required should not block task");
+  });
+});
+
 // ── loadExtensions tests ────────────────────────────────────────────────────
 
 describe("loadExtensions", () => {

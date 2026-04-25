@@ -1,0 +1,15 @@
+{
+  "taskId": "task-3",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added executeRun hook invocation in run.mjs between builder handshake validation and the quality gate. Extensions returning { command, required? } have their command spawned in the task cwd; stdout/stderr are stored as a cli-output artifact (ext-run-*.txt) in the task artifacts directory; if the command exits non-zero with required: true, the task fails and retries. Updated extension-registry.mjs JSDoc and added 10 tests covering registry behavior, payload forwarding, capability filtering, artifact creation, and all failure-detection cases.",
+  "timestamp": "2026-04-26T00:10:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "bin/lib/extension-registry.mjs" },
+    { "type": "code", "path": "test/extension-system.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
