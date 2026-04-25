@@ -11,7 +11,7 @@ import {
   WRITER_SIG, ALLOWED_TRANSITIONS, appendProgress,
 } from "./util.mjs";
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
-import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings, evaluateSimplicityOutput } from "./flows.mjs";
+import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings, evaluateSimplicityOutput, tagSimplicityFinding } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { pushFeatureStatus, pushTaskStatus, syncFromHarness } from "./state-sync.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
@@ -1287,11 +1287,14 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
                 if (rrTaskSim) { rrTaskSim.reviewRounds = task.reviewRounds; writeState(featureDir, rrStateSim); }
               }
               console.log(`  ${c.red}✗ Simplicity review FAIL — ${simplicitySynth.critical} critical finding(s)${c.reset}`);
-              simplicitySynth.findings.filter(f => f.severity === "critical").forEach(f =>
-                console.log(`    ${c.red}${f.text}${c.reset}`)
+              const taggedCriticals = simplicitySynth.findings
+                .filter(f => f.severity === "critical")
+                .map(f => tagSimplicityFinding(f));
+              taggedCriticals.forEach(text =>
+                console.log(`    ${c.red}${text}${c.reset}`)
               );
               lastFailure = `Simplicity review FAIL: ${simplicitySynth.critical} critical finding(s)\n` +
-                simplicitySynth.findings.filter(f => f.severity === "critical").map(f => f.text).join("\n");
+                taggedCriticals.join("\n");
             }
           }
         }

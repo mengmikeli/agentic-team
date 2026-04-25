@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings, evaluateSimplicityOutput } from "../bin/lib/flows.mjs";
+import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings, evaluateSimplicityOutput, tagSimplicityFinding } from "../bin/lib/flows.mjs";
 import { parseFindings, computeVerdict } from "../bin/lib/synthesize.mjs";
 import { incrementReviewRounds } from "../bin/lib/review-escalation.mjs";
 
@@ -341,6 +341,44 @@ describe("build-verify flow — simplicity pass", () => {
       "simplicity 🟡 must not block merge in build-verify pass");
     assert.equal(result.backlog, true,
       "simplicity 🟡 must appear in backlog");
+  });
+});
+
+describe("tagSimplicityFinding — build-verify combined output", () => {
+  it("tags a 🔴 critical simplicity finding with [simplicity veto]", () => {
+    const text = tagSimplicityFinding({ severity: "critical", text: "🔴 lib/x.mjs:5 — dead code" });
+    assert.ok(text.startsWith("🔴 [simplicity veto]"), `expected emoji + [simplicity veto] prefix, got: ${text}`);
+  });
+
+  it("tags non-critical simplicity findings as plain [simplicity] (not veto)", () => {
+    const warn = tagSimplicityFinding({ severity: "warning", text: "🟡 lib/x.mjs:5 — could be simpler" });
+    assert.ok(warn.includes("[simplicity]"));
+    assert.ok(!warn.includes("[simplicity veto]"));
+  });
+
+  it("preserves the leading emoji so downstream parsers detect severity", () => {
+    const text = tagSimplicityFinding({ severity: "critical", text: "🔴 a.mjs:1 — x" });
+    const parsed = parseFindings(text);
+    assert.equal(parsed.length, 1);
+    assert.equal(parsed[0].severity, "critical");
+  });
+
+  it("tags lastFailure-style combined output with [simplicity veto] for both flows", () => {
+    // Mirrors the build-verify dedicated simplicity pass in run.mjs:
+    // taggedCriticals = synth.findings.filter(critical).map(tagSimplicityFinding)
+    const synth = evaluateSimplicityOutput("🔴 lib/handler.mjs:12 — dead code: unused doWork()");
+    const tagged = synth.findings.filter(f => f.severity === "critical").map(tagSimplicityFinding);
+    const combined = `Simplicity review FAIL: ${synth.critical} critical finding(s)\n` + tagged.join("\n");
+    assert.ok(combined.includes("[simplicity veto]"),
+      "build-verify combined output must label simplicity 🔴 as [simplicity veto]");
+
+    // And full-stack (multi-review) flow is already covered by mergeReviewFindings tests above —
+    // re-assert here to document the cross-flow contract.
+    const merged = mergeReviewFindings([
+      { role: "simplicity", ok: false, output: "🔴 lib/handler.mjs:12 — dead code" },
+    ]);
+    assert.ok(merged.includes("[simplicity veto]"),
+      "multi-review combined output must label simplicity 🔴 as [simplicity veto]");
   });
 });
 

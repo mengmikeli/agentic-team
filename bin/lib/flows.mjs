@@ -202,6 +202,21 @@ export function mergeReviewFindings(findings) {
 }
 
 /**
+ * Tag a finding text with [simplicity veto] (critical) or [simplicity] (other).
+ * Preserves leading severity emoji so downstream parsers still detect severity.
+ * @param {{severity: string, text: string}} finding
+ * @returns {string}
+ */
+export function tagSimplicityFinding(finding) {
+  const label = finding.severity === "critical" ? "simplicity veto" : "simplicity";
+  const emojiRe = /^([🔴🟡🔵])\s*/u;
+  const m = finding.text.match(emojiRe);
+  return m
+    ? `${m[1]} [${label}] ${finding.text.slice(m[0].length)}`
+    : `[${label}] ${finding.text}`;
+}
+
+/**
  * Evaluate simplicity-review agent output.
  * Returns { verdict: "FAIL"|"PASS"|"SKIP", critical, warning, suggestion, findings }
  * "SKIP" means the agent produced no output — distinct from a clean PASS.
