@@ -26,7 +26,7 @@ function extractAttrs(tag) {
  * @param {string} stdout
  * @returns {{ findings: object, summary: string, meta: object }}
  */
-export function parseJunitXml(stdout) {
+export function parseJunitXml(stdout, stderr, exitCode) {
   const findings = { critical: 0, warning: 0, suggestion: 0 };
   const messages = [];
 
@@ -74,7 +74,7 @@ export function parseExitCode(stdout, stderr, exitCode) {
 // ── Registry ─────────────────────────────────────────────────────
 
 export const PARSERS = {
-  "junit-xml": (stdout, stderr, exitCode) => parseJunitXml(stdout),
+  "junit-xml": parseJunitXml,
   "exit-code": parseExitCode,
 };
 
