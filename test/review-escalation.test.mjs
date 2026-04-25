@@ -271,6 +271,16 @@ describe("integration: 3 consecutive review FAILs → task blocked", () => {
       "lastReason matches required string");
   });
 
+  it("does not block after 1 review fail — retry continues normally", () => {
+    const task = { id: "task-1a", status: "in_progress", lastReason: null, reviewRounds: 0 };
+    incrementReviewRounds(task);
+    const escalate = shouldEscalate(task);
+    assert.equal(task.reviewRounds, 1);
+    assert.equal(escalate, false, "shouldEscalate is false after 1 fail");
+    assert.equal(task.status, "in_progress", "task remains in_progress after 1 fail");
+    assert.equal(task.lastReason, null);
+  });
+
   it("does not block after 2 review fails", () => {
     const task = { id: "task-2", status: "in_progress", lastReason: null, reviewRounds: 0 };
 
