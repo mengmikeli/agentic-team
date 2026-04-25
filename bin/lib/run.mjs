@@ -23,7 +23,7 @@ import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
 import { outerLoop } from "./outer-loop.mjs";
 import { buildReplanBrief, parseReplanOutput, applyReplan } from "./replan.mjs";
-import { runSimplifyPass } from "./simplify-pass.mjs";
+import { runSimplifyPass, runSimplifyFixLoop } from "./simplify-pass.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "agt-harness.mjs");
@@ -1505,20 +1505,15 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       console.log(`${c.dim}Running self-simplification pass...${c.reset}`);
       setUsageContext("simplify", null);
       const MAX_SIMPLIFY_FIX_ROUNDS = 2;
-      for (let round = 0; round <= MAX_SIMPLIFY_FIX_ROUNDS; round++) {
-        if (round > 0) {
-          console.log(`  ${c.dim}Simplify fix round ${round}/${MAX_SIMPLIFY_FIX_ROUNDS} (${simplifyResult.findings.critical} critical)...${c.reset}`);
-        }
-        simplifyResult = runSimplifyPass({
+      simplifyResult = runSimplifyFixLoop({
+        maxRounds: MAX_SIMPLIFY_FIX_ROUNDS,
+        runPassFn: () => runSimplifyPass({
           featureDir, gateCmd, cwd, agent,
           dispatchFn: dispatchToAgent,
           runGateFn: runGateInline,
-        });
-        if (simplifyResult.skipped || !(simplifyResult.findings?.critical > 0)) break;
-      }
-      if (simplifyResult.findings?.critical > 0 && !simplifyResult.skipped) {
-        simplifyResult = { ...simplifyResult, escalated: true };
-      }
+        }),
+        logFn: (msg) => console.log(`  ${c.dim}${msg}${c.reset}`),
+      });
       if (simplifyResult.escalated) {
         console.log(`  ${c.red}✗ Simplify pass escalated: ${simplifyResult.findings.critical} critical finding(s) remain after ${MAX_SIMPLIFY_FIX_ROUNDS} fix rounds${c.reset}`);
         appendProgress(featureDir, `**Self-simplification pass — ESCALATED**\n- Critical findings: ${simplifyResult.findings.critical}\n- Fix rounds exhausted: ${MAX_SIMPLIFY_FIX_ROUNDS}/${MAX_SIMPLIFY_FIX_ROUNDS}\n- Action required: manual review`);
@@ -1582,7 +1577,8 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   console.log(`  ${c.green}✓${c.reset} ${completed}/${tasks.length} tasks done`);
   if (blocked > 0) console.log(`  ${c.red}✗${c.reset} ${blocked} blocked`);
   if (simplifyResult && !simplifyResult.skipped) {
-    if (simplifyResult.filesChanged > 0) console.log(`  ${c.dim}Simplified: ${simplifyResult.filesChanged} file(s)${c.reset}`);
+    if (simplifyResult.escalated) console.log(`  ${c.red}✗${c.reset} Simplify: ESCALATED — ${simplifyResult.findings?.critical ?? 0} critical finding(s) unresolved`);
+    else if (simplifyResult.filesChanged > 0) console.log(`  ${c.dim}Simplified: ${simplifyResult.filesChanged} file(s)${c.reset}`);
     else if (simplifyResult.reverted) console.log(`  ${c.dim}Simplify pass reverted (gate regression)${c.reset}`);
   }
   console.log(`  ${c.dim}Duration: ${durationStr}${c.reset}`);
@@ -1592,7 +1588,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
     if (usage.costUsd > 0) console.log(`  ${c.dim}Cost: $${usage.costUsd.toFixed(2)}${c.reset}`);
 
     // Phase breakdown
-    const phaseOrder = ["brainstorm", "build", "review"];
+    const phaseOrder = ["brainstorm", "build", "review", "simplify"];
     const activePhases = phaseOrder.filter(p => phases[p]);
     if (activePhases.length > 0) {
       console.log(`  ${c.dim}By phase:${c.reset}`);

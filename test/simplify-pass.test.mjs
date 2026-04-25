@@ -9,6 +9,7 @@ import {
   getChangedFiles,
   buildSimplifyBrief,
   runSimplifyPass,
+  runSimplifyFixLoop,
   parseSimplifyFindings,
 } from "../bin/lib/simplify-pass.mjs";
 
@@ -324,6 +325,7 @@ describe("runSimplifyPass — agent dispatch and gate re-run", () => {
     });
     assert.equal(result.skipped, false);
     assert.equal(result.filesChanged, 0);
+    assert.deepEqual(result.findings, { critical: 0, warning: 0, suggestion: 0 }, "dispatch-fail must return findings");
   });
 
   it("reverts changes and returns reverted=true when gate throws", () => {
@@ -462,8 +464,8 @@ describe("run.mjs integration", () => {
 
   it("only runs simplify pass when completed > 0", () => {
     // Verify guard: if (completed > 0 && blocked === 0) wraps the simplify pass call
-    // Look back 500 chars to account for the fix loop added inside the guard
-    const simplifyBlock = src.slice(src.indexOf("runSimplifyPass(") - 500, src.indexOf("runSimplifyPass("));
+    // Look back 600 chars to account for the fix loop added inside the guard
+    const simplifyBlock = src.slice(src.indexOf("runSimplifyPass(") - 600, src.indexOf("runSimplifyPass("));
     assert.ok(
       /completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/.test(simplifyBlock),
       "runSimplifyPass must be guarded by completed > 0 && blocked === 0"
@@ -476,16 +478,17 @@ describe("run.mjs integration", () => {
       "run.mjs must define MAX_SIMPLIFY_FIX_ROUNDS = 2"
     );
     assert.ok(
-      /for\s*\(\s*let\s+round\s*=\s*0\s*;\s*round\s*<=\s*MAX_SIMPLIFY_FIX_ROUNDS/.test(src),
-      "run.mjs must loop up to MAX_SIMPLIFY_FIX_ROUNDS"
+      /runSimplifyFixLoop\b/.test(src),
+      "run.mjs must call runSimplifyFixLoop"
     );
   });
 
   it("escalates after fix rounds exhausted with critical findings", () => {
-    assert.ok(src.includes("escalated: true"), "run.mjs must set escalated: true");
+    const passSrc = readFileSync(new URL("../bin/lib/simplify-pass.mjs", import.meta.url), "utf8");
+    assert.ok(passSrc.includes("escalated: true"), "simplify-pass.mjs must set escalated: true");
     assert.ok(
-      /findings\?\.critical\s*>\s*0/.test(src),
-      "run.mjs must check findings?.critical > 0 before escalating"
+      /findings\?\.critical\s*>\s*0/.test(passSrc),
+      "simplify-pass.mjs must check findings?.critical > 0 before escalating"
     );
   });
 
@@ -624,5 +627,60 @@ describe("runSimplifyPass — findings in return value", () => {
       execFn,
     });
     assert.deepEqual(result.findings, { critical: 0, warning: 0, suggestion: 0 });
+  });
+});
+
+// ── runSimplifyFixLoop — behavioral tests ─────────────────────────
+
+describe("runSimplifyFixLoop", () => {
+  it("runs pass once and returns without escalating when no critical findings", () => {
+    const calls = [];
+    const result = runSimplifyFixLoop({
+      maxRounds: 2,
+      runPassFn: () => {
+        calls.push(1);
+        return { skipped: false, filesChanged: 0, findings: { critical: 0, warning: 0, suggestion: 0 } };
+      },
+    });
+    assert.equal(calls.length, 1, "should run once when no criticals");
+    assert.ok(!result.escalated, "should not escalate when no criticals");
+  });
+
+  it("loops and escalates after maxRounds when criticals persist", () => {
+    const calls = [];
+    const result = runSimplifyFixLoop({
+      maxRounds: 2,
+      runPassFn: () => {
+        calls.push(1);
+        return { skipped: false, filesChanged: 1, findings: { critical: 2, warning: 0, suggestion: 0 } };
+      },
+    });
+    assert.equal(calls.length, 3, "should run maxRounds+1 times before escalating");
+    assert.equal(result.escalated, true, "must set escalated: true after exhausting rounds");
+    assert.equal(result.findings.critical, 2, "escalated result must preserve finding count");
+  });
+
+  it("stops early when criticals clear on a subsequent round", () => {
+    let round = 0;
+    const calls = [];
+    const result = runSimplifyFixLoop({
+      maxRounds: 2,
+      runPassFn: () => {
+        calls.push(1);
+        const critical = round === 0 ? 1 : 0;
+        round++;
+        return { skipped: false, filesChanged: 1, findings: { critical, warning: 0, suggestion: 0 } };
+      },
+    });
+    assert.equal(calls.length, 2, "should stop after criticals clear");
+    assert.ok(!result.escalated, "should not escalate when criticals cleared");
+  });
+
+  it("does not escalate when pass is skipped even if findings show criticals", () => {
+    const result = runSimplifyFixLoop({
+      maxRounds: 2,
+      runPassFn: () => ({ skipped: true, filesChanged: 0, findings: { critical: 5, warning: 0, suggestion: 0 } }),
+    });
+    assert.ok(!result.escalated, "skipped pass must not escalate");
   });
 });

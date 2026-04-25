@@ -144,7 +144,7 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
   const brief = buildSimplifyBrief(files);
   const result = dispatchFn(agent, brief, cwd);
   if (!result.ok) {
-    return { filesReviewed: files.length, filesChanged: 0, skipped: false };
+    return { filesReviewed: files.length, filesChanged: 0, skipped: false, findings: { critical: 0, warning: 0, suggestion: 0 } };
   }
 
   const findings = parseSimplifyFindings(result.output) || { critical: 0, warning: 0, suggestion: 0 };
@@ -219,4 +219,22 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
   } catch { /* best-effort revert */ }
 
   return { filesReviewed: files.length, filesChanged: 0, reverted: true, skipped: false, findings };
+}
+
+// ── Fix loop ─────────────────────────────────────────────────────
+// Runs runSimplifyPass up to (maxRounds + 1) times until criticals clear.
+// Sets escalated: true if criticals remain after all rounds.
+export function runSimplifyFixLoop({ maxRounds = 2, runPassFn, logFn = () => {} }) {
+  let result;
+  for (let round = 0; round <= maxRounds; round++) {
+    if (round > 0) {
+      logFn(`Simplify fix round ${round}/${maxRounds} (${result.findings?.critical ?? 0} critical)...`);
+    }
+    result = runPassFn(round);
+    if (result.skipped || !(result.findings?.critical > 0)) break;
+  }
+  if (result.findings?.critical > 0 && !result.skipped) {
+    result = { ...result, escalated: true };
+  }
+  return result;
 }
