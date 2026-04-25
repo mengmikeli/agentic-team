@@ -7,10 +7,9 @@ import { join, resolve, dirname } from "path";
 import { createInterface } from "readline";
 import { fileURLToPath } from "url";
 import {
-  c, getFlag, readState, writeState, lockFile, generateNonce,
-  WRITER_SIG, ALLOWED_TRANSITIONS, appendProgress,
+  c, getFlag, readState, writeState, lockFile, appendProgress,
 } from "./util.mjs";
-import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
+import { ghAvailable, createIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { pushFeatureStatus, pushTaskStatus, syncFromHarness } from "./state-sync.mjs";
