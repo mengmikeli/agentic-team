@@ -271,9 +271,18 @@ describe("smart entry flow (agt run no args)", () => {
 
     const result = runAgt(["run", "my-feature"], tmpDir, { timeout: 15000 });
     assert.equal(result.ok, false, "should exit non-zero");
+    assert.equal(result.exitCode, 1, `should exit with code 1, got: ${result.exitCode}`);
     const output = result.stdout + result.stderr;
     assert.ok(output.includes("SPEC.md"), `output should name SPEC.md, got: ${output}`);
-    assert.ok(output.includes("agt brainstorm"), `output should mention agt brainstorm, got: ${output}`);
+    assert.ok(
+      output.includes("agt brainstorm my-feature"),
+      `output should mention "agt brainstorm my-feature", got: ${output}`
+    );
+    assert.equal(
+      existsSync(join(tmpDir, ".team", "features", "my-feature", "SPEC.md")),
+      false,
+      "should not auto-create SPEC.md"
+    );
   });
 });
 

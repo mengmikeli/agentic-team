@@ -929,9 +929,9 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   if (existsSync(specPath)) {
     spec = readFileSync(specPath, "utf8");
   } else {
-    console.log(`${c.red}✗ Missing SPEC.md: ${specPath}${c.reset}`);
-    console.log(`  Document-driven development requires an approved spec before code is written.`);
-    console.log(`  Run: ${c.bold}agt brainstorm ${featureName}${c.reset}`);
+    console.error(`${c.red}✗ Missing SPEC.md: ${specPath}${c.reset}`);
+    console.error(`  Document-driven development requires an approved spec before code is written.`);
+    console.error(`  Run: ${c.bold}agt brainstorm ${featureName}${c.reset}`);
     process.exit(1);
   }
 

@@ -1,0 +1,10 @@
+  ✔ cwd is distinct from process.cwd() when worktreePath differs (0.116791ms)
+✔ dispatchToAgent cwd injection (0.4875ms)
+ℹ tests 581
+ℹ suites 124
+ℹ pass 581
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32314.236416
