@@ -145,7 +145,7 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
   } = deps;
 
   const specContent = existsSync(specPath) ? readFileSync(specPath, "utf8") : "";
-  const title = `[Feature] ${featureName}`;
+  const title = `[AGT] [Feature] ${featureName}`;
 
   const issueNumber = createIssue(title, specContent, ["awaiting-approval"]);
   if (!issueNumber) return null;
@@ -800,7 +800,7 @@ export async function outerLoop(args, deps) {
           featureDir, priority.name, specPath, projectNumber, approvalDeps,
         );
         if (approvalIssueNumber) {
-          console.log(`  ${c.green}→ Created issue #${approvalIssueNumber}: [Feature] ${priority.name}${c.reset}`);
+          console.log(`  ${c.green}→ Created issue #${approvalIssueNumber}: [AGT] [Feature] ${priority.name}${c.reset}`);
           // Persist approvalIssueNumber to STATE.json so re-entry can recover it even if approval.json is unavailable
           const stateForNum = readState(featureDir);
           if (isStructurallyComplete(stateForNum) && !stateForNum.approvalIssueNumber) {

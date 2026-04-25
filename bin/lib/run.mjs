@@ -996,7 +996,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
     for (const task of tasks) {
       if (task.issueNumber) continue; // already has an issue (e.g. from crash recovery)
       const issueNum = createIssue(
-        `${featureLabel ? `[${featureLabel}] ` : ''}[${featureName}] ${task.title}`,
+        `[AGT]${featureLabel ? ` [${featureLabel}]` : ''} ${task.title}`,
         buildTaskIssueBody(featureName, featureLabel, task.title, state?.approvalIssueNumber),
       );
       if (issueNum) {
