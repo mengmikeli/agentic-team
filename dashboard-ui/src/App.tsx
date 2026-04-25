@@ -140,7 +140,7 @@ function App() {
           isExecuting={!!activeFeature}
         />
       </ErrorBoundary>
-      <LoopStatusBanner />
+      <LoopStatusBanner projects={projects.map(p => ({ name: p.name, path: p.path }))} />
       
       <main className="container mx-auto px-4 md:px-6 py-4 space-y-4">
         {currentTab === 'analytics' ? (

@@ -136,7 +136,7 @@ function readProjectNumber(teamDir) {
  * @param {object} deps - Injectable dependencies for testing
  * @returns {Promise<number|null>} Issue number, or null on failure
  */
-export async function createApprovalIssue(featureDir, featureName, specPath, projectNumber, deps = {}) {
+export async function createApprovalIssue(featureDir, featureName, specPath, projectNumber, deps = {}, projectCode = "AGT") {
   const {
     createIssue = ghCreateIssue,
     addToProject = ghAddToProject,
@@ -806,7 +806,7 @@ export async function outerLoop(args, deps) {
       if (!approvalIssueNumber) {
         console.log(`${c.bold}Creating approval issue...${c.reset}`);
         approvalIssueNumber = await createApprovalIssue(
-          featureDir, priority.name, specPath, projectNumber, approvalDeps,
+          featureDir, priority.name, specPath, projectNumber, approvalDeps, projectCode,
         );
         if (approvalIssueNumber) {
           console.log(`  ${c.green}→ Created issue #${approvalIssueNumber}: [${projectCode}] [Feature] ${priority.name}${c.reset}`);
