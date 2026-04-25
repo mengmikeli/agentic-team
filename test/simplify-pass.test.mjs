@@ -292,6 +292,7 @@ describe("runSimplifyPass — agent dispatch and gate re-run", () => {
       if (cmd.includes("--name-only basesha..HEAD")) return "src/index.mjs\n";
       if (cmd.includes("--name-only HEAD") && !cmd.includes("..")) return "src/index.mjs\n"; // uncommitted change
       if (cmd.includes("checkout HEAD")) { revertCmds.push(cmd); return ""; }
+      if (cmd.includes("clean")) { revertCmds.push(cmd); return ""; }
       return "";
     };
     const result = runSimplifyPass({
@@ -303,6 +304,7 @@ describe("runSimplifyPass — agent dispatch and gate re-run", () => {
     });
     assert.equal(result.reverted, true);
     assert.ok(revertCmds.some(c => c.includes("checkout HEAD")), "should use git checkout HEAD -- . for uncommitted changes");
+    assert.ok(revertCmds.some(c => c.includes("clean")), "should call git clean -fd to remove untracked files");
   });
 
   it("returns skipped=false and filesChanged=0 when dispatch fails", () => {
