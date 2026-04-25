@@ -255,3 +255,72 @@ New test at lines 307–316. Terms "premature abstraction" / "gold-plating" are 
 🟡 test/flows.test.mjs:276 — No test for `{ role: "simplicity", ok: false, output: "" }` (agent crash / empty output) in the verdict path; `parseFindings("")` returns 0 criticals, so a crashed simplicity reviewer silently passes without any signal — behavior is undocumented and untested
 
 🔵 test/flows.test.mjs:276 — Veto FAIL test uses only 3 of 6 roles in the fixture; adding the remaining 3 (product, tester, security) with 🟡/🔵 output would provide stronger regression coverage for the "all other roles pass" scenario
+
+---
+
+# Security Review — simplicity-reviewer-with-veto
+
+## Overall Verdict: PASS
+
+No security-relevant attack surface introduced. The change is local CLI plumbing that joins agent-produced text and counts emoji severities. No user input, no auth, no secrets, no network I/O.
+
+---
+
+## Files Actually Read
+
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-1/handshake.json`
+- `bin/lib/flows.mjs` (155–202: `getRoleFocus`, `PARALLEL_REVIEW_ROLES`, `mergeReviewFindings`)
+- `bin/lib/run.mjs` (1268–1330: simplicity pass + multi-review verdict path)
+- `test/flows.test.mjs` (270–316: simplicity veto test + buildReviewBrief role test)
+- Ran `node --test test/flows.test.mjs` → 47/47 pass
+
+---
+
+## Threat Model
+
+Local dev tool (`agt`) orchestrating LLM agents. Adversaries / inputs:
+
+- **Agent output text** — locally produced by an LLM the user invoked. Trusted-but-noisy. Already user-visible in terminal.
+- **No user-facing endpoints, no auth, no PII, no payment data, no credentials/tokens introduced.**
+
+Realistic threats: log injection / ANSI escapes from a malicious agent. Not in scope: network attackers, supply-chain compromise.
+
+---
+
+## Per-Criterion Results
+
+### Input Validation — PASS
+- `parseFindings` and `computeVerdict` operate on the raw concatenation of role outputs (`run.mjs:1307-1308`). Empty/missing output is coerced to `""` via `f.output || ""` — no NPE path.
+- The veto-label decision (`flows.mjs:188`) reads only the parsed `severity` field, not raw text — cannot be bypassed by crafted output strings.
+
+### Authorization / Access Control — N/A
+- No new permission boundaries; no file writes outside existing `.team/` paths.
+
+### Secrets / Credentials — PASS
+- No env vars, tokens, or credentials introduced or logged.
+
+### Safe Defaults — PASS
+- A simplicity 🔴 traverses the same code path as any other role's 🔴 (`run.mjs:1307-1308` → `parseFindings` → `computeVerdict` → `FAIL`). No special-case bypass.
+- The `[simplicity veto]` label is **display-only** (`flows.mjs:177`); verdict is computed from raw `allText`, so a downstream consumer cannot accidentally swallow the veto by stripping the label prefix — `parseFindings` would still see the 🔴 emoji.
+- 🟡/🔵 simplicity findings correctly do NOT veto (verified at `flows.test.mjs:255-274`).
+
+### Log / Prompt Injection — PASS (low risk, calibrated)
+- Agent output is echoed to console and concatenated into eval.md. A malicious agent could embed ANSI escapes or prompt-injection strings.
+- Consistent with every other review path in `run.mjs` — not a new attack surface introduced here. A compromised local LLM already has shell-tool access via the harness; log injection is not a meaningful additional risk.
+
+### Error Handling — PASS
+- Multi-review block does not wrap `runParallelReviews` in try/catch — but the outer task-loop catch covers it; matches surrounding patterns.
+
+---
+
+## Verification Performed
+
+- Traced verdict path: `run.mjs:1307-1308` → `synthesize.mjs:23-24` (🔴 → critical) → `synthesize.mjs:45` (critical>0 → FAIL) → `run.mjs:1315`+ (sets `reviewFailed`).
+- Reproduced via `flows.test.mjs:276-289`: architect 🔵 + engineer clean + simplicity 🔴 → `verdict === "FAIL"`. Test passes.
+- Confirmed `PARALLEL_REVIEW_ROLES` includes `"simplicity"` (`flows.mjs:170`).
+
+---
+
+## Findings
+
+No findings.
