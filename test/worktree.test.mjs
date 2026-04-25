@@ -485,11 +485,25 @@ describe("createWorktreeIfNeeded slug sanitization", () => {
       // dots cannot form `..` once `/` is gone).
       const result = createWorktreeIfNeeded("../evil", tmpDir, mockExec);
       assert.ok(
-        result.startsWith(join(tmpDir, ".team", "worktrees") + "/") ||
-          result.startsWith(join(tmpDir, ".team", "worktrees") + "\\"),
+        result.startsWith(join(tmpDir, ".team", "worktrees") + "/"),
         `worktree path must stay under .team/worktrees/, got: ${result}`
       );
       assert.ok(!result.includes(".." + "/"), "path must not contain `../`");
+    } finally {
+      try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  it("throws on slugs that sanitize to all-dots (`.`, `..`, `...`)", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "wt-dotslug-"));
+    try {
+      for (const bad of [".", "..", "...", "....."]) {
+        assert.throws(
+          () => createWorktreeIfNeeded(bad, tmpDir, () => {}),
+          /invalid slug/,
+          `must reject all-dots slug ${JSON.stringify(bad)}`
+        );
+      }
     } finally {
       try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
     }

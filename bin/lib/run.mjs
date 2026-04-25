@@ -163,6 +163,7 @@ export function slugToBranch(slug) {
 export function createWorktreeIfNeeded(slug, mainCwd, _execFn = execFileSync) {
   const safeSlug = slugToBranch(slug);
   if (!safeSlug) throw new Error(`invalid slug: ${JSON.stringify(slug)}`);
+  if (/^\.+$/.test(safeSlug)) throw new Error(`invalid slug: ${JSON.stringify(slug)}`);
   const worktreePath = join(mainCwd, ".team", "worktrees", safeSlug);
   const branchName = "feature/" + safeSlug;
   if (existsSync(worktreePath)) {
