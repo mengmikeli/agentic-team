@@ -1,42 +1,55 @@
-# Security Review — task-2 (simplicity-reviewer-with-veto, run_3)
+# Security Review — task-2 (simplicity-reviewer-with-veto, run_4)
 
 **Verdict: PASS**
 
-## Files Read
-- `bin/lib/flows.mjs` (lines 200–218)
-- `bin/lib/run.mjs` (lines 1265–1299)
-- `.team/features/simplicity-reviewer-with-veto/tasks/task-2/handshake.json`
-- `.team/features/simplicity-reviewer-with-veto/tasks/task-1/handshake.json`
+## Scope of Run_4
+Test-only delta (commit 226e209): adds two state-transition tests to
+`test/flows.test.mjs` covering the build-verify simplicity-review veto block
+(🔴 → `reviewFailed=true` + `incrementReviewRounds`; 🟡-only → unchanged).
+No production code paths were modified; the veto block at
+`bin/lib/run.mjs:1281-1287` was reviewed and PASSED in run_3.
 
-## Threat Model
-Local CLI dev tool orchestrating LLM review agents. No network endpoints, no auth boundary, no PII, no secrets touched by this change. Inputs come from a locally-invoked agent (trusted-but-noisy). Realistic attack surface: malformed/adversarial agent output causing crash or logic bypass.
+## Files Opened and Read
+- `.team/features/simplicity-reviewer-with-veto/tasks/task-2/handshake.json`
+- `bin/lib/run.mjs` (lines 1270-1300)
+- `bin/lib/flows.mjs` (`evaluateSimplicityOutput`, lines 210-217)
+- `test/flows.test.mjs` (added lines via 226e209)
+- git log + diffs for the run_3 → run_4 range
 
 ## Per-Criterion Results
 
+### Threat Model — PASS
+No new attack surface. Tests exercise pure in-memory functions with literal
+string inputs. No network, IPC, FS writes, env vars, or trust boundary
+changes introduced in run_4.
+
 ### Input Validation — PASS
-`evaluateSimplicityOutput` (flows.mjs:210) rejects null/empty/undefined output via `if (!output)` returning SKIP before any parsing. Delegates to existing, exercised `parseFindings`/`computeVerdict`.
+`evaluateSimplicityOutput` (flows.mjs:210) early-returns SKIP on falsy input
+and otherwise delegates to `parseFindings` (regex-based line parsing). Tests
+pass literal benign strings.
+
+### Secrets / Credentials — PASS
+No credentials, tokens, env vars, or sensitive paths touched.
 
 ### Safe Defaults / Fail-Closed — PASS
-- Empty output → explicit SKIP with visible warning log (run.mjs:1278); does not silently pass.
-- Veto only triggers on `simplicitySynth.critical > 0` (run.mjs:1281) — 🟡/🔵 correctly cannot bypass.
-- Phase gated by `flow.phases.includes("simplicity-review") && !reviewFailed` (run.mjs:1271) — cannot run on unintended flows and cannot override an already-failed review with a PASS.
+The new tests lock in the safe default: 🟡-only output keeps
+`reviewFailed=false` and leaves `task.reviewRounds` unchanged (no escalation
+without a 🔴). 🔴 correctly flips both. This guards against a regression that
+would silently weaken the veto.
 
 ### Error Handling — PASS
-No new try/catch around `dispatchToAgent`, but this matches the adjacent parallel-review block; outer task-loop catches propagate. `readState` result is null-guarded at run.mjs:1285–1287. No regression vs. existing pattern.
+Tests assert exact post-conditions; no swallowed exceptions. No regression vs.
+the run_3 pattern already approved.
 
-### Secrets — PASS
-No credentials, tokens, env vars, or file writes outside the existing `.team/` state paths introduced.
+### Common Vulns (XSS / injection / deserialization) — PASS
+No HTML/SQL/shell construction; no `JSON.parse` on agent output; no
+`eval`/`Function`. Pure unit-test code.
 
-### Log / Prompt Injection — PASS (calibrated)
-Agent finding text is echoed to console and concatenated into `lastFailure` (run.mjs:1290–1294). Identical handling to all pre-existing review paths; not a new surface. Attack requires a compromised local agent, which already has shell access via the harness — out of realistic scope for this change.
-
-### Authorization — N/A
-No permission model changes.
-
-## Verification
-- Gate output shows test suite executing successfully through the displayed portion; handshake claims 590/590.
-- Code paths traced end-to-end: agent dispatch → evaluate → verdict → veto flag → handshake/state update.
-- Confirmed no new env-var reads, no `eval`/`Function` constructors, no shell interpolation of agent output.
+## Verification Evidence
+- Ran `npm test` locally: `tests 592 / pass 592 / fail 0` — matches handshake.
+- Traced both new tests:
+  - 🔴 path → `reviewFailed === true`, `task.reviewRounds === 1`.
+  - 🟡 path → `reviewFailed === false`, `task.reviewRounds === 2` (preserved).
 
 ## Findings
 
