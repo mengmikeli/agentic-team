@@ -1,10 +1,10 @@
 {
   "taskId": "task-3",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Extracted the inline fix-loop from run.mjs into an exported `runSimplifyFixLoop` helper in simplify-pass.mjs, enabling behavioral testing of loop logic. Added 4 behavioral tests covering all loop scenarios (no-critical early exit, maxRounds escalation, mid-loop clear, skipped-pass). Fixed dispatch-fail return missing `findings` field, added `\"simplify\"` to phaseOrder, added escalated case to completion report summary, and increased source-inspection window from 500 to 600 chars.",
+  "summary": "Fixed three simplicity findings from the review cycle: (1) added 'simplify' to activePhases2 in run.mjs so simplify-phase costs appear in progress.md; (2) removed the speculative round argument from runPassFn() calls; (3) added result.reverted to the break condition in runSimplifyFixLoop to avoid re-dispatching the agent on already-reverted unchanged code, with a new behavioral test covering the reverted-early-exit path.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "roles/simplify-pass.md" },
