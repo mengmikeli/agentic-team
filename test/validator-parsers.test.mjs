@@ -1,8 +1,8 @@
-// Tests for bin/lib/validator-parsers.mjs — JUnit XML parser
+// Tests for bin/lib/validator-parsers.mjs — JUnit XML and TAP parsers
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseJunitXml, getParser } from "../bin/lib/validator-parsers.mjs";
+import { parseJunitXml, parseTap, getParser } from "../bin/lib/validator-parsers.mjs";
 
 describe("parseJunitXml", () => {
   it("produces one critical finding from one <failure> element", () => {
@@ -90,6 +90,54 @@ describe("parseJunitXml", () => {
     const result = parseJunitXml("not xml at all");
     assert.equal(result.findings.critical, 0);
     assert.equal(result.meta.messages.length, 0);
+  });
+});
+
+describe("parseTap", () => {
+  it("produces one critical finding from one not ok line", () => {
+    const tap = `TAP version 13
+1..1
+not ok 1 - should pass but did not`;
+
+    const result = parseTap(tap, "", 1);
+    assert.equal(result.findings.critical, 1, "should have 1 critical finding");
+    assert.equal(result.findings.warning, 0);
+    assert.equal(result.findings.suggestion, 0);
+    assert.equal(result.meta.messages.length, 1);
+    assert.ok(result.meta.messages[0].startsWith("not ok 1"));
+  });
+
+  it("produces zero findings for all ok lines", () => {
+    const tap = `TAP version 13
+1..2
+ok 1 - first test
+ok 2 - second test`;
+
+    const result = parseTap(tap, "", 0);
+    assert.equal(result.findings.critical, 0);
+    assert.equal(result.meta.messages.length, 0);
+  });
+
+  it("produces multiple critical findings for multiple not ok lines", () => {
+    const tap = `TAP version 13
+1..3
+not ok 1 - first failure
+ok 2 - passing
+not ok 3 - second failure`;
+
+    const result = parseTap(tap, "", 1);
+    assert.equal(result.findings.critical, 2);
+    assert.equal(result.meta.messages.length, 2);
+  });
+
+  it("does not count # TODO lines as critical findings", () => {
+    const tap = `TAP version 13
+1..2
+not ok 1 - known issue # TODO fix later
+ok 2 - passing`;
+
+    const result = parseTap(tap, "", 0);
+    assert.equal(result.findings.critical, 0);
   });
 });
 

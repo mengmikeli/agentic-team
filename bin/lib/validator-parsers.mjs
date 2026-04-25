@@ -60,6 +60,37 @@ export function parseJunitXml(stdout, stderr, exitCode) {
   };
 }
 
+// ── TAP ──────────────────────────────────────────────────────────
+
+/**
+ * Parse TAP (Test Anything Protocol) output and return structured findings.
+ * Each `not ok` line (excluding TODO directives) produces one critical finding.
+ *
+ * @param {string} stdout
+ * @returns {{ findings: object, summary: string, meta: object }}
+ */
+export function parseTap(stdout, stderr, exitCode) {
+  const findings = { critical: 0, warning: 0, suggestion: 0 };
+  const messages = [];
+
+  for (const line of stdout.split('\n')) {
+    const trimmed = line.trim();
+    if (/^not ok\b/.test(trimmed) && !/# TODO\b/i.test(trimmed)) {
+      messages.push(trimmed);
+      findings.critical++;
+    }
+  }
+
+  const planMatch = /^1\.\.(\d+)/m.exec(stdout);
+  const total = planMatch ? parseInt(planMatch[1], 10) : findings.critical;
+
+  return {
+    findings,
+    summary: `${findings.critical} failure(s) in ${total} test(s)`,
+    meta: { messages },
+  };
+}
+
 // ── Exit-code (passthrough) ──────────────────────────────────────
 
 export function parseExitCode(stdout, stderr, exitCode) {
@@ -75,6 +106,7 @@ export function parseExitCode(stdout, stderr, exitCode) {
 
 export const PARSERS = {
   "junit-xml": parseJunitXml,
+  "tap": parseTap,
   "exit-code": parseExitCode,
 };
 
