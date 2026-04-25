@@ -289,3 +289,4 @@
 {"ts":"2026-04-25T04:00:18.174Z","event":"task-started","msg":"▶ Task 3/17: A GitHub issue comment is posted containing the task title, round count, and deduplicated findings table on escalation."}
 {"ts":"2026-04-25T04:10:18.531Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in max-review-rounds-escalation — stopping execution"}
 {"ts":"2026-04-25T04:10:20.600Z","event":"feature-complete","msg":"Feature complete: max-review-rounds-escalation — 0/17 done, 3 blocked, 35m 44s, $84.09"}
+{"ts":"2026-04-25T05:07:59.688Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (13 tasks planned)"}
