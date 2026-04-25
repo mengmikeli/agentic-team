@@ -280,6 +280,53 @@ export function findAgent() {
   return null;
 }
 
+/**
+ * Spawn each command returned by executeRun extensions, store stdout/stderr as
+ * a cli-output artifact, and return whether a required command failed.
+ *
+ * Exported so that tests can exercise the actual production logic.
+ *
+ * @param {Array} commands   — results from fireExtension("executeRun", …)
+ * @param {string} artifactsDir — directory to write cli-output artifacts into
+ * @param {string} cwd       — working directory for spawned commands
+ * @returns {{ failed: boolean, lastFailure: string|null }}
+ */
+export function runExecuteRunCommands(commands, artifactsDir, cwd) {
+  let failed = false;
+  let lastFailure = null;
+  for (const r of commands) {
+    if (!r || typeof r.command !== "string" || !r.command.trim()) continue;
+    const cmd = r.command.trim();
+    let exitCode = 0;
+    let cmdOut = "";
+    let cmdErr = "";
+    try {
+      cmdOut = execSync(cmd, {
+        cwd,
+        encoding: "utf8",
+        timeout: 60000,
+        maxBuffer: 10 * 1024 * 1024,
+        shell: true,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (err) {
+      exitCode = err.status ?? 1;
+      cmdOut = err.stdout || "";
+      cmdErr = err.stderr || err.message || "";
+    }
+    // Set failure flag BEFORE writeFileSync so a write error can never swallow it
+    if (exitCode !== 0 && r.required === true) {
+      failed = true;
+      lastFailure = `executeRun required command failed: "${cmd}" exited ${exitCode}\nstdout: ${cmdOut.slice(0, 500)}\nstderr: ${cmdErr.slice(0, 500)}`;
+    }
+    const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
+    const artifactFile = join(artifactsDir, `ext-run-${slug}.txt`);
+    writeFileSync(artifactFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+    console.log(`  ${c.dim}executeRun: "${cmd.slice(0, 50)}" → exit ${exitCode}${c.reset}`);
+  }
+  return { failed, lastFailure };
+}
+
 export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
   console.log(`  ${c.dim}Dispatching to ${agent}...${c.reset}`);
 
@@ -1206,35 +1253,10 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       let executeRunFailed = false;
       try {
         const executeRunResults = await fireExtension("executeRun", { taskId: task.id, cwd }, cwd);
-        for (const r of executeRunResults) {
-          if (!r || typeof r.command !== "string" || !r.command.trim()) continue;
-          const cmd = r.command.trim();
-          let exitCode = 0;
-          let cmdOut = "";
-          let cmdErr = "";
-          try {
-            cmdOut = execSync(cmd, {
-              cwd,
-              encoding: "utf8",
-              timeout: 60000,
-              maxBuffer: 10 * 1024 * 1024,
-              shell: true,
-              stdio: ["pipe", "pipe", "pipe"],
-            });
-          } catch (err) {
-            exitCode = err.status ?? 1;
-            cmdOut = err.stdout || "";
-            cmdErr = err.stderr || err.message || "";
-          }
-          // Store stdout/stderr as cli-output artifact
-          const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
-          const artifactFile = join(artifactsDir, `ext-run-${slug}.txt`);
-          writeFileSync(artifactFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
-          console.log(`  ${c.dim}executeRun: "${cmd.slice(0, 50)}" → exit ${exitCode}${c.reset}`);
-          if (exitCode !== 0 && r.required === true) {
-            executeRunFailed = true;
-            lastFailure = `executeRun required command failed: "${cmd}" exited ${exitCode}\nstdout: ${cmdOut.slice(0, 500)}\nstderr: ${cmdErr.slice(0, 500)}`;
-          }
+        const erResult = runExecuteRunCommands(executeRunResults, artifactsDir, cwd);
+        if (erResult.failed) {
+          executeRunFailed = true;
+          lastFailure = erResult.lastFailure;
         }
       } catch { /* extensions must never break the pipeline */ }
 

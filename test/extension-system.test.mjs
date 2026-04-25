@@ -9,6 +9,7 @@ import { join } from "node:path";
 import { runHook, isCircuitBroken, resetCircuitBreakers } from "../bin/lib/extension-runner.mjs";
 import { fireExtension, resetRegistry, setExtensions } from "../bin/lib/extension-registry.mjs";
 import { loadExtensions } from "../bin/lib/extension-loader.mjs";
+import { runExecuteRunCommands } from "../bin/lib/run.mjs";
 
 // ── extension-runner tests ──────────────────────────────────────────────────
 
@@ -593,36 +594,65 @@ describe("executeRun — spawn, artifact, and failure detection", () => {
     }
   });
 
-  it("non-zero exit with required: true sets executeRunFailed", () => {
-    let executeRunFailed = false;
-    const exitCode = 1;
-    const r = { command: "exit 1", required: true };
-    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
-    assert.ok(executeRunFailed, "required=true + exit non-zero should trigger failure");
+  it("non-zero exit with required: true sets failed via runExecuteRunCommands", async () => {
+    const artDir = join(tmpdir(), `ext-art-fail-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const result = runExecuteRunCommands(
+        [{ command: "exit 1", required: true }],
+        artDir,
+        process.cwd(),
+      );
+      assert.ok(result.failed, "required=true + non-zero exit must set failed");
+      assert.ok(typeof result.lastFailure === "string" && result.lastFailure.length > 0, "lastFailure should be set");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
   });
 
-  it("non-zero exit with required: false does not set executeRunFailed", () => {
-    let executeRunFailed = false;
-    const exitCode = 1;
-    const r = { command: "exit 1", required: false };
-    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
-    assert.ok(!executeRunFailed, "required=false should not trigger failure");
+  it("non-zero exit with required: false does not set failed via runExecuteRunCommands", async () => {
+    const artDir = join(tmpdir(), `ext-art-nofail-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const result = runExecuteRunCommands(
+        [{ command: "exit 1", required: false }],
+        artDir,
+        process.cwd(),
+      );
+      assert.ok(!result.failed, "required=false must not set failed");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
   });
 
-  it("zero exit does not set executeRunFailed even with required: true", () => {
-    let executeRunFailed = false;
-    const exitCode = 0;
-    const r = { command: "echo ok", required: true };
-    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
-    assert.ok(!executeRunFailed, "exit 0 should never trigger failure");
+  it("zero exit does not set failed even with required: true via runExecuteRunCommands", async () => {
+    const artDir = join(tmpdir(), `ext-art-zero-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const result = runExecuteRunCommands(
+        [{ command: "echo ok", required: true }],
+        artDir,
+        process.cwd(),
+      );
+      assert.ok(!result.failed, "exit 0 must never set failed");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
   });
 
-  it("missing required field defaults to non-blocking (falsy)", () => {
-    let executeRunFailed = false;
-    const exitCode = 1;
-    const r = { command: "exit 1" }; // no required field
-    if (exitCode !== 0 && r.required === true) executeRunFailed = true;
-    assert.ok(!executeRunFailed, "missing required should not block task");
+  it("missing required field defaults to non-blocking via runExecuteRunCommands", async () => {
+    const artDir = join(tmpdir(), `ext-art-nofield-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const result = runExecuteRunCommands(
+        [{ command: "exit 1" }],
+        artDir,
+        process.cwd(),
+      );
+      assert.ok(!result.failed, "missing required field must not block task");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
   });
 });
 
