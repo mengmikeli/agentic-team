@@ -183,12 +183,9 @@ export function mergeReviewFindings(findings) {
     const parsed = parseFindings(f.output || "");
     for (const p of parsed) {
       // Format: 🔴 [role] file:line — … (emoji anchors severity at line-start)
-      const emojiRe = /^([🔴🟡🔵])\s*/u;
-      const m = p.text.match(emojiRe);
-      const label = (f.role === "simplicity" && p.severity === "critical") ? "simplicity veto" : f.role;
-      const prefixedText = m
-        ? `${m[1]} [${label}] ${p.text.slice(m[0].length)}`
-        : `[${label}] ${p.text}`;
+      const prefixedText = f.role === "simplicity"
+        ? tagSimplicityFinding(p)
+        : tagFindingWithLabel(p, f.role);
       allFindings.push({ severity: p.severity, text: prefixedText });
     }
   }
@@ -202,6 +199,20 @@ export function mergeReviewFindings(findings) {
 }
 
 /**
+ * Tag a finding text with [label], preserving any leading severity emoji.
+ * @param {{text: string}} finding
+ * @param {string} label
+ * @returns {string}
+ */
+function tagFindingWithLabel(finding, label) {
+  const emojiRe = /^([🔴🟡🔵])\s*/u;
+  const m = finding.text.match(emojiRe);
+  return m
+    ? `${m[1]} [${label}] ${finding.text.slice(m[0].length)}`
+    : `[${label}] ${finding.text}`;
+}
+
+/**
  * Tag a finding text with [simplicity veto] (critical) or [simplicity] (other).
  * Preserves leading severity emoji so downstream parsers still detect severity.
  * @param {{severity: string, text: string}} finding
@@ -209,11 +220,7 @@ export function mergeReviewFindings(findings) {
  */
 export function tagSimplicityFinding(finding) {
   const label = finding.severity === "critical" ? "simplicity veto" : "simplicity";
-  const emojiRe = /^([🔴🟡🔵])\s*/u;
-  const m = finding.text.match(emojiRe);
-  return m
-    ? `${m[1]} [${label}] ${finding.text.slice(m[0].length)}`
-    : `[${label}] ${finding.text}`;
+  return tagFindingWithLabel(finding, label);
 }
 
 /**
