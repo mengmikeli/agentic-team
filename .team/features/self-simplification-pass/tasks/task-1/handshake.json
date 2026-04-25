@@ -1,14 +1,13 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed three review findings: removed the dead makeExecFn helper from tests, tightened the run.mjs guard from `completed > 0` to `completed > 0 && blocked === 0` so the simplify pass only runs when all tasks pass review, and wrapped the runGateFn call in a try/catch so exceptions trigger revert instead of leaving agent changes unreversed. Added a test covering the gate-throws path.",
+  "summary": "Fixed three issues flagged in review: removed unused `let callIndex = 0;` variable in the test file (critical), extended the guard assertion regex to cover `blocked === 0` in addition to `completed > 0`, and added `git clean -fd` after `git checkout HEAD -- .` to also remove untracked files during revert.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/simplify-pass.mjs" },
-    { "type": "code", "path": "bin/lib/run.mjs" },
     { "type": "code", "path": "test/simplify-pass.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }

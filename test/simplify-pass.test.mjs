@@ -134,7 +134,6 @@ describe("runSimplifyPass — skip conditions", () => {
   });
 
   it("returns filesReviewed=0 when no code files changed", () => {
-    let callIndex = 0;
     const mockExec = (cmd, _opts) => {
       if (cmd.includes("merge-base")) return "basesha\n";
       if (cmd.includes("--name-only")) return "README.md\npackage-lock.json\n";
@@ -387,8 +386,8 @@ describe("run.mjs integration", () => {
     // Verify guard: if (completed > 0) wraps the simplify pass call
     const simplifyBlock = src.slice(src.indexOf("runSimplifyPass(") - 200, src.indexOf("runSimplifyPass("));
     assert.ok(
-      /completed\s*>\s*0/.test(simplifyBlock),
-      "runSimplifyPass must be guarded by completed > 0"
+      /completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/.test(simplifyBlock),
+      "runSimplifyPass must be guarded by completed > 0 && blocked === 0"
     );
   });
 });

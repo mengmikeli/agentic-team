@@ -186,6 +186,11 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
         encoding: "utf8",
         stdio: ["pipe", "pipe", "pipe"],
       });
+      execFn("git clean -fd", {
+        cwd,
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
     }
   } catch { /* best-effort revert */ }
 
