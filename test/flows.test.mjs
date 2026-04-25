@@ -3,7 +3,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "../bin/lib/flows.mjs";
+import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings, evaluateSimplicityOutput } from "../bin/lib/flows.mjs";
 import { parseFindings, computeVerdict } from "../bin/lib/synthesize.mjs";
 
 describe("FLOWS", () => {
@@ -340,5 +340,52 @@ describe("build-verify flow — simplicity pass", () => {
       "simplicity 🟡 must not block merge in build-verify pass");
     assert.equal(result.backlog, true,
       "simplicity 🟡 must appear in backlog");
+  });
+});
+
+describe("evaluateSimplicityOutput", () => {
+  it("returns SKIP (not PASS) when agent output is empty string", () => {
+    const result = evaluateSimplicityOutput("");
+    assert.equal(result.verdict, "SKIP",
+      "empty agent output must return SKIP, not a false PASS");
+    assert.equal(result.critical, 0);
+  });
+
+  it("returns SKIP (not PASS) when agent output is null/undefined", () => {
+    assert.equal(evaluateSimplicityOutput(null).verdict, "SKIP");
+    assert.equal(evaluateSimplicityOutput(undefined).verdict, "SKIP");
+  });
+
+  it("returns FAIL with critical count when 🔴 finding present", () => {
+    const result = evaluateSimplicityOutput("🔴 lib/x.mjs:5 — dead code: unused helper remove it");
+    assert.equal(result.verdict, "FAIL");
+    assert.equal(result.critical, 1);
+    assert.equal(result.findings.length, 1);
+  });
+
+  it("returns PASS (not FAIL) when only 🟡 findings present", () => {
+    const result = evaluateSimplicityOutput("🟡 lib/x.mjs:5 — consider simplifying nested conditions");
+    assert.equal(result.verdict, "PASS");
+    assert.equal(result.critical, 0);
+    assert.equal(result.warning, 1);
+  });
+});
+
+describe("build-verify simplicity-review guard — !reviewFailed skip", () => {
+  it("simplicity-review guard is false (skipped) when reviewFailed=true", () => {
+    // Documents the run.mjs:1271 guard: !reviewFailed must be false to skip simplicity when main review failed
+    const phases = FLOWS["build-verify"].phases;
+    const reviewFailed = true;
+    const shouldRun = phases.includes("simplicity-review") && !reviewFailed;
+    assert.equal(shouldRun, false,
+      "simplicity-review must be skipped when reviewFailed=true (main review already failed)");
+  });
+
+  it("simplicity-review guard is true when main review passed", () => {
+    const phases = FLOWS["build-verify"].phases;
+    const reviewFailed = false;
+    const shouldRun = phases.includes("simplicity-review") && !reviewFailed;
+    assert.equal(shouldRun, true,
+      "simplicity-review must run when main review passed");
   });
 });

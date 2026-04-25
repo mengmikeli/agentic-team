@@ -4,7 +4,7 @@
 // full-stack: brainstorm + build + multi-role review + gate
 
 import { readFileSync } from "node:fs";
-import { parseFindings } from "./synthesize.mjs";
+import { parseFindings, computeVerdict } from "./synthesize.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -199,4 +199,19 @@ export function mergeReviewFindings(findings) {
   const lines = allFindings.map(f => f.text);
   const body = lines.length > 0 ? lines.join("\n") : "_No findings._";
   return `## Parallel Review Findings\n\n${body}`;
+}
+
+/**
+ * Evaluate simplicity-review agent output.
+ * Returns { verdict: "FAIL"|"PASS"|"SKIP", critical, warning, suggestion, findings }
+ * "SKIP" means the agent produced no output — distinct from a clean PASS.
+ * @param {string|null|undefined} output
+ */
+export function evaluateSimplicityOutput(output) {
+  if (!output) {
+    return { verdict: "SKIP", critical: 0, warning: 0, suggestion: 0, findings: [] };
+  }
+  const findings = parseFindings(output);
+  const synth = computeVerdict(findings);
+  return { verdict: synth.verdict, critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion, findings };
 }
