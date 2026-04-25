@@ -11,11 +11,13 @@ import {
 } from "./util.mjs";
 import { extractWarnings, findNewWarnings, documentWarnings } from "./backlog.mjs";
 import { createHandshake } from "./handshake.mjs";
+import { getParser } from "./validator-parsers.mjs";
 
 export function cmdGate(args) {
   const cmd = getFlag(args, "cmd");
   const dir = resolveDir(args, getFlag(args, "dir", "."));
   const taskId = getFlag(args, "task");
+  const outputFormat = getFlag(args, "output-format", "exit-code");
 
   if (!cmd) {
     console.error("Usage: at-harness gate --cmd <command> --dir <path> [--task <id>]");
@@ -100,6 +102,10 @@ export function cmdGate(args) {
         documentWarnings(dir, newWarnings, "gate");
       }
 
+      // Parse structured output using the configured format parser.
+      const parser = getParser(outputFormat);
+      const parsed = parser(stdout, stderr, exitCode);
+
       // ── Write evidence artifacts to task directory ──
       if (taskId) {
         const artifactsDir = join(dir, "tasks", taskId, "artifacts");
@@ -133,7 +139,7 @@ export function cmdGate(args) {
           verdict,
           summary: `Gate command: ${cmd} — exit code ${exitCode}`,
           artifacts,
-          findings: { critical: exitCode === 0 ? 0 : 1, warning: newWarnings.length, suggestion: 0 },
+          findings: { critical: parsed.findings.critical, warning: parsed.findings.warning + newWarnings.length, suggestion: parsed.findings.suggestion },
         });
 
         const taskDir = join(dir, "tasks", taskId);

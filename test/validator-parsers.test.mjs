@@ -172,6 +172,9 @@ describe("getParser", () => {
   it("returns github-actions parser for 'github-actions' format", () => {
     const parser = getParser("github-actions");
     assert.equal(typeof parser, "function");
+    // Round-trip: registry wire-up verified by invoking with real input
+    const result = parser("::error file=src/foo.js,line=5::msg", "", 1);
+    assert.equal(result.findings.critical, 1);
   });
 
   it("falls back to exit-code parser for unknown format", () => {
@@ -250,5 +253,23 @@ describe("parseGithubActions", () => {
     const result = parseGithubActions("", "", 0);
     assert.equal(result.findings.critical, 0);
     assert.equal(result.meta.messages.length, 0);
+  });
+
+  it("produces one critical finding when a property value contains a colon (e.g. title=TypeError: x)", () => {
+    const stdout = "::error title=TypeError: x,file=src/foo.js,line=5::something went wrong";
+
+    const result = parseGithubActions(stdout, "", 1);
+    assert.equal(result.findings.critical, 1, "colon in property value must not prevent matching");
+    assert.equal(result.meta.messages[0], "src/foo.js:5 — something went wrong");
+  });
+
+  it("strips control characters from messages before storing", () => {
+    const stdout = "::error file=src/foo.js,line=5::evil\x1b[2J message";
+
+    const result = parseGithubActions(stdout, "", 1);
+    assert.equal(result.findings.critical, 1);
+    // No control chars (bytes < 0x20) should appear in the stored message
+    assert.ok(!/[\x00-\x1f]/.test(result.meta.messages[0]),
+      "message must not contain control characters");
   });
 });

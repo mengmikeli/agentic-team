@@ -111,8 +111,9 @@ export function parseGithubActions(stdout, stderr, exitCode) {
   const combined = [stdout, stderr].filter(Boolean).join('\n');
 
   // Regex: ::error|warning|notice [properties]::message
-  // Properties are optional key=value pairs separated by commas
-  const lineRe = /^::([a-z]+)(?:\s+([^:]*))?::(.*)$/;
+  // Properties are optional key=value pairs separated by commas.
+  // Use non-greedy (.*?) to handle property values containing colons (e.g. title=TypeError: x).
+  const lineRe = /^::([a-z]+)\s*(.*?)::(.*)/;
 
   for (const raw of combined.split('\n')) {
     const line = raw.replace(/[\x00-\x1f\x7f]/g, '').trim();
