@@ -230,8 +230,8 @@ export function runSimplifyFixLoop({ maxRounds = 2, runPassFn, logFn = () => {} 
     if (round > 0) {
       logFn(`Simplify fix round ${round}/${maxRounds} (${result.findings?.critical ?? 0} critical)...`);
     }
-    result = runPassFn(round);
-    if (result.skipped || !(result.findings?.critical > 0)) break;
+    result = runPassFn();
+    if (result.skipped || result.reverted || !(result.findings?.critical > 0)) break;
   }
   if (result.findings?.critical > 0 && !result.skipped) {
     result = { ...result, escalated: true };

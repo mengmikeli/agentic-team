@@ -683,4 +683,17 @@ describe("runSimplifyFixLoop", () => {
     });
     assert.ok(!result.escalated, "skipped pass must not escalate");
   });
+
+  it("breaks after first reverted round and escalates when criticals remain", () => {
+    const calls = [];
+    const result = runSimplifyFixLoop({
+      maxRounds: 2,
+      runPassFn: () => {
+        calls.push(1);
+        return { skipped: false, reverted: true, filesChanged: 0, findings: { critical: 3, warning: 0, suggestion: 0 } };
+      },
+    });
+    assert.equal(calls.length, 1, "should stop after first revert — re-dispatching on reverted code cannot make progress");
+    assert.equal(result.escalated, true, "must escalate when reverted round has critical findings");
+  });
 });
