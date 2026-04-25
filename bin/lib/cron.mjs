@@ -102,16 +102,25 @@ export async function cmdCronTick(args = [], deps = {}) {
     console.log(`cron-tick: dispatching issue #${issueNumber} — ${title}`);
 
     // Transition board item to in-progress before running
-    _setProjectItemStatus(issueNumber, projectNumber, "in-progress");
+    const inProgressSet = _setProjectItemStatus(issueNumber, projectNumber, "in-progress");
+    if (!inProgressSet) {
+      console.warn(`cron-tick: warning — failed to transition issue #${issueNumber} to 'in-progress' on project board`);
+    }
 
     try {
       await _runSingleFeature(args, title);
       // Transition to done on success
-      _setProjectItemStatus(issueNumber, projectNumber, "done");
+      const doneSet = _setProjectItemStatus(issueNumber, projectNumber, "done");
+      if (!doneSet) {
+        console.warn(`cron-tick: warning — failed to transition issue #${issueNumber} to 'done' on project board`);
+      }
       console.log(`cron-tick: completed issue #${issueNumber}`);
     } catch (err) {
       // Revert to ready and comment on failure
-      _setProjectItemStatus(issueNumber, projectNumber, "ready");
+      const revertSet = _setProjectItemStatus(issueNumber, projectNumber, "ready");
+      if (!revertSet) {
+        console.warn(`cron-tick: warning — failed to revert issue #${issueNumber} to 'ready' on project board`);
+      }
       _commentIssue(issueNumber, `cron-tick failed: ${err.message || String(err)}`);
       console.error(`cron-tick: failed for issue #${issueNumber}: ${err.message || err}`);
     }

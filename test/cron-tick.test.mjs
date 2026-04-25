@@ -161,6 +161,33 @@ describe("cmdCronTick", () => {
     assert.ok(inProgressIdx < doneIdx, "in-progress must come before done");
   });
 
+  // ── 3b. Board API failure warning ────────────────────────────
+
+  it("logs a warning when setProjectItemStatus returns false but continues", async () => {
+    writeProjectMd(teamDir);
+    const warns = [];
+    const origWarn = console.warn;
+    console.warn = (...a) => { warns.push(a.join(" ")); };
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 9, title: "Needs board update", status: "Ready", id: "item-9" },
+      ],
+      runSingleFeature: async () => "done",
+      setProjectItemStatus: () => false,
+      commentIssue: () => false,
+      lockFile: () => ({ acquired: true, release: () => {} }),
+    };
+
+    await cmdCronTick([], deps);
+    console.warn = origWarn;
+
+    assert.ok(warns.some(w => w.includes("in-progress")), `Expected in-progress warning in: ${warns.join(", ")}`);
+    assert.ok(warns.some(w => w.includes("done")), `Expected done warning in: ${warns.join(", ")}`);
+  });
+
   // ── 4. Failed dispatch ────────────────────────────────────────
 
   it("reverts to ready and comments on failed dispatch", async () => {

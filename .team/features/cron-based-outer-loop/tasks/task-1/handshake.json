@@ -1,16 +1,14 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Implemented the full cron-tick board lifecycle: getProjectFieldIds now captures Pending Approval and Ready option IDs; init.mjs writes them into the tracking section; checkProjectBoard warns when field IDs are missing (cron-tick requires them); templates/PROJECT.md now includes the Tracking scaffold. Added 2 CLI integration tests verifying agt cron-tick exits 1 with 'not configured' when tracking section is absent.",
-  "timestamp": "2026-04-26T00:00:00.000Z",
+  "summary": "Fixed setProjectItemStatus return value handling in cron.mjs — all three status transitions (in-progress, done, revert-to-ready) now log a warning instead of silently discarding failures, preventing silent infinite re-run loops and stuck 'In Progress' items. Fixed doctor.mjs to split the board-warning into two distinct messages: 'field IDs not set' (missing base config) vs 'Ready column not set up — required for agt cron-tick' (cron-specific gap), scoping the warning appropriately. Added 2 tests covering the new behaviors.",
+  "timestamp": "2026-04-26T00:30:00.000Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/github.mjs" },
-    { "type": "code", "path": "bin/lib/init.mjs" },
+    { "type": "code", "path": "bin/lib/cron.mjs" },
     { "type": "code", "path": "bin/lib/doctor.mjs" },
-    { "type": "code", "path": "templates/PROJECT.md" },
     { "type": "code", "path": "test/cron-tick.test.mjs" },
     { "type": "code", "path": "test/doctor.test.mjs" }
   ],

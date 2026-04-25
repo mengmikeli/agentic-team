@@ -232,6 +232,15 @@ describe("doctor: checkProjectBoard", () => {
     assert.ok(result.message.includes("field IDs not set"), `Got: ${result.message}`);
   });
 
+  it("warns when Tracking section has URL + field IDs but no Ready option", () => {
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"),
+      "# Project\n\n## Tracking\n\nhttps://github.com/orgs/mengmikeli/projects/1\n- Status Field ID: field-1\n- Todo Option ID: opt-1\n- In Progress Option ID: opt-2\n- Done Option ID: opt-3\n");
+    const result = checkProjectBoard(tmpDir);
+    assert.equal(result.status, "warn");
+    assert.ok(result.message.includes("Ready"), `Expected 'Ready' in: ${result.message}`);
+    assert.ok(result.message.includes("cron-tick"), `Expected 'cron-tick' in: ${result.message}`);
+  });
+
   it("passes when Tracking section has a URL and all required field IDs", () => {
     writeFileSync(join(tmpDir, ".team", "PROJECT.md"),
       "# Project\n\n## Tracking\n\nhttps://github.com/orgs/mengmikeli/projects/1\n- Status Field ID: field-1\n- Todo Option ID: opt-1\n- In Progress Option ID: opt-2\n- Done Option ID: opt-3\n- Ready Option ID: opt-ready\n");

@@ -201,9 +201,12 @@ export function checkProjectBoard(cwd = process.cwd()) {
     // Look for a URL (github.com project link or any https URL)
     if (/https?:\/\/\S+/.test(section)) {
       // Also check that field IDs are configured (required for cron-tick)
-      const tracking = readTrackingConfig(resolve(cwd, ".team", "PROJECT.md"));
-      if (!tracking || !tracking.statusOptions["ready"]) {
-        return { status: "warn", message: "GitHub Project board configured but field IDs not set — cron-tick will not work" };
+      const tracking = readTrackingConfig(projectPath);
+      if (!tracking) {
+        return { status: "warn", message: "GitHub Project board configured but field IDs not set — run 'agt init' to configure" };
+      }
+      if (!tracking.statusOptions["ready"]) {
+        return { status: "warn", message: "GitHub Project board configured but 'Ready' column not set up — required for 'agt cron-tick'" };
       }
       return { status: "pass", message: "GitHub Project board configured" };
     }
