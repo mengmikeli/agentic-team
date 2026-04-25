@@ -1,32 +1,26 @@
-# Security Review — task-3 (build-verify FAIL semantics)
+# Security Review — task-3 (build-verify FAIL semantics, run_2)
 
 ## Verdict: PASS
 
 ## Scope
-- Test-only change in `test/flows.test.mjs` (commit 464260a) that adds parametric coverage asserting any 🔴 from any role in `PARALLEL_REVIEW_ROLES` produces overall verdict FAIL through existing `computeVerdict` + `parseFindings`.
-- No production code paths modified — no new input parsing, auth, secrets, or external IO surface.
+Test-only change in `test/flows.test.mjs` adding parameterized coverage for `computeVerdict` across all 6 roles in `PARALLEL_REVIEW_ROLES`. Run 2 cleaned up the unused `{role, ok}` wrapper and added an all-empty edge case per prior review feedback. No production code modified; no input handling, auth, or secrets surface touched.
 
 ## Files Read
 - `.team/features/multi-perspective-code-review/tasks/task-3/handshake.json`
-- `git show 464260a -- test/flows.test.mjs` (the full diff)
-- Test runner output (590/590 pass, including the 8 new build-verify cases)
+- `git diff b0ff187^..b1be4c5 -- test/flows.test.mjs`
+- Test runner output via `node --test test/flows.test.mjs`
 
-## Per-Criterion Findings
+## Evidence
+- Ran `node --test test/flows.test.mjs` → 48/48 pass.
+- The "build-verify verdict" describe block reports 9 passing cases: 6 per-role 🔴-alone cases (architect, engineer, product, tester, security, simplicity), 1 multi-critical, 1 zero-critical, and the new 1 all-empty trivial-PASS case.
+- `computeVerdict(parseFindings(outputs.join("\n")))` mirrors the production merge path, so the test faithfully exercises real call shape.
 
-### Claim verified: any 🔴 from any role yields FAIL
-Evidence: parametric test loops over every role in `PARALLEL_REVIEW_ROLES` and asserts `verdict === "FAIL"` and `critical >= 1`. Output shows all 6 role cases pass (architect, engineer, product, tester, security, simplicity).
-
-### Claim verified: multi-critical and zero-critical paths
-Evidence: explicit cases assert (a) two 🔴 from different roles → FAIL with `critical === 2`, and (b) all-🟡 input → PASS with `critical === 0`. Both pass.
-
-### Security-relevant concerns: none
-- No user input is parsed at runtime by this change.
-- No secrets/tokens introduced.
-- `parseFindings` is fed test fixtures only; no injection surface created.
-- The combined `allText = findings.map(f => f.output).join("\n")` mirrors how the production merger feeds role outputs to the verdict computer — test faithfully exercises the real call shape rather than mocking around it.
-
-## Notes
-- The implementation truly is "no new code" — it relies on existing `computeVerdict` (already covered: "FAIL trumps warnings — any red = FAIL"). The added value is per-role parametric assurance, which is appropriate given the multi-role merge surface.
+## Per-Criterion
+- Input validation: N/A — no runtime input boundary changed; fixtures are constants.
+- Secrets management: N/A — no credentials.
+- Auth/authz: N/A.
+- Threat model: trivial — test-only.
+- Safe defaults: the new all-empty case explicitly pins down the safe default (zero criticals, zero warnings, zero suggestions → PASS), preventing future regressions where empty role output could be mis-parsed.
 
 ## Findings
 

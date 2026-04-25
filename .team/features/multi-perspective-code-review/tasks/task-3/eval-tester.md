@@ -1,4 +1,4 @@
-# Tester Review — task-3
+# Tester Review — task-3 (run 2)
 
 ## Verdict: PASS
 
@@ -6,31 +6,34 @@
 Verify that any 🔴 from any role in `build-verify` produces overall verdict FAIL via existing `computeVerdict` behavior.
 
 ## Evidence
-- Read `bin/lib/synthesize.mjs:40-49` — `computeVerdict` returns `FAIL` iff `critical > 0`. Logic is correct.
-- Read `bin/lib/synthesize.mjs:18-32` — `parseFindings` matches any line containing 🔴 as critical.
-- Read `bin/lib/run.mjs:1271-1314` — multi-review path joins role outputs with `\n`, calls `parseFindings(allText)` then `computeVerdict(findings)`. Tests mirror this exact pipeline.
-- Ran `node --test test/flows.test.mjs` — 47/47 passing, including the 8 new tests in `test/flows.test.mjs:327-365`.
-  - 6 per-role tests: 🔴 from each of {architect, engineer, product, tester, security, simplicity} → FAIL
-  - Multi-role: 2× 🔴 → FAIL with critical=2, warning=1
-  - Zero 🔴 with all 🟡 → PASS
+- Read `bin/lib/synthesize.mjs:40-49` — `computeVerdict` returns `FAIL` iff `critical > 0`. Correct.
+- Read `bin/lib/synthesize.mjs:18-32` — `parseFindings` recognizes any line containing 🔴 as critical.
+- Read `bin/lib/run.mjs:1230,1313` and `bin/lib/review.mjs:227` — production path joins role outputs and calls `parseFindings` → `computeVerdict`. Tests mirror this exact pipeline.
+- Ran `node --test test/flows.test.mjs` — **48/48 passing**, including 9 tests in the new suite at `test/flows.test.mjs:327-369`:
+  - 6 per-role parametric tests: 🔴 from each of {architect, engineer, product, tester, security, simplicity} → FAIL
+  - Multi-role: 2× 🔴 across files → FAIL with critical=2, warning=1
+  - Zero 🔴 (all 🟡) → PASS
+  - All-empty role outputs → trivial PASS, all counts zero
 
 ## Per-criterion
 | Criterion | Result | Evidence |
 |---|---|---|
-| Any 🔴 from any role → FAIL | PASS | 6 parameterized tests, one per role in PARALLEL_REVIEW_ROLES |
-| Multiple 🔴 aggregated correctly | PASS | `test/flows.test.mjs:344-355` |
-| Zero 🔴 → PASS | PASS | `test/flows.test.mjs:357-365` |
-| Tests align with prod path | PASS | Both run.mjs and tests use `parseFindings(roleOutputs.join("\n"))` |
-| All tests green | PASS | 47 passed, 0 failed |
+| Any 🔴 from any role → FAIL | PASS | 6 parameterized tests, one per PARALLEL_REVIEW_ROLES entry |
+| Multiple 🔴 aggregated correctly | PASS | `test/flows.test.mjs:340-350` |
+| Zero 🔴 → PASS | PASS | `test/flows.test.mjs:352-358` |
+| All-empty inputs handled | PASS | `test/flows.test.mjs:360-368` |
+| Tests align with prod path | PASS | Both production sites and tests use `parseFindings(joined).then(computeVerdict)` |
+| All tests green | PASS | 48 passed, 0 failed |
 
-## Coverage Gaps Worth Noting (non-blocking)
-- 🔵 bin/lib/flows.mjs:170 — No test in this suite asserts `backlog === true` for warning-only multi-role output. The contract in `synthesize.mjs:46` (backlog when only warnings) is exercised elsewhere, but a parallel-review-specific assertion would make the contract explicit. Optional.
-- 🔵 test/flows.test.mjs:332 — The `ok: r !== role` field on each fake finding is set but not consumed by the verdict path; harmless but slightly misleading. Optional cleanup.
-- 🔵 test/flows.test.mjs:327 — No empty-output edge case (all roles return `""`) → expected PASS with critical=0. Already implicit via `parseFindings("")` returning `[]`, but a one-line assertion would lock it in.
+## Run 2 Improvements (verified)
+Prior round suggestions both addressed:
+- ✅ Unused `ok`/`role` fields removed from fake findings (run 1 suggestion)
+- ✅ All-empty edge case added (run 1 suggestion)
+
+## Coverage Gaps (non-blocking, suggestions only)
+- `result.backlog` flag is not asserted in this suite. Coverage exists in `computeVerdict`'s own tests, so not a regression risk for build-verify, but a single assertion would lock the build-verify contract end-to-end.
+- "Only 🔵 suggestions across all roles → PASS, backlog=false" not explicitly tested. Severity matrix would be complete with this case.
 
 ## Findings
-🔵 test/flows.test.mjs:332 — Unused `ok` field on fake findings; consider removing or asserting on it
-🔵 test/flows.test.mjs:365 — Add a final case for all-empty role outputs to lock in the trivial PASS
-
-## Note
-Builder did not produce `tasks/task-3/artifacts/test-output.txt` despite the task structure suggesting one. Not blocking (handshake declares only the test file artifact, and the test output is reproducible via `node --test test/flows.test.mjs`), but flagging for process consistency.
+🔵 test/flows.test.mjs:336 — Consider also asserting `result.backlog === false` on the FAIL cases and `=== true` on the all-yellow case to lock the backlog contract alongside the verdict
+🔵 test/flows.test.mjs:358 — Consider adding "only 🔵 suggestions across all roles → PASS, backlog=false" to round out severity matrix coverage
