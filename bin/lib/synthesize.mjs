@@ -49,6 +49,17 @@ export function computeVerdict(findings) {
 }
 
 /**
+ * Returns true if any finding text contains the `[simplicity veto]` tag.
+ * Pure function — no I/O, no side effects.
+ * @param {Array<{text: string}>} findings
+ * @returns {boolean}
+ */
+export function hasSimplicityVeto(findings) {
+  if (!Array.isArray(findings)) return false;
+  return findings.some(f => typeof f?.text === "string" && f.text.includes("[simplicity veto]"));
+}
+
+/**
  * Validate that review text has proper structured format.
  * Each finding must have: severity emoji + file:line reference + fix suggestion.
  */

@@ -12,7 +12,7 @@ import {
 } from "./util.mjs";
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
-import { parseFindings, computeVerdict } from "./synthesize.mjs";
+import { parseFindings, computeVerdict, hasSimplicityVeto } from "./synthesize.mjs";
 import { pushFeatureStatus, pushTaskStatus, syncFromHarness } from "./state-sync.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
 import { recordWarningIteration, checkEscalation } from "./iteration-escalation.mjs";
@@ -1311,6 +1311,14 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
             "\n\n" + compoundGateResult.section;
           writeFileSync(join(taskDir, "eval.md"), evalContent);
           const synth = computeVerdict(findings);
+          // Simplicity veto: a 🔴 from the simplicity role (tagged [simplicity veto] by mergeReviewFindings)
+          // forces FAIL even if the general verdict would otherwise pass. Defensive — current behavior
+          // already FAILs on any 🔴, but this makes the contract explicit and resilient to future changes.
+          const mergedFindings = parseFindings(merged);
+          if (hasSimplicityVeto(mergedFindings) && synth.verdict !== "FAIL") {
+            synth.verdict = "FAIL";
+            if (synth.critical < 1) synth.critical = 1;
+          }
           console.log(`  ${c.dim}Synthesized verdict: ${synth.verdict} (🔴 ${synth.critical} 🟡 ${synth.warning} 🔵 ${synth.suggestion})${c.reset}`);
           if (synth.critical > 0) {
             reviewFailed = true;

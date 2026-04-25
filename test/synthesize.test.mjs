@@ -8,7 +8,7 @@ import { writeFileSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { fileURLToPath } from "url";
-import { parseFindings, computeVerdict, verifyFormat } from "../bin/lib/synthesize.mjs";
+import { parseFindings, computeVerdict, verifyFormat, hasSimplicityVeto } from "../bin/lib/synthesize.mjs";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const harnessPath = join(__dirname, "..", "bin", "agt-harness.mjs");
@@ -257,5 +257,51 @@ describe("agt-harness synthesize CLI", () => {
     assert.equal(result.verdict, "FAIL");
     assert.equal(result.compoundGate.verdict, "FAIL");
     assert.ok(result.compoundGate.tripped >= 3);
+  });
+});
+
+describe("hasSimplicityVeto", () => {
+  it("returns false for empty array", () => {
+    assert.equal(hasSimplicityVeto([]), false);
+  });
+
+  it("returns false for non-array input", () => {
+    assert.equal(hasSimplicityVeto(null), false);
+    assert.equal(hasSimplicityVeto(undefined), false);
+  });
+
+  it("returns true when any finding contains [simplicity veto]", () => {
+    const findings = [
+      { severity: "warning", text: "🟡 [engineer] foo.mjs:1 — note" },
+      { severity: "critical", text: "🔴 [simplicity veto] bar.mjs:5 — dead code" },
+    ];
+    assert.equal(hasSimplicityVeto(findings), true);
+  });
+
+  it("returns false when only plain [simplicity] tag (warning, not veto)", () => {
+    const findings = [
+      { severity: "warning", text: "🟡 [simplicity] foo.mjs:1 — consider simplifying" },
+    ];
+    assert.equal(hasSimplicityVeto(findings), false);
+  });
+
+  it("returns false when 🔴 from non-simplicity role", () => {
+    const findings = [
+      { severity: "critical", text: "🔴 [security] foo.mjs:1 — sql injection" },
+    ];
+    assert.equal(hasSimplicityVeto(findings), false);
+  });
+
+  it("returns true on parsed merged output containing the veto tag", () => {
+    const merged = "🔴 [simplicity veto] lib/util.mjs:10 — dead code: unused helper";
+    const parsed = parseFindings(merged);
+    assert.equal(hasSimplicityVeto(parsed), true);
+  });
+
+  it("does not mutate input findings", () => {
+    const findings = [{ severity: "critical", text: "🔴 [simplicity veto] x:1 — y" }];
+    const snapshot = JSON.stringify(findings);
+    hasSimplicityVeto(findings);
+    assert.equal(JSON.stringify(findings), snapshot);
   });
 });
