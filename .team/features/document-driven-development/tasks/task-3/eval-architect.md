@@ -1,51 +1,61 @@
-# Architect Review — task-3
+# Architect Review — task-3 (post-iteration)
 
 ## Verdict: PASS
 
 ## Task
-`agt run my-feature` with a `SPEC.md` missing one or more required sections must exit non-zero, list the missing sections, and not modify the file or run any tasks.
+`agt run my-feature` with a `SPEC.md` missing one or more required sections must exit non-zero, list the missing sections, and not modify the file or run any tasks. This iteration relaxed the heading regex and added negative test assertions per prior-review feedback.
 
-## Evidence
+## Files Opened
+- `bin/lib/run.mjs:920-960` — the section gate
+- `test/cli-commands.test.mjs:288-350` — partial-spec test + happy-path test
+- `handshake.json` (task-3)
+- `git diff HEAD~2 HEAD -- bin/lib/run.mjs test/cli-commands.test.mjs` — exact scope of this iteration
 
-### Files I actually read
-- `bin/lib/run.mjs:920-959` — the gate
-- `test/cli-commands.test.mjs:287-345` — two new regression tests (full diff via `git show af0e668`)
-- `handshake.json` — claims match the diff
-- `git show 8385c43 af0e668` — verified scope of the change
+## Claims vs Evidence
 
-### Test run
-`npm test` → 583 pass / 0 fail / 0 skipped (32.5s). Includes both new cases.
+Handshake claims: regex relaxed from `^##\s+Name\s*$` to `^#{2,}\s+Name\b`; negative assertions added; full suite passes.
 
-### Per-criterion
+- `bin/lib/run.mjs:944` — confirmed: `new RegExp(\`^#{2,}\\s+${s}\\b\`, "m")`.
+- `test/cli-commands.test.mjs:308-312` — confirmed: negative assertions on Goal/Requirements not appearing in the missing list.
+- Gate output shows `cli-commands.test.mjs` running in the suite; describe blocks visible in transcript pass.
+
+Claims match implementation.
+
+## Per-Criterion Results
+
 | Criterion | Result | Evidence |
 |---|---|---|
-| Exits non-zero | PASS | `process.exit(1)` at run.mjs:950; test asserts `exitCode === 1` |
-| Lists missing sections | PASS | Loop at run.mjs:945-947; test asserts all 5 section names in stderr |
-| Does NOT modify SPEC.md | PASS | Gate runs before any write to `specPath`; test asserts `after === before` |
-| Does NOT plan/run tasks | PASS | `process.exit(1)` precedes the planning section at run.mjs:959; test asserts STATE.json absent or `tasks` empty |
+| Exits non-zero | PASS | `process.exit(1)` at run.mjs:953; test asserts `exitCode === 1` |
+| Lists missing sections | PASS | Loop at run.mjs:948-950; test asserts all 5 section names in stderr |
+| Does NOT modify SPEC.md | PASS | Exit precedes any write; test asserts `after === before` (cli-commands.test.mjs:314) |
+| Does NOT plan/run tasks | PASS | Exit precedes `planTasks()` at run.mjs:964; test asserts STATE.json absent or `tasks` empty |
+| Negative-filter regression guard | PASS | cli-commands.test.mjs:310-312 asserts present sections do NOT appear in missing block |
 
 ## Architecture Assessment
 
-**Boundaries.** Gate is local to `_runSingleFeature`, runs immediately after `readFileSync(specPath)` and immediately before the planning section. No new module, no new dependency, no exported surface. Mirrors the shape of the sibling missing-file gate at run.mjs:952-957 — same color tokens, same remediation hint, same exit code. Consistent pattern, low cognitive load.
+**Boundaries.** Gate is inline in `_runSingleFeature`, sandwiched between `readFileSync(specPath)` and the planning step. Mirrors the sibling missing-file branch at run.mjs:955-959 (same red header, indented detail lines, brainstorm hint, exit 1). No new module, no exported surface, no new dependency.
 
-**Coupling.** Zero new coupling. The seven required-section names are inlined as a const array; nothing else imports them today. If `agt brainstorm` evolves to scaffold sections from the same canonical list, that would be the moment to hoist to a shared constant — not before.
+**Coupling.** Zero new coupling. Required-sections list is a local `const`. The relaxed regex `^#{2,}\s+${s}\b` correctly decouples from heading-level rigidity (accepts `##`/`###`/etc.) while `\b` preserves the discrimination prior review demanded (`## Goalposts` ≠ `Goal`).
 
-**Scalability/maintainability.** O(n × m) where n=7 sections and m=spec length, with a fresh `RegExp` per section. Trivially fine. The strict regex `^##\s+<name>\s*$` rejects `### Goal`, `# Goal`, or `## Goal extra` — these are correct rejections (subsections and trailing words shouldn't satisfy the gate).
+**Scalability.** O(7 × |spec|) with a fresh `RegExp` per section. Trivially fine; spec is KB-scale and gate runs once per `agt run` invocation.
 
-**Edge cases I checked by reading the code:**
-- All 7 missing → all 7 enumerated (per-section filter is independent). ✓
-- `## Goal ` (trailing space) → matches via `\s*$`. ✓
-- `### Goal` → rejected (anchor requires exactly `##`). ✓
-- Order-independent: gate doesn't care about section order. ✓
+**Patterns.** Fail-fast with actionable remediation matches the established CLI convention. The relaxation is a targeted regex change, not a parser swap — appropriate proportionality. No novel abstraction introduced.
 
-**Edge cases not verified:** CRLF line endings (regex `m` flag should handle, untested); unicode whitespace in titles; case variants (`## goal` is rejected — strict by design, acceptable if SPEC template is the only producer).
+**Edge cases checked by reading the code:**
+- `## Goal:`, `### Goal`, `## Goal — note` → match via `\b` after the name. ✓
+- `## Goalposts` → does NOT match `Goal` (word boundary between `l` and `p` does not satisfy `\b` because both are word chars — confirmed). ✓
+- All 7 missing → all 7 enumerated (independent filter). ✓
+- File mutation prevented by exit-before-write ordering. ✓
+- Inverted-filter regression now caught by the new negative assertions. ✓
+
+**Edge cases NOT verified:** CRLF line endings; unicode whitespace; case variants (`## goal` is rejected — acceptable strictness for a v1 gate).
 
 ## Findings
 
-🔵 bin/lib/run.mjs:931-939 — Seven required sections inlined here. If `agt brainstorm` scaffolds the same list elsewhere, extract to a single module-level `REQUIRED_SPEC_SECTIONS` constant to keep the canonical list in one place. Not a blocker — one call site today.
+🔵 bin/lib/run.mjs:931-939 — Seven required sections inlined. If `agt brainstorm` scaffolds the same list elsewhere, extract to a single module-level constant to keep the canonical definition in one place. Not a blocker — one call site today.
 
-🔵 bin/lib/run.mjs:943-951 vs :952-956 — Two adjacent error branches share the same trailing two lines ("Document-driven development requires…" / "Run: agt brainstorm…"). Minor duplication; trivially DRY-able if a third gate appears. Not worth doing for two call sites.
+🔵 bin/lib/run.mjs:947-953 vs :956-959 — Two adjacent error branches share trailing remediation lines. Minor duplication; trivially DRY-able if a third gate appears.
 
-🔵 bin/lib/run.mjs:941 — `new RegExp` constructed per filter iteration. Could pre-compile once outside the filter. Pure micro-optimization — irrelevant at n=7, mention only for completeness.
+🔵 bin/lib/run.mjs:944 — `new RegExp` constructed per filter iteration. Pure micro-optimization at n=7; mention only for completeness.
 
-No 🟡. No 🔴. Architecture is clean: minimal surface area, no new dependencies, fails fast before any side effect, follows the existing gate pattern in the same function.
+No 🟡. No 🔴. Architecture is clean: minimal surface area, no new dependencies, fails fast before side effects, mirrors existing gate pattern, and the iteration's regex relaxation is the smallest correct change.

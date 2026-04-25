@@ -1,60 +1,64 @@
-# Tester Review — task-3
+# Tester Review — task-3 (iteration 2)
 
-## Verdict: PASS (with one warning for backlog)
+## Verdict: PASS
 
 ## Files Actually Read
-- `bin/lib/run.mjs` lines 920–960 (the gate logic)
-- `test/cli-commands.test.mjs` lines 284–345 (two new tests)
-- `.team/features/document-driven-development/tasks/task-3/handshake.json`
-- Commit `af0e668` full diff
+- `bin/lib/run.mjs:925–960` — gate logic (post-iteration)
+- `test/cli-commands.test.mjs:262–351` — three relevant tests
+- `tasks/task-3/handshake.json` — current claim manifest
+- `tasks/task-3/eval-tester.md` (prior iteration) — to verify warnings were addressed
 
-## Claim vs. Evidence
+## Verification
+- Ran `npm test` → **583 pass / 0 fail / 0 skipped** (matches handshake claim).
+- Confirmed test runner picks up `cli-commands.test.mjs`.
 
-| Claim | Evidence |
+## Prior-Iteration Warnings — Status
+
+| Prior 🟡 | Status |
 |---|---|
-| Validates 7 required PRD sections | run.mjs:931–939 lists exactly the seven sections |
-| Lists missing sections | run.mjs:944–947 prints each missing section to stderr |
-| Exits non-zero | run.mjs:950 `process.exit(1)` |
-| Does not modify SPEC.md | No write to `specPath` after the read at line 930; test asserts `before === after` |
-| Does not run tasks | Gate sits before the "Plan tasks" section at line 959; `process.exit(1)` short-circuits |
-| Two regression tests added | cli-commands.test.mjs:287–344 — partial-spec failure + complete-spec pass-through |
+| Inverted-filter regression not caught | ✅ FIXED — `cli-commands.test.mjs:310-312` adds negative assertions that `Goal` and `Requirements` do not appear in the missing list |
+| Strict regex rejects `## Goal:`, `### Goal`, `## Goal — note` | ✅ FIXED in code — regex relaxed to `^#{2,}\s+${s}\b` at `run.mjs:944`. ⚠️ Behavior change is not directly pinned by a test (see below) |
 
-Test output excerpt confirms `cli-commands.test.mjs` is in the runner; full output truncated in gate report but no failures shown for the new tests in the visible portion.
+## Per-Criterion Results
 
-## Coverage Analysis
+### Exits non-zero — PASS
+`cli-commands.test.mjs:301-302` asserts `result.ok === false` and `exitCode === 1`. Backed by `run.mjs:953` (`process.exit(1)`).
 
-### Covered
-- Partial spec → exit 1, missing sections listed, file unchanged, no `tasks` in STATE
-- Complete spec → does NOT trigger the "missing required section" message (verified via `--dry-run`)
+### Lists missing sections — PASS
+Loop at `:305-307` asserts each of the 5 expected missing names appears. Negative assertions at `:311-312` confirm present sections are NOT listed.
 
-### Edge Cases NOT Covered (gaps)
+### Does NOT modify SPEC.md — PASS
+Snapshot/compare at `:298, 314-315` (`after === before`).
 
-1. **Whitespace / heading-level variants** — Regex `^##\s+${name}\s*$` is strict. These would all FAIL the gate even though a human reader would consider them valid:
-   - `### Goal` (H3 instead of H2)
-   - `## Goal:` (trailing colon — common markdown style)
-   - `## Goal — purpose` (descriptive heading)
-   - `##Goal` (no space — `\s+` requires ≥1)
-   - `## goal` (lowercase)
-   No test pins this behavior either way. If the brainstorm template diverges (e.g., emits `## Goal:`), the gate breaks silently for users.
+### Does NOT run tasks — PASS
+Test at `:317-321` checks `STATE.json.tasks` is empty/absent. Structurally guaranteed: `process.exit(1)` at `run.mjs:953` runs before `planTasks` (line 964) and `syncFromHarness` (line 985).
 
-2. **False positives via fenced code blocks** — A SPEC.md that contains a code fence with literal `## Goal` lines would satisfy the regex even if the document has no real Goal section. No test for this.
+## Coverage Gaps
 
-3. **The "only missing sections are listed" property** — The partial-spec test asserts the 5 missing sections appear in output, but does not assert that `Goal` and `Requirements` (which ARE present) are NOT listed. A bug where the filter inverted the predicate could pass this test.
+The iteration's stated motivation is the regex change, which now accepts:
+- `## Goal:` (trailing colon)
+- `### Goal` (H3)
+- `## Goal — note` (annotated)
 
-4. **Order of sections** — Spec with sections in wrong order is accepted. Probably correct, but undocumented.
+…and rejects:
+- `## Goalposts` (word-boundary regression)
 
-5. **Empty section bodies** — `## Goal\n\n## Requirements` passes the gate even though Goal has no content. Out of scope for this task per the spec ("missing sections", not "empty sections"), but worth noting.
+**None of these four cases are exercised by a test.** The complete-spec test (`:330-342`) and partial-spec test both use plain `## Name` headings, which would also pass under the previous strict regex. So the regex change is verified by inspection, not by test. This is the most important coverage gap; see findings.
 
-6. **Concurrent / re-entrant calls** — Not relevant; CLI is single-shot.
-
-### Regression Risk
-Low. The new code is additive, gated behind `existsSync(specPath)`, and runs before any state mutation in the planning phase. The pre-existing missing-SPEC branch is untouched. STATE.json may be created earlier by `initFeatureState` (line ~922), and the test correctly accounts for that by allowing STATE.json to exist as long as `tasks` is empty.
+## Edge Cases I Checked
+- ✅ Empty missing list (complete spec) → `:344-349`
+- ✅ Some sections present, some missing, with negative assertions → `:288-322`
+- ✅ Missing-SPEC.md path (separate branch) → `:262-286`
+- ⚠️ Heading variants (`### H3`, `## Goal:`, `## Goal — note`) → not tested
+- ⚠️ Word-boundary regression (`## Goalposts`) → not tested
+- 🔵 Lowercase (`## goal`) → not tested; current regex rejects (no `i` flag) — likely correct
+- 🔵 Section name in body text without a heading → not tested; `^#{2,}\s+` anchor prevents false match
+- 🔵 Heading inside fenced code block → would currently match (false positive); not tested. Low practical risk for CLI specs.
 
 ## Findings
 
-🟡 test/cli-commands.test.mjs:303 — Partial-spec test does not assert that present sections (`Goal`, `Requirements`) are absent from the error output; an inverted-filter regression would pass. Add `assert.ok(!output.includes("- Goal"))` and similar for `Requirements`.
-🟡 bin/lib/run.mjs:941 — Heading regex is strict (`^##\s+Name\s*$`); rejects common variants like `## Goal:` or `### Goal`. Either document the exact required form in the error message, or relax to tolerate trailing punctuation/level. Backlog if brainstorm template stays in lockstep.
-🔵 test/cli-commands.test.mjs:287 — No coverage for fenced code blocks containing `## Goal` text causing a false pass. Consider one negative test.
-🔵 bin/lib/run.mjs:931 — Section list is duplicated knowledge with whatever produces SPEC.md templates. Single source of truth would reduce drift risk; defer until second caller exists.
+🟡 test/cli-commands.test.mjs:288 — Add a regression test for the regex relaxation that is the entire motivation of this iteration: a SPEC where every required section uses an annotated heading (`## Goal:`, `### Requirements`, `## Done When — TBD`) should pass the gate; a SPEC whose only `Goal`-shaped heading is `## Goalposts` should fail with `Goal` listed as missing. Without this, a future "tighten the regex" refactor could re-introduce the prior-iteration bug with no test failure.
+🔵 bin/lib/run.mjs:931 — Required-section list is a literal in this file. If/when a brainstorm template generator emits these names, hoist to a single shared constant. Single call site today — defer.
+🔵 test/cli-commands.test.mjs:317 — "No tasks were run" check is conditional on STATE.json existing. The early `process.exit(1)` makes any planned-task state structurally impossible, so this is fine, but a stronger assertion (no `tasks/*/handshake.json` under the feature dir) would be more direct.
 
 No 🔴.
