@@ -503,25 +503,40 @@ describe("run.mjs integration", () => {
   });
 
   it("writes warnings to simplify-eval.md when findings.warning > 0", () => {
+    // The writeFileSync call targeting simplify-eval.md must be guarded by:
+    //   !skipped && !escalated && !reverted && findings?.warning > 0
+    const evalWriteIdx = src.indexOf('"simplify-eval.md"');
+    assert.ok(evalWriteIdx !== -1, "run.mjs must write simplify-eval.md");
+    const beforeWrite = src.slice(Math.max(0, evalWriteIdx - 600), evalWriteIdx);
     assert.ok(
-      src.includes("simplify-eval.md"),
-      "run.mjs must write simplify-eval.md for warning findings"
+      /findings\?\.warning/.test(beforeWrite),
+      "writeFileSync to simplify-eval.md must be guarded by findings?.warning"
     );
+    // Guard must also exclude escalated and reverted states (prevents double-write)
     assert.ok(
-      /findings\?\.warning/.test(src),
-      "run.mjs must check findings?.warning before writing simplify-eval.md"
+      beforeWrite.includes("escalated") && beforeWrite.includes("reverted"),
+      "warning guard must exclude both escalated and reverted states to prevent double progress entries"
     );
   });
 
   it("notes warnings in progress.md without blocking execution", () => {
-    // Warnings are reported via appendProgress but the finalize block only checks escalated
-    const warnProgressIdx = src.indexOf("Self-simplification pass — warnings");
-    const finalizeBlockIdx = src.indexOf("simplifyResult?.escalated");
-    assert.ok(warnProgressIdx !== -1, "run.mjs must append warning summary to progress.md");
-    // Warning reporting must not affect the finalize gate (only escalated blocks)
+    // Positive: warning progress entry exists
     assert.ok(
-      finalizeBlockIdx !== -1,
-      "finalize gate must only check escalated, not warnings"
+      src.includes("Self-simplification pass — warnings"),
+      "run.mjs must append warning summary to progress.md"
+    );
+    // Structural: the finalize guard immediately before harness("finalize") must not reference
+    // 'warning' — only 'escalated' should gate finalize
+    const finalizeIdx = src.indexOf('harness("finalize"');
+    assert.ok(finalizeIdx !== -1, 'run.mjs must call harness("finalize"');
+    const beforeFinalize = src.slice(Math.max(0, finalizeIdx - 300), finalizeIdx);
+    assert.ok(
+      /if\s*\(simplifyResult\?\.escalated\)/.test(beforeFinalize),
+      "finalize gate must check simplifyResult?.escalated"
+    );
+    assert.ok(
+      !beforeFinalize.includes("warning"),
+      "finalize gate must NOT reference warning count — only escalated should block finalize"
     );
   });
 });

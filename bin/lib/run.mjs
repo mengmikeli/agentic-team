@@ -1529,7 +1529,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
         console.log(`  ${c.dim}No simplifications needed (${simplifyResult.filesReviewed} file(s) reviewed)${c.reset}`);
       }
       // Surface warnings to simplify-eval.md and progress.md (non-blocking)
-      if (!simplifyResult.skipped && (simplifyResult.findings?.warning ?? 0) > 0) {
+      if (!simplifyResult.skipped && !simplifyResult.escalated && !simplifyResult.reverted && (simplifyResult.findings?.warning ?? 0) > 0) {
         const w = simplifyResult.findings.warning;
         try {
           writeFileSync(join(featureDir, "simplify-eval.md"),
@@ -1624,9 +1624,8 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   // Write usage to progress log
   if (usage.dispatches > 0) {
     let summary = `**Run Summary**\n- Tasks: ${completed}/${tasks.length} done, ${blocked} blocked\n- Duration: ${durationStr}\n- Dispatches: ${usage.dispatches}\n- Tokens: ${formatTokens(totalTokens(usage))} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})\n- Cost: $${usage.costUsd.toFixed(2)}`;
-    const activePhases2 = ["brainstorm", "build", "review", "simplify"].filter(p => phases[p]);
-    if (activePhases2.length > 0) {
-      summary += `\n- By phase: ${activePhases2.map(p => `${p} $${phases[p].costUsd.toFixed(2)}`).join(', ')}`;
+    if (activePhases.length > 0) {
+      summary += `\n- By phase: ${activePhases.map(p => `${p} $${phases[p].costUsd.toFixed(2)}`).join(', ')}`;
     }
     appendProgress(featureDir, summary);
   }
