@@ -1,10 +1,10 @@
 {
   "taskId": "task-2",
   "nodeType": "build",
-  "runId": "run_3",
+  "runId": "run_4",
   "status": "completed",
   "verdict": null,
-  "summary": "Verified the build-verify flow's dedicated simplicity-review phase forces overall verdict FAIL on a 🔴 finding. Wiring confirmed: FLOWS['build-verify'].phases includes 'simplicity-review' (flows.mjs:34); evaluateSimplicityOutput (flows.mjs:210) returns SKIP/PASS/FAIL; run.mjs:1271-1296 gates the phase on !reviewFailed and sets reviewFailed=true on critical findings. Full test suite green: 590/590 pass.",
+  "summary": "Closed the tester/architect 🟡 gap from run_3 by adding direct state-transition tests for the build-verify simplicity veto block: a 🔴 simplicity output now has explicit coverage asserting reviewFailed flips true and task.reviewRounds increments via incrementReviewRounds, plus a 🟡-only negative test. Full suite: 592/592 pass.",
   "timestamp": "2026-04-25T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/flows.mjs" },

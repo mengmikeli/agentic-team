@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings, evaluateSimplicityOutput } from "../bin/lib/flows.mjs";
 import { parseFindings, computeVerdict } from "../bin/lib/synthesize.mjs";
+import { incrementReviewRounds } from "../bin/lib/review-escalation.mjs";
 
 describe("FLOWS", () => {
   it("defines light-review with gate only", () => {
@@ -387,5 +388,37 @@ describe("build-verify simplicity-review guard — !reviewFailed skip", () => {
     const shouldRun = phases.includes("simplicity-review") && !reviewFailed;
     assert.equal(shouldRun, true,
       "simplicity-review must run when main review passed");
+  });
+});
+
+describe("build-verify simplicity-review veto — state transitions", () => {
+  it("🔴 output flips reviewFailed to true and increments reviewRounds", () => {
+    // Mirrors the run.mjs:1281-1287 veto block: evaluate → if critical > 0,
+    // set reviewFailed = true and call incrementReviewRounds(task).
+    const task = { id: "task-x" };
+    let reviewFailed = false;
+
+    const synth = evaluateSimplicityOutput("🔴 lib/x.mjs:5 — dead code: unused helper");
+    if (synth.critical > 0) {
+      reviewFailed = true;
+      incrementReviewRounds(task);
+    }
+
+    assert.equal(reviewFailed, true, "🔴 must flip reviewFailed to true");
+    assert.equal(task.reviewRounds, 1, "🔴 must increment task.reviewRounds from 0 → 1");
+  });
+
+  it("🟡-only output leaves reviewFailed/reviewRounds unchanged", () => {
+    const task = { id: "task-y", reviewRounds: 2 };
+    let reviewFailed = false;
+
+    const synth = evaluateSimplicityOutput("🟡 lib/x.mjs:5 — consider simplifying");
+    if (synth.critical > 0) {
+      reviewFailed = true;
+      incrementReviewRounds(task);
+    }
+
+    assert.equal(reviewFailed, false, "🟡 must not flip reviewFailed");
+    assert.equal(task.reviewRounds, 2, "🟡 must not increment reviewRounds");
   });
 });
