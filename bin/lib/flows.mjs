@@ -177,26 +177,47 @@ export const PARALLEL_REVIEW_ROLES = ["architect", "engineer", "product", "teste
 export function mergeReviewFindings(findings) {
   const SEVERITY_ORDER = { critical: 0, warning: 1, suggestion: 2 };
 
-  // Collect all findings with role prefix, tagged by severity
+  // Collect all findings with role prefix, tagged by severity, plus per-role counters
   const allFindings = [];
+  const perRole = new Map(); // role -> { critical, warning, suggestion }
   for (const f of findings) {
+    const role = f.role || "reviewer";
+    if (!perRole.has(role)) perRole.set(role, { critical: 0, warning: 0, suggestion: 0 });
     const parsed = parseFindings(f.output || "");
     for (const p of parsed) {
       // Format: 🔴 [role] file:line — … (emoji anchors severity at line-start)
       const emojiRe = /^([🔴🟡🔵])\s*/u;
       const m = p.text.match(emojiRe);
-      const label = (f.role === "simplicity" && p.severity === "critical") ? "simplicity veto" : f.role;
+      const label = (role === "simplicity" && p.severity === "critical") ? "simplicity veto" : role;
       const prefixedText = m
         ? `${m[1]} [${label}] ${p.text.slice(m[0].length)}`
         : `[${label}] ${p.text}`;
       allFindings.push({ severity: p.severity, text: prefixedText });
+      perRole.get(role)[p.severity]++;
     }
+  }
+
+  // Totals across all roles
+  const totals = { critical: 0, warning: 0, suggestion: 0 };
+  for (const counts of perRole.values()) {
+    totals.critical   += counts.critical;
+    totals.warning    += counts.warning;
+    totals.suggestion += counts.suggestion;
   }
 
   // Sort: critical → warning → suggestion
   allFindings.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
 
+  // Synthesis header — avoid raw severity emojis here so parseFindings()
+  // does not mistake the synthesis lines for actual findings.
+  const totalsLine = `**Totals:** ${totals.critical} critical · ${totals.warning} warning · ${totals.suggestion} suggestion`;
+  const tableHeader = "| Role | Critical | Warning | Suggestion |\n|------|----------|---------|------------|";
+  const tableRows = [...perRole.entries()]
+    .map(([role, c]) => `| ${role} | ${c.critical} | ${c.warning} | ${c.suggestion} |`)
+    .join("\n");
+  const synthesis = `## Parallel Review Synthesis\n\n${totalsLine}\n\n${tableHeader}\n${tableRows}`;
+
   const lines = allFindings.map(f => f.text);
   const body = lines.length > 0 ? lines.join("\n") : "_No findings._";
-  return `## Parallel Review Findings\n\n${body}`;
+  return `${synthesis}\n\n## Parallel Review Findings\n\n${body}`;
 }

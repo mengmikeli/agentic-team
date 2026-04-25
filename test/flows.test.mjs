@@ -295,13 +295,32 @@ describe("mergeReviewFindings", () => {
       { role: "engineer",   ok: true, output: "No findings." },
       { role: "simplicity", ok: true,  output: "🔴 lib/unused.mjs:5 — dead code: remove unused export" },
     ];
-    // Mirror the production verdict path from run.mjs:1221-1222:
-    // const allText = roleFindings.map(f => f.output || "").join("\n");
-    // let findings = parseFindings(allText);
     const allText = findings.map(f => f.output || "").join("\n");
     const parsed = parseFindings(allText);
     const result = computeVerdict(parsed);
     assert.equal(result.verdict, "FAIL", "any 🔴 finding (including simplicity veto) must produce FAIL verdict");
+  });
+
+  it("starts with a synthesis header showing totals and per-role table before findings", () => {
+    const findings = [
+      { role: "security",  ok: true, output: "🔴 a.mjs:1 — fix\n🟡 b.mjs:2 — note" },
+      { role: "architect", ok: true, output: "🟡 c.mjs:3 — refactor" },
+      { role: "tester",    ok: true, output: "🔵 d.mjs:4 — add test" },
+    ];
+    const merged = mergeReviewFindings(findings);
+
+    assert.ok(merged.includes("## Parallel Review Synthesis"), "synthesis header should appear");
+    assert.ok(merged.includes("1 critical"), "totals should report 1 critical");
+    assert.ok(merged.includes("2 warning"),  "totals should report 2 warning");
+    assert.ok(merged.includes("1 suggestion"), "totals should report 1 suggestion");
+    assert.ok(merged.includes("| Role |"), "per-role table header should be present");
+    assert.ok(/\|\s*security\s*\|\s*1\s*\|\s*1\s*\|\s*0\s*\|/.test(merged), "security row should be 1/1/0");
+    assert.ok(/\|\s*architect\s*\|\s*0\s*\|\s*1\s*\|\s*0\s*\|/.test(merged), "architect row should be 0/1/0");
+    assert.ok(/\|\s*tester\s*\|\s*0\s*\|\s*0\s*\|\s*1\s*\|/.test(merged), "tester row should be 0/0/1");
+
+    const synthIdx = merged.indexOf("## Parallel Review Synthesis");
+    const findingsIdx = merged.indexOf("## Parallel Review Findings");
+    assert.ok(synthIdx < findingsIdx, "synthesis header must come before findings");
   });
 });
 

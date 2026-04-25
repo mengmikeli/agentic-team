@@ -1,0 +1,14 @@
+{
+  "taskId": "task-2",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Enhanced mergeReviewFindings in bin/lib/flows.mjs to prepend a synthesis header containing total severity counts and a per-role count table before the severity-ranked findings. Used text labels (not emojis) in the header so parseFindings does not misinterpret synthesis lines as findings, preserving existing verdict behavior. Added a flows.test.mjs case asserting the synthesis header, totals, per-role rows, and ordering before the findings section.",
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/flows.mjs" },
+    { "type": "test", "path": "test/flows.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
