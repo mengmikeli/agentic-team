@@ -303,3 +303,21 @@ describe("buildReviewBrief — devil's-advocate role", () => {
     );
   });
 });
+
+describe("buildReviewBrief — simplicity role", () => {
+  it("includes simplicity focus on unnecessary complexity", () => {
+    const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "simplicity");
+    assert.ok(
+      brief.toLowerCase().includes("simplicity") || brief.toLowerCase().includes("complexity") || brief.toLowerCase().includes("over-engineer"),
+      "Expected simplicity-focused content in brief"
+    );
+  });
+  it("injects role file content unique to simplicity.md", () => {
+    const brief = buildReviewBrief("feat", "task", "ok", "/cwd", "simplicity");
+    // "premature abstraction" and "gold-plating" are only in the role file, not in the getRoleFocus fallback
+    assert.ok(
+      brief.toLowerCase().includes("premature abstraction") || brief.toLowerCase().includes("gold-plating"),
+      "Expected role file content (premature abstraction / gold-plating) to be injected into brief"
+    );
+  });
+});
