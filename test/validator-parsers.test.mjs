@@ -16,7 +16,7 @@ describe("parseJunitXml", () => {
   </testcase>
 </testsuite>`;
 
-    const result = parseJunitXml(xml);
+    const result = parseJunitXml(xml, "", 0);
     assert.equal(result.findings.critical, 1, "should have 1 critical finding");
     assert.equal(result.findings.warning, 0);
     assert.equal(result.findings.suggestion, 0);
@@ -33,7 +33,7 @@ describe("parseJunitXml", () => {
   <testcase classname="com.example.MyTest" name="testSuccess" time="0.05"/>
 </testsuite>`;
 
-    const result = parseJunitXml(xml);
+    const result = parseJunitXml(xml, "", 0);
     assert.equal(result.findings.critical, 0);
     assert.equal(result.meta.messages.length, 0);
   });
@@ -49,7 +49,7 @@ describe("parseJunitXml", () => {
   </testcase>
 </testsuite>`;
 
-    const result = parseJunitXml(xml);
+    const result = parseJunitXml(xml, "", 0);
     assert.equal(result.findings.critical, 2);
     assert.equal(result.meta.messages[0], "src/A.java:10 — MyTest: fail A");
     assert.equal(result.meta.messages[1], "src/B.java:20 — MyTest: fail B");
@@ -63,7 +63,7 @@ describe("parseJunitXml", () => {
   </testcase>
 </testsuite>`;
 
-    const result = parseJunitXml(xml);
+    const result = parseJunitXml(xml, "", 0);
     assert.equal(result.findings.critical, 1);
     assert.ok(result.meta.messages[0].includes("com.example.FooTest"));
     assert.ok(result.meta.messages[0].includes("something broke"));
@@ -77,7 +77,7 @@ describe("parseJunitXml", () => {
   </testcase>
 </testsuite>`;
 
-    const result = parseJunitXml(xml);
+    const result = parseJunitXml(xml, "", 0);
     assert.equal(result.findings.critical, 1, "should have 1 critical finding for <error>");
     assert.equal(result.meta.messages.length, 1);
     assert.equal(
@@ -87,7 +87,7 @@ describe("parseJunitXml", () => {
   });
 
   it("returns zero findings on malformed input (fault-tolerant)", () => {
-    const result = parseJunitXml("not xml at all");
+    const result = parseJunitXml("not xml at all", "", 0);
     assert.equal(result.findings.critical, 0);
     assert.equal(result.meta.messages.length, 0);
   });
@@ -134,6 +134,16 @@ not ok 3 - second failure`;
     const tap = `TAP version 13
 1..2
 not ok 1 - known issue # TODO fix later
+ok 2 - passing`;
+
+    const result = parseTap(tap, "", 0);
+    assert.equal(result.findings.critical, 0);
+  });
+
+  it("does not count # SKIP lines as critical findings", () => {
+    const tap = `TAP version 13
+1..2
+not ok 1 - skipped test # SKIP not implemented yet
 ok 2 - passing`;
 
     const result = parseTap(tap, "", 0);

@@ -75,7 +75,7 @@ export function parseTap(stdout, stderr, exitCode) {
 
   for (const line of stdout.split('\n')) {
     const trimmed = line.trim();
-    if (/^not ok\b/.test(trimmed) && !/# TODO\b/i.test(trimmed)) {
+    if (/^not ok\b/.test(trimmed) && !/# (?:TODO|SKIP)\b/i.test(trimmed)) {
       messages.push(trimmed);
       findings.critical++;
     }
