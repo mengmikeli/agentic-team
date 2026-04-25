@@ -1,0 +1,15 @@
+{
+  "taskId": "task-6",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Updated buildBrainstormBrief in bin/lib/flows.mjs and bin/lib/brainstorm-cmd.mjs to derive their advertised SPEC.md sections from PRD_SECTIONS, ensuring the brainstorm agent brief and template both advertise the same seven sections that validateSpecFile checks for. Added tests asserting the brief and templates/SPEC.md both contain every PRD_SECTIONS entry.",
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/flows.mjs" },
+    { "type": "code", "path": "bin/lib/brainstorm-cmd.mjs" },
+    { "type": "code", "path": "test/flows.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
