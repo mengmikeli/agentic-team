@@ -30,28 +30,24 @@ export function parseJunitXml(stdout) {
   const findings = { critical: 0, warning: 0, suggestion: 0 };
   const messages = [];
 
-  try {
-    const tcRe = /<testcase\b([^>]*)>([\s\S]*?)<\/testcase>/g;
-    let m;
-    while ((m = tcRe.exec(stdout)) !== null) {
-      const tcAttrs = extractAttrs(m[1]);
-      const body = m[2];
+  const tcRe = /<testcase\b([^>]*)>([\s\S]*?)<\/testcase>/g;
+  let m;
+  while ((m = tcRe.exec(stdout)) !== null) {
+    const tcAttrs = extractAttrs(m[1]);
+    const body = m[2];
 
-      const failMatch = /<failure\b([^>]*)/.exec(body);
-      if (!failMatch) continue;
+    const failMatch = /<(?:failure|error)\b([^>]*)/.exec(body);
+    if (!failMatch) continue;
 
-      const failAttrs = extractAttrs(failMatch[1]);
-      const file = tcAttrs.file || "";
-      const line = tcAttrs.line || "";
-      const classname = tcAttrs.classname || tcAttrs.name || "";
-      const message = failAttrs.message || "";
+    const failAttrs = extractAttrs(failMatch[1]);
+    const file = tcAttrs.file || "";
+    const line = tcAttrs.line || "";
+    const classname = tcAttrs.classname || tcAttrs.name || "";
+    const message = failAttrs.message || "";
 
-      const location = file && line ? `${file}:${line}` : file || classname;
-      messages.push(`${location} — ${classname}: ${message}`);
-      findings.critical++;
-    }
-  } catch {
-    // Fault-tolerant: if parse fails, fall back to zero findings
+    const location = file && line ? `${file}:${line}` : file || classname;
+    messages.push(`${location} — ${classname}: ${message}`);
+    findings.critical++;
   }
 
   const totalMatch = /\btests="(\d+)"/.exec(stdout);

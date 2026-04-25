@@ -69,6 +69,23 @@ describe("parseJunitXml", () => {
     assert.ok(result.meta.messages[0].includes("something broke"));
   });
 
+  it("produces one critical finding from one <error> element", () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.MyTest" tests="1" failures="0" errors="1">
+  <testcase classname="com.example.MyTest" name="testCrash" file="src/MyTest.java" line="7">
+    <error message="NullPointerException" type="java.lang.NullPointerException"/>
+  </testcase>
+</testsuite>`;
+
+    const result = parseJunitXml(xml);
+    assert.equal(result.findings.critical, 1, "should have 1 critical finding for <error>");
+    assert.equal(result.meta.messages.length, 1);
+    assert.equal(
+      result.meta.messages[0],
+      "src/MyTest.java:7 — com.example.MyTest: NullPointerException"
+    );
+  });
+
   it("returns zero findings on malformed input (fault-tolerant)", () => {
     const result = parseJunitXml("not xml at all");
     assert.equal(result.findings.critical, 0);
