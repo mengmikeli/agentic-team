@@ -576,6 +576,51 @@ describe("worktree preserved on thrown error", () => {
   });
 });
 
+// ── PLAYBOOK.md documentation contract ───────────────────────────
+
+describe("PLAYBOOK.md documentation contract", () => {
+  let playbookSrc;
+
+  beforeEach(() => {
+    playbookSrc = readFileSync(new URL("../PLAYBOOK.md", import.meta.url), "utf8");
+  });
+
+  it("contains ## Git Worktrees section", () => {
+    assert.ok(
+      /^## Git Worktrees/m.test(playbookSrc),
+      "PLAYBOOK.md must contain a '## Git Worktrees' section"
+    );
+  });
+
+  it("documents git worktree list command", () => {
+    assert.ok(
+      /git worktree list/.test(playbookSrc),
+      "PLAYBOOK.md must document the 'git worktree list' command"
+    );
+  });
+
+  it("documents manual cleanup with git worktree remove", () => {
+    assert.ok(
+      /git worktree (remove|prune)/.test(playbookSrc),
+      "PLAYBOOK.md must document manual cleanup with 'git worktree remove' or 'git worktree prune'"
+    );
+  });
+
+  it("slug description accurately describes dot preservation", () => {
+    assert.ok(
+      /dots? retained|alphanumeric.*hyphens.*dots|hyphens.*dots.*retained/i.test(playbookSrc),
+      "PLAYBOOK.md slug description must mention that dots are retained"
+    );
+  });
+
+  it("branch description accurately states re-runs reuse the existing worktree", () => {
+    assert.ok(
+      /re-runs? reuse/i.test(playbookSrc),
+      "PLAYBOOK.md branch description must state that re-runs reuse the existing worktree"
+    );
+  });
+});
+
 // ── Grep audit: no process.cwd() in agent dispatch or gate functions ──
 
 describe("grep audit: no process.cwd() in agent dispatch or gate paths", () => {

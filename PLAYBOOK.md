@@ -196,8 +196,8 @@ running in parallel.
 ```
 
 - **Slug** — derived from the feature name: lowercased, spaces/underscores → `-`,
-  non-alphanumeric characters stripped, capped at 72 characters.
-- **Branch** — `feature/<slug>` (uses `-B` so re-running resets the branch to HEAD).
+  only alphanumeric, hyphens, and dots retained (all other characters stripped), capped at 72 characters.
+- **Branch** — `feature/<slug>` (branch is created on first run with `git worktree add -B`; re-runs reuse the existing worktree and preserve all commits).
 - **Lifetime** — created by `agt run` before dispatching agents, removed on clean
   completion; **preserved on failure** so the next `agt run` can pick up where it
   left off.
