@@ -1,0 +1,39 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 0 warning, 1 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T11:31:08.244Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 0,
+    "suggestion": 1
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "- `test/flows.test.mjs:247,255,267,276,286,312` — covers all three severity branches, non-simplicity 🔴 (no veto leakage), mixed-severity per-line labeling, and FAIL-verdict propagation."
+    },
+    {
+      "severity": "critical",
+      "text": "Summary: The `mergeReviewFindings` change at `bin/lib/flows.mjs:188` is a pure presentation-layer label rewrite. `f.role` comes from the internal `PARALLEL_REVIEW_ROLES` allow-list and `p.severity` is the same parsed value used as the sort key — no untrusted-input vector. The FAIL verdict downstream keys off the 🔴 emoji, not the `[simplicity veto]` label, so the relabel cannot be abused to bypass or forge gate decisions (verified by `test/flows.test.mjs:312-324`). No secrets, no ReDoS surface, safe default fallback to `f.role`. Test artifact confirms `pass 544 / fail 0`."
+    },
+    {
+      "severity": "critical",
+      "text": "- `test/flows.test.mjs:247-310` — 6 cases including negative (non-simplicity 🔴) and mixed-severity"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 0 warning, 2 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T11:25:40.460Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 0,
+    "suggestion": 2
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "- Four tests at `test/flows.test.mjs:247-289` cover 🔴→veto, 🟡→simplicity, 🔵→simplicity, and 🔴→FAIL via `computeVerdict`."
+    },
+    {
+      "severity": "critical",
+      "text": "🔵 test/flows.test.mjs:289 — Add a negative test: a non-simplicity 🔴 (e.g. role: \"engineer\") must NOT produce `[engineer veto]`."
+    },
+    {
+      "severity": "critical",
+      "text": "🔵 test/flows.test.mjs:274 — Add a mixed-severity test: one simplicity output containing both 🔴 and 🟡, asserting only the 🔴 line gets `[simplicity veto]`."
+    }
+  ]
+}

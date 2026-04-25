@@ -48,7 +48,7 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 30. **Finalize auto-close validation** — ✅ Done. Integration test: `agt finalize` marks feature completed and closes all its GitHub issues. Verify end-to-end.
 
 ### Phase 4 — Productive Execution
-15. **Simplicity reviewer with veto** — Dedicated review pass that checks for dead code, premature abstraction, unnecessary indirection, gold-plating. Simplicity REQUEST_CHANGES = overall REQUEST_CHANGES. 🔴 simplicity findings tagged `[simplicity veto]` in merged output and force overall FAIL verdict.
+15. **Simplicity reviewer with veto** — Dedicated review pass that checks for dead code, premature abstraction, unnecessary indirection, gold-plating. Simplicity REQUEST_CHANGES = overall REQUEST_CHANGES. 🔴 simplicity findings tagged `[simplicity veto]` in merged output and force overall FAIL verdict. ✅ Done
 16. **Multi-perspective code review** — ✅ Done. Parallel review dispatch: architect, engineer, product, tester, security, simplicity. Role-specific reference docs. Synthesis with severity ranking.
 17. **Document-driven development** — ✅ Done. PRD template (Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope). No code without approved spec.
 18. **Parent issue + subtask lifecycle** — ✅ Done. Feature gets parent GitHub issue (PRD in body), subtasks as child issues with checklist. Full lifecycle sync on project board.
