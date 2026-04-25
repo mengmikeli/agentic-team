@@ -704,3 +704,432 @@ Module still has no callers in `bin/`. Inert in production. Acceptable for curre
 🔵 `bin/lib/validator-parsers.mjs:107` — `PARSERS` exported as a plain mutable object; a consumer can overwrite or delete entries silently; `Object.freeze(PARSERS)` or remove the export and rely solely on `getParser` (carried from Architect run_1)
 
 ---
+
+# PM Eval — task-2 run_3 (TAP parser)
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Read
+
+- `.team/features/external-validator-integration/tasks/task-2/handshake.json`
+- `bin/lib/validator-parsers.mjs` (all 117 lines — directly read)
+- `test/validator-parsers.test.mjs` (all 178 lines — directly read)
+- `.team/features/external-validator-integration/tasks/task-2/eval.md` (all prior sections through Architect run_2)
+- git log (10 commits)
+
+## What run_3 Claims to Have Done
+
+1. Fixed TAP parser to match only top-level `not ok` lines by checking the original (untrimmed) line
+2. Strips control characters from TAP messages before storing
+3. Added a regression test covering the subtest double-count scenario
+4. All 553 tests pass
+
+## Requirement Traceability
+
+**Stated requirement:** "TAP output with one `not ok` line produces one critical finding."
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| One `not ok` line → `findings.critical === 1` | PASS | `validator-parsers.mjs:79`; `test.mjs:103` asserts exact count |
+| `findings.warning === 0`, `findings.suggestion === 0` | PASS | `test.mjs:104-105` asserts both |
+| `meta.messages.length === 1` with correct text | PASS | `test.mjs:106-107` asserts length and `startsWith("not ok 1")` |
+| Tests registered in `npm test` | PASS | `test/validator-parsers.test.mjs` in the gate's `node --test` invocation |
+
+## Run_3 Claim Verification
+
+| Claim | Location | Status |
+|---|---|---|
+| Top-level only: `/^not ok\b/.test(line)` on untrimmed line | `validator-parsers.mjs:79` | CONFIRMED — raw `line`, no `.trim()` before match |
+| Control char stripping before push | `validator-parsers.mjs:81` | CONFIRMED — `.replace(/[\x00-\x1f\x7f]/g, '')` |
+| Regression test: one nested `not ok` → 1 critical (not 2) | `test.mjs:153-163` | CONFIRMED — `assert.equal(result.findings.critical, 1, "indented subtest not ok must not be double-counted")` |
+| 553 tests pass | handshake claim | UNVERIFIABLE — gate output truncated before `validator-parsers.test.mjs` block; no `artifacts/test-output.txt` saved |
+
+## Prior 🟡 Findings — Resolution Status
+
+| Finding | Source | Resolution |
+|---|---|---|
+| `# SKIP` not excluded | Tester/Engineer/Architect/Security run_1 🟡 | RESOLVED — commit `c23a5bb`; guard at `validator-parsers.mjs:79` |
+| Subtest double-count (`trim()` before match) | Engineer/Architect run_2 🟡 | RESOLVED — commit `6534303`; raw `line` used in test; regression test at `test.mjs:153` |
+| Control char injection in TAP `messages[]` | Security run_1/run_2 🟡 | RESOLVED for TAP — commit `6534303`; `validator-parsers.mjs:81` strips before push |
+
+## Scope Ruling on run_3 Additions
+
+- **Subtest top-level-only matching**: Addresses Engineer/Architect run_2 🟡. Within scope; prevents a known false-high count when the module is wired into a Node.js gate.
+- **Control char stripping**: Addresses Security run_1/run_2 🟡. Within scope; defensive hardening before the module goes live.
+- **Regression test**: Correct addition locking down the subtest fix. Within scope.
+
+All three are targeted fixes for flagged defects — not scope creep.
+
+## Asymmetry Note (not a task-2 failure)
+
+JUnit parser (`parseJunitXml:49`) still concatenates `message`, `classname`, and `file` from attacker-controlled XML without stripping control characters. TAP is now protected; JUnit is not. This is not a failure for task-2 (different task scope) but the gap must be tracked as a backlog item.
+
+## Findings
+
+🟡 `.team/features/external-validator-integration/tasks/task-2/handshake.json` — handshake claims 553 tests pass but no `artifacts/test-output.txt` was saved; gate output truncated before `validator-parsers.test.mjs`; a future reviewer cannot confirm test count without re-running (carried from task-1 across all PM reviews; process gap that must be closed)
+
+🟡 `bin/lib/validator-parsers.mjs:1` — module has no callers in `bin/`; inert in production until integration task lands; confirm follow-up is tracked before marking feature shippable (carried from task-1 across all PM reviews)
+
+🟡 `bin/lib/validator-parsers.mjs:49` — JUnit parser still concatenates attacker-controlled `message`/`classname`/`file` without stripping control characters; TAP was fixed in run_3 but JUnit was not updated; file as a backlog item to eliminate the asymmetry
+
+🔵 `bin/lib/validator-parsers.mjs:84` — `meta.parseWarning` absent; non-TAP stdout (misconfigured validator) returns `critical: 0` indistinguishable from a clean run; once wired in, a misconfigured `"tap"` validator silently passes the gate (Security run_1/run_2 🟡, demoted here as this is a pre-integration concern)
+
+---
+
+# Security Review — task-2 (TAP parser) — run_3
+
+**Reviewer role:** Security
+**Date:** 2026-04-26
+**Verdict:** PASS (one 🟡 persists to backlog; prior control-char 🟡 and double-count 🟡 both resolved)
+
+---
+
+## Files Read
+
+- `bin/lib/validator-parsers.mjs` (all 118 lines — directly read, current HEAD `0db1399`)
+- `test/validator-parsers.test.mjs` (all 178 lines — directly read, current HEAD)
+- `.team/features/external-validator-integration/tasks/task-2/handshake.json`
+- `bin/lib/gate.mjs` (all 187 lines — call-site context)
+- `.team/features/external-validator-integration/tasks/task-2/eval.md` (all prior sections through Architect run_2)
+
+---
+
+## Prior 🟡 Status
+
+| Prior finding | Status | Evidence |
+|---|---|---|
+| Control-char/ANSI injection via `messages.push()` | **RESOLVED** | Line 81: `messages.push(line.replace(/[\x00-\x1f\x7f]/g, ''))` (commit `6534303`); covers `\x1b` ESC (0x1b = 27, inside `\x00-\x1f`) |
+| Double-counting indented subtest `not ok` lines | **RESOLVED** | Line 76 iterates raw `line` (no `.trim()`); `/^not ok\b/` anchored at column 0; indented lines do not match; regression test at `test.mjs:153–163` |
+| `# SKIP` directive not excluded | **RESOLVED** (from run_1) | Line 79: `!/# (?:TODO|SKIP)\b/i`; test at `test.mjs:143–151` |
+| `meta.parseWarning` absent — silent false negative | **OPEN** | Non-empty non-TAP stdout still returns `critical: 0`; no structural detection added |
+
+---
+
+## Threat Model
+
+`stdout` is captured from `execSync(..., { shell: true })` in `gate.mjs:58`. The command is a user-configured test runner, but output may come from code under test — including untrusted third-party repositories. A malicious test script can emit arbitrary bytes to stdout in TAP format.
+
+---
+
+## Criteria
+
+**Secrets / credentials:** PASS — No file I/O, network calls, credentials, or `eval` equivalent. `stderr` and `exitCode` declared but unused (interface conformance).
+
+**ReDoS:** PASS — All three regexes are linear:
+- `/^not ok\b/` — anchored literal, no backtrack surface.
+- `/# (?:TODO|SKIP)\b/i` — literal alternation with word boundary; no variable-length quantifiers.
+- `/^1\.\.(\d+)/m` — anchored; `\d+` is a simple greedy digit run.
+
+**Control-character / ANSI injection:** PASS — `line.replace(/[\x00-\x1f\x7f]/g, '')` at line 81 strips C0 controls (including `\x1b` ESC at byte 27) and DEL before storing in `meta.messages`. The `summary` field is computed from integer counts only; no injected content can reach it. No test in the suite exercises this behaviour — see 🟡 below.
+
+**Double-counting (subtest lines):** PASS — `/^not ok\b/.test(line)` at line 79 uses the raw (untrimmed) `line`. Indented subtest output has leading whitespace; the `^` anchor fails on them. Regression test at `test.mjs:153–163` exercises a parent + indented child pair and asserts `findings.critical === 1`. Direct evidence.
+
+**`# SKIP` exclusion:** PASS — Line 79 guard: `!/# (?:TODO|SKIP)\b/i`. Test at `test.mjs:143–151` asserts `findings.critical === 0` for a SKIP line.
+
+**Silent parse failure:** OPEN — Non-TAP stdout (stack trace, JSON blob, empty string) returns `{ findings: { critical: 0 } }` indistinguishable from a clean TAP run. Once `getParser("tap")` is wired into the gate, a misconfigured validator silently passes. No `meta.parseWarning` or structural detection added. Carried from Security run_1 and run_2.
+
+**`getParser` prototype bypass:** Low risk — `PARSERS[format]` at line 116 has no `Object.hasOwn` guard. `format = "__proto__"` returns `Object.prototype` (truthy), bypasses the exit-code fallback, and throws `TypeError` at invocation. Crash, not RCE. `format` originates from trusted user config in the current integration surface. Flagged 🔵.
+
+**Path traversal:** PASS — `meta.messages` values are display strings only; no filesystem operations.
+
+**Plan-line integer parsing:** PASS — `parseInt(planMatch[1], 10)` with explicit radix; `(\d+)` match group guarantees decimal input.
+
+---
+
+## Prior 🔴 Findings Status
+
+No prior 🔴 findings from any task-2 review.
+
+---
+
+## Findings
+
+🟡 `bin/lib/validator-parsers.mjs:87` — non-TAP stdout returns `critical: 0` indistinguishable from a clean TAP run; once wired in, a misconfigured `"tap"` validator silently passes the gate; add `meta.parseWarning = true` when stdout is non-empty and contains no TAP structure (carried from Security run_1 and run_2; still unresolved)
+
+🟡 `test/validator-parsers.test.mjs` — no test verifies that control characters are stripped from `meta.messages`; removing `validator-parsers.mjs:81` would silently regress with all current tests still passing; add a case with input `"not ok 1 - test\x1b[2J\x00"` and assert the stored message contains no bytes below `\x20`
+
+🔵 `bin/lib/validator-parsers.mjs:116` — `PARSERS[format]` has no `Object.hasOwn` guard; `format = "__proto__"` returns `Object.prototype` (truthy), bypasses exit-code fallback, and throws `TypeError`; use `Object.hasOwn(PARSERS, format) ? PARSERS[format] : PARSERS["exit-code"]` (carried from Security run_2)
+
+---
+
+# Tester Eval — task-2 run_3 (top-level TAP fix + control char stripping)
+
+**Reviewer role:** Tester
+**Date:** 2026-04-26
+**Verdict: PASS** (one 🟡 to backlog)
+
+## Files Read
+- `.team/features/external-validator-integration/tasks/task-2/handshake.json`
+- `bin/lib/validator-parsers.mjs` (all 117 lines)
+- `test/validator-parsers.test.mjs` (all 179 lines)
+- `.team/features/external-validator-integration/tasks/task-2/eval.md` (all prior sections through PM run_3)
+
+## Test Execution (direct evidence)
+```
+node --test test/validator-parsers.test.mjs
+
+✔ produces one critical finding from one <failure> element
+✔ produces zero findings for a passing test suite
+✔ produces multiple critical findings for multiple failures
+✔ falls back to classname when file/line are absent
+✔ produces one critical finding from one <error> element
+✔ returns zero findings on malformed input (fault-tolerant)
+✔ produces one critical finding from one not ok line
+✔ produces zero findings for all ok lines
+✔ produces multiple critical findings for multiple not ok lines
+✔ does not count # TODO lines as critical findings
+✔ does not count # SKIP lines as critical findings
+✔ counts only top-level not ok lines, ignoring indented subtest lines
+
+tests 14 | pass 14 | fail 0
+```
+
+## Handshake Claims Verified
+
+| Claim | Evidence | Status |
+|---|---|---|
+| Top-level only matching (no `.trim()`) | `validator-parsers.mjs:79`: `/^not ok\b/.test(line)` on raw untrimmed line | CONFIRMED |
+| Control char stripping | `validator-parsers.mjs:81`: `line.replace(/[\x00-\x1f\x7f]/g, '')` | CONFIRMED |
+| Regression test for subtest double-count | `test/validator-parsers.test.mjs:153–163`: asserts `findings.critical === 1` for parent + indented child | CONFIRMED |
+| 553 tests pass | Gate output truncated; direct run: `14/14 pass` | PARTIAL |
+
+## Edge Cases Probed (node -e, direct execution)
+
+| Scenario | Expected | Actual |
+|---|---|---|
+| Indented `not ok` (subtest) | 1 critical (parent only) | `findings.critical = 1` ✓ |
+| `not ok 1 - test\x1b[2J\x00` | `\x1b` and `\x00` absent from stored message | `"not ok 1 - [2J"` — control chars stripped ✓ |
+| CRLF input (`\r\n` delimited) | message without trailing `\r` | `"not ok 1 - failing test"` — `\r` stripped by control-char pass ✓ |
+| `getParser("tap")` round-trip | `findings.critical === 1` for `not ok` input | `1` ✓; `getParser("tap") === parseTap` ✓ |
+| Empty input | 0 criticals, `"0 failure(s) in 0 test(s)"` | confirmed ✓ |
+| No `1..N` plan line | `total` falls back to `findings.critical` | `"1 failure(s) in 1 test(s)"` ✓ |
+
+## Per-Criterion Results
+
+### Primary acceptance criterion: one `not ok` → one critical finding
+**PASS** — `test.mjs:97–108` asserts `findings.critical === 1`, `warning === 0`, `suggestion === 0`, `meta.messages.length === 1`, `messages[0].startsWith("not ok 1")`. Confirmed by direct test run.
+
+### Top-level only (double-count fix, run_3 primary claim)
+**PASS** — `test.mjs:153–163` asserts `findings.critical === 1` for a TAP input with one top-level parent and one indented child `not ok`. Code uses raw `line` at line 79 (no `.trim()`), so leading-whitespace lines never match. Prior 🟡 from Engineer/Architect run_2 is closed.
+
+### Control character stripping (run_3 secondary claim)
+**PASS (implemented, untested)** — `line.replace(/[\x00-\x1f\x7f]/g, '')` at line 81 confirmed working via direct probe. Side-effect: `\r` from CRLF output is also stripped, making CRLF handling implicit and correct. The fix works — but **no test in the suite exercises it**. The handshake explicitly lists this as a fix; removing line 81 would silently regress with all 14 tests still passing.
+
+### TODO / SKIP exclusion
+**PASS** — `test.mjs:133–141` (TODO) and `test.mjs:143–151` (SKIP). Both covered and tested.
+
+### `getParser("tap")` registry wire-up
+**PARTIAL** — `"tap": parseTap` at line 109 is correct; direct probe confirms `getParser("tap") === parseTap` and end-to-end output is correct. No test in the suite calls `getParser("tap")` with actual input and checks the result — only `typeof` is asserted at line 167. Carried from all prior reviews.
+
+## Findings
+
+🟡 `test/validator-parsers.test.mjs` (after line 163) — handshake claims control char stripping as a distinct fix; no test locks this behavior in; removing `validator-parsers.mjs:81` passes all 14 tests without failure; add a case with input `"not ok 1 - test\x1b[2J"` and assert `meta.messages[0]` contains no bytes in `[\x00-\x1f]`
+
+🔵 `test/validator-parsers.test.mjs:167` — `getParser("tap")` test only asserts `typeof`; add `parser(tapInput, "", 1)` with a `not ok` line asserting `findings.critical === 1` to confirm registry wire-up end-to-end (carried from all prior reviews; behavior verified correct via direct probe)
+
+---
+
+# Architect Review (run_3) — task-2 (TAP parser)
+
+**Reviewer role:** Architect
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Read
+- `.team/features/external-validator-integration/tasks/task-2/handshake.json`
+- `bin/lib/validator-parsers.mjs` (all 117 lines — directly read)
+- `test/validator-parsers.test.mjs` (all 179 lines — directly read)
+- `.team/features/external-validator-integration/tasks/task-1/eval.md` (full prior history)
+- `.team/features/external-validator-integration/tasks/task-2/eval.md` (all prior sections through Tester run_3)
+
+## Handshake Claims Verified
+
+| Claim | Evidence |
+|---|---|
+| Raw (untrimmed) line tested | `validator-parsers.mjs:79`: `/^not ok\b/.test(line)` on raw `line`; no `.trim()` before test ✓ |
+| Control chars stripped before push | `validator-parsers.mjs:81`: `messages.push(line.replace(/[\x00-\x1f\x7f]/g, ''))` ✓ |
+| Regression test added | `test/validator-parsers.test.mjs:153–163`: asserts `findings.critical === 1` for input with one top-level + one indented `not ok` ✓ |
+| 553 tests pass | Gate output truncated before `validator-parsers.test.mjs`; no `artifacts/test-output.txt`; UNVERIFIABLE |
+
+## Prior Blocking Findings — Resolution Status
+
+| Finding | Source | Resolution |
+|---|---|---|
+| `line.trim()` double-counts nested TAP subtests | Engineer run_2 🟡, Architect run_2 🟡 | **RESOLVED** — raw `line` used at line 79; regression test at `test.mjs:153` |
+| Control char injection via TAP `messages[]` | Security run_1/run_2 🟡 | **RESOLVED for TAP** — `line.replace(/[\x00-\x1f\x7f]/g, '')` at line 81 |
+
+No 🔴 findings exist for task-2. All prior 🟡 resolutions confirmed.
+
+## Architectural Assessment
+
+### Double-counting fix
+The fix is architecturally minimal and correct. `/^not ok\b/` anchored at position zero means "line begins with `not ok`" — `.trim()` before this test broke the invariant by collapsing indented subtest lines into the match set. Restoring the raw-line test restores the correct semantics. In-code comments at lines 77–78 make the design decision explicit. No collateral impact on other parsers.
+
+### Control-character sanitization: per-parser inconsistency
+`parseTap` (line 81) now sanitizes messages. `parseJunitXml` (line 49) still concatenates `message`, `classname`, and `file` verbatim without stripping. Both parsers expose an identical `meta.messages` interface to callers. The module contract (line 2) is silent on sanitization, so this asymmetry is an **architectural inconsistency**: a security property applies to one parser but not its peer sharing the same interface. This must be resolved before integration — a consumer reading `meta.messages` cannot safely assume either behaviour.
+
+### Control char stripping: not covered by a test
+The Tester run_3 review correctly noted this: removing `validator-parsers.mjs:81` would cause all 14 tests to still pass. The stripping is confirmed present by code inspection but is not locked in by any assertion. This is a test-coverage gap, not a correctness gap.
+
+### Interface contract
+Still fully consistent: signature `(stdout, stderr, exitCode)`, return shape `{ findings, summary, meta: { messages } }`, bare registry references — uniform across all three parsers.
+
+### Integration readiness
+Module remains inert in production (no callers in `bin/`). Before wiring: the `meta.parseWarning` gap (non-TAP stdout silently passes as `critical: 0`) and the JUnit control-char inconsistency should both be resolved at the integration point.
+
+## Findings
+
+🟡 `bin/lib/validator-parsers.mjs:49` — `parseJunitXml` still pushes attacker-controlled `message`, `classname`, and `file` verbatim to `messages[]` without control-character stripping; `parseTap` (line 81) now sanitizes — inconsistent security posture across parsers sharing the same interface contract; apply the same `/[\x00-\x1f\x7f]/g` strip before `messages.push()` in `parseJunitXml` (Security 🟡 carried from task-1 run_1/run_2/run_3; now an architectural inconsistency)
+
+🟡 `bin/lib/validator-parsers.mjs:1` — module has no callers in `bin/`; inert in production; confirm integration task is tracked before marking feature shippable (carried from task-1 across all reviews)
+
+🔵 `test/validator-parsers.test.mjs` — no test locks in control-char stripping at line 81; removing it passes all 14 tests; add a case with `not ok 1 - test\x1b[2J` input asserting `meta.messages[0]` contains no bytes in `[\x00-\x1f]` (aligns with Tester run_3 🟡)
+
+🔵 `test/validator-parsers.test.mjs:167` — `getParser("tap")` test only asserts `typeof`; add `parser(tapInput, "", 1)` with a `not ok` line asserting `findings.critical === 1` to confirm registry wire-up end-to-end (carried from all prior reviewers)
+
+🔵 `bin/lib/validator-parsers.mjs:115` — `PARSERS[format]` has no `Object.hasOwn` guard; `format = "__proto__"` returns `Object.prototype` (truthy), bypasses exit-code fallback, and throws `TypeError` at invocation; use `Object.hasOwn(PARSERS, format) ? PARSERS[format] : PARSERS["exit-code"]` (Security run_2 🔵)
+
+🔵 `bin/lib/validator-parsers.mjs:109` — `PARSERS` exported as a plain mutable object; a consumer can silently overwrite or delete parser entries; `Object.freeze(PARSERS)` or remove the export and rely solely on `getParser` (Architect 🔵 carried from task-1)
+
+---
+
+# Simplicity Review (run_3) — task-2 (TAP parser, final state `0db1399`)
+
+**Reviewer role:** Simplicity
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+---
+
+## Files Read
+- `bin/lib/validator-parsers.mjs` (all 117 lines — directly read, current HEAD)
+- `test/validator-parsers.test.mjs` (all 178 lines — directly read, current HEAD)
+- `.team/features/external-validator-integration/tasks/task-2/handshake.json` (run_3)
+- `.team/features/external-validator-integration/tasks/task-1/eval.md` (Simplicity run_3 ruling on `stderr`/`exitCode` intent)
+- `.team/features/external-validator-integration/tasks/task-2/eval.md` (all prior sections through Architect run_2)
+
+---
+
+## What run_3 Introduced
+
+Three changes since Simplicity run_2:
+1. `for (const line of stdout.split('\n'))` — raw `line` used (no `.trim()` before the regex test), closing the indented-subtest double-count gap.
+2. `messages.push(line.replace(/[\x00-\x1f\x7f]/g, ''))` — control chars stripped before storing, closing the Security ANSI injection 🟡.
+3. Regression test at `test/validator-parsers.test.mjs:153–163` — locks in the top-level-only behavior.
+
+---
+
+## Per-Criterion Results
+
+### Dead code — PASS
+
+No commented-out code. No unreachable branches. No unused imports.
+
+`stderr` and `exitCode` in `parseTap(stdout, stderr, exitCode)` are declared but never read inside the function body. Ruling from task-1 Simplicity run_3 applies unchanged: intentional interface conformance parameters enabling direct registry storage without a wrapper. Not dead code.
+
+The `if` guard false-branch (skipping non-`not ok` lines) is reachable; the all-ok test (lines 110–119) exercises it. Both directive-exclusion branches (TODO, SKIP) are exercised by their respective tests. The stripping expression `line.replace(...)` is unconditionally on the `if`-body path — reachable whenever any top-level `not ok` line appears.
+
+### Premature abstraction — PASS
+
+`parseTap` is the feature being built, not a helper abstraction. `extractAttrs` retains 2 call sites (lines 36, 42). `getParser` retains 2 test call sites (lines 167, 173). All meet the ≥2 threshold. No new helpers introduced.
+
+### Unnecessary indirection — PASS
+
+`"tap": parseTap` at line 111 is a bare function reference — consistent with all other registry entries (`"junit-xml": parseJunitXml`, `"exit-code": parseExitCode`). No lambda wrappers. `getParser` adds non-trivial fallback (`|| PARSERS["exit-code"]`); not a pure delegate.
+
+### Gold-plating — PASS
+
+`meta: { messages }` is actively asserted in TAP tests at lines 106–107, 118, 130. Not speculative. The control char stripping at line 81 was added in direct response to Security 🟡 findings from run_1/run_2 — not speculative extensibility. The regression test at line 153 directly exercises the fix it was added to guard. No feature flags, no config options with single values, no unused config paths.
+
+---
+
+## Findings
+
+🔵 `bin/lib/validator-parsers.mjs:67` — JSDoc description still reads "excluding TODO directives" but line 79 also excludes SKIP; a reader consulting only the doc comment sees an incomplete exclusion list; update to "excluding TODO and SKIP directives" (carried from Simplicity run_2)
+
+🔵 `test/validator-parsers.test.mjs:166` — `getParser` describe block tests `"junit-xml"` and `"unknown-format"` but never `"tap"`; the `"tap"` registry wire-up is verified only through direct `parseTap()` calls; add `getParser("tap")(tap, "", 1)` asserting `findings.critical === 1` (carried from run_1/run_2; consistent 🔵 across all prior simplicity reviews)
+
+---
+
+# Engineer Eval (final) — task-2 (TAP parser, current HEAD `0db1399`)
+
+**Reviewer role:** Software Engineer
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+---
+
+## Files Read
+
+- `.team/features/external-validator-integration/tasks/task-2/handshake.json`
+- `bin/lib/validator-parsers.mjs` (117 lines)
+- `test/validator-parsers.test.mjs` (178 lines)
+- `.team/features/external-validator-integration/tasks/task-2/eval.md` (all prior sections)
+
+## Test Execution (direct evidence)
+
+```
+node --test test/validator-parsers.test.mjs
+
+✔ produces one critical finding from one <failure> element
+✔ produces zero findings for a passing test suite
+✔ produces multiple critical findings for multiple failures
+✔ falls back to classname when file/line are absent
+✔ produces one critical finding from one <error> element
+✔ returns zero findings on malformed input (fault-tolerant)
+✔ produces one critical finding from one not ok line
+✔ produces zero findings for all ok lines
+✔ produces multiple critical findings for multiple not ok lines
+✔ does not count # TODO lines as critical findings
+✔ does not count # SKIP lines as critical findings
+✔ counts only top-level not ok lines, ignoring indented subtest lines
+✔ returns junit-xml parser for 'junit-xml' format
+✔ falls back to exit-code parser for unknown format
+
+tests 14 | pass 14 | fail 0
+```
+
+## Prior open 🟡 — Resolution Status
+
+| Finding | Source | Current state |
+|---|---|---|
+| `line.trim()` double-counts indented subtest `not ok` | Engineer/Architect run_2 🟡 | **RESOLVED** — commit `6534303`; line 79 tests raw `line`; regression test at `test.mjs:153–163` confirmed passing |
+| ANSI/control char injection via `messages.push` | Security run_1/run_2 🟡 | **RESOLVED** — commit `6534303`; line 81: `messages.push(line.replace(/[\x00-\x1f\x7f]/g, ''))` |
+| No test locks control char stripping behavior | Tester final 🟡 | **OPEN** — removing line 81 still passes all 14 tests; the fix is correct but unguarded by any test |
+
+## Correctness
+
+**PASS — core criterion.** `parseTap` (lines 72–92): splits `stdout` on `\n`, tests each raw (untrimmed) line with `/^not ok\b/` anchored at start. Indented subtest `not ok` lines start with whitespace — `^` does not match — so they are skipped.
+
+Logic traced:
+- `not ok 1 - parent test` → `^` at `n` → match → `critical++` ✓
+- `    not ok 1 - child subtest that failed` → `^` at ` ` → no match → skip ✓
+- Test at line 153 asserts `findings.critical === 1` — confirmed passing.
+
+**PASS — control char stripping logic.** `line.replace(/[\x00-\x1f\x7f]/g, '')` at line 81 strips ESC, CR, and full C0 range before storage. Guard at line 79 runs on raw line — correct, because directive matching needs unmodified content.
+
+**WARN — stripping is not test-locked.** Verified: removing line 81 and re-running produces 14/14 pass. The behavior is implemented but not exercised by any test assertion.
+
+## Code Quality
+
+**PASS.** 21 lines, readable, consistent with peer parsers. Comment at lines 77–78 explains why `.trim()` is intentionally absent — important given the non-obvious choice.
+
+## Error Handling
+
+**PASS.** Regex on string cannot throw; empty/non-TAP input yields zero findings.
+
+---
+
+## Findings
+
+🟡 `test/validator-parsers.test.mjs` — control char stripping at `validator-parsers.mjs:81` is not test-locked; removing the `.replace(...)` call passes all 14 tests undetected; add a test with `"not ok 1 - test\x1b[2J"` asserting `meta.messages[0]` contains no C0 bytes (raised by Tester final; confirmed here by direct verification)
+
+🔵 `test/validator-parsers.test.mjs:167` — `getParser("tap")` never called with real input; add `getParser("tap")(tapInput, "", 1)` asserting `findings.critical === 1` to cover registry wire-up end-to-end (carried from all prior reviews)
+
+🔵 `bin/lib/validator-parsers.mjs:114` — `PARSERS[format]` has no `Object.hasOwn` guard; `format = "__proto__"` returns `Object.prototype` (truthy), bypasses exit-code fallback, throws `TypeError`; use `Object.hasOwn(PARSERS, format) ? PARSERS[format] : PARSERS["exit-code"]` (carried from Security run_2)
+
+🔵 `bin/lib/validator-parsers.mjs:70` — JSDoc `@param` documents only `stdout`; add `@param {string} stderr` and `@param {number} exitCode` to match the 3-arg module contract (carried from Engineer run_1/run_2)
+
+---
