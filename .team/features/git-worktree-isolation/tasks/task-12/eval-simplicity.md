@@ -1,4 +1,4 @@
-# Simplicity Review — task-12 (run_2)
+# Simplicity Review — task-12 (run_3)
 
 **Reviewer role:** Simplicity (unnecessary complexity, over-engineering, cognitive load, deletability)
 **Verdict:** PASS
@@ -9,9 +9,9 @@
 ## Files actually read
 
 - `.team/features/git-worktree-isolation/tasks/task-12/handshake.json`
+- `.team/features/git-worktree-isolation/tasks/task-12/test-output.txt`
 - `PLAYBOOK.md` lines 182–244 (Git Worktrees section)
-- `test/worktree.test.mjs` lines 579–622 (new PLAYBOOK.md documentation contract tests)
-- `eval-simplicity.md` (prior run_1 review, to verify claimed fixes)
+- `test/worktree.test.mjs` lines 579–643 (PLAYBOOK.md documentation contract + grep audit tests)
 
 ---
 
@@ -19,11 +19,10 @@
 
 | Claim | Evidence | Result |
 |---|---|---|
-| Slug description says dots are retained | PLAYBOOK.md:199 "only alphanumeric, hyphens, and dots retained (all other characters stripped)" | ✓ fixed |
-| Branch description says re-runs reuse the existing worktree | PLAYBOOK.md:200 "re-runs reuse the existing worktree and preserve all commits" | ✓ fixed |
-| Five new tests added | test/worktree.test.mjs:579–622 — `describe("PLAYBOOK.md documentation contract")` with 5 `it(...)` blocks | ✓ present |
-
-The two 🟡 factual-error findings from the prior simplicity review (run_1) and the "zero documentation tests" gap identified by the Tester review are both addressed.
+| OR-loose cleanup test split into two independent assertions | test/worktree.test.mjs:602–613 — two separate `it()` blocks: one for `git worktree remove --force`, one for `git worktree prune` | ✓ split |
+| Two new Inspect tests added | test/worktree.test.mjs:616–628 — `it("documents inspect commands: git log inside worktree")` and `it("documents inspect commands: git status inside worktree")` | ✓ present |
+| All 566 tests pass | test-output.txt lines 853–860: `pass 566`, `fail 0`, `skipped 2` | ✓ confirmed |
+| PLAYBOOK.md has Inspect subsection with both commands | PLAYBOOK.md:206–216 — `git -C .team/worktrees/<slug> log --oneline -10` and `git -C .team/worktrees/<slug> status` | ✓ present |
 
 ---
 
@@ -31,10 +30,10 @@ The two 🟡 factual-error findings from the prior simplicity review (run_1) and
 
 | Category | Finding |
 |---|---|
-| Dead code | None — no code added; 5 new tests are all used |
-| Premature abstraction | None — `beforeEach` reading `playbookSrc` is used in all 5 tests (≥2 call sites) |
-| Unnecessary indirection | None — tests assert directly on file content via regex; no wrapper layers |
-| Gold-plating | None — every subsection (Layout, Inspect, Cleanup, Prune) and every test case corresponds to a real, observable behaviour |
+| Dead code | None — all 8 tests in the describe block execute; no unreachable branches |
+| Premature abstraction | None — `beforeEach` variable `playbookSrc` is consumed by all 8 tests (well above the 2-call-site threshold) |
+| Unnecessary indirection | None — tests assert directly via regex against file content; no wrapper layers |
+| Gold-plating | None — every test case guards a distinct, observable factual claim; PLAYBOOK.md content has no speculative extensibility |
 
 No 🔴 findings.
 
@@ -42,32 +41,31 @@ No 🔴 findings.
 
 ## Findings
 
-🔵 test/worktree.test.mjs:583 — `beforeEach` reads `PLAYBOOK.md` once per test (5 reads total); a module-scoped `const playbookSrc = readFileSync(...)` above the `describe` block would be simpler and read the file once.
+🔵 test/worktree.test.mjs:584 — `beforeEach` reads `PLAYBOOK.md` on each of 8 test runs; a single module-scoped `const playbookSrc = readFileSync(...)` above the `describe` block reads the file once and is simpler.
 
 ---
 
 ## Per-criterion evaluation
 
 ### Cognitive load
-PASS. The four-subsection layout (Layout, Inspect, Manual cleanup, Prune) is clear and non-overlapping. Five test cases each assert exactly one factual claim. Nothing requires holding multiple abstractions in mind simultaneously.
+PASS. The four-subsection structure (Layout, Inspect, Manual cleanup, Prune) is clear and non-overlapping. Each of the 8 test cases asserts one factual claim. No abstraction layer between test and assertion target.
 
 ### Deletability
-PASS. The Git Worktrees section (PLAYBOOK.md:182–244) has no filler. The five new tests each guard a distinct factual claim; none duplicates assertions elsewhere in the file.
+PASS. No filler in the PLAYBOOK.md section (182–244). The 3 new tests added in run_3 (split cleanup + 2 inspect) each guard a distinct claim; none duplicates existing assertions in the file.
 
 ### Accuracy of key claims (spot-checked against code)
 
 | Claim | Code reference | Status |
 |---|---|---|
-| Worktree at `.team/worktrees/<slug>` | run.mjs:167 `join(mainCwd, ".team", "worktrees", safeSlug)` | ✓ |
-| Branch `feature/<slug>` | run.mjs:173 `["worktree", "add", …, "-B", branchName]` | ✓ |
-| `-B` used only on initial creation | run.mjs:169-172 `existsSync` guard returns before `git` call on re-run | ✓ |
-| Re-runs reuse existing worktree | run.mjs:169-172 early-return | ✓ |
-| Preserved on failure | run.mjs:1529–1533 catch block skips `removeWorktree` | ✓ |
-| Removed on clean completion | run.mjs:1534 `removeWorktree` called after try block | ✓ |
-| Dots retained in slug | run.mjs:159 `/[^a-z0-9\-\.]/g` — `.` not stripped | ✓ |
+| Inspect: `git -C .team/worktrees/<slug> log` present | PLAYBOOK.md:212 | ✓ |
+| Inspect: `git -C .team/worktrees/<slug> status` present | PLAYBOOK.md:215 | ✓ |
+| Cleanup: `git worktree remove --force` present | PLAYBOOK.md:225 | ✓ |
+| Prune: `git worktree prune` present | PLAYBOOK.md:243 | ✓ |
+| Test regex for log: `/git -C .+worktrees.+log/` | test/worktree.test.mjs:618 matches PLAYBOOK.md:212 | ✓ |
+| Test regex for status: `/git -C .+worktrees.+status/` | test/worktree.test.mjs:625 matches PLAYBOOK.md:215 | ✓ |
 
 ---
 
 ## Summary
 
-Both factual errors flagged by the prior simplicity review and the tester review are corrected. The five new documentation-contract tests provide regression protection for the key factual claims. No structural simplicity issues; no veto-category violations. One 🔵 suggestion: consolidate 5 `beforeEach` file reads into a single module-scoped read.
+The run_3 changes are narrowly scoped: the OR-loose test was correctly split into two independent assertions, and two new Inspect tests now guard the `git log` and `git status` examples that PLAYBOOK.md already contained. No structural simplicity issues; no veto-category violations. Same 🔵 suggestion as run_2 remains open: consolidate the 8 `beforeEach` file reads into a single module-scoped read.

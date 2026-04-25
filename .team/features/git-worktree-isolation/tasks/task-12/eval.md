@@ -1,3 +1,100 @@
+# Eval — task-12: PLAYBOOK.md documentation contract tests (run_3 — PM review)
+
+**Verdict: PASS**
+**Reviewer role: Product Manager**
+**Date: 2026-04-25**
+
+---
+
+## Files Actually Read
+
+- `.team/features/git-worktree-isolation/tasks/task-12/handshake.json` (full)
+- `.team/features/git-worktree-isolation/tasks/task-12/test-output.txt` (full, 861 lines)
+- `PLAYBOOK.md` lines 182–244 (Git Worktrees section)
+- `test/worktree.test.mjs` lines 579–648 (PLAYBOOK.md documentation contract suite)
+- Prior eval sections in this file (run_1 and run_2 findings)
+
+---
+
+## Run_3 Task Summary
+
+Builder fixed two test-quality issues flagged by the engineer (run_2) and addressed the missing artifact warning:
+
+1. Split the OR-loose cleanup test (`/git worktree (remove|prune)/`) into two independent assertions.
+2. Added two new tests covering the Inspect subsection (`git log` and `git status` via `-C`).
+3. Captured `test-output.txt` as an artifact (resolving the run_2 🟡 missing-artifact finding).
+
+---
+
+## Per-Criterion Results
+
+### 1. OR-loose test split — PASS
+
+**Claim:** "splitting the OR-loose cleanup test into two separate independent assertions"
+
+**Evidence:**
+- `test/worktree.test.mjs:602–613` (from source read): two separate `it()` blocks:
+  - `"documents manual cleanup with git worktree remove --force"` — regex `/git worktree remove --force/`
+  - `"documents stale registration cleanup with git worktree prune"` — regex `/git worktree prune/`
+- Both assertions are independently falsifiable. `git worktree remove --force` can no longer be silently removed while `git worktree prune` keeps the test green.
+- Test output line 841–842: both pass.
+
+Prior 🔵 engineer finding (`test/worktree.test.mjs:603`) is resolved.
+
+### 2. Two new inspect tests added — PASS
+
+**Claim:** "adding two new tests verifying the Inspect subsection commands"
+
+**Evidence:**
+- `test/worktree.test.mjs:616–628`: `"documents inspect commands: git log inside worktree"` — regex `/git -C .+worktrees.+log/`
+- `test/worktree.test.mjs:623–628`: `"documents inspect commands: git status inside worktree"` — regex `/git -C .+worktrees.+status/`
+- PLAYBOOK.md:212 and 215 provide the matching content.
+- Test output lines 843–844: both pass.
+
+These tests were a gap in run_2 (Tester review noted zero lines in test suite referenced PLAYBOOK.md inspect commands). Resolved.
+
+### 3. Artifact evidence — PASS
+
+**Claim:** "Captured test output to test-output.txt as a verifiable artifact. All 566 tests pass."
+
+**Evidence:** `test-output.txt` file exists and was read in full. Final lines:
+```
+ℹ tests 568
+ℹ pass 566
+ℹ fail 0
+ℹ skipped 2
+```
+Run_2 🟡 missing-artifact finding (PM and Engineer reviews) is resolved.
+
+### 4. Scope discipline — PASS
+
+Builder touched only `test/worktree.test.mjs`. No PLAYBOOK.md edits (not needed — run_2 already corrected the two factual errors). No unrelated files modified. Scope matches the handshake summary exactly.
+
+### 5. Open prior findings — accounted for
+
+| Prior finding | Severity | Status |
+|---|---|---|
+| 🟡 test/worktree.test.mjs:603 OR-loose regex (Engineer run_2) | Suggestion | ✅ Resolved |
+| 🟡 Missing test-output.txt artifact (PM/Engineer/Tester run_2) | Warning | ✅ Resolved |
+| 🔵 PLAYBOOK.md:225 `--force` data-loss callout | Suggestion | Open (backlog) |
+| 🔵 `git branch -d/-D` not covered by contract tests | Suggestion | Open (backlog) |
+
+---
+
+## Findings
+
+🔵 PLAYBOOK.md:225 — `git worktree remove --force` discards uncommitted changes without warning; the crash-recovery scenario (where a user would run this) is exactly where in-progress work lives; add a one-line callout (carried from run_2, backlog item)
+
+🔵 PLAYBOOK.md:227 — `git branch -d feature/<slug>` / `git branch -D feature/<slug>` cleanup steps have no contract test; a future edit could silently remove these without a test failure; add to backlog
+
+---
+
+## Overall Verdict: PASS
+
+Both run_2 warnings (OR-loose test, missing artifact) are resolved. All 8 PLAYBOOK.md contract tests pass with verifiable artifact evidence. Two suggestion-level items remain as backlog. No criticals, no warnings. Ready to merge.
+
+---
+
 # Eval — task-12: PLAYBOOK.md Git Worktrees Documentation (run_2 — final PM review)
 
 **Verdict: PASS**
@@ -420,3 +517,86 @@ Both are now correct. No residual FAILs carried over.
 Both claimed fixes are verified in the diff and accurate against the implementation. Five documentation contract tests are present, correctly structured, and pass against current PLAYBOOK.md. The two FAIL criteria from the prior Engineer pass are resolved. Three suggestion-level items noted (weak test assertion, order-sensitive regex, missing data-loss callout) — none affect correctness. The 🟡 missing artifact is a process gap, not a code gap.
 
 **PASS**
+
+---
+
+# Security Eval — task-12 (run_3): PLAYBOOK.md Doc-Contract Test Fixes
+
+**Reviewer role:** Security
+**Date:** 2026-04-25
+**Run:** run_3 (final)
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+| File | Lines / scope |
+|------|---------------|
+| `.team/features/git-worktree-isolation/tasks/task-12/handshake.json` | Full — builder claims for run_3 |
+| `.team/features/git-worktree-isolation/tasks/task-11/handshake.json` | Full — prior task context |
+| `.team/features/git-worktree-isolation/tasks/task-12/test-output.txt` | Full (866 lines) — test evidence |
+| `.team/features/git-worktree-isolation/tasks/task-12/eval-security.md` | Full — prior security review for run_2 |
+| `PLAYBOOK.md` lines 180–245 | Git Worktrees section |
+| `test/worktree.test.mjs` lines 575–683 | PLAYBOOK.md doc-contract tests and grep audit |
+| `bin/lib/run.mjs` lines 150–200 | `slugToBranch`, `createWorktreeIfNeeded`, `removeWorktree` |
+| `bin/lib/gate.mjs` lines 55–85 | `execSync` invocation |
+
+---
+
+## Claim Verification
+
+| Builder Claim | Evidence | Result |
+|---|---|---|
+| OR-loose cleanup test split into two separate assertions | test-output.txt lines 841–842: `✔ documents manual cleanup with git worktree remove --force` and `✔ documents stale registration cleanup with git worktree prune` — confirmed separate | ✅ |
+| Two new Inspect tests added | test-output.txt lines 843–844: `✔ documents inspect commands: git log inside worktree` and `✔ documents inspect commands: git status inside worktree` | ✅ |
+| All 566 tests pass | test-output.txt: `ℹ pass 566`, `ℹ fail 0`, `ℹ skipped 2` | ✅ |
+| `test-output.txt` provided as artifact | File exists at `.team/features/git-worktree-isolation/tasks/task-12/test-output.txt` | ✅ |
+
+---
+
+## Security Criteria
+
+### 1. New test code attack surface
+
+**PASS** — The two new Inspect tests (`worktree.test.mjs:616–627`) call `readFileSync(new URL("../PLAYBOOK.md", import.meta.url), "utf8")` and assert regex patterns. No subprocess spawning, no network calls, no external input. The split cleanup assertions are trivially `assert.ok(/.../.test(playbookSrc))`. Zero new attack surface introduced.
+
+### 2. Path traversal in slug sanitization
+
+**PASS (pre-existing, re-verified)** — `slugToBranch` at `run.mjs:155–161` strips `/` via `[^a-z0-9\-\.]`, preventing path separator injection. All-dot slugs rejected by `/^\.+$/` at `run.mjs:166`. Empty slugs rejected by `!safeSlug` at `run.mjs:165`. Unchanged from run_2; test coverage confirmed at `worktree.test.mjs:828–832`.
+
+### 3. Shell injection in gate commands
+
+**PASS (pre-existing risk, out of scope)** — `gate.mjs:61` uses `shell: true`; `cmd` is read from operator-controlled project files. No change introduced by this task. Documented as accepted backlog item in task-11 and run_2 security reviews.
+
+### 4. `git worktree remove --force` data-loss warning
+
+**PASS (suggestion only, unresolved from run_1)** — `PLAYBOOK.md:225` documents `git worktree remove --force` without a callout that `--force` silently discards uncommitted changes. An operator following this on a crash-preserved worktree could lose in-progress agent work. Flagged as 🔵 in run_1 and run_2 security reviews; still not addressed.
+
+### 5. Credential / secret exposure
+
+**PASS** — No credentials, tokens, API keys, or environment variables introduced.
+
+### 6. Test artifact verifiability
+
+**PASS (resolved from prior runs)** — `test-output.txt` is now present as an artifact showing `pass 566 / fail 0`, resolving the prior 🟡 unverifiable-claim finding from PM and Engineer reviews.
+
+---
+
+## Edge Cases Checked
+
+- `readFileSync` in new tests uses `new URL("../PLAYBOOK.md", import.meta.url)` — import-relative path, no user-controlled input reaches the path.
+- New regex patterns in tests use `.+` wildcards — loose for doc-quality but no security implication from regex matching on a static file.
+- `git branch -D feature/<slug>` at `PLAYBOOK.md:229` with `# force delete` comment — deliberate operator action only.
+
+---
+
+## Findings
+
+🔵 PLAYBOOK.md:225 — `git worktree remove --force` documented without warning that `--force` silently discards uncommitted changes; operators following cleanup on a crash-preserved worktree could lose in-progress work; add: "> **Warning:** `--force` discards any uncommitted changes in the worktree"
+
+---
+
+## Overall Verdict: PASS
+
+No critical or warning-level security findings. The two new test assertions introduce zero attack surface. Slug sanitization, path traversal guards, and credential handling are unchanged and verified. The pre-existing `shell: true` gate risk remains in the backlog. The only open item is the persistent suggestion-level `--force` data-loss callout.

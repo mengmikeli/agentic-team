@@ -55,7 +55,7 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 19. **Max review rounds + escalation** — Cap at 3 review rounds. After round 3, produce summary and escalate to human. Prevents infinite review loops. ✅ Done
 
 ### Phase 5 — Advanced
-20. **Git worktree isolation** — Each feature runs in its own git worktree + branch. Parallel features never interfere. Feature-slug as namespace for all artifacts. `cwd` injected into agent dispatches and gate commands; worktree created before task dispatch and cleaned up on completion. *(Deferred)*
+20. **Git worktree isolation** — Each feature runs in its own git worktree + branch. Parallel features never interfere. Feature-slug as namespace for all artifacts. `cwd` injected into agent dispatches and gate commands; worktree created before task dispatch and cleaned up on completion. ✅ Done
 21. **Runbook system** — Pattern-matched task recipes (regex + keyword scoring). Reusable decompositions eliminate repeated planning. Runbook replay for known sequences.
 22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs. *(Deferred)*
 23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. *(Deferred)*
