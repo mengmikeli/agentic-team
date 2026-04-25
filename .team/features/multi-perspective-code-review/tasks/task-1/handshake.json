@@ -1,0 +1,14 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Switched the build-verify flow's review phase from the single-reviewer 'review' to the parallel 'multi-review' phase, so a build-verify run dispatches one review per role in PARALLEL_REVIEW_ROLES (6 in total) and merges them via mergeReviewFindings. The existing run.mjs multi-review handler (already wired to runParallelReviews + mergeReviewFindings) is reused, so this is a minimal, focused change. Updated flows.test.mjs to assert the new phase composition and the 6-role parallel dispatch.",
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/flows.mjs" },
+    { "type": "test", "path": "test/flows.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

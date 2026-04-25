@@ -12,10 +12,26 @@ describe("FLOWS", () => {
     assert.deepEqual(FLOWS["light-review"].phases, ["implement", "gate"]);
   });
 
-  it("defines build-verify with review phase", () => {
+  it("defines build-verify with parallel multi-review phase", () => {
     assert.ok(FLOWS["build-verify"]);
-    assert.ok(FLOWS["build-verify"].phases.includes("review"));
+    assert.ok(FLOWS["build-verify"].phases.includes("multi-review"));
     assert.ok(FLOWS["build-verify"].phases.includes("gate"));
+    assert.deepEqual(FLOWS["build-verify"].phases, ["implement", "gate", "multi-review"]);
+  });
+
+  it("build-verify dispatches 6 parallel reviews matching PARALLEL_REVIEW_ROLES", () => {
+    // build-verify uses "multi-review" phase which dispatches one review per role in PARALLEL_REVIEW_ROLES
+    assert.ok(FLOWS["build-verify"].phases.includes("multi-review"));
+    assert.equal(PARALLEL_REVIEW_ROLES.length, 6);
+    // Smoke-test merge over all 6 roles
+    const findings = PARALLEL_REVIEW_ROLES.map((role, i) => ({
+      role, ok: true, output: `🟡 file-${i}.mjs:${i + 1} — note from ${role}`,
+    }));
+    const merged = mergeReviewFindings(findings);
+    for (const role of PARALLEL_REVIEW_ROLES) {
+      assert.ok(merged.includes(`[${role}]`), `merged report should include [${role}]`);
+    }
+    assert.ok(merged.includes("## Parallel Review Findings"));
   });
 
   it("defines full-stack with brainstorm and multi-review", () => {
