@@ -1,11 +1,11 @@
 {
   "taskId": "task-2",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Removed dead variable `let revParseCount = 0;` from the test and added three new tests under 'runSimplifyPass — full branch diff (not per-task)' that explicitly verify: (1) the merge-base command references main or master, (2) the resulting SHA is used as the diff range start (merge-base..HEAD), and (3) the master fallback works when main is unavailable. All 588 tests pass.",
-  "timestamp": "2026-04-26T00:00:00.000Z",
+  "summary": "Fixed the unasserted `git clean -fd` regression gap in `test/simplify-pass.test.mjs`. The 'reverts uncommitted changes with checkout' test now captures clean commands in the execFn mock and asserts `revertCmds.some(c => c.includes('clean'))`, ensuring the untracked-file cleanup at simplify-pass.mjs:189-193 cannot be silently removed without tests failing. All 588 tests pass.",
+  "timestamp": "2026-04-26T00:01:00.000Z",
   "artifacts": [
     { "type": "code", "path": "test/simplify-pass.test.mjs" }
   ],

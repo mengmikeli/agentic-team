@@ -1165,3 +1165,38 @@ Core execution order, revert logic, and guard condition are all correct and veri
 ## Summary
 
 The run_3 builder correctly fixed all three claimed items. A new dead variable (`revParseCount` at test:156) was introduced as a copy-paste artifact — same pattern as the prior `callIndex` blocker. One-line fix: remove line 156. **FAIL until resolved.**
+
+---
+
+# Tester Review (final) — self-simplification-pass, task-1
+
+**Verdict: PASS**
+**Reviewer role:** Tester (test strategy / coverage)
+**Date:** 2026-04-26
+
+## Files Actually Read
+
+- `bin/lib/simplify-pass.mjs` (198 lines — full)
+- `test/simplify-pass.test.mjs` (468 lines — full, final state after task-2)
+- `bin/lib/run.mjs:1501-1530` (simplify integration block)
+- `tasks/task-1/handshake.json`, `tasks/task-2/handshake.json`
+
+## Builder Claims (task-1 run_3) vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Removed `let callIndex = 0;` | ✓ | Not present in 468-line test file |
+| Guard regex extended to cover `blocked === 0` | ✓ | test:464 regex `/completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/` |
+| `git clean -fd` added after `git checkout HEAD -- .` | ✓ code only | simplify-pass.mjs:188–193; test does NOT assert it was called |
+
+## Verdict Rationale
+
+All three task-1 fixes are verified in the final code state. Prior 🔴 dead variable (`callIndex`) is resolved. Prior 🟡 guard-regex gap is resolved. The `git clean -fd` code exists but the test does not lock it in. This is the **only remaining unresolved gap from task-1's review cycle**.
+
+## Findings
+
+🟡 `test/simplify-pass.test.mjs:294` — `revertCmds` mock captures only `checkout HEAD`; `git clean -fd` at simplify-pass.mjs:188–193 is never added to `revertCmds` and is never asserted — add capture and assertion for `clean` commands so the untracked-file cleanup fix cannot be silently reverted
+
+🔵 `bin/lib/simplify-pass.mjs:90` — `master` fallback reachable but untested (carried from prior rounds)
+
+🔵 `test/simplify-pass.test.mjs:23` — `.sh`/`.bash` in CODE_EXT have no `isCodeFile` test coverage (carried from prior rounds)
