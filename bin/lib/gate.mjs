@@ -93,7 +93,12 @@ export function cmdGate(args) {
         return;
       }
 
-      const verdict = exitCode === 0 ? "PASS" : "FAIL";
+      // Parse structured output using the configured format parser.
+      const parser = getParser(outputFormat);
+      const parsed = parser(stdout, stderr, exitCode);
+
+      // Verdict: PASS only when exit code is 0 AND no critical findings in structured output.
+      const verdict = (exitCode === 0 && parsed.findings.critical === 0) ? "PASS" : "FAIL";
 
       // Backlog enforcement: extract warnings and document any new ones.
       const allWarnings = extractWarnings(stdout + "\n" + stderr);
@@ -101,10 +106,6 @@ export function cmdGate(args) {
       if (newWarnings.length > 0) {
         documentWarnings(dir, newWarnings, "gate");
       }
-
-      // Parse structured output using the configured format parser.
-      const parser = getParser(outputFormat);
-      const parsed = parser(stdout, stderr, exitCode);
 
       // ── Write evidence artifacts to task directory ──
       if (taskId) {
@@ -135,7 +136,7 @@ export function cmdGate(args) {
           taskId,
           nodeType: "gate",
           runId: `run_${(freshState.gates || []).length + 1}`,
-          status: exitCode === 0 ? "completed" : "failed",
+          status: verdict === "PASS" ? "completed" : "failed",
           verdict,
           summary: `Gate command: ${cmd} — exit code ${exitCode}`,
           artifacts,

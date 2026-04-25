@@ -4,7 +4,7 @@
   "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed the GitHub Actions problem matcher regex so property values containing colons (e.g. title=TypeError: x) no longer cause ::error lines to be silently dropped. Wired getParser into gate.mjs via --output-format flag so format-specific parsers are now reachable from production code. Added 3 new tests: colon-in-property-value, control-char stripping, and getParser round-trip (27 total tests, all passing).",
+  "summary": "Fixed two bugs: (1) changed non-greedy (.*?) to greedy (.*) in the GitHub Actions regex so the split occurs at the LAST ::, correctly handling colons in property values; (2) moved parser invocation before verdict calculation in gate.mjs so parsed.findings.critical > 0 forces verdict=FAIL even when exit code is 0. All 566 tests pass.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/validator-parsers.mjs" },

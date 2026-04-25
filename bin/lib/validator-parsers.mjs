@@ -112,8 +112,9 @@ export function parseGithubActions(stdout, stderr, exitCode) {
 
   // Regex: ::error|warning|notice [properties]::message
   // Properties are optional key=value pairs separated by commas.
-  // Use non-greedy (.*?) to handle property values containing colons (e.g. title=TypeError: x).
-  const lineRe = /^::([a-z]+)\s*(.*?)::(.*)/;
+  // Use greedy (.*) so the split occurs at the LAST :: (handles colons in property values,
+  // e.g. title=TypeError: x,file=src/foo.js,line=5::message).
+  const lineRe = /^::([a-z]+)\s*(.*)::(.*)/;
 
   for (const raw of combined.split('\n')) {
     const line = raw.replace(/[\x00-\x1f\x7f]/g, '').trim();
