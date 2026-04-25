@@ -240,6 +240,37 @@ describe("buildEscalationSummary", () => {
   });
 });
 
+describe("acceptance: escalation comment contains title, round count, and deduplicated findings table", () => {
+  it("posted comment body has all three required parts", () => {
+    const dir = join(tmpdir(), `re-accept-${Date.now()}`);
+    mkdirSync(dir, { recursive: true });
+    try {
+      // Three rounds, with overlapping critical finding to verify dedup
+      const dup = { severity: "critical", text: "🔴 src/foo.mjs:42 — missing assertion" };
+      writeFileSync(join(dir, "handshake-round-1.json"), JSON.stringify({ findingsList: [dup] }));
+      writeFileSync(join(dir, "handshake-round-2.json"), JSON.stringify({ findingsList: [dup, { severity: "warning", text: "🟡 src/bar.mjs:7 — style nit" }] }));
+      writeFileSync(join(dir, "handshake-round-3.json"), JSON.stringify({ findingsList: [dup] }));
+
+      const taskTitle = "Implement escalation comment posting";
+      const rounds = 3;
+      const body = buildEscalationSummary(dir, taskTitle, rounds);
+
+      // 1. Task title
+      assert.ok(body.includes(taskTitle), "comment includes task title");
+      // 2. Round count
+      assert.ok(body.includes(`${rounds} consecutive review FAIL`), "comment includes round count phrase");
+      // 3. Deduplicated findings table — header + rows + dedup
+      assert.ok(body.includes("| Severity | Finding |"), "comment includes findings table header");
+      assert.ok(body.includes("|---|---|"), "comment includes findings table separator");
+      const dupMatches = body.match(/missing assertion/g) || [];
+      assert.equal(dupMatches.length, 1, "duplicate finding appears exactly once in table");
+      assert.ok(body.includes("style nit"), "non-duplicate warning appears in table");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("integration: 3 consecutive review FAILs → task blocked", () => {
   it("escalates to blocked with correct lastReason after MAX_REVIEW_ROUNDS review fails", () => {
     // Simulate the run.mjs inner loop behavior for review-round escalation.
