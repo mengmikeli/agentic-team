@@ -554,6 +554,17 @@ function initProgressLog(featureDir, featureName, tasks, tier) {
 export function applyCrashRecovery(state, plannedTasks, featureDir) {
   if (state && (state.status === "executing" || state.status === "active")) {
     const crashedAt = state._last_modified;
+    
+    // Don't trigger crash recovery if this run just started (same process)
+    const runStartedAt = state._runStartedAt;
+    if (runStartedAt && (Date.now() - new Date(runStartedAt).getTime()) < 120000) {
+      // Started less than 2 minutes ago — not a crash, just normal flow
+      state.tasks = plannedTasks;
+      state.status = "executing";
+      writeState(featureDir, state);
+      return { tasks: plannedTasks, recovered: false };
+    }
+
     const recoveredTasks = Array.isArray(state.tasks) ? state.tasks : plannedTasks;
 
     // Check if all tasks are terminal (blocked/failed) — this isn't a crash, it's a failed run

@@ -246,3 +246,10 @@
 {"ts":"2026-04-24T22:42:43.282Z","event":"task-started","msg":"▶ Task 2/4: Fix spawnSync ENOBUFS buffer overflow in test/build pipeline"}
 {"ts":"2026-04-24T22:54:48.206Z","event":"feature-started","msg":"▶ Feature: dashboard-token-breakdown-feature-detail-view-clic (0 tasks planned)"}
 {"ts":"2026-04-24T22:57:55.826Z","event":"feature-complete","msg":"Feature complete: dashboard-token-breakdown-feature-detail-view-clic — 0/0 done, 0 blocked, 3m 8s, $0.86"}
+{"ts":"2026-04-24T23:52:33.167Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (0 tasks planned)"}
+{"ts":"2026-04-24T23:56:52.487Z","event":"feature-complete","msg":"Feature complete: simplicity-reviewer-with-veto — 0/0 done, 0 blocked, 4m 19s, $0.84"}
+{"ts":"2026-04-24T23:59:57.741Z","event":"feature-started","msg":"▶ Feature: multi-perspective-code-review (0 tasks planned)"}
+{"ts":"2026-04-25T00:02:42.456Z","event":"feature-complete","msg":"Feature complete: multi-perspective-code-review — 0/0 done, 0 blocked, 2m 45s, $0.73"}
+{"ts":"2026-04-25T00:06:14.912Z","event":"feature-started","msg":"▶ Feature: document-driven-development (0 tasks planned)"}
+{"ts":"2026-04-25T00:08:12.559Z","event":"feature-complete","msg":"Feature complete: document-driven-development — 0/0 done, 0 blocked, 1m 58s, $0.53"}
+{"ts":"2026-04-25T00:10:40.548Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (0 tasks planned)"}

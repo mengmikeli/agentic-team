@@ -1,0 +1,19 @@
+{
+  "version": "2.0",
+  "feature": "max-review-rounds-escalation",
+  "status": "paused",
+  "tasks": [],
+  "gates": [],
+  "transitionCount": 0,
+  "transitionHistory": [],
+  "createdAt": "2026-04-25T00:10:40.490Z",
+  "_written_by": "at-harness",
+  "_last_modified": "2026-04-25T00:10:41.706Z",
+  "_write_nonce": "6cc01f07d31cd65f",
+  "_runStartedAt": "2026-04-25T00:10:40.494Z",
+  "roadmapLabel": "P4/#19",
+  "_recovered_from": "2026-04-25T00:10:40.494Z",
+  "_recovery_count": 1,
+  "_stale_reason": "no agt run process detected",
+  "_reconciled_at": "2026-04-25T00:11:43.643Z"
+}
