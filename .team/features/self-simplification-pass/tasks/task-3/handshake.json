@@ -1,10 +1,10 @@
 {
   "taskId": "task-3",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Added fix loop to the self-simplification pass: if the agent reports critical findings (via JSON output), run.mjs re-dispatches the simplify agent up to MAX_SIMPLIFY_FIX_ROUNDS=2 additional times before escalating. When escalated, harness('finalize') is skipped and the operator is prompted for manual review. Added parseSimplifyFindings() to simplify-pass.mjs to extract structured findings from agent output, and updated runSimplifyPass to return findings in all post-dispatch result objects.",
+  "summary": "Extracted the inline fix-loop from run.mjs into an exported `runSimplifyFixLoop` helper in simplify-pass.mjs, enabling behavioral testing of loop logic. Added 4 behavioral tests covering all loop scenarios (no-critical early exit, maxRounds escalation, mid-loop clear, skipped-pass). Fixed dispatch-fail return missing `findings` field, added `\"simplify\"` to phaseOrder, added escalated case to completion report summary, and increased source-inspection window from 500 to 600 chars.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "roles/simplify-pass.md" },
