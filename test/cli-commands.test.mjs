@@ -284,6 +284,65 @@ describe("smart entry flow (agt run no args)", () => {
       "should not auto-create SPEC.md"
     );
   });
+
+  it("agt run with SPEC.md missing required sections exits non-zero, lists them, and does not modify file", () => {
+    mkdirSync(join(tmpDir, ".team", "features", "my-feature"), { recursive: true });
+    writeFileSync(join(tmpDir, ".team", "PRODUCT.md"), "# Test\n## Vision\ntest\n## Roadmap\n1. **test** — test\n");
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Test\n");
+    writeFileSync(join(tmpDir, ".team", "AGENTS.md"), "# Test\n");
+
+    // Spec has only Goal and Requirements — missing Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope, Done When
+    const partialSpec = "# Feature: my-feature\n\n## Goal\nDo a thing.\n\n## Requirements\n- one\n";
+    const specPath = join(tmpDir, ".team", "features", "my-feature", "SPEC.md");
+    writeFileSync(specPath, partialSpec);
+    const before = readFileSync(specPath, "utf8");
+
+    const result = runAgt(["run", "my-feature"], tmpDir, { timeout: 15000 });
+    assert.equal(result.ok, false, "should exit non-zero");
+    assert.equal(result.exitCode, 1, `should exit with code 1, got: ${result.exitCode}`);
+    const output = result.stdout + result.stderr;
+    assert.ok(output.includes("missing required section"), `should mention missing sections, got: ${output}`);
+    for (const s of ["Acceptance Criteria", "Technical Approach", "Testing Strategy", "Out of Scope", "Done When"]) {
+      assert.ok(output.includes(s), `should list missing section "${s}", got: ${output}`);
+    }
+    // File must be unchanged
+    const after = readFileSync(specPath, "utf8");
+    assert.equal(after, before, "SPEC.md must not be modified");
+    // No tasks should have been planned/run — no STATE.json with tasks
+    const statePath = join(tmpDir, ".team", "features", "my-feature", "STATE.json");
+    if (existsSync(statePath)) {
+      const state = JSON.parse(readFileSync(statePath, "utf8"));
+      assert.ok(!state.tasks || state.tasks.length === 0, "should not plan tasks when spec is incomplete");
+    }
+  });
+
+  it("agt run with complete SPEC.md proceeds past the section gate", () => {
+    mkdirSync(join(tmpDir, ".team", "features", "good-feature"), { recursive: true });
+    writeFileSync(join(tmpDir, ".team", "PRODUCT.md"), "# Test\n## Vision\ntest\n## Roadmap\n1. **test** — test\n");
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Test\n## Quality Gate\n```sh\necho pass\n```\n");
+    writeFileSync(join(tmpDir, ".team", "AGENTS.md"), "# Test\n");
+
+    const fullSpec = [
+      "# Feature: good-feature",
+      "",
+      "## Goal", "Do a thing.",
+      "## Requirements", "- one",
+      "## Acceptance Criteria", "- [ ] a",
+      "## Technical Approach", "approach",
+      "## Testing Strategy", "tests",
+      "## Out of Scope", "- nothing",
+      "## Done When", "- [ ] done",
+      "",
+    ].join("\n");
+    writeFileSync(join(tmpDir, ".team", "features", "good-feature", "SPEC.md"), fullSpec);
+
+    const result = runAgt(["run", "good-feature", "--dry-run"], tmpDir, { timeout: 15000 });
+    const output = result.stdout + result.stderr;
+    assert.ok(
+      !output.includes("missing required section"),
+      `should not flag missing sections, got: ${output}`
+    );
+  });
 });
 
 

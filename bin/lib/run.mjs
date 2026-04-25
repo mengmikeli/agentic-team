@@ -928,6 +928,27 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   let spec = null;
   if (existsSync(specPath)) {
     spec = readFileSync(specPath, "utf8");
+    const requiredSections = [
+      "Goal",
+      "Requirements",
+      "Acceptance Criteria",
+      "Technical Approach",
+      "Testing Strategy",
+      "Out of Scope",
+      "Done When",
+    ];
+    const missing = requiredSections.filter(
+      (s) => !new RegExp(`^##\\s+${s}\\s*$`, "m").test(spec)
+    );
+    if (missing.length > 0) {
+      console.error(`${c.red}✗ SPEC.md is missing required section(s): ${specPath}${c.reset}`);
+      for (const s of missing) {
+        console.error(`  - ${s}`);
+      }
+      console.error(`  Document-driven development requires a complete spec before code is written.`);
+      console.error(`  Run: ${c.bold}agt brainstorm ${featureName}${c.reset}`);
+      process.exit(1);
+    }
   } else {
     console.error(`${c.red}✗ Missing SPEC.md: ${specPath}${c.reset}`);
     console.error(`  Document-driven development requires an approved spec before code is written.`);

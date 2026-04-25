@@ -1,0 +1,15 @@
+{
+  "taskId": "task-3",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added a required-section gate to agt run: when SPEC.md exists but is missing any of the seven required PRD sections, run.mjs prints the missing sections to stderr, exits 1, and does not modify the file or plan/run any tasks. Added two regression tests covering the partial-spec failure and the complete-spec pass-through.",
+  "timestamp": "2026-04-25T03:04:55Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "test/cli-commands.test.mjs" },
+    { "type": "doc", "path": ".team/features/document-driven-development/tasks/task-3/handshake.json" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
