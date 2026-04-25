@@ -1,10 +1,10 @@
 {
   "taskId": "task-4",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Resolved four review findings from run_1: (1) eliminated activePhases2 duplication at run.mjs:1627 by reusing the activePhases variable already in scope; (2) added !escalated && !reverted guards to the warning block at run.mjs:1532 to prevent double progress.md entries when terminal states co-occur with warnings; (3) strengthened both warning-path source-text tests into structural assertions that verify the writeFileSync guard excludes escalated/reverted and that the finalize-guard slice contains only 'escalated' and does not reference 'warning'. All 609 tests pass.",
+  "summary": "Fixed a ReferenceError caused by referencing `activePhases` outside its declaring block scope in `bin/lib/run.mjs`. The variable was declared with `const` in the first `if (usage.dispatches > 0)` block but used in a sibling block; added a local re-declaration at line 1626 inside the second block. All 609 tests pass.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/run.mjs" },
