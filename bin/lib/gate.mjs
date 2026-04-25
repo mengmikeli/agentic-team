@@ -16,6 +16,9 @@ export function cmdGate(args) {
   const cmd = getFlag(args, "cmd");
   const dir = resolveDir(args, getFlag(args, "dir", "."));
   const taskId = getFlag(args, "task");
+  // --cwd overrides the working directory for the gate command; falls back to process.cwd()
+  // so that existing subprocess invocations (which inherit the caller's cwd) continue to work.
+  const cwd = getFlag(args, "cwd") || process.cwd();
 
   if (!cmd) {
     console.error("Usage: at-harness gate --cmd <command> --dir <path> [--task <id>]");
@@ -56,7 +59,7 @@ export function cmdGate(args) {
 
   try {
     const result = execSync(cmd, {
-      cwd: process.cwd(),
+      cwd,
       encoding: "utf8",
       timeout: 120000, // 2 min max
       shell: true, // required for Windows (npm, npx, etc. need shell)

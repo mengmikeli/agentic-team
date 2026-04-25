@@ -216,3 +216,52 @@ The earlier PM/Tester/Architect/Security/Engineer rounds in this file all flagge
 
 ## Conclusion
 Implementation matches the task description and the broader worktree-isolation feature intent. The required-cwd contract is enforced at both call sites and locked in by direct negative tests. PASS with one yellow flag for the missing test-output artifact (backlog only — does not block).
+
+---
+
+# Security Review (re-review, 2026-04-25) — task-3
+
+## Verdict: PASS
+
+## Files actually opened
+- `bin/lib/run.mjs` lines 25–185, 280–370
+- `bin/lib/gate.mjs` lines 40–80
+- grep audit: `process\.cwd` across `bin/lib/*.mjs`
+- `.team/features/git-worktree-isolation/tasks/task-3/handshake.json`
+
+## Claims vs evidence
+
+| Builder claim | Evidence | Result |
+|---|---|---|
+| `runGateInline` requires explicit cwd | run.mjs:53–54 throw guard, no default | PASS |
+| `dispatchToAgent` requires explicit cwd | run.mjs:286–287 throw guard, no default | PASS |
+| Codex spawn has `env: { ...process.env }` parity | run.mjs:331 | PASS |
+| No `process.cwd()` in agent dispatch / gate paths | grep audit: only references in run.mjs are the harness wrapper (line 38, harness subprocess — main repo, intentional) and entry-point cwd resolution (lines 659, 718, 721, 792); none are inside gate or dispatch code paths | PASS |
+| Negative tests lock the contract | tests pass per gate output | PASS |
+
+## Threat model (security lens)
+
+- **Worktree boundary as security control**: forwarding explicit `cwd` to `spawnSync`/`execSync` reduces blast radius — agent file-edits cannot accidentally land in the main checkout. The required-cwd contract converts an implicit assumption into a runtime invariant. Net positive.
+- **Slug → path traversal**: `createWorktreeIfNeeded` (run.mjs:163–176) sanitizes via `slugToBranch` before joining, rejects empty/all-dots slugs. `../foo` collapses to `.foo` after `[^a-z0-9\-\.]` strip — still inside `mainCwd/.team/worktrees/`. No traversal.
+- **Env propagation**: `env: { ...process.env }` is identical between claude and codex branches. No new secret exposure.
+- **No new injection surface introduced** by this task.
+
+## Per-criterion
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Required-cwd guard at every dispatch/gate site | PASS | run.mjs:54, run.mjs:287 |
+| Worktree-active call site passes worktree cwd | PASS | run.mjs:1020 (`cwd = worktreePath`), 1168, 1201, 1225 |
+| No silent fallback to main repo cwd | PASS | guards throw on falsy cwd |
+| Slug sanitization prevents path escape | PASS | run.mjs:155–166 |
+| Secrets / env handling unchanged | PASS | run.mjs:299, 331 |
+
+## Findings
+
+🟡 bin/lib/run.mjs:345 — `dispatchToAgentAsync` (used by `runParallelReviews`) lacks the `if (!cwd) throw` guard that `dispatchToAgent` now has at line 287. A future caller passing `undefined` would silently inherit `process.cwd()` via `spawn`. Add the same guard for parity and to fully close the "no implicit fallback" contract on the parallel-review path. Backlog.
+🔵 bin/lib/run.mjs:60 — `runGateInline` still uses `execSync(cmd, { shell: true })` where `cmd` is sourced from `PROJECT.md` / `package.json` `scripts.test`. Not introduced by this task, but worth documenting that gate commands inherit the trust level of those config files; treat any project-level config as trusted input.
+🔵 bin/lib/gate.mjs:59 — Harness-side gate runner still uses `cwd: process.cwd()`. Not reachable from the worktree-active dispatch path (run.mjs uses `runGateInline` directly, bypassing harness gate), so the task claim holds. Keep an eye on this if the harness-gate path is ever re-enabled — it would silently bypass worktree isolation.
+🔵 bin/lib/run.mjs:314 — `_spawnFn("sleep", [String(wait)])` 429 backoff is POSIX-only. Pre-existing; unrelated to this task but noted in prior security round and still present.
+
+## Conclusion
+The required-cwd contract is enforced at the two surfaces named in the task ("agent dispatch" = `dispatchToAgent`; "gate command" = `runGateInline`). Slug sanitization closes path-traversal at the worktree-creation step. The remaining `process.cwd()` references in `bin/lib/` are either outside the dispatch/gate path or in the harness-subprocess wrapper that intentionally stays anchored to the main repo. No critical findings; one yellow for parity on `dispatchToAgentAsync`.

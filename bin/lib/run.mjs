@@ -342,7 +342,8 @@ export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
 
 // ── Async agent dispatch for parallel use ────────────────────────
 
-function dispatchToAgentAsync(agent, brief, cwd) {
+export function dispatchToAgentAsync(agent, brief, cwd, _spawnFn = spawn) {
+  if (!cwd) throw new Error("dispatchToAgentAsync: cwd is required (no implicit process.cwd() fallback)");
   return new Promise((resolve) => {
     if (agent !== "claude") {
       resolve({ ok: false, output: "", error: "async dispatch only supports claude" });
@@ -350,7 +351,7 @@ function dispatchToAgentAsync(agent, brief, cwd) {
     }
     let stdout = "";
     let stderr = "";
-    const child = spawn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
+    const child = _spawnFn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },

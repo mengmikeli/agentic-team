@@ -1,0 +1,15 @@
+{
+  "taskId": "task-11",
+  "nodeType": "build",
+  "runId": "run_2",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added `if (!cwd) throw` guard to `dispatchToAgentAsync` and exported it with a `_spawnFn` parameter for testability. Fixed `gate.mjs` to accept an optional `--cwd` flag (falling back to `process.cwd()`) so the hardcoded `cwd: process.cwd()` is eliminated. Added negative tests for `dispatchToAgentAsync` with undefined cwd and a grep-audit test suite verifying no `cwd: process.cwd()` in agent dispatch or gate function bodies. All 558 tests pass.",
+  "timestamp": "2026-04-25T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "bin/lib/gate.mjs" },
+    { "type": "code", "path": "test/worktree.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

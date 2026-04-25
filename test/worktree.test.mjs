@@ -8,7 +8,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { execFileSync } from "child_process";
 
-import { slugToBranch, createWorktreeIfNeeded, removeWorktree, runGateInline, dispatchToAgent } from "../bin/lib/run.mjs";
+import { slugToBranch, createWorktreeIfNeeded, removeWorktree, runGateInline, dispatchToAgent, dispatchToAgentAsync } from "../bin/lib/run.mjs";
 
 // ── slugToBranch ─────────────────────────────────────────────────
 
@@ -302,6 +302,20 @@ describe("required-cwd contract (no implicit fallback)", () => {
       /cwd is required/
     );
   });
+
+  it("dispatchToAgentAsync throws when cwd is omitted", () => {
+    assert.throws(
+      () => dispatchToAgentAsync("claude", "brief", undefined),
+      /cwd is required/
+    );
+  });
+
+  it("dispatchToAgentAsync throws when cwd is undefined explicitly", () => {
+    assert.throws(
+      () => dispatchToAgentAsync("claude", "brief", undefined, () => {}),
+      /cwd is required/
+    );
+  });
 });
 
 
@@ -559,5 +573,65 @@ describe("worktree preserved on thrown error", () => {
     } finally {
       try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
     }
+  });
+});
+
+// ── Grep audit: no process.cwd() in agent dispatch or gate functions ──
+
+describe("grep audit: no process.cwd() in agent dispatch or gate paths", () => {
+  it("gate.mjs has no hardcoded cwd: process.cwd() references", () => {
+    const gateSrc = readFileSync(new URL("../bin/lib/gate.mjs", import.meta.url), "utf8");
+    // Must not hard-code `cwd: process.cwd()` — should use an explicit --cwd parameter with fallback
+    assert.ok(
+      !/cwd\s*:\s*process\.cwd\s*\(\)/.test(gateSrc),
+      "gate.mjs must not hard-code cwd: process.cwd() — use the resolved 'cwd' variable (from --cwd flag) instead"
+    );
+  });
+
+  it("dispatchToAgent body has no process.cwd() references", () => {
+    const src = readFileSync(new URL("../bin/lib/run.mjs", import.meta.url), "utf8");
+    // Find the dispatchToAgent function lines
+    const lines = src.split("\n");
+    let inFn = false;
+    let depth = 0;
+    const violations = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!inFn && /^export function dispatchToAgent\b/.test(line)) {
+        inFn = true;
+      }
+      if (inFn) {
+        depth += (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+        // Match actual usage like `cwd: process.cwd()` — not error message strings
+        if (/cwd\s*:\s*process\.cwd\s*\(\)/.test(line)) violations.push(`run.mjs:${i + 1}: ${line.trim()}`);
+        if (depth <= 0 && i > 0) break;
+      }
+    }
+    assert.equal(violations.length, 0,
+      `dispatchToAgent must not contain cwd: process.cwd():\n${violations.join("\n")}`
+    );
+  });
+
+  it("dispatchToAgentAsync body has no process.cwd() references", () => {
+    const src = readFileSync(new URL("../bin/lib/run.mjs", import.meta.url), "utf8");
+    const lines = src.split("\n");
+    let inFn = false;
+    let depth = 0;
+    const violations = [];
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!inFn && /export function dispatchToAgentAsync\b/.test(line)) {
+        inFn = true;
+      }
+      if (inFn) {
+        depth += (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+        // Match actual usage like `cwd: process.cwd()` — not error message strings
+        if (/cwd\s*:\s*process\.cwd\s*\(\)/.test(line)) violations.push(`run.mjs:${i + 1}: ${line.trim()}`);
+        if (depth <= 0 && i > 0) break;
+      }
+    }
+    assert.equal(violations.length, 0,
+      `dispatchToAgentAsync must not contain cwd: process.cwd():\n${violations.join("\n")}`
+    );
   });
 });

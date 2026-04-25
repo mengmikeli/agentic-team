@@ -1,51 +1,66 @@
-# Tester Eval — task-6 (concurrent worktree isolation, hardened)
+# Tester Review — cwd-audit AC
 
-## Verdict: PASS (with backlog)
+## AC under review
+> No agent dispatch or gate command in `bin/lib/` references `process.cwd()` directly when a worktree is active (verified by grep audit).
+
+## Verdict: ITERATE
+
+The two named functions (`runGateInline`, `dispatchToAgent`) meet the contract and are locked by negative tests. But the AC says "verified by **grep audit**" — and a literal grep audit of `bin/lib/` surfaces two unaddressed sites: `dispatchToAgentAsync` (silent fallback via `spawn({cwd: undefined})`) and `gate.mjs` (explicit `cwd: process.cwd()`). One has been previously flagged and is still unfixed; the other is not on the active `agt run` worktree path but would still appear in any literal audit.
+
+## Files actually opened
+- `bin/lib/run.mjs` lines 25–105, 280–340, 343–380
+- `bin/lib/gate.mjs` lines 1–80
+- `test/worktree.test.mjs` lines 270–350
+- `.team/features/git-worktree-isolation/tasks/task-3/eval-tester.md` (prior findings)
+- `.team/features/git-worktree-isolation/tasks/task-6/handshake.json`
+
+## Verification I actually ran
+
+`Grep "process\.cwd\(\)" -r bin/lib` — relevant hits:
+- `bin/lib/run.mjs:38` — `harness()` wrapper. **Acceptable** — wraps infra commands (init/transition/notify/finalize), not gate or dispatch; runs in the orchestrator's main cwd by design (`mainCwd` is captured at run.mjs:792).
+- `bin/lib/run.mjs:54` — `runGateInline` **throws** if cwd omitted. ✅
+- `bin/lib/run.mjs:287` — `dispatchToAgent` **throws** if cwd omitted. ✅
+- `bin/lib/run.mjs:659`, `:718`, `:721`, `:792` — main-process bootstrapping; not dispatch/gate paths. ✅
+- `bin/lib/gate.mjs:59` — **`execSync(cmd, { cwd: process.cwd(), ... })`** in the gate command. Literal violation of "gate command in bin/lib/ references process.cwd() directly". Not currently called during `agt run` (which uses `runGateInline`), but `agt-harness gate` exposes this entry point and the AC text covers it.
+- `bin/lib/run.mjs:345` (`dispatchToAgentAsync`) — **no guard**, passes `cwd` straight to `spawn(...)`. If a caller forgets cwd, `spawn({cwd: undefined})` silently inherits `process.cwd()`. Same surface area as `dispatchToAgent` but the contract isn't enforced.
+- `bin/lib/run.mjs:373` (`runParallelReviews`) — propagates undefined `cwd` to `dispatchToAgentAsync` and `buildReviewBrief` without validation.
+
+Negative tests run:
+- `runGateInline` cwd omitted → throws ✅ (`test/worktree.test.mjs:284`)
+- `runGateInline` cwd `undefined` explicit → throws ✅ (`:291`)
+- `dispatchToAgent` cwd omitted → throws ✅ (`:298`)
+- **No** negative test for `dispatchToAgentAsync` with missing cwd. ❌
+
+Gate output: 552 pass / 0 fail (per handshake summary; gate output snippet provided shows green run).
 
 ## Per-criterion
 
 | Criterion | Result | Evidence |
 |---|---|---|
-| Two concurrent runs on different features → independent worktrees | PASS | `test/worktree.test.mjs:370-394` — `Promise.all` race in real git repo, asserts distinct paths + both in `git worktree list` |
-| 4-way parallelism on `.team/worktrees/` | PASS | `test/worktree.test.mjs:396-411` — 4 slugs raced, all unique, all on disk |
-| True OS-level concurrency (separate processes) | PASS | `test/worktree.test.mjs:413-450` — spawns two child node processes, asserts both succeed and git bookkeeping intact (closes the prior 🟡 about Promise.all-over-sync) |
-| Same-slug race produces no corruption | PASS | `test/worktree.test.mjs:452-472` — `Promise.allSettled`, asserts ≥1 success and subsequent reuse works (closes the prior 🟡 about same-slug coverage) |
-| Worktree preserved on thrown error (re-run reuse) | PASS | `test/worktree.test.mjs:510-548` |
-| Slug sanitization (path-traversal claim from handshake) | PARTIAL | `test/worktree.test.mjs:477-505` only covers `"../evil"` (which sanitizes to harmless `"..evil"`). `".."` itself is NOT covered and DOES escape (see findings) |
-| Tests actually pass | PASS | `node --test test/worktree.test.mjs` → 38 pass, 0 fail, 633 ms (verified locally) |
-
-## Verification I actually ran
-- `node --test test/worktree.test.mjs` → 38/38 pass.
-- Direct probe: `createWorktreeIfNeeded("..", "/tmp/testfoo123", () => {})` returned `/tmp/testfoo123/.team` — i.e. the path **escapes** `.team/worktrees/`. Confirms the security hardening claim in the handshake is incomplete.
+| `runGateInline` no implicit fallback | PASS | run.mjs:54 throw + 2 negative tests |
+| `dispatchToAgent` no implicit fallback | PASS | run.mjs:287 throw + 1 negative test |
+| All gate commands in `bin/lib/` audit-clean | FAIL | `bin/lib/gate.mjs:59` — literal `cwd: process.cwd()` |
+| All agent dispatch in `bin/lib/` audit-clean | FAIL | `bin/lib/run.mjs:345` — `dispatchToAgentAsync` has no guard; `spawn({cwd: undefined})` silently falls back |
+| AC verifiable by automated grep audit | FAIL | No test asserts the audit; verification is manual and will rot |
+| Existing tests pass | PASS | Gate green: 552/0 |
 
 ## Edge cases checked
-- ✅ Different-slug race (covered)
-- ✅ Same-slug race (covered)
-- ✅ Real-process race vs. event-loop race (covered)
-- ✅ 4-way parallelism (covered)
-- ✅ Empty-after-sanitization slug → throws (`:498-505`)
-- ✅ Slug = `"../evil"` (covered but sanitizes to harmless `"..evil"`)
-- ❌ Slug = `".."` — NOT covered, and DOES escape (verified by hand)
-- ❌ Slug = `"..."` / `"...."` — NOT covered
-- ❌ Slug = `"."` — NOT covered; sanitizes to `"."`, `existsSync` returns true, returns the worktrees dir itself
-- ❌ Concurrent `removeWorktree` + `createWorktreeIfNeeded` on same slug — TOCTOU when one process is tearing down while another creates
-- ❌ Stale `.git/worktrees/<slug>` admin entry recovery (dir gone but git still has bookkeeping) — `git worktree add -B` would fail with "already registered"
+
+- ✅ cwd === "" → `if (!cwd)` is truthy-false, throws ✅
+- ✅ cwd === undefined explicit → throws (`runGateInline`, `dispatchToAgent`)
+- ❌ cwd === undefined for `dispatchToAgentAsync` → `spawn` falls back to `process.cwd()` silently; **no test covers this**
+- ❌ cwd === undefined for `runParallelReviews` → forwards undefined to `dispatchToAgentAsync` (same fallback)
+- ❌ Behavior of `cmdGate` when `agt-harness gate` is invoked from inside a worktree but with `--dir` pointing to a different feature dir — gate command runs in `process.cwd()` (the harness child's cwd), not necessarily the worktree the feature lives in. Not tested.
+- ❌ No grep-audit test pinning the AC; future code changes can re-introduce `process.cwd()` in dispatch/gate paths with all tests still green.
 
 ## Findings
 
-🟡 bin/lib/run.mjs:164 — Slug sanitization is incomplete. `slugToBranch("..")` returns `".."` (dots are permitted by the regex), so `createWorktreeIfNeeded("..", cwd)` resolves to `cwd/.team` — escaping `.team/worktrees/`. The handshake claims path-traversal via `--slug ../foo` is closed, but only the `../foo` → `..foo` case is. Reject slugs that are purely dots, or strip leading dots after the regex pass.
-🟡 test/worktree.test.mjs:486 — Path-traversal test only covers `"../evil"` (sanitizes to safe `"..evil"`). Add explicit cases for `".."`, `"..."`, `"."` to actually exercise the traversal vector and pin the sanitizer's behavior.
-🔵 test/worktree.test.mjs:166 — No test for stale `.git/worktrees/<slug>` admin entry where the directory was removed but git's bookkeeping wasn't pruned. Re-run with `-B` may fail.
-🔵 bin/lib/run.mjs:168 — Same-slug TOCTOU between `existsSync` and `git worktree add` is empirically bounded (one of the calls in `:452-472` is allowed to throw), but no test covers the three-way scenario where one process is mid-`removeWorktree` while another tries to create.
+🔴 bin/lib/run.mjs:345 — `dispatchToAgentAsync` lacks the `if (!cwd) throw` guard that `dispatchToAgent` enforces. `spawn(..., { cwd: undefined })` silently inherits `process.cwd()`, which is the exact failure mode the AC forbids. Add the guard and a negative test.
+🟡 bin/lib/gate.mjs:59 — `execSync(cmd, { cwd: process.cwd(), ... })` is a literal `process.cwd()` in a gate command in `bin/lib/`. A grep audit (the AC's stated verification method) flags this. Not on the active `agt run` path today (which uses `runGateInline`), but `agt-harness gate` exposes this code and it should accept a `--cwd` flag (or use `dir`) instead of reading `process.cwd()`.
+🟡 bin/lib/run.mjs:373 — `runParallelReviews` doesn't validate `cwd` before forwarding to `dispatchToAgentAsync`. Add an early `if (!cwd) throw` to make the contract symmetric across the parallel sibling.
+🟡 test/worktree.test.mjs — No automated grep-audit test. The AC says "verified by grep audit" but the verification is a one-shot manual check. Add a unit test that reads `bin/lib/run.mjs` and `bin/lib/gate.mjs`, scans for `process.cwd()`, and asserts only an allowlist of lines (e.g., the `harness()` wrapper, `mainCwd` capture).
+🟡 test/worktree.test.mjs — No negative test for `dispatchToAgentAsync(_, _, undefined)`. Add a coverage twin matching the existing `dispatchToAgent` negative case at `:298`.
+🔵 bin/lib/gate.mjs:17 — `cmdGate` already accepts `--dir`; consider running `execSync` with `cwd: dir` instead of `process.cwd()`. Aligns gate-command behavior with `runGateInline` and removes the literal `process.cwd()`.
 
 ## Notes
-The core concurrency claim — the actual scope of this task — is fully verified with real git, real processes, and assertions on git's own bookkeeping. The same-slug race and true-OS-concurrency tests added in this iteration close the two 🟡 findings from the previous tester eval.
-
-The 🟡 findings here are about the *added* path-traversal hardening, not the in-scope concurrency work. They don't undermine the concurrency PASS but should go to backlog before the path-traversal claim in the handshake can be considered fully closed.
-
-## Findings summary
-
-🟡 bin/lib/run.mjs:164 — Slug sanitization allows `".."` to escape `.team/worktrees/`; reject pure-dots slugs.
-🟡 test/worktree.test.mjs:486 — Path-traversal test misses the actually-traversing inputs (`".."`, `"..."`, `"."`).
-🔵 test/worktree.test.mjs:166 — No coverage for stale `.git/worktrees/<slug>` admin entry recovery.
-🔵 bin/lib/run.mjs:168 — No test for create/remove TOCTOU on the same slug.
+The two functions called out in task-3 are clean. The 🔴 is for `dispatchToAgentAsync`, which was already raised as 🟡 in `task-3/eval-tester.md:45` and remains unfixed; given the AC explicitly covers "agent dispatch ... in `bin/lib/`", a silent-fallback sibling of `dispatchToAgent` should be treated as a critical gap, not a backlog item. Once that is closed (and ideally pinned by an automated grep test), the AC is met.
