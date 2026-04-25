@@ -324,25 +324,45 @@ switch (command) {
       return projects;
     }
 
-    // Check if agt run is actively executing (not just a zombie/stopped process)
-    function isAgtRunning() {
+    // Check if agt run is actively executing for a specific project path
+    function isAgtRunning(projectPath) {
       try {
-        // Get PIDs matching agt run
         const result = spawnSync("pgrep", ["-f", "agt.mjs run"], { encoding: "utf8", timeout: 2000, stdio: ["pipe", "pipe", "pipe"] });
         if (result.status !== 0 || !result.stdout.trim()) return false;
         const dashboardPid = String(process.pid);
         const pids = result.stdout.trim().split("\n").filter(p => p !== dashboardPid);
         if (pids.length === 0) return false;
-        // Check if any matching PID has modified a STATE.json in the last 10 minutes
-        // (a truly running agt writes state frequently)
+
+        // Check each PID: must be alive (not zombie) AND working in this project's directory
+        const resolvedProject = fs.realpathSync(projectPath);
         for (const pid of pids) {
           try {
-            const ps = spawnSync("ps", ["-p", pid.trim(), "-o", "state=,etime="], { encoding: "utf8", timeout: 1000, stdio: ["pipe", "pipe", "pipe"] });
-            const output = (ps.stdout || "").trim();
-            // Zombies (Z) and stopped processes (T) are not running
-            if (output.startsWith("Z") || output.startsWith("T")) continue;
-            // Check elapsed time — if process started >24h ago with no recent state write, suspect stale
-            return true;
+            const ps = spawnSync("ps", ["-p", pid.trim(), "-o", "state="], { encoding: "utf8", timeout: 1000, stdio: ["pipe", "pipe", "pipe"] });
+            const state = (ps.stdout || "").trim();
+            if (state.startsWith("Z") || state.startsWith("T")) continue;
+
+            // Check process CWD to scope to this project
+            const lsof = spawnSync("lsof", ["-p", pid.trim(), "-Fn"], { encoding: "utf8", timeout: 2000, stdio: ["pipe", "pipe", "pipe"] });
+            const cwdMatch = (lsof.stdout || "").match(/^n(.+)$/m);
+            if (cwdMatch) {
+              try {
+                const procCwd = fs.realpathSync(cwdMatch[1]);
+                if (procCwd === resolvedProject || procCwd.startsWith(resolvedProject + "/")) {
+                  return true;
+                }
+              } catch {}
+            }
+
+            // Fallback: check loop-status.json timestamp (written by this project's run)
+            const loopStatus = join(projectPath, ".team", ".loop-status.json");
+            if (fs.existsSync(loopStatus)) {
+              try {
+                const ls = JSON.parse(fs.readFileSync(loopStatus, "utf8"));
+                if (ls.updatedAt && (Date.now() - new Date(ls.updatedAt).getTime()) < 300000) {
+                  return true; // loop status updated in last 5 min
+                }
+              } catch {}
+            }
           } catch { continue; }
         }
         return false;
@@ -372,7 +392,7 @@ switch (command) {
     function readFeatures(projectPath) {
       const featDir = join(projectPath, ".team", "features");
       if (!fs.existsSync(featDir)) return [];
-      const agtRunning = isAgtRunning(); // process-based only; activity check caused false pauses during brainstorm
+      const agtRunning = isAgtRunning(projectPath); // scoped to this project; activity check caused false pauses during brainstorm
       try {
         return fs.readdirSync(featDir, { withFileTypes: true })
           .filter(d => d.isDirectory())
