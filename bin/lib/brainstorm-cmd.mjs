@@ -55,7 +55,12 @@ ${cwd}
 4. Define clear done-when criteria
 
 ## Required Output
-Write your analysis and then produce a complete SPEC.md in this format:
+Write your analysis and then produce a complete SPEC.md.
+
+The SPEC.md MUST contain each of the following seven sections (same sections validateSpecFile checks for), in this order:
+${PRD_SECTIONS.map(s => `- ## ${s}`).join("\n")}
+
+Format the spec as:
 
 \`\`\`markdown
 # Feature: {name}

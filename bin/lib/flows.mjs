@@ -5,6 +5,7 @@
 
 import { readFileSync } from "node:fs";
 import { parseFindings } from "./synthesize.mjs";
+import { PRD_SECTIONS } from "./spec.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -63,6 +64,7 @@ export function selectFlow(description, tasks) {
 }
 
 export function buildBrainstormBrief(featureName, description, cwd) {
+  const sectionList = PRD_SECTIONS.map(s => `- ## ${s}`).join("\n");
   return `You are brainstorming the implementation approach for feature "${featureName}".
 
 ## Feature
@@ -78,7 +80,11 @@ Analyze the requirements and produce a concise implementation plan:
 3. Note any risks or dependencies
 4. Suggest the implementation order
 
-Output a concise markdown plan. Do NOT write any code yet.`;
+## Required SPEC.md Sections
+The resulting SPEC.md must include all of these sections (these are the same sections validateSpecFile checks for):
+${sectionList}
+
+Output a concise markdown plan covering each of the sections above. Do NOT write any code yet.`;
 }
 
 export function buildReviewBrief(featureName, taskTitle, gateOutput, cwd, role) {

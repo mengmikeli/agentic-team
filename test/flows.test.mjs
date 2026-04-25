@@ -3,8 +3,14 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "../bin/lib/flows.mjs";
+import { PRD_SECTIONS } from "../bin/lib/spec.mjs";
 import { parseFindings, computeVerdict } from "../bin/lib/synthesize.mjs";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe("FLOWS", () => {
   it("defines light-review with gate only", () => {
@@ -119,6 +125,30 @@ describe("buildBrainstormBrief", () => {
   it("instructs not to write code yet", () => {
     const brief = buildBrainstormBrief("feat", "desc", "/cwd");
     assert.ok(brief.toLowerCase().includes("not") && brief.toLowerCase().includes("code"));
+  });
+
+  it("advertises all seven PRD_SECTIONS that validateSpecFile checks for", () => {
+    const brief = buildBrainstormBrief("feat", "desc", "/cwd");
+    for (const section of PRD_SECTIONS) {
+      assert.ok(
+        brief.includes(`## ${section}`),
+        `Brainstorm brief must advertise the "${section}" section so the resulting SPEC.md passes validateSpecFile`
+      );
+    }
+  });
+});
+
+describe("templates/SPEC.md", () => {
+  it("advertises the same seven sections that validateSpecFile checks for", () => {
+    const templatePath = resolve(__dirname, "..", "templates", "SPEC.md");
+    const content = readFileSync(templatePath, "utf8");
+    for (const section of PRD_SECTIONS) {
+      const pattern = new RegExp(`^##\\s+${section}\\b`, "mi");
+      assert.ok(
+        pattern.test(content),
+        `templates/SPEC.md must include "## ${section}" to match validateSpecFile`
+      );
+    }
   });
 });
 
