@@ -1,0 +1,28 @@
+id: add-github-integration
+name: Add GitHub Integration
+patterns:
+  - type: regex
+    value: "add.*github.*integrat|github.*integrat|connect.*github|integrat.*github"
+    weight: 2.0
+  - type: keyword
+    value: "github integration"
+    weight: 1.5
+  - type: keyword
+    value: "github api"
+    weight: 1.0
+  - type: keyword
+    value: "octokit"
+    weight: 1.0
+minScore: 2.5
+tasks:
+  - title: Configure GitHub API credentials and authentication
+    hint: Set up personal access token or GitHub App credentials, add to env config
+  - title: Implement GitHub API client wrapper
+    hint: Create a reusable client using octokit or fetch, handle auth and rate limits
+  - title: Add core GitHub integration endpoints or handlers
+    hint: Implement the specific GitHub operations needed (repos, PRs, issues, webhooks)
+  - title: Handle GitHub webhook events
+    hint: Set up webhook listener, verify signatures, route events to handlers
+  - title: Write tests for GitHub integration
+    hint: Mock GitHub API responses and test all handlers and edge cases
+flow: build-verify
