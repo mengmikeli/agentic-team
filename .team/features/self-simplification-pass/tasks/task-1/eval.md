@@ -335,10 +335,10 @@ No critical vulnerabilities. One warning: unsanitized file paths in the agent pr
 
 ---
 
-# Tester Review — self-simplification-pass
+# Tester Review (run_3) — self-simplification-pass
 
 **Verdict: PASS**
-*(two warnings, three suggestions filed)*
+*(one warning, three suggestions carried)*
 
 ## Files Read
 
@@ -736,3 +736,432 @@ No speculative config options or unused feature flags. Injectable `execFn`/`disp
 ## Summary
 
 Run_2 resolved all three prior critical findings: removed `makeExecFn`, added gate-throws test, tightened guard to `completed > 0 && blocked === 0`. One dead variable (`callIndex` at test:138) remains — a one-line deletion. Under the dead-code veto rule this blocks merge.
+
+---
+
+# Tester Review (run_3) — self-simplification-pass
+
+**Verdict: PASS**
+**Reviewer role:** Tester
+**Date:** 2026-04-26
+
+---
+
+## Files Read
+
+- `.team/features/self-simplification-pass/tasks/task-1/handshake.json`
+- `bin/lib/simplify-pass.mjs` (193 lines — full)
+- `test/simplify-pass.test.mjs` (394 lines — full)
+- `bin/lib/run.mjs` lines 1490–1580 (simplify block + finalize + phase breakdown)
+
+---
+
+## Builder Claims vs Evidence (run_3)
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Removed `let callIndex = 0;` dead variable | ✓ | Not present in test file; searched all 394 lines |
+| Guard assertion regex extended to cover `blocked === 0` | ✓ | test:389 regex is `/completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/` |
+| `git clean -fd` added after `git checkout HEAD -- .` | ✓ | simplify-pass.mjs:189–194 |
+
+All three claimed fixes confirmed by direct code read.
+
+---
+
+## Per-Criterion Results
+
+### 1. Prior 🔴 — Dead `callIndex` variable — FIXED
+`let callIndex = 0;` is absent from all 394 lines of the test file. Confirmed.
+
+### 2. Prior 🟡 — Source assertion regex incomplete — FIXED
+`test/simplify-pass.test.mjs:389` now asserts `/completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/`. Removing either clause from `run.mjs:1503` will now cause this test to fail. Regression-proof.
+
+### 3. Prior 🟡 (Architect) — `git checkout HEAD -- .` doesn't clean untracked files — CODE FIXED, TEST GAP
+
+`simplify-pass.mjs:189–194` now calls `git clean -fd` after `git checkout HEAD -- .`. Fix is correct in code.
+
+However, `test/simplify-pass.test.mjs:288–307` ("reverts uncommitted changes with checkout...") captures commands matching `checkout HEAD` in `revertCmds` but does NOT capture or assert on `git clean -fd`. The mock returns `""` for all unrecognized commands, so `git clean -fd` runs silently. Deleting `simplify-pass.mjs:189–194` would leave all 46 tests passing while silently re-introducing the untracked-file regression. The fix is untested.
+
+### 4. Remaining untested paths (carried from prior reviews)
+- `master` fallback: main fails → master tried (Gap C, 🔵)
+- Pre-dispatch `rev-parse HEAD` failure early-return (Gap D, 🔵)
+- `.sh`/`.bash` in `isCodeFile` (Gap E, 🔵)
+
+---
+
+## Findings
+
+🟡 test/simplify-pass.test.mjs:288 — The "reverts uncommitted changes" test does not assert that `git clean -fd` was called; the fix at simplify-pass.mjs:189–194 can be silently deleted without failing any test — extend `revertCmds` capture to include `clean -fd` and add assertion `revertCmds.some(c => c.includes("clean -fd"))`
+
+🔵 bin/lib/simplify-pass.mjs:90 — `master` fallback branch untested (carried from prior review)
+
+🔵 bin/lib/simplify-pass.mjs:111 — Pre-dispatch `rev-parse HEAD` failure path untested (carried from prior review)
+
+🔵 test/simplify-pass.test.mjs:23 — `.sh`/`.bash` extensions in CODE_EXT have no `isCodeFile` assertions (carried from prior review)
+
+---
+
+## Summary
+
+All three run_3 builder claims verified. Prior critical (`callIndex`) and prior warning (guard regex) are fully resolved. The `git clean -fd` code fix is correct, but the test doesn't lock it in — silently removable. One new 🟡 filed. Three 🔵 suggestions carried from prior passes. No blockers.
+
+---
+
+# Security Review (Final Pass) — self-simplification-pass
+
+**Reviewer role:** Security Specialist
+**Date:** 2026-04-26
+**Overall Verdict:** PASS (one warning carried to backlog)
+
+---
+
+## Files Actually Read
+
+- `bin/lib/simplify-pass.mjs` (full, 199 lines)
+- `test/simplify-pass.test.mjs` (full, 353 lines)
+- `bin/lib/run.mjs` — `runGateInline` (lines 54–79), `dispatchToAgent` (lines 283–336), `detectGateCommand` (lines 392–414), simplify-pass integration (lines 1490–1549)
+
+---
+
+## Security Criterion Results
+
+### 1. Shell/Command Injection — PASS
+
+All dynamic values interpolated into `execSync` template strings are sourced from trusted git internals:
+- `base` — `git merge-base HEAD main|master` → always a 40-char hex SHA or throws (lines 92–98)
+- `preSha` — `git rev-parse HEAD` → always a 40-char hex SHA or throws (lines 112–119)
+- `branch` — hardcoded array `["main", "master"]` (line 90), no user input
+
+SHA hashes are limited to `/[0-9a-f]{40}/` — no shell metacharacters possible. `git reset --hard ${preSha}` (line 179) is safe for the same reason. Practical injection risk: zero.
+
+`runGateInline` uses `shell: true` (run.mjs:65) — pre-existing pattern, not introduced here; `gateCmd` is developer-controlled config.
+
+### 2. Prompt Injection via Filenames — WARNING (confirmed, carried)
+
+`buildSimplifyBrief` (lines 62–65) embeds raw paths from `git diff --name-only` into the LLM prompt without sanitization:
+
+```js
+${files.map(f => `- ${f}`).join("\n")}
+```
+
+Git permits filenames containing newlines, null bytes, and arbitrary Unicode. A file named with injected directives (e.g., a third-party submodule file or an external contributor's commit) is passed verbatim to the agent. The dispatch call uses `--permission-mode bypassPermissions` (run.mjs:290), so injected instructions execute with full filesystem access. Threat is low for single-developer repos, elevated for multi-contributor projects or submodules.
+
+**Identical finding confirmed independently by two prior security passes. Backlog item exists.**
+
+### 3. `git clean -fd` Safety — PASS
+
+Added at lines 189–194 in the uncommitted-change revert path. Runs with `-fd` only (not `-fdx`), so `.gitignore`d files (`.env`, `node_modules/`) are NOT removed. Scoped to the isolated worktree `cwd`. Correct and safe.
+
+### 4. `dispatchToAgent` Brief Delivery — PASS (no shell injection)
+
+`dispatchToAgent` uses `spawnSync` with an argument array (run.mjs:290) — the `brief` is an argv element, not a shell string. Adversarial filenames embedded in the brief cannot produce shell injection; only prompt injection is possible (see §2 above).
+
+### 5. Role File Loading — PASS
+
+`loadSimplifyRole` resolves a fixed path relative to `__dirname_local` (lines 35–41). No user input affects the path. Missing file returns `""` gracefully. No traversal risk.
+
+### 6. Revert Scope — PASS
+
+Both revert paths (`git reset --hard preSha` and `git checkout HEAD -- . && git clean -fd`) operate in the isolated worktree. Worktree is force-removed in the `finally` block at run.mjs:1549 regardless of outcome.
+
+### 7. Input Guard — PASS
+
+Early return at line 84 (`if (!agent || !gateCmd)`) prevents execution with null inputs. All error branches return safe fallback objects with no side effects.
+
+---
+
+## Findings
+
+🟡 bin/lib/simplify-pass.mjs:62 — File paths from `git diff --name-only` embedded in agent prompt without sanitization; strip control characters and newlines before embedding (e.g. `f.replace(/[\x00-\x1f\x7f]/g, "").trim()`) — risk is amplified by `bypassPermissions` dispatch mode
+
+🔵 bin/lib/simplify-pass.mjs:47 — `execSync` with template literal used for all six git commands; prefer `execFileSync("git", [...args])` to eliminate the shell-interpolation anti-pattern even though current values are provably safe (same pattern at lines 92, 142, 151, 173, 179)
+
+---
+
+## What Was Not Verified
+
+- Actual Claude CLI behavior when receiving a brief with a crafted filename; prompt-injection risk is based on code reading, not live testing
+- Whether `--permission-mode bypassPermissions` can be overridden by a malicious prompt (Claude CLI internal behavior)
+
+---
+
+## Summary
+
+No critical vulnerabilities. The implementation is correct and safe for its threat model (local developer tooling). The one warning — unsanitized file paths in the agent prompt — is a realistic risk only in multi-contributor or submodule scenarios, and has been identified consistently across all security passes. No new critical findings. **PASS.**
+
+---
+
+# PM Review (run_3) — self-simplification-pass
+
+**Verdict: PASS**
+*(one new warning, two backlog items carried forward)*
+
+## Files Read
+
+- `.team/features/self-simplification-pass/tasks/task-1/handshake.json`
+- `bin/lib/simplify-pass.mjs` (193 lines, full)
+- `test/simplify-pass.test.mjs` (394 lines, full)
+- `bin/lib/run.mjs` lines 20–27 (imports), 1501–1530 (simplify block + finalize), 1572–1606 (token reporting)
+- `roles/simplify-pass.md` (28 lines, full)
+
+---
+
+## Builder Claims vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Removed `let callIndex = 0;` dead variable | ✓ | Not present in 394-line test file |
+| Extended source assertion regex to cover `blocked === 0` | ✓ | test:389 regex is `/completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/` |
+| Added `git clean -fd` after `git checkout HEAD -- .` | ✓ (code only) | simplify-pass.mjs:189–193; test does NOT assert it was called |
+
+---
+
+## Per-Criterion Results
+
+### 1. Runs automatically after all tasks pass review
+**PASS** — `run.mjs:1503`: `if (completed > 0 && blocked === 0)`. No manual trigger. `blocked === 0` correctly enforces "all tasks pass review."
+
+### 2. Runs before `finalize`
+**PASS** — `runSimplifyPass(...)` at `run.mjs:1507`; `harness("finalize", ...)` at `run.mjs:1530`. Source-assertion at `test:366–372` mechanically enforces ordering.
+
+### 3. Guard condition fully tested
+**PASS** — Source assertion at `test:389` verifies the full `completed > 0 && blocked === 0`. Removing either clause from `run.mjs:1503` would fail the test.
+
+### 4. Dead variable removed
+**PASS** — `let callIndex = 0;` is absent from all 394 lines of the test file. Prior 🔴 resolved.
+
+### 5. Gate-throws revert path
+**PASS** — `simplify-pass.mjs:166–170` wraps `runGateFn` in try/catch. Test at line 327–351 exercises the path and asserts `reverted: true`.
+
+### 6. Revert completeness — untracked files
+**PARTIAL** — `git clean -fd` is present at `simplify-pass.mjs:189–193`. However, the test at line 288 captures only "checkout HEAD" commands; `git clean -fd` is silently ignored. The fix is unprotected against regression.
+
+### 7. Tests registered and passing
+**PASS** — 46/46 tests pass; file appears in provided gate output.
+
+---
+
+## Findings
+
+🟡 test/simplify-pass.test.mjs:295 — The uncommitted-revert test mock only captures `checkout HEAD` commands; `git clean -fd` at `simplify-pass.mjs:189` is not tracked and not asserted — extend `execFn` to capture clean commands and add `assert.ok(revertCmds.some(c => c.includes("clean -fd")))` so the untracked-file cleanup cannot silently regress
+
+🟡 bin/lib/run.mjs:1578 — `phaseOrder` hardcodes `["brainstorm", "build", "review"]`; `"simplify"` absent at both line 1578 (console breakdown) and line 1604 (progress log) — simplify-pass token cost is invisible to operators. File to backlog. (Carried from multiple prior reviews.)
+
+🟡 bin/lib/simplify-pass.mjs:62 — File paths from `git diff --name-only` embedded in agent prompt without sanitization; adversarial filenames can inject instructions when agent runs with `bypassPermissions`. File to backlog. (Carried from Security reviews.)
+
+---
+
+## Summary
+
+All three builder-claimed fixes verified against source. The prior 🔴 dead-variable (`callIndex`) is resolved. The guard condition is correctly implemented and fully tested. One new 🟡: the `git clean -fd` fix exists in production code but the test cannot catch its removal — regression risk for the untracked-file cleanup behavior. Two carried 🟡 backlog items (phaseOrder omits "simplify"; unsanitized filenames in agent prompt) remain outstanding from prior reviews. No critical findings. **PASS.**
+
+---
+
+# Simplicity Review (run_3) — self-simplification-pass
+
+**Verdict: FAIL**
+**Reviewer role:** Simplicity Advocate
+**Date:** 2026-04-26
+
+---
+
+## Files Read
+
+- `test/simplify-pass.test.mjs` (394 lines) — full read
+- `bin/lib/simplify-pass.mjs` (199 lines) — full read
+- `bin/lib/run.mjs` lines 1501–1530, 1573–1607 (simplify block + phase reporting)
+- `.team/features/self-simplification-pass/tasks/task-1/handshake.json`
+
+---
+
+## Builder Claims vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Removed `let callIndex = 0;` (run_2 🔴) | ✓ | Not present anywhere in test file |
+| Extended guard regex to `completed > 0 && blocked === 0` (run_2 🟡) | ✓ | test:389 regex `/completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/` |
+| Added `git clean -fd` after `git checkout HEAD -- .` (architect 🟡) | ✓ | simplify-pass.mjs:189–193 |
+
+---
+
+## Per-Criterion Results
+
+### 1. Dead Code — FAIL
+
+`test/simplify-pass.test.mjs:156`: `let revParseCount = 0;` is declared inside the `"dispatches agent when code files are changed"` test and never read, incremented, or referenced anywhere in that test's body. The `execFn` at lines 157–163 returns a hardcoded `"sha1\n"` for `rev-parse HEAD` without consulting the variable. Dead leftover — likely a copy-paste artifact from adjacent tests that do use call counters (`revParseCallCount` at line 196, `revParseCount` at lines 238/263).
+
+All other names verified as used.
+
+### 2. Premature Abstraction — PASS
+
+All exported helpers (`isCodeFile`, `getChangedFiles`, `buildSimplifyBrief`, `runSimplifyPass`) have ≥2 call sites (production + tests). Private `loadSimplifyRole()` transforms (try/catch, `""` fallback) rather than purely delegating.
+
+### 3. Unnecessary Indirection — PASS
+
+No pass-through wrappers. No re-exports without added value.
+
+### 4. Gold-Plating — PASS
+
+No speculative config options or feature flags. Injectable `execFn`/`dispatchFn`/`runGateFn` serve test injection — they have test call sites, not hypothetical future ones.
+
+---
+
+## Findings
+
+🔴 test/simplify-pass.test.mjs:156 — `let revParseCount = 0;` declared but never read or incremented; dead variable; remove it
+
+🟡 test/simplify-pass.test.mjs:295 — `revertCmds` only captures `checkout HEAD` commands; `git clean -fd` (simplify-pass.mjs:189–193) is never asserted and can be silently deleted without any test failing; extend capture or add assertion for `clean -fd`
+
+🔵 bin/lib/simplify-pass.mjs:11 — `__dirname_local` suffix `_local` is noise; rename to `__dirname` (standard ESM pattern) — carried from run_1
+
+🔵 bin/lib/run.mjs:1578 — `phaseOrder` hardcodes `["brainstorm", "build", "review"]`; add `"simplify"` to both line 1578 and line 1604 — carried from prior reviews
+
+---
+
+## Edge Cases Checked
+
+- `agent: null` → early return (simplify-pass.mjs:84, test:108) ✓
+- `gateCmd: ""` → early return (simplify-pass.mjs:84, test:117) ✓
+- No code files changed → no dispatch (simplify-pass.mjs:104–107, test:136) ✓
+- Gate throws → try/catch maps to FAIL, revert executes (simplify-pass.mjs:166–169, test:327) ✓
+- Dead variable `revParseCount` at test:156 — confirmed unused by reading entire test body (lines 154–176)
+
+## What Was Not Verified
+
+- Live E2E behavior (static + unit-test evidence only)
+- That `git clean -fd` fires correctly at runtime (test gap identified above)
+
+---
+
+## Summary
+
+The run_3 builder correctly removed the `callIndex` dead variable, tightened the guard regex, and added `git clean -fd`. However, a new dead variable (`revParseCount` at test:156) was introduced — a copy-paste artifact from adjacent tests. Under the dead-code veto rule this blocks merge. Fix: remove line 156 (`let revParseCount = 0;`).
+
+---
+
+# Architect Review (run_3) — self-simplification-pass
+
+**Verdict: PASS**
+**Reviewer role:** Architect
+**Date:** 2026-04-26
+
+## Files Actually Read
+- `bin/lib/simplify-pass.mjs` (198 lines) — full read
+- `bin/lib/run.mjs` lines 20–27 (imports), 1490–1610 (simplify block + completion report)
+- `test/simplify-pass.test.mjs` (394 lines) — full read
+- `.team/features/self-simplification-pass/tasks/task-1/handshake.json`
+- `.team/features/self-simplification-pass/tasks/task-1/eval.md` (all prior reviews)
+
+## Builder Claims vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Removed dead `callIndex` variable | ✓ | Not present in test file (read all 394 lines) |
+| Guard assertion extended to `blocked === 0` | ✓ | test:389 — `/completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/` |
+| `git clean -fd` added after `git checkout HEAD -- .` | ✓ | simplify-pass.mjs:189–193 |
+
+## Per-Criterion Results
+
+### Module boundary — PASS
+`simplify-pass.mjs` is properly isolated. All external I/O passes through injected function parameters (`dispatchFn`, `runGateFn`, `execFn`). No shared mutable state. No side-effects at import time.
+
+### Coupling — PASS
+`run.mjs:26` imports only `runSimplifyPass` from `simplify-pass.mjs`. Strictly one-directional. No circular coupling.
+
+### Guard condition — PASS
+`run.mjs:1503`: `if (completed > 0 && blocked === 0)` correctly enforces the spec. Regression-locked by source-assertion test at `test:389`.
+
+### Placement in execution hierarchy — PASS
+End of `_runSingleFeature`, between task loop (line 1499) and `harness("finalize")` (line 1530). `outer-loop.mjs` required no modification.
+
+### Scalability — PASS
+Changed-file detection is O(diff size) via `git diff --name-only`. Single agent dispatch. No in-process file accumulation.
+
+### Error containment — PASS
+`runGateFn` wrapped in try/catch at `simplify-pass.mjs:166–170`. Entire pass wrapped at `run.mjs:1504/1523` — crash is non-fatal.
+
+### Revert safety — PASS
+Two-path revert correct in code. `git clean -fd` present at line 189. Untracked-file cleanup is unverified by any test assertion — corroborated by Tester run_3 and PM run_3.
+
+## Findings
+
+🟡 test/simplify-pass.test.mjs:288 — The uncommitted-revert test captures `checkout HEAD` commands but not `git clean -fd`; removing `simplify-pass.mjs:189–193` leaves all 46 tests green — extend test to assert `clean -fd` was called. (Corroborated by Tester run_3.)
+
+🟡 bin/lib/run.mjs:1578 — `phaseOrder` at lines 1578 and 1604 omits `"simplify"`; simplify-pass token costs excluded from per-phase console breakdown and progress log despite `setUsageContext("simplify", null)` at line 1506. Add `"simplify"` to both arrays. (Carried through 3+ review passes without fix.)
+
+🔵 bin/lib/simplify-pass.mjs:90 — Merge-base detection only tries `main` then `master`; repos using `develop`, `trunk`, or a custom primary branch silently skip the pass. Acceptable v1 limitation.
+
+🔵 bin/lib/simplify-pass.mjs:11 — `__dirname_local` suffix `_local` is noise; standard ESM convention is `__dirname`.
+
+## Edge Cases Checked
+- `completed === 0` → pass fully skipped ✓ (`run.mjs:1503`)
+- `blocked > 0` → pass skipped by `blocked === 0` guard ✓ (`run.mjs:1503`, test:389)
+- Simplify pass throws → caught at `run.mjs:1523`, feature continues ✓
+- `runGateFn` throws → caught at `simplify-pass.mjs:166–170`, revert executes ✓ (test:327)
+- Agent commits then gate fails → `git reset --hard preSha` reverts ✓ (test:261)
+- Agent uncommitted changes then gate fails → `git checkout HEAD -- .` + `git clean -fd` ✓ (code verified; clean NOT asserted in test:288)
+- No code files changed → no dispatch, no gate re-run ✓
+- `agent: null` → skipped at `simplify-pass.mjs:84` ✓
+- Worktree removed in `finally` whether pass succeeds or fails ✓ (`run.mjs:1549`)
+
+---
+
+# Engineer Review (final) — self-simplification-pass
+
+**Verdict: FAIL**
+**Reviewer role:** Engineer
+**Date:** 2026-04-26
+
+## Files Actually Read
+
+- `.team/features/self-simplification-pass/tasks/task-1/handshake.json`
+- `bin/lib/simplify-pass.mjs` (199 lines — full)
+- `bin/lib/run.mjs` lines 1490–1607
+- `test/simplify-pass.test.mjs` (394 lines — full)
+- `.team/features/self-simplification-pass/tasks/task-1/eval.md` (all prior reviews through Simplicity run_3)
+
+---
+
+## Builder Claims vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Removed `let callIndex = 0;` dead variable | ✓ | Not present in test file |
+| Guard assertion regex covers `blocked === 0` | ✓ | test:389 — `/completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/` |
+| `git clean -fd` added after `git checkout HEAD -- .` | ✓ | simplify-pass.mjs:189–193 |
+
+All three claimed fixes confirmed. However, a new dead variable was introduced in the same run.
+
+---
+
+## Per-Criterion Results
+
+### 1. Correctness — PASS
+
+Core execution order, revert logic, and guard condition are all correct and verified. No logic regressions from the run_3 changes.
+
+### 2. Code quality — FAIL
+
+`test/simplify-pass.test.mjs:156`: `let revParseCount = 0;` is declared inside the `"dispatches agent when code files are changed"` test (lines 154–176) and is never read, incremented, or referenced anywhere in the test body. The `execFn` at lines 157–163 returns hardcoded values with no dependency on `revParseCount`. This is a dead variable — a copy-paste artifact from adjacent tests (`revParseCallCount` at line 196, `revParseCount` at line 238/263) that do use call counters. Identical class of bug to `callIndex` that blocked merge in run_2.
+
+### 3. Error handling — PASS
+
+`runGateFn` try/catch at lines 166–170, broad try/catch at run.mjs:1523. All failure paths handled.
+
+### 4. Test coverage — PASS with gap
+
+46/46 pass. `git clean -fd` not asserted in test:295 (code is correct; test doesn't lock it in).
+
+---
+
+## Findings
+
+🔴 test/simplify-pass.test.mjs:156 — `let revParseCount = 0;` declared but never read or used; dead variable; remove this line
+
+🟡 test/simplify-pass.test.mjs:295 — `revertCmds` mock captures only `checkout HEAD`; `git clean -fd` (simplify-pass.mjs:189–193) is unasserted and removable without failing tests — extend capture to include `clean -fd` and add assertion
+
+---
+
+## Summary
+
+The run_3 builder correctly fixed all three claimed items. A new dead variable (`revParseCount` at test:156) was introduced as a copy-paste artifact — same pattern as the prior `callIndex` blocker. One-line fix: remove line 156. **FAIL until resolved.**
