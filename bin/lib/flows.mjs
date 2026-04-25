@@ -4,7 +4,7 @@
 // full-stack: brainstorm + build + multi-role review + gate
 
 import { readFileSync } from "node:fs";
-import { parseFindings } from "./synthesize.mjs";
+import { parseFindings, SIMPLICITY_VETO_TAG } from "./synthesize.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
@@ -188,7 +188,7 @@ export function mergeReviewFindings(findings) {
       // Format: 🔴 [role] file:line — … (emoji anchors severity at line-start)
       const emojiRe = /^([🔴🟡🔵])\s*/u;
       const m = p.text.match(emojiRe);
-      const label = (role === "simplicity" && p.severity === "critical") ? "simplicity veto" : role;
+      const label = (role === "simplicity" && p.severity === "critical") ? SIMPLICITY_VETO_TAG.slice(1, -1) : role;
       const prefixedText = m
         ? `${m[1]} [${label}] ${p.text.slice(m[0].length)}`
         : `[${label}] ${p.text}`;

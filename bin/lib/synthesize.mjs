@@ -48,6 +48,9 @@ export function computeVerdict(findings) {
   return { verdict, backlog, critical, warning, suggestion };
 }
 
+/** Tag applied by mergeReviewFindings to a 🔴 finding from the simplicity role. */
+export const SIMPLICITY_VETO_TAG = "[simplicity veto]";
+
 /**
  * Returns true if any finding text contains the `[simplicity veto]` tag.
  * Pure function — no I/O, no side effects.
@@ -56,7 +59,7 @@ export function computeVerdict(findings) {
  */
 export function hasSimplicityVeto(findings) {
   if (!Array.isArray(findings)) return false;
-  return findings.some(f => typeof f?.text === "string" && f.text.includes("[simplicity veto]"));
+  return findings.some(f => typeof f?.text === "string" && f.text.includes(SIMPLICITY_VETO_TAG));
 }
 
 /**
