@@ -2,7 +2,7 @@
 // Validates each extension manifest and returns a flat list of validated extensions.
 
 import { existsSync, readdirSync } from "fs";
-import { join, normalize } from "path";
+import { join } from "path";
 import { homedir } from "os";
 
 export async function loadExtensions(cwd = process.cwd()) {
@@ -24,12 +24,7 @@ export async function loadExtensions(cwd = process.cwd()) {
     }
 
     for (const file of files) {
-      // prevent directory traversal: resolved path must stay within base dir
-      const full = normalize(join(dir, file));
-      const base = normalize(dir);
-      const sep = process.platform === "win32" ? "\\" : "/";
-      const filePath = full.startsWith(base + sep) ? full : null;
-      if (!filePath) continue;
+      const filePath = join(dir, file);
 
       try {
         const mod = await import(filePath);

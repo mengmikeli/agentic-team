@@ -27,6 +27,7 @@ export function setExtensions(list) {
  *   - promptAppend payload:   { prompt: string, taskId: string, phase: string }
  *   - verdictAppend payload:  { findings: Finding[], phase: string }
  *   - executeRun payload:     { taskId: string, cwd: string }
+ *   - artifactEmit payload:   { artifacts: Artifact[], taskId: string, featureName: string }
  * @param {string} [cwd]      - Working directory used to locate .team/extensions/
  * @returns {Promise<Array>} Non-null results from each extension.
  *   - promptAppend return:  { append: string } — content appended to the agent brief
@@ -36,6 +37,9 @@ export function setExtensions(list) {
  *                           effect on the main run pipeline.
  *   - executeRun return:    { command: string, required?: boolean } — command spawned in task cwd;
  *                           non-zero exit with required: true causes task FAIL
+ *   - artifactEmit return:  { artifacts: Array<{type: string, path: string, content?: string}> } —
+ *                           each descriptor is written to the task artifacts dir (if content provided)
+ *                           and merged into handshake.json
  * Never throws — errors are swallowed at the runHook level.
  */
 export async function fireExtension(capability, payload, cwd = process.cwd()) {

@@ -330,6 +330,38 @@ export function runExecuteRunCommands(commands, artifactsDir, cwd) {
   return { failed, lastFailure };
 }
 
+/**
+ * Process artifactEmit extension results: write content files and return artifact descriptors
+ * to be merged into the task handshake.
+ *
+ * Exported so that tests can exercise the actual production logic.
+ *
+ * @param {Array} results       — results from fireExtension("artifactEmit", …)
+ * @param {string} artifactsDir — directory to write content files into
+ * @returns {Array<{type: string, path: string}>} Artifact descriptors with task-dir-relative paths
+ */
+export function runArtifactEmit(results, artifactsDir) {
+  const extras = [];
+  for (const r of results) {
+    if (!r || !Array.isArray(r.artifacts)) continue;
+    for (const art of r.artifacts) {
+      if (!art || typeof art.type !== "string" || typeof art.path !== "string") continue;
+      // Sanitize: strip path separators, normalize to safe filename
+      const safeName = art.path
+        .replace(/[/\\]/g, "_")
+        .replace(/[^a-zA-Z0-9._-]/g, "-")
+        .replace(/^-+|-+$/g, "") || "artifact.txt";
+      if (typeof art.content === "string") {
+        try {
+          writeFileSync(join(artifactsDir, safeName), art.content);
+        } catch { /* non-fatal — artifact write failure never blocks the pipeline */ }
+      }
+      extras.push({ type: art.type, path: "artifacts/" + safeName });
+    }
+  }
+  return extras;
+}
+
 export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
   console.log(`  ${c.dim}Dispatching to ${agent}...${c.reset}`);
 
@@ -1238,9 +1270,11 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       // Validate builder's handshake if it wrote one
       // Builder artifact paths are project-relative (relative to cwd), not task-dir-relative
       const builderHandshakePath = join(taskDir, "handshake.json");
+      let builderArtifacts = [];
       if (existsSync(builderHandshakePath)) {
         try {
           const builderHS = JSON.parse(readFileSync(builderHandshakePath, "utf8"));
+          builderArtifacts = builderHS.artifacts || [];
           const hsValidation = validateHandshake(builderHS, { basePath: cwd });
           if (hsValidation.valid) {
             console.log(`  ${c.green}✓ Builder handshake valid${c.reset}`);
@@ -1251,6 +1285,17 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
           console.log(`  ${c.dim}Builder handshake not parseable — continuing${c.reset}`);
         }
       }
+
+      // Extension hook: artifactEmit — extensions return additional artifact descriptors
+      let artifactEmitExtras = [];
+      try {
+        const aeResults = await fireExtension("artifactEmit", {
+          artifacts: builderArtifacts,
+          taskId: task.id,
+          featureName,
+        }, cwd);
+        artifactEmitExtras = runArtifactEmit(aeResults, artifactsDir);
+      } catch { /* extensions must never break the pipeline */ }
 
       // Extension hook: executeRun — spawn extension-provided commands in task cwd before gate
       let executeRunFailed = false;
@@ -1282,6 +1327,18 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       // Run quality gate — inline to avoid Windows subprocess issues
       console.log(`  ${c.dim}Running gate: ${gateCmd}${c.reset}`);
       const gateResult = runGateInline(gateCmd, featureDir, task.id, cwd);
+
+      // Merge artifactEmit extras into the gate handshake written by runGateInline
+      if (artifactEmitExtras.length > 0) {
+        try {
+          const gateHsPath = join(taskDir, "handshake.json");
+          if (existsSync(gateHsPath)) {
+            const gateHs = JSON.parse(readFileSync(gateHsPath, "utf8"));
+            gateHs.artifacts = [...(gateHs.artifacts || []), ...artifactEmitExtras];
+            writeFileSync(gateHsPath, JSON.stringify(gateHs, null, 2) + "\n");
+          }
+        } catch { /* best-effort */ }
+      }
 
       if (gateResult.verdict === "PASS") {
         passed = true;

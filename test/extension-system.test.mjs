@@ -9,7 +9,8 @@ import { join } from "node:path";
 import { runHook, isCircuitBroken, resetCircuitBreakers } from "../bin/lib/extension-runner.mjs";
 import { fireExtension, resetRegistry, setExtensions } from "../bin/lib/extension-registry.mjs";
 import { loadExtensions } from "../bin/lib/extension-loader.mjs";
-import { runExecuteRunCommands } from "../bin/lib/run.mjs";
+import { runExecuteRunCommands, runArtifactEmit } from "../bin/lib/run.mjs";
+import { existsSync, readFileSync } from "node:fs";
 
 // ── extension-runner tests ──────────────────────────────────────────────────
 
@@ -654,6 +655,174 @@ describe("executeRun — spawn, artifact, and failure detection", () => {
         process.cwd(),
       );
       assert.ok(!result.failed, "missing required field must not block task");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ── artifactEmit hook tests ─────────────────────────────────────────────────
+
+describe("fireExtension — artifactEmit", () => {
+  beforeEach(() => {
+    resetRegistry();
+    resetCircuitBreakers();
+  });
+
+  it("returns artifact descriptors from extension", async () => {
+    setExtensions([
+      {
+        name: "emit-ext",
+        version: "1.0.0",
+        capabilities: ["artifactEmit"],
+        hooks: {
+          artifactEmit: async () => ({
+            artifacts: [{ type: "cli-output", path: "ext-report.txt", content: "report content" }],
+          }),
+        },
+      },
+    ]);
+    const results = await fireExtension("artifactEmit", { artifacts: [], taskId: "task-1", featureName: "my-feature" });
+    assert.equal(results.length, 1);
+    assert.ok(Array.isArray(results[0].artifacts));
+    assert.equal(results[0].artifacts[0].type, "cli-output");
+    assert.equal(results[0].artifacts[0].path, "ext-report.txt");
+  });
+
+  it("passes artifacts, taskId, featureName in payload", async () => {
+    let captured;
+    setExtensions([
+      {
+        name: "capture-ext",
+        version: "1.0.0",
+        capabilities: ["artifactEmit"],
+        hooks: {
+          artifactEmit: async (payload) => { captured = payload; return { artifacts: [] }; },
+        },
+      },
+    ]);
+    const inputArtifacts = [{ type: "code", path: "src/foo.mjs" }];
+    await fireExtension("artifactEmit", { artifacts: inputArtifacts, taskId: "task-4", featureName: "ext-feat" });
+    assert.ok(Array.isArray(captured.artifacts));
+    assert.equal(captured.taskId, "task-4");
+    assert.equal(captured.featureName, "ext-feat");
+  });
+
+  it("skips extensions without artifactEmit capability", async () => {
+    setExtensions([
+      {
+        name: "other-ext",
+        version: "1.0.0",
+        capabilities: ["promptAppend"],
+        hooks: {
+          artifactEmit: async () => ({ artifacts: [{ type: "code", path: "foo.mjs" }] }),
+        },
+      },
+    ]);
+    const results = await fireExtension("artifactEmit", { artifacts: [], taskId: "task-1", featureName: "f" });
+    assert.deepEqual(results, []);
+  });
+});
+
+// ── runArtifactEmit — write files and return descriptors ────────────────────
+
+describe("runArtifactEmit", () => {
+  it("writes content to artifacts dir when content provided", async () => {
+    const artDir = join(tmpdir(), `art-emit-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const extras = runArtifactEmit(
+        [{ artifacts: [{ type: "cli-output", path: "ext-report.txt", content: "hello output" }] }],
+        artDir,
+      );
+      const outFile = join(artDir, "ext-report.txt");
+      assert.ok(existsSync(outFile), "content file should be written");
+      assert.ok(readFileSync(outFile, "utf8").includes("hello output"));
+      assert.equal(extras.length, 1);
+      assert.equal(extras[0].type, "cli-output");
+      assert.equal(extras[0].path, "artifacts/ext-report.txt");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns descriptor without writing file when no content provided", async () => {
+    const artDir = join(tmpdir(), `art-emit-nocontent-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const extras = runArtifactEmit(
+        [{ artifacts: [{ type: "evaluation", path: "review.md" }] }],
+        artDir,
+      );
+      assert.equal(extras.length, 1);
+      assert.equal(extras[0].type, "evaluation");
+      assert.equal(extras[0].path, "artifacts/review.md");
+      // No file written (no content)
+      assert.ok(!existsSync(join(artDir, "review.md")));
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("skips entries with missing type or path", async () => {
+    const artDir = join(tmpdir(), `art-emit-skip-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const extras = runArtifactEmit(
+        [{
+          artifacts: [
+            { type: "cli-output" },          // missing path
+            { path: "foo.txt" },              // missing type
+            { type: "code", path: "ok.mjs" }, // valid
+          ],
+        }],
+        artDir,
+      );
+      assert.equal(extras.length, 1);
+      assert.equal(extras[0].path, "artifacts/ok.mjs");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("sanitizes path separators in filename", async () => {
+    const artDir = join(tmpdir(), `art-emit-sanitize-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const extras = runArtifactEmit(
+        [{ artifacts: [{ type: "code", path: "dir/sub/file.txt", content: "data" }] }],
+        artDir,
+      );
+      // Path separators become underscores
+      assert.equal(extras.length, 1);
+      assert.ok(extras[0].path.startsWith("artifacts/"), "path should be in artifacts/");
+      assert.ok(!extras[0].path.includes("/dir/"), "path separators should be sanitized");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("skips null results and results without artifacts array", async () => {
+    const artDir = join(tmpdir(), `art-emit-null-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const extras = runArtifactEmit(
+        [null, { something: "else" }, { artifacts: [{ type: "code", path: "good.mjs" }] }],
+        artDir,
+      );
+      assert.equal(extras.length, 1);
+      assert.equal(extras[0].path, "artifacts/good.mjs");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns empty array when no results", async () => {
+    const artDir = join(tmpdir(), `art-emit-empty-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const extras = runArtifactEmit([], artDir);
+      assert.deepEqual(extras, []);
     } finally {
       await rm(artDir, { recursive: true, force: true });
     }
