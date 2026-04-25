@@ -314,3 +314,31 @@ describe("buildReviewBrief — simplicity role", () => {
     );
   });
 });
+
+describe("build-verify flow — simplicity pass", () => {
+  it("includes simplicity-review in build-verify phases", () => {
+    assert.ok(
+      FLOWS["build-verify"].phases.includes("simplicity-review"),
+      "build-verify must include dedicated simplicity-review phase"
+    );
+  });
+
+  it("simplicity 🔴 finding produces FAIL verdict in build-verify simplicity pass", () => {
+    // Mirrors the production verdict path in the simplicity-review block of run.mjs
+    const simplicityOutput = "🔴 lib/handler.mjs:12 — dead code: unused function doWork() can be deleted";
+    const findings = parseFindings(simplicityOutput);
+    const result = computeVerdict(findings);
+    assert.equal(result.verdict, "FAIL",
+      "simplicity 🔴 finding must produce FAIL verdict in build-verify simplicity pass");
+  });
+
+  it("simplicity 🟡 warning does not block merge in build-verify simplicity pass", () => {
+    const simplicityOutput = "🟡 lib/handler.mjs:15 — consider simplifying nested conditionals for readability";
+    const findings = parseFindings(simplicityOutput);
+    const result = computeVerdict(findings);
+    assert.equal(result.verdict, "PASS",
+      "simplicity 🟡 must not block merge in build-verify pass");
+    assert.equal(result.backlog, true,
+      "simplicity 🟡 must appear in backlog");
+  });
+});

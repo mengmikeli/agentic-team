@@ -1267,6 +1267,34 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
           }
         }
 
+        // ── Dedicated simplicity pass (build-verify flow) ────────────────────────
+        if (agent && flow.phases.includes("simplicity-review") && !reviewFailed) {
+          console.log(`  ${c.cyan}▶ Simplicity review...${c.reset}`);
+          setUsageContext("review", task.id);
+          const simplicityBrief = buildReviewBrief(featureName, task.title, gateResult.stdout, cwd, "simplicity");
+          const simplicityResult = dispatchToAgent(agent, simplicityBrief, cwd);
+          if (simplicityResult.output) {
+            const simplicityFindings = parseFindings(simplicityResult.output);
+            const simplicitySynth = computeVerdict(simplicityFindings);
+            console.log(`  ${c.dim}Simplicity verdict: ${simplicitySynth.verdict} (🔴 ${simplicitySynth.critical} 🟡 ${simplicitySynth.warning} 🔵 ${simplicitySynth.suggestion})${c.reset}`);
+            if (simplicitySynth.critical > 0) {
+              reviewFailed = true;
+              incrementReviewRounds(task);
+              const rrStateSim = readState(featureDir);
+              if (rrStateSim) {
+                const rrTaskSim = rrStateSim.tasks?.find(t => t.id === task.id);
+                if (rrTaskSim) { rrTaskSim.reviewRounds = task.reviewRounds; writeState(featureDir, rrStateSim); }
+              }
+              console.log(`  ${c.red}✗ Simplicity review FAIL — ${simplicitySynth.critical} critical finding(s)${c.reset}`);
+              simplicityFindings.filter(f => f.severity === "critical").forEach(f =>
+                console.log(`    ${c.red}${f.text}${c.reset}`)
+              );
+              lastFailure = `Simplicity review FAIL: ${simplicitySynth.critical} critical finding(s)\n` +
+                simplicityFindings.filter(f => f.severity === "critical").map(f => f.text).join("\n");
+            }
+          }
+        }
+
         if (agent && flow.phases.includes("multi-review")) {
           console.log(`  ${c.cyan}▶ Parallel review (${PARALLEL_REVIEW_ROLES.join(", ")})...${c.reset}`);
           setUsageContext("review", task.id);

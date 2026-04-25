@@ -31,7 +31,7 @@ export const FLOWS = {
   "build-verify": {
     name: "build-verify",
     label: "Build + Verify (build + gate + review)",
-    phases: ["implement", "gate", "review"],
+    phases: ["implement", "gate", "review", "simplicity-review"],
   },
   "full-stack": {
     name: "full-stack",
