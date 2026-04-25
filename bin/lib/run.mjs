@@ -23,6 +23,7 @@ import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
 import { outerLoop } from "./outer-loop.mjs";
 import { buildReplanBrief, parseReplanOutput, applyReplan } from "./replan.mjs";
+import { runSimplifyPass } from "./simplify-pass.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "agt-harness.mjs");
@@ -1008,6 +1009,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   let worktreePath = null;
   let completed = 0;
   let blocked = 0;
+  let simplifyResult = null;
   const startTime = Date.now();
   try {
     worktreePath = createWorktreeIfNeeded(featureName, mainCwd);
@@ -1496,6 +1498,33 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
     }
   }
 
+  // ── Self-simplification pass ──
+
+  if (completed > 0) {
+    try {
+      console.log(`${c.dim}Running self-simplification pass...${c.reset}`);
+      setUsageContext("simplify", null);
+      simplifyResult = runSimplifyPass({
+        featureDir, gateCmd, cwd, agent,
+        dispatchFn: dispatchToAgent,
+        runGateFn: runGateInline,
+      });
+      if (simplifyResult.skipped) {
+        console.log(`  ${c.dim}Simplify pass skipped${simplifyResult.reason ? `: ${simplifyResult.reason}` : ""}${c.reset}`);
+      } else if (simplifyResult.reverted) {
+        console.log(`  ${c.yellow}⚠ Simplify pass reverted — gate failed after simplification${c.reset}`);
+        appendProgress(featureDir, `**Self-simplification pass**\n- Reviewed: ${simplifyResult.filesReviewed} file(s)\n- Reverted: gate failed after simplification`);
+      } else if (simplifyResult.filesChanged > 0) {
+        console.log(`  ${c.green}✓ Simplified ${simplifyResult.filesChanged} file(s)${c.reset}`);
+        appendProgress(featureDir, `**Self-simplification pass**\n- Reviewed: ${simplifyResult.filesReviewed} file(s)\n- Simplified: ${simplifyResult.filesChanged} file(s)`);
+      } else {
+        console.log(`  ${c.dim}No simplifications needed (${simplifyResult.filesReviewed} file(s) reviewed)${c.reset}`);
+      }
+    } catch (err) {
+      console.log(`  ${c.dim}Simplify pass error: ${err.message}${c.reset}`);
+    }
+  }
+
   // ── Finalize ──
 
   const finalizeResult = harness("finalize", "--dir", featureDir);
@@ -1535,6 +1564,10 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   console.log(`${c.bold}Feature complete: ${featureLabel ? `[${featureLabel}] ` : ''}${featureName}${c.reset}`);
   console.log(`  ${c.green}✓${c.reset} ${completed}/${tasks.length} tasks done`);
   if (blocked > 0) console.log(`  ${c.red}✗${c.reset} ${blocked} blocked`);
+  if (simplifyResult && !simplifyResult.skipped) {
+    if (simplifyResult.filesChanged > 0) console.log(`  ${c.dim}Simplified: ${simplifyResult.filesChanged} file(s)${c.reset}`);
+    else if (simplifyResult.reverted) console.log(`  ${c.dim}Simplify pass reverted (gate regression)${c.reset}`);
+  }
   console.log(`  ${c.dim}Duration: ${durationStr}${c.reset}`);
   if (usage.dispatches > 0) {
     console.log(`  ${c.dim}Dispatches: ${usage.dispatches}${c.reset}`);
