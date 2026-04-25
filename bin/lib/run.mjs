@@ -1528,6 +1528,16 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       } else {
         console.log(`  ${c.dim}No simplifications needed (${simplifyResult.filesReviewed} file(s) reviewed)${c.reset}`);
       }
+      // Surface warnings to simplify-eval.md and progress.md (non-blocking)
+      if (!simplifyResult.skipped && (simplifyResult.findings?.warning ?? 0) > 0) {
+        const w = simplifyResult.findings.warning;
+        try {
+          writeFileSync(join(featureDir, "simplify-eval.md"),
+            `# Simplify Pass — Warning Findings\n\n**Date:** ${new Date().toISOString().slice(0, 10)}\n**Warnings:** ${w}\n**Suggestions:** ${simplifyResult.findings.suggestion || 0}\n`);
+        } catch { /* best-effort */ }
+        console.log(`  ${c.yellow}⚠ Simplify pass: ${w} warning(s) — see simplify-eval.md${c.reset}`);
+        appendProgress(featureDir, `**Self-simplification pass — warnings**\n- Warnings: ${w}\n- See simplify-eval.md`);
+      }
     } catch (err) {
       console.log(`  ${c.dim}Simplify pass error: ${err.message}${c.reset}`);
     }

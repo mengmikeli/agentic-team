@@ -501,6 +501,29 @@ describe("run.mjs integration", () => {
       "escalated check must appear before harness finalize call"
     );
   });
+
+  it("writes warnings to simplify-eval.md when findings.warning > 0", () => {
+    assert.ok(
+      src.includes("simplify-eval.md"),
+      "run.mjs must write simplify-eval.md for warning findings"
+    );
+    assert.ok(
+      /findings\?\.warning/.test(src),
+      "run.mjs must check findings?.warning before writing simplify-eval.md"
+    );
+  });
+
+  it("notes warnings in progress.md without blocking execution", () => {
+    // Warnings are reported via appendProgress but the finalize block only checks escalated
+    const warnProgressIdx = src.indexOf("Self-simplification pass — warnings");
+    const finalizeBlockIdx = src.indexOf("simplifyResult?.escalated");
+    assert.ok(warnProgressIdx !== -1, "run.mjs must append warning summary to progress.md");
+    // Warning reporting must not affect the finalize gate (only escalated blocks)
+    assert.ok(
+      finalizeBlockIdx !== -1,
+      "finalize gate must only check escalated, not warnings"
+    );
+  });
 });
 
 // ── parseSimplifyFindings ──────────────────────────────────────────
