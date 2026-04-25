@@ -73,6 +73,22 @@ describe("parseFindings", () => {
     const findings = parseFindings("This is just a comment\nAnd another line");
     assert.equal(findings.length, 0);
   });
+
+  it("does not classify mid-sentence 🔴 references as critical findings", () => {
+    const text = [
+      "The task-3 🔴 (dead traversal guard) is confirmed resolved.",
+      "No 🔴 critical findings in any of the four veto categories:",
+      "[architect] Prior 🔴 finding is resolved — no action needed.",
+    ].join("\n");
+    const findings = parseFindings(text);
+    assert.equal(findings.length, 0, "lines referencing 🔴 mid-sentence must not be classified as critical");
+  });
+
+  it("does not classify mid-sentence 🟡 references as warnings", () => {
+    const text = "See the prior 🟡 warning for context — it has been addressed.";
+    const findings = parseFindings(text);
+    assert.equal(findings.length, 0);
+  });
 });
 
 describe("computeVerdict", () => {

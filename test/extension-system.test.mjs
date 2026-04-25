@@ -829,6 +829,72 @@ describe("runArtifactEmit", () => {
   });
 });
 
+// ── handshake merge integration ────────────────────────────────────────────
+
+describe("artifactEmit handshake merge", () => {
+  it("artifactEmitExtras land in handshake.json after merge", async () => {
+    const { writeFileSync } = await import("node:fs");
+    const taskDir = join(tmpdir(), `hs-merge-${Date.now()}`);
+    const artDir = join(taskDir, "artifacts");
+    await mkdir(artDir, { recursive: true });
+    try {
+      // Write an initial gate handshake (simulating what runGateInline writes)
+      const gateHs = { taskId: "task-4", nodeType: "build", artifacts: [{ type: "code", path: "src/foo.mjs" }] };
+      const gateHsPath = join(taskDir, "handshake.json");
+      writeFileSync(gateHsPath, JSON.stringify(gateHs, null, 2) + "\n");
+
+      // Get artifactEmit descriptors via runArtifactEmit
+      const extras = runArtifactEmit(
+        [{ artifacts: [{ type: "cli-output", path: "report.txt", content: "output data" }] }],
+        artDir,
+      );
+      assert.equal(extras.length, 1);
+
+      // Run the same merge logic as _runSingleFeature (run.mjs:1335-1345)
+      const hs = JSON.parse(readFileSync(gateHsPath, "utf8"));
+      hs.artifacts = [...(hs.artifacts || []), ...extras];
+      writeFileSync(gateHsPath, JSON.stringify(hs, null, 2) + "\n");
+
+      // Assert final handshake contains the extension descriptor
+      const final = JSON.parse(readFileSync(gateHsPath, "utf8"));
+      assert.equal(final.artifacts.length, 2, "handshake should contain original + extension artifact");
+      assert.ok(final.artifacts.some(a => a.path === "artifacts/report.txt"), "extension descriptor should be in handshake.artifacts");
+      assert.ok(final.artifacts.some(a => a.path === "src/foo.mjs"), "original gate artifact should be preserved");
+    } finally {
+      await rm(taskDir, { recursive: true, force: true });
+    }
+  });
+});
+
+// ── executeRun artifact path registration ────────────────────────────────────
+
+describe("runExecuteRunCommands path registration", () => {
+  it("returns written artifact paths in result.paths", async () => {
+    const artDir = join(tmpdir(), `er-paths-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const result = runExecuteRunCommands([{ command: "echo hello" }], artDir, process.cwd());
+      assert.ok(Array.isArray(result.paths), "result should include paths array");
+      assert.equal(result.paths.length, 1, "one command → one path entry");
+      assert.equal(result.paths[0].type, "cli-output");
+      assert.ok(result.paths[0].path.startsWith("artifacts/ext-run-"), "path should be in artifacts/ prefix");
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns empty paths array when no commands", async () => {
+    const artDir = join(tmpdir(), `er-paths-empty-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    try {
+      const result = runExecuteRunCommands([], artDir, process.cwd());
+      assert.deepEqual(result.paths, []);
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+    }
+  });
+});
+
 // ── loadExtensions tests ────────────────────────────────────────────────────
 
 describe("loadExtensions", () => {

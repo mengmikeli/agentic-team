@@ -14,18 +14,20 @@ import { fireExtension } from "./extension-registry.mjs";
 
 /**
  * Parse review text for severity-tagged findings.
- * A finding is any line containing 🔴, 🟡, or 🔵.
+ * A finding is any line that STARTS WITH 🔴, 🟡, or 🔵.
+ * Lines that merely reference those emojis mid-sentence (e.g. "task-3 🔴 is resolved")
+ * are not findings and must not be classified as such.
  */
 export function parseFindings(text) {
   const findings = [];
   for (const line of (text || "").split("\n")) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    if (trimmed.includes("🔴")) {
+    if (trimmed.startsWith("🔴")) {
       findings.push({ severity: "critical", text: trimmed });
-    } else if (trimmed.includes("🟡")) {
+    } else if (trimmed.startsWith("🟡")) {
       findings.push({ severity: "warning", text: trimmed });
-    } else if (trimmed.includes("🔵")) {
+    } else if (trimmed.startsWith("🔵")) {
       findings.push({ severity: "suggestion", text: trimmed });
     }
   }

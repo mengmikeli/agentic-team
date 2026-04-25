@@ -23,7 +23,7 @@ import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
 import { outerLoop } from "./outer-loop.mjs";
 import { buildReplanBrief, parseReplanOutput, applyReplan } from "./replan.mjs";
-import { fireExtension } from "./extension-registry.mjs";
+import { fireExtension, resetRegistry } from "./extension-registry.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "agt-harness.mjs");
@@ -289,11 +289,12 @@ export function findAgent() {
  * @param {Array} commands   — results from fireExtension("executeRun", …)
  * @param {string} artifactsDir — directory to write cli-output artifacts into
  * @param {string} cwd       — working directory for spawned commands
- * @returns {{ failed: boolean, lastFailure: string|null }}
+ * @returns {{ failed: boolean, lastFailure: string|null, paths: Array<{type: string, path: string}> }}
  */
 export function runExecuteRunCommands(commands, artifactsDir, cwd) {
   let failed = false;
   let lastFailure = null;
+  const paths = [];
   for (const r of commands) {
     if (!r || typeof r.command !== "string" || !r.command.trim()) continue;
     const cmd = r.command.trim();
@@ -322,12 +323,13 @@ export function runExecuteRunCommands(commands, artifactsDir, cwd) {
     const artifactFile = join(artifactsDir, `ext-run-${slug}.txt`);
     try {
       writeFileSync(artifactFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+      paths.push({ type: "cli-output", path: `artifacts/ext-run-${slug}.txt` });
     } catch (_writeErr) {
       // Artifact write failure is non-fatal; required-command failure is already recorded above
     }
     console.log(`  ${c.dim}executeRun: "${cmd.slice(0, 50)}" → exit ${exitCode}${c.reset}`);
   }
-  return { failed, lastFailure };
+  return { failed, lastFailure, paths };
 }
 
 /**
@@ -338,7 +340,11 @@ export function runExecuteRunCommands(commands, artifactsDir, cwd) {
  *
  * @param {Array} results       — results from fireExtension("artifactEmit", …)
  * @param {string} artifactsDir — directory to write content files into
- * @returns {Array<{type: string, path: string}>} Artifact descriptors with task-dir-relative paths
+ * @returns {Array<{type: string, path: string}>} Artifact descriptors with task-dir-relative paths.
+ *   Note: if an artifact entry has no `content` field, no file is written but the descriptor is
+ *   still returned. This is intentional — callers can register paths for pre-existing files.
+ *   Downstream readers of handshake.artifacts should treat missing files as "pre-existing path
+ *   reference" rather than a bug.
  */
 export function runArtifactEmit(results, artifactsDir) {
   const extras = [];
@@ -861,9 +867,10 @@ ${roadmapList}
 }
 
 async function _runSingleFeature(args, description, providedLabel = '', explicitSlug = '') {
-  // Reset token usage so each feature gets its own clean counters (prevents
-  // accumulation across features in multi-feature outer-loop runs)
+  // Reset token usage and extension registry so each feature gets clean state
+  // (prevents accumulation across features in multi-feature outer-loop runs)
   resetRunUsage();
+  resetRegistry();
 
   if (!description) description = args.filter(a => !a.startsWith("-")).join(" ") || null;
   const mainCwd = process.cwd();
@@ -1299,6 +1306,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
 
       // Extension hook: executeRun — spawn extension-provided commands in task cwd before gate
       let executeRunFailed = false;
+      let executeRunPaths = [];
       try {
         const executeRunResults = await fireExtension("executeRun", { taskId: task.id, cwd }, cwd);
         const erResult = runExecuteRunCommands(executeRunResults, artifactsDir, cwd);
@@ -1306,6 +1314,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
           executeRunFailed = true;
           lastFailure = erResult.lastFailure;
         }
+        executeRunPaths = erResult.paths || [];
       } catch { /* extensions must never break the pipeline */ }
 
       if (executeRunFailed) {
@@ -1328,13 +1337,14 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       console.log(`  ${c.dim}Running gate: ${gateCmd}${c.reset}`);
       const gateResult = runGateInline(gateCmd, featureDir, task.id, cwd);
 
-      // Merge artifactEmit extras into the gate handshake written by runGateInline
-      if (artifactEmitExtras.length > 0) {
+      // Merge artifactEmit extras and executeRun artifact paths into the gate handshake
+      const allExtras = [...artifactEmitExtras, ...executeRunPaths];
+      if (allExtras.length > 0) {
         try {
           const gateHsPath = join(taskDir, "handshake.json");
           if (existsSync(gateHsPath)) {
             const gateHs = JSON.parse(readFileSync(gateHsPath, "utf8"));
-            gateHs.artifacts = [...(gateHs.artifacts || []), ...artifactEmitExtras];
+            gateHs.artifacts = [...(gateHs.artifacts || []), ...allExtras];
             writeFileSync(gateHsPath, JSON.stringify(gateHs, null, 2) + "\n");
           }
         } catch { /* best-effort */ }
@@ -1426,7 +1436,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
               status: synth.critical > 0 ? "failed" : "completed",
               verdict: synth.verdict,
               summary: `Review: ${synth.verdict} (${synth.critical} critical, ${synth.warning} warning, ${synth.suggestion} suggestion). Compound gate: ${compoundGateResult.verdict}`,
-              artifacts: [{ type: "evaluation", path: "eval.md" }],
+              artifacts: [...allExtras, { type: "evaluation", path: "eval.md" }],
               findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
               compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
             });
@@ -1504,7 +1514,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
             status: synth.critical > 0 ? "failed" : "completed",
             verdict: synth.verdict,
             summary: `Parallel review: ${synth.verdict} (${synth.critical} critical, ${synth.warning} warning, ${synth.suggestion} suggestion). Compound gate: ${compoundGateResult.verdict}`,
-            artifacts: [{ type: "evaluation", path: "eval.md" }],
+            artifacts: [...allExtras, { type: "evaluation", path: "eval.md" }],
             findings: { critical: synth.critical, warning: synth.warning, suggestion: synth.suggestion },
             compoundGate: { tripped: compoundGateResult.tripped, layers: compoundGateResult.layers, verdict: compoundGateResult.verdict },
           });
