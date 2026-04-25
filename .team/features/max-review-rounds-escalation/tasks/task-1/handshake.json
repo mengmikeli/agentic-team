@@ -1,11 +1,11 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Verified existing review-escalation implementation: after 3 review FAILs, task.status becomes 'blocked' and task.lastReason is 'review-escalation: 3 rounds exceeded'. The pure functions (incrementReviewRounds, shouldEscalate, deduplicateFindings, buildEscalationComment, buildEscalationSummary) and run.mjs wiring are in place; comprehensive unit + integration tests already exist and all 580 tests pass.",
-  "timestamp": "2026-04-25T00:00:00Z",
+  "summary": "Verified existing review-escalation implementation. After 3 review FAILs, run.mjs:1349-1361 invokes shouldEscalate(task), posts an escalation comment, marks parent checklist blocked, and transitions task.status to 'blocked' with lastReason 'review-escalation: 3 rounds exceeded'. All 580 tests pass including review-escalation.test.mjs:268-271 which asserts both acceptance criteria verbatim.",
+  "timestamp": "2026-04-25T12:00:00Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/review-escalation.mjs" },
     { "type": "code", "path": "bin/lib/run.mjs" },
