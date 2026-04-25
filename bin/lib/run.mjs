@@ -937,8 +937,11 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       "Out of Scope",
       "Done When",
     ];
+    // Heading match is lenient: accepts `## Name`, `### Name`, `## Name:`,
+    // `## Name — note`, etc. Requires a word boundary after the name so
+    // `## Goalposts` does not satisfy `Goal`.
     const missing = requiredSections.filter(
-      (s) => !new RegExp(`^##\\s+${s}\\s*$`, "m").test(spec)
+      (s) => !new RegExp(`^#{2,}\\s+${s}\\b`, "m").test(spec)
     );
     if (missing.length > 0) {
       console.error(`${c.red}✗ SPEC.md is missing required section(s): ${specPath}${c.reset}`);

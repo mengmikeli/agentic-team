@@ -305,6 +305,11 @@ describe("smart entry flow (agt run no args)", () => {
     for (const s of ["Acceptance Criteria", "Technical Approach", "Testing Strategy", "Out of Scope", "Done When"]) {
       assert.ok(output.includes(s), `should list missing section "${s}", got: ${output}`);
     }
+    // Negative assertion: present sections must NOT appear in the missing list
+    // (guards against an inverted filter passing the positive checks above).
+    const missingBlock = output.split("missing required section")[1] || "";
+    assert.ok(!/^\s*-\s+Goal\b/m.test(missingBlock), `should not list "Goal" as missing, got: ${output}`);
+    assert.ok(!/^\s*-\s+Requirements\b/m.test(missingBlock), `should not list "Requirements" as missing, got: ${output}`);
     // File must be unchanged
     const after = readFileSync(specPath, "utf8");
     assert.equal(after, before, "SPEC.md must not be modified");
