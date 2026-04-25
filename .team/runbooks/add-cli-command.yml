@@ -1,0 +1,27 @@
+id: add-cli-command
+name: Add CLI Command
+patterns:
+  - type: regex
+    value: "add.*cli.*command|new.*command|implement.*command|create.*command"
+    weight: 2.0
+  - type: keyword
+    value: "cli command"
+    weight: 1.5
+  - type: keyword
+    value: "subcommand"
+    weight: 1.0
+minScore: 2.5
+tasks:
+  - title: Define CLI command signature and options
+    hint: Specify the command name, arguments, flags, and help text
+  - title: Implement the command handler function
+    hint: Write the core logic that executes when the command is invoked
+  - title: Register the command in the CLI entry point
+    hint: Add the command to the main CLI dispatcher (e.g., agt.mjs case statement)
+  - title: Write tests for the CLI command
+    hint: Add test cases covering the happy path and error cases
+flow: build-verify
+tier: null
+createdAt: "2026-04-25T00:00:00.000Z"
+usageCount: 0
+lastUsedAt: null
