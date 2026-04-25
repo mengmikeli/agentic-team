@@ -1,13 +1,15 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_3",
+  "runId": "run_1",
   "status": "completed",
   "verdict": null,
-  "summary": "Removed dead assertion from buildReviewBrief simplicity role test. The always-true check for 'complexity'/'over-engineer' was unreachable since getRoleFocus unconditionally injects those strings. The unique-term test (premature abstraction/gold-plating) and veto/FAIL test (line 276-289) remain and correctly cover the feature. 581 tests pass.",
+  "summary": "Verified that a simplicity 🔴 finding in a multi-review run produces overall verdict FAIL even when all other roles return only 🟡/🔵. Implementation lives in bin/lib/flows.mjs (PARALLEL_REVIEW_ROLES includes 'simplicity'; mergeReviewFindings tags critical simplicity findings as [simplicity veto]) and bin/lib/run.mjs (multi-review path joins all role outputs and runs computeVerdict, so any 🔴 — including a simplicity veto — yields FAIL). Coverage exists at test/flows.test.mjs:276-289. All 590 tests pass.",
   "timestamp": "2026-04-25T00:00:00Z",
   "artifacts": [
-    { "type": "code", "path": "test/flows.test.mjs" }
+    { "type": "code", "path": "bin/lib/flows.mjs" },
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "test", "path": "test/flows.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
