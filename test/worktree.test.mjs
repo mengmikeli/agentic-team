@@ -599,10 +599,31 @@ describe("PLAYBOOK.md documentation contract", () => {
     );
   });
 
-  it("documents manual cleanup with git worktree remove", () => {
+  it("documents manual cleanup with git worktree remove --force", () => {
     assert.ok(
-      /git worktree (remove|prune)/.test(playbookSrc),
-      "PLAYBOOK.md must document manual cleanup with 'git worktree remove' or 'git worktree prune'"
+      /git worktree remove --force/.test(playbookSrc),
+      "PLAYBOOK.md must document 'git worktree remove --force' for manual cleanup"
+    );
+  });
+
+  it("documents stale registration cleanup with git worktree prune", () => {
+    assert.ok(
+      /git worktree prune/.test(playbookSrc),
+      "PLAYBOOK.md must document 'git worktree prune' for cleaning up stale git registrations"
+    );
+  });
+
+  it("documents inspect commands: git log inside worktree", () => {
+    assert.ok(
+      /git -C .+worktrees.+log/.test(playbookSrc),
+      "PLAYBOOK.md must document 'git -C .team/worktrees/<slug> log' for inspecting a worktree"
+    );
+  });
+
+  it("documents inspect commands: git status inside worktree", () => {
+    assert.ok(
+      /git -C .+worktrees.+status/.test(playbookSrc),
+      "PLAYBOOK.md must document 'git -C .team/worktrees/<slug> status' for inspecting uncommitted changes"
     );
   });
 

@@ -1,4 +1,72 @@
-# Eval — task-12: PLAYBOOK.md Git Worktrees Documentation
+# Eval — task-12: PLAYBOOK.md Git Worktrees Documentation (run_2 — final PM review)
+
+**Verdict: PASS**
+**Reviewer role: Product Manager**
+**Date: 2026-04-25**
+**Run: run_2 (fixes applied)**
+
+---
+
+## Files Actually Read
+
+| File | What I checked |
+|------|----------------|
+| `.team/features/git-worktree-isolation/tasks/task-12/handshake.json` | Builder claims and artifacts for run_2 |
+| `PLAYBOOK.md` lines 182–244 | Current state of the Git Worktrees section |
+| `test/worktree.test.mjs` lines 579–622 | PLAYBOOK.md documentation contract tests |
+| `git show 756458a --stat` | What actually changed in the final commit |
+| `git show 756458a -- PLAYBOOK.md` | Diff of the two corrected lines |
+
+---
+
+## Requirement
+
+> Documentation in `PLAYBOOK.md` describes the worktree layout and how to inspect/clean up worktrees manually.
+
+---
+
+## Per-Criterion Results
+
+### 1. Worktree layout is described
+**PASS** — PLAYBOOK.md:188–196 shows the directory tree (`.team/worktrees/<slug>`), branch naming (`feature/<slug>`), and slug derivation rules. All present and accurate.
+
+### 2. Inspect commands are documented
+**PASS** — PLAYBOOK.md:207–215 provides `git worktree list`, `git -C ... log --oneline -10`, and `git -C ... status`. Commands are syntactically correct.
+
+### 3. Manual cleanup commands are documented
+**PASS** — PLAYBOOK.md:223–230 covers `git worktree remove --force`, `git branch -d`, and `git branch -D`. PLAYBOOK.md:241–243 covers `git worktree prune` for stale registrations.
+
+### 4. Slug description accuracy (previously failing — now fixed)
+**PASS** — PLAYBOOK.md:199: "only alphanumeric, hyphens, and dots retained (all other characters stripped)". Git diff confirms this line was corrected in commit 756458a from "non-alphanumeric characters stripped" (which falsely implied dots were removed).
+
+### 5. Branch/rerun description accuracy (previously failing — now fixed)
+**PASS** — PLAYBOOK.md:200: "branch is created on first run with `git worktree add -B`; re-runs reuse the existing worktree and preserve all commits". Git diff confirms this line was corrected from "uses `-B` so re-running resets the branch to HEAD" — which contradicted the `existsSync` early-return at `bin/lib/run.mjs:169`.
+
+### 6. Documentation regression tests exist
+**PASS** — `test/worktree.test.mjs:581–622` adds 5 tests asserting: section heading exists, `git worktree list` present, cleanup command present, dot-retention phrasing present, re-use phrasing present. All assertions are matched by the current PLAYBOOK.md content.
+
+### 7. Test count verifiable from artifacts
+**FAIL (minor)** — Builder claims "565 tests pass"; no `test-output.txt` artifact was produced. Gate output provided is truncated and does not show a final count. Claim is plausible (consistent with test additions) but not independently verifiable from task artifacts alone.
+
+---
+
+## Findings
+
+🔵 `.team/features/git-worktree-isolation/tasks/task-12/` — No `test-output.txt` artifact; "565 tests pass" is unverifiable from task artifacts. Future tasks should attach gate output even for doc-only changes.
+
+🔵 PLAYBOOK.md:225 — `git worktree remove --force` has no callout that `--force` silently discards uncommitted changes; operators following this guide on a preserved failure worktree could lose in-progress work. Add: "> Warning: `--force` discards any uncommitted changes in the worktree."
+
+---
+
+## Summary
+
+The core deliverable is complete and accurate. Both factual errors identified in the run_1 review (slug description omitting dot preservation; `-B` described as resetting on every re-run) were corrected in run_2 and verified via git diff. Five regression tests now lock in the documentation contract. Two suggestion-level gaps remain (missing test artifact, missing `--force` data-loss warning), neither of which blocks merge.
+
+**Verdict: PASS**
+
+---
+
+# Eval — task-12: PLAYBOOK.md Git Worktrees Documentation (run_1 — prior reviews)
 
 **Verdict: PASS (with warnings)**
 **Reviewer role: Product Manager**
@@ -260,3 +328,95 @@ _execFn("git", ["worktree", "add", worktreePath, "-B", branchName], ...);
 ## Summary
 
 One factual inaccuracy (🟡) about `-B` re-run behavior that contradicts the crash-recovery semantics; one minor slug description gap (🔵). All shell commands correct, lifecycle accurate, no code introduced. Verdict: **PASS**.
+
+---
+
+# Eval — task-12: Engineer Review (post-fix pass, HEAD 756458a)
+
+**Verdict: PASS**
+**Reviewer role: Software Engineer**
+**Date: 2026-04-25**
+
+---
+
+## Files Actually Read
+
+| File | What I checked |
+|------|----------------|
+| `.team/features/git-worktree-isolation/tasks/task-12/handshake.json` | Builder claims and listed artifacts |
+| `PLAYBOOK.md` lines 160–244 | Full Git Worktrees section |
+| `bin/lib/run.mjs` lines 154–176 | `slugToBranch`, `createWorktreeIfNeeded` |
+| `test/worktree.test.mjs` lines 579–622 | PLAYBOOK.md documentation contract tests |
+| `git show HEAD -- PLAYBOOK.md` | Exact diff of what changed |
+| `git show HEAD -- test/worktree.test.mjs` | Exact diff of test additions |
+| `.team/features/git-worktree-isolation/tasks/task-12/eval.md` (prior sections) | Previous reviewer findings |
+
+---
+
+## Per-Criterion Results
+
+### 1. Both claimed factual fixes are in the diff
+
+**PASS** — `git show HEAD -- PLAYBOOK.md` shows exactly two lines changed:
+
+- Old: `non-alphanumeric characters stripped, capped at 72 characters.`
+  New: `only alphanumeric, hyphens, and dots retained (all other characters stripped), capped at 72 characters.`
+- Old: `feature/<slug>` (uses `-B` so re-running resets the branch to HEAD).`
+  New: `branch is created on first run with \`git worktree add -B\`; re-runs reuse the existing worktree and preserve all commits).`
+
+Both corrections verified against `run.mjs:155–161` (`slugToBranch` keeps `.` via `[^a-z0-9\-\.]`) and `run.mjs:163–176` (`existsSync` early-return means `-B` never fires on retry).
+
+### 2. Five PLAYBOOK.md contract tests added
+
+**PASS** — `git show HEAD -- test/worktree.test.mjs` shows 45 lines added at the end of the file (`describe("PLAYBOOK.md documentation contract", ...)`). Exactly five `it()` blocks present at lines 588–621. All five assertions pass against current PLAYBOOK.md:
+
+| Test | Regex | PLAYBOOK.md text that matches |
+|------|-------|-------------------------------|
+| `## Git Worktrees` section | `/^## Git Worktrees/m` | line 182 |
+| `git worktree list` | `/git worktree list/` | line 209 |
+| manual cleanup | `/git worktree (remove\|prune)/` | line 225 |
+| dot preservation | `/dots? retained\|alphanumeric.*hyphens.*dots/i` | line 199 |
+| re-runs reuse | `/re-runs? reuse/i` | line 200 |
+
+### 3. Shell commands in docs are syntactically correct
+
+**PASS** — All seven commands checked:
+- `git worktree list` ✓
+- `git -C .team/worktrees/<slug> log --oneline -10` ✓ (`-10` is valid shorthand)
+- `git -C .team/worktrees/<slug> status` ✓
+- `git worktree remove --force .team/worktrees/<slug>` ✓
+- `git branch -d feature/<slug>` ✓
+- `git branch -D feature/<slug>` ✓
+- `git worktree prune` ✓
+
+### 4. Prior Engineer review findings resolved
+
+**PASS** — The prior Engineer review (same eval.md, lines 268–330) found FAIL on:
+- 🟡 PLAYBOOK.md:200 `-B` re-run claim → **fixed** in HEAD
+- 🔵 PLAYBOOK.md:199 dot preservation omission → **fixed** in HEAD
+
+Both are now correct. No residual FAILs carried over.
+
+### 5. Artifacts / test output
+
+**UNVERIFIABLE** — No `test-output.txt` artifact. Gate output in task context is truncated before final pass count. Cannot independently confirm "565 tests pass" from artifacts.
+
+---
+
+## Findings
+
+🟡 `.team/features/git-worktree-isolation/tasks/task-12/` — No `test-output.txt` artifact; handshake claims 565 passes but this cannot be verified from task artifacts alone; future tasks should capture gate output as an artifact
+
+🔵 test/worktree.test.mjs:603 — Test 3 regex `/git worktree (remove|prune)/` passes if only `git worktree prune` is present; `git worktree remove` (the primary cleanup command) is not independently asserted; split into two assertions for stronger coverage
+
+🔵 test/worktree.test.mjs:611 — Slug test regex `alphanumeric.*hyphens.*dots` is word-order sensitive; `dots? retained` (already in the first alternative) is more robust and sufficient on its own
+
+🔵 PLAYBOOK.md:225 — `git worktree remove --force` silently discards uncommitted changes; the documented scenario (crash-preserved worktree) is exactly where in-progress work lives; add a one-line callout
+
+---
+
+## Summary
+
+Both claimed fixes are verified in the diff and accurate against the implementation. Five documentation contract tests are present, correctly structured, and pass against current PLAYBOOK.md. The two FAIL criteria from the prior Engineer pass are resolved. Three suggestion-level items noted (weak test assertion, order-sensitive regex, missing data-loss callout) — none affect correctness. The 🟡 missing artifact is a process gap, not a code gap.
+
+**PASS**

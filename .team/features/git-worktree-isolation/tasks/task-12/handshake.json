@@ -1,14 +1,14 @@
 {
   "taskId": "task-12",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed two factual errors in PLAYBOOK.md: corrected the slug description to accurately state dots are retained (not stripped), and corrected the branch description to state -B is used only on initial creation and re-runs reuse the existing worktree. Added five new tests to test/worktree.test.mjs that verify PLAYBOOK.md contains the Git Worktrees section and key accurate claims. All 565 tests pass.",
-  "timestamp": "2026-04-25T00:00:00Z",
+  "summary": "Fixed the PLAYBOOK.md documentation contract tests in test/worktree.test.mjs by splitting the OR-loose cleanup test into two separate independent assertions (one for 'git worktree remove --force', one for 'git worktree prune') and adding two new tests verifying the Inspect subsection commands ('git -C .team/worktrees/<slug> log' and 'git -C .team/worktrees/<slug> status'). Captured test output to test-output.txt as a verifiable artifact. All 566 tests pass.",
+  "timestamp": "2026-04-25T00:00:00.000Z",
   "artifacts": [
-    { "type": "docs", "path": "PLAYBOOK.md" },
-    { "type": "code", "path": "test/worktree.test.mjs" }
+    { "type": "code", "path": "test/worktree.test.mjs" },
+    { "type": "output", "path": ".team/features/git-worktree-isolation/tasks/task-12/test-output.txt" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

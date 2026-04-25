@@ -1,65 +1,75 @@
-# Architect Review — task-12
+# Architect Review — task-12 (run_2)
 
-## Overall Verdict: PASS (flagged)
+**Reviewer role:** Software Architect
+**Verdict:** PASS
+**Date:** 2026-04-25
 
 ---
 
-## What Was Reviewed
+## Files Actually Opened and Read
 
-This task added documentation-only content: a "Git Worktrees" section to `PLAYBOOK.md` (lines 182–243). No code was introduced or changed.
+| File | Lines | What I checked |
+|------|-------|----------------|
+| `.team/features/git-worktree-isolation/tasks/task-12/handshake.json` | all | Builder claims, artifact list, run context |
+| `PLAYBOOK.md` | 182–244 | Delivered documentation section |
+| `bin/lib/run.mjs` | 155–176 | `slugToBranch`, `createWorktreeIfNeeded` — ground truth for slug and branch docs |
+| `test/worktree.test.mjs` | 581–622 | The 5 new PLAYBOOK.md contract tests |
+| `.team/features/git-worktree-isolation/tasks/task-12/eval.md` | all | Prior reviewer findings (4 roles, run_1) |
 
-**Files actually opened and read:**
-- `.team/features/git-worktree-isolation/tasks/task-12/handshake.json`
-- `PLAYBOOK.md` lines 182–243
-- `bin/lib/run.mjs` lines 153–176, 1009–1534
-- `test/worktree.test.mjs` (slug and worktree tests)
+---
+
+## What Was Claimed
+
+Builder (run_2): Fixed two factual errors in PLAYBOOK.md (slug dot-retention, branch `-B` re-run semantics) and added 5 new tests in `test/worktree.test.mjs` that lock down the corrected documentation. All 565 tests pass.
 
 ---
 
 ## Per-Criterion Results
 
-### 1. Claims vs. Evidence
+### 1. Slug description fix
 
-| Claim (handshake) | Verified? | Evidence |
-|---|---|---|
-| Section added to PLAYBOOK.md | ✅ | Lines 182–243 present |
-| Layout: `.team/worktrees/<slug>` with `feature/<slug>` branch | ✅ | `run.mjs:167–168` |
-| Branch uses `-B` (reset on re-run) | ✅ | `run.mjs:173` |
-| Preserved on failure, removed on success | ✅ | `run.mjs:1525–1534` |
-| Re-run reuses existing worktree | ✅ | `run.mjs:169–172` |
-| Inspection commands correct (`git worktree list`, `git -C ... status`) | ✅ | Standard git; consistent with code |
-| Cleanup commands correct (`git worktree remove --force`) | ✅ | Matches `run.mjs:180` |
-| `git worktree prune` for stale registrations | ✅ | Correct advice for abnormal-exit scenario |
-| Slug: "non-alphanumeric characters stripped, capped at 72 chars" | ⚠️ | **Incomplete** — see finding below |
+**PASS** — `PLAYBOOK.md:198–199`:
+> "lowercased, spaces/underscores → `-`, only alphanumeric, hyphens, and dots retained (all other characters stripped), capped at 72 characters"
 
-### 2. Documentation Accuracy
+`run.mjs:159`: `.replace(/[^a-z0-9\-\.]/g, "")` — dots are explicitly preserved by the regex. The current description is accurate. This resolves the 🟡 raised by all four run_1 reviewers.
 
-One factual inaccuracy found: the slug description omits dot preservation.
+### 2. Branch description fix
 
-- **Code** (`run.mjs:159`): `.replace(/[^a-z0-9\-\.]/g, "")` — keeps alphanumeric, hyphens, **and dots**
-- **Test** (`worktree.test.mjs:37–38`): explicit "allows dots" test: `slugToBranch("v1.0") === "v1.0"`
-- **Docs** (`PLAYBOOK.md:199`): "non-alphanumeric characters stripped" — omits dots, which are in fact preserved
+**PASS** — `PLAYBOOK.md:200`:
+> "branch is created on first run with `git worktree add -B`; re-runs reuse the existing worktree and preserve all commits"
 
-This creates a documentation gap: a user with a feature name like "v1.0" or "fix.edge.case" would expect dots stripped but they're kept, producing `feature/v1.0` instead of `feature/v10`.
+`run.mjs:169–172`: `if (existsSync(worktreePath)) return worktreePath;` — on re-run the `git worktree add -B` call is never reached. The current description is accurate and no longer implies branch-reset on retry. This resolves the core factual inaccuracy that blocked run_1.
 
-### 3. Structural / Architectural Quality
+### 3. Five new contract tests
 
-The section is well-structured with four logical sub-sections (Layout, Inspect, Manual cleanup, Prune stale). Prose is accurate on the macro behavior. Commands are correct and safe (`-d` before `-D` for branch deletion is the right ordering). The tip about reuse vs. clean-slate is helpful and accurate.
+**PASS** — `test/worktree.test.mjs:581–622`, `describe("PLAYBOOK.md documentation contract")`:
 
-No new modules, services, or system boundaries were introduced. Architecture is not affected.
+| Test | What it asserts | Adequate? |
+|------|-----------------|-----------|
+| "contains ## Git Worktrees section" | `/^## Git Worktrees/m` | ✅ |
+| "documents git worktree list command" | `/git worktree list/` | ✅ |
+| "documents manual cleanup with git worktree remove" | `/git worktree (remove\|prune)/` | ⚠️ (see finding) |
+| "slug description accurately describes dot preservation" | `/dots? retained\|alphanumeric.*hyphens.*dots\|.../i` | ✅ |
+| "branch description accurately states re-runs reuse" | `/re-runs? reuse/i` | ✅ |
+
+Tests are grouped in their own `describe` block, isolated from behavior tests, and use `readFileSync` against the actual PLAYBOOK.md path — correct pattern for documentation contract testing.
+
+### 4. Test count
+
+**UNVERIFIABLE** — Handshake claims "565 tests pass." Gate output in the prompt is truncated. No `test-output.txt` artifact. Cannot independently confirm count, though all visible test runs in the gate output show passing suites.
+
+### 5. Architectural impact
+
+**No structural changes.** No new modules, services, or system boundaries introduced. No new dependencies. No changes to data models or core abstractions. Documentation section placement is correct — adjacent to the Git workflow subsection it extends.
 
 ---
 
 ## Findings
 
-🟡 PLAYBOOK.md:199 — Slug description says "non-alphanumeric characters stripped" but code (`run.mjs:159`) and tests (`worktree.test.mjs:37`) confirm dots are preserved; change to "only alphanumeric characters, hyphens, and dots are kept, all other characters stripped, capped at 72 characters"
+🔵 test/worktree.test.mjs:602 — Cleanup test pattern `/git worktree (remove|prune)/` is OR-loose: it passes if only `git worktree prune` is present, silently missing the more critical `git worktree remove --force` command; consider splitting into two assertions or tightening to require both
 
 ---
 
-## Actionable Feedback
+## Summary
 
-Fix `PLAYBOOK.md` line 199 to accurately reflect the slug regex. The corrected sentence:
-
-> **Slug** — derived from the feature name: lowercased, spaces/underscores → `-`, only alphanumeric, hyphens, and dots retained (all other characters stripped), capped at 72 characters.
-
-No other changes needed for this task.
+This run_2 task directly resolves all 🟡 findings from run_1: both factual inaccuracies are corrected, and five documentation contract tests now enforce the accurate phrasing. The section is architecturally well-placed, internally consistent, and backed by code verification. The single 🔵 finding (loose cleanup test pattern) is a minor precision gap with no merge impact. Verdict: **PASS**.
