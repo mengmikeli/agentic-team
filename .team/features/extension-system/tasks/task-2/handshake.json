@@ -1,0 +1,15 @@
+{
+  "taskId": "task-2",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added verdictAppend hook to cmdSynthesize in synthesize.mjs. Extensions with 'verdictAppend' capability fire after parseFindings and before runCompoundGate/computeVerdict; their returned { findings } arrays are validated (severity + text must be strings) and merged into the findings list so both the compound gate and verdict computation see the full enriched set. Updated fireExtension JSDoc and added 5 unit tests covering the happy path, verdict impact, non-array guard, per-finding validation, and payload forwarding.",
+  "timestamp": "2026-04-26T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/synthesize.mjs" },
+    { "type": "code", "path": "bin/lib/extension-registry.mjs" },
+    { "type": "code", "path": "test/extension-system.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

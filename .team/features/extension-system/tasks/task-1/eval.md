@@ -703,6 +703,173 @@ The simplicity fixes are mechanically correct and cleanly applied. All four buil
 
 ---
 
+# Security Review — extension-system / task-1 / run_3 (promptAppend integration)
+
+**Reviewer role:** Security Specialist
+**Date:** 2026-04-26
+**Verdict:** PASS (warnings — three carry-forward, one resolved since run_2)
+
+## Files Actually Read
+
+- `bin/lib/extension-loader.mjs` (57 lines — full)
+- `bin/lib/extension-runner.mjs` (39 lines — full)
+- `bin/lib/extension-registry.mjs` (44 lines — full)
+- `bin/lib/run.mjs` (lines 282–296, 1155–1177, via grep for all fireExtension/bypassPermissions/effectiveBrief call sites)
+- `.team/features/extension-system/tasks/task-1/handshake.json`
+- `.team/features/extension-system/tasks/task-1/eval.md` (all prior security reviews)
+
+No `artifacts/test-output.txt` produced by builder. Gate output supplied in review brief; all extension-system tests pass.
+
+## Delta Since run_2 Security Review
+
+Three warnings from prior reviews are now **resolved** in the current source:
+
+| Prior Finding | Status | Evidence |
+|---|---|---|
+| `setExtensions()` exported in production with no guard | **RESOLVED** | `extension-registry.mjs:16-18` — `if (process.env.NODE_ENV !== "test") throw` |
+| `\|\| full === base` dead code in traversal guard | **RESOLVED** | `extension-loader.mjs:31` — branch is gone; only `full.startsWith(base + sep)` remains |
+| Extension return contract `{ append: string }` undocumented | **RESOLVED** | `extension-registry.mjs:22-32` — JSDoc added with payload and return shapes |
+
+## Threat Model (unchanged from run_1)
+
+Local developer CLI. Extensions are `.mjs`/`.js` files the developer places in `.team/extensions/` or `~/.team/extensions/`. No auto-download. Adversaries with write access to those directories already have arbitrary code execution — that is the intended design.
+
+Meaningful incremental threats:
+1. **Supply chain**: compromised npm package writes to `~/.team/extensions/`
+2. **Tampered extension**: trusted extension injects adversarial instructions into the `bypassPermissions` agent brief
+3. **Buggy extension**: unintentionally returns oversized or structured content that inflates token costs or crashes the subprocess
+
+## Per-Criterion Results
+
+### 1. Directory traversal prevention — PASS
+
+**Evidence:** `extension-loader.mjs:28-32` — `normalize(join(dir, file))` compared against `normalize(dir) + sep`. The dead `|| full === base` branch flagged in run_2 has been removed; the guard is now unambiguous. Correct for Unix; `sep` is platform-sensitive.
+
+### 2. `setExtensions()` production guard — PASS (resolved)
+
+**Evidence:** `extension-registry.mjs:15-20` — function throws `Error("setExtensions() is only available in test environments (NODE_ENV=test)")` when `process.env.NODE_ENV !== "test"`. An in-process extension can no longer call this to replace the registry. Prior warning is closed.
+
+### 3. Extension errors isolated from main pipeline — PASS
+
+**Evidence:** `extension-runner.mjs:35-38` — catch swallows all errors, records failure, returns `null`. `run.mjs:1162/1169` — outer `try/catch` prevents any `fireExtension` throw from breaking the pipeline.
+
+### 4. Type validation on appended content — PASS (incomplete — carry-forward)
+
+**Evidence:** `run.mjs:1165` — `typeof r.append === "string"` and `.trim()` truthiness guard are present. Non-string injection is blocked. **Still no size cap.** A hook returning an unbounded string is concatenated verbatim and passed as a positional CLI argument at `run.mjs:290`. On macOS, `ARG_MAX` is ~256 KB per process argument; on Linux ~2 MB. A runaway extension can trigger `E2BIG` or balloon token costs with no bound check.
+
+### 5. Prompt injection into bypassPermissions agent — WARNING (carry-forward)
+
+**Evidence:** `run.mjs:1163-1174` → `run.mjs:290` — `effectiveBrief` (which may include extension-appended content) is passed as the final positional argument to `claude ... --permission-mode bypassPermissions`. No logging of appended content occurs before dispatch. A compromised extension can inject adversarial instructions that the AI agent acts on with elevated implicit authority. The fix is not to reject the brief (extension code already has arbitrary Node.js execution) but to log appended content at debug level so operators have an audit trail.
+
+### 6. Module-execution-before-manifest-validation — WARNING (carry-forward)
+
+**Evidence:** `extension-loader.mjs:35` — `await import(filePath)` executes all module-level code before the manifest check at lines 38-47. A supply-chain-compromised `.mjs` that passes the filename filter but fails the manifest check still runs. This is an inherent Node.js dynamic-import constraint (exports cannot be inspected without execution), but it is not documented as an accepted design boundary.
+
+### 7. Circuit-breaker does not reset between features — NOTE
+
+**Evidence:** `extension-runner.mjs:8` — `_failures` is module-level process state. `run.mjs` imports `fireExtension` but never calls `resetCircuitBreakers()`. A flaky extension that trips the breaker in feature A is silenced for features B and C in the same `agt run` process. Not a vulnerability — silencing a broken extension is safer than continuing — but the behavior is undocumented (noted by Architect review; minor carry-forward).
+
+## Findings
+
+🟡 `bin/lib/run.mjs:1165` — No size cap on `r.append`; unbounded string passed as CLI positional arg (`run.mjs:290`) risks `E2BIG` and unbounded token inflation — add a per-extension truncation cap (e.g. 10 000 chars) with a `console.warn` when truncated; carry-forward from run_1/run_2 security evals
+
+🟡 `bin/lib/run.mjs:1163` — Extension output reaches `--permission-mode bypassPermissions` agent with no audit trail; a compromised or buggy extension can inject adversarial instructions — add a debug-level log of each appended string before dispatch (e.g. `console.debug("[extension] promptAppend from %s: %s", ext.name, r.append)`); carry-forward from run_1/run_2 security evals
+
+🟡 `bin/lib/extension-loader.mjs:35` — `import(filePath)` executes all top-level module code before manifest validation at line 38; a supply-chain-compromised file runs even if it fails the manifest check — document as accepted design constraint with a comment; carry-forward from run_2 security eval
+
+🔵 `bin/lib/extension-runner.mjs:27` — `setTimeout` handle not cleared when hook resolves before 5 s; add `clearTimeout` in a `finally` block to avoid accumulating live timers; carry-forward from run_1/run_2/Architect evals
+
+## Summary
+
+No critical findings. No new vulnerabilities introduced in this run. Three prior warnings resolved: `setExtensions()` is now test-env guarded, the dead traversal-guard branch is removed, and the extension hook contract is documented via JSDoc. Three warnings carry forward unaddressed (size cap, bypassPermissions audit trail, module-exec-before-validation documentation). The overall security posture is incrementally improved.
+
+---
+
+# Product Manager Review — extension-system / promptAppend hook (current state)
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Verdict:** PASS (with backlog items)
+
+## Files Actually Read
+
+- `.team/features/extension-system/tasks/task-1/handshake.json`
+- `bin/lib/extension-registry.mjs` (44 lines, full)
+- `bin/lib/extension-runner.mjs` (39 lines, full)
+- `bin/lib/extension-loader.mjs` (57 lines, full)
+- `bin/lib/run.mjs` lines 1155–1177 and all `dispatchToAgent`/`fireExtension` call sites (grep)
+- `test/extension-system.test.mjs` (361 lines, full)
+- Prior `eval.md` reviews (all rounds)
+- `git log --oneline -10`
+
+## Handshake vs. Actual State
+
+The handshake claims `runId: "run_2"` with 4 changes (3 inlinings + `null` filter) across 3 artifacts. Git log shows 2 additional commits after that point:
+- `552bb99` — inline `isValidExtension`, guard `setExtensions`, add `loadExtensions` tests
+- `26ff550` — another `promptAppend` commit
+
+Modifications to `test/extension-system.test.mjs` are not listed in the handshake artifact set despite the file growing from 268 to 361 lines. The handshake does not reflect the current delivery.
+
+## Per-Criterion Results
+
+### Core requirement delivered — PASS
+
+**Evidence:** `run.mjs:1160–1177` — `fireExtension("promptAppend", ...)` fires after `buildTaskBrief()` and before `dispatchToAgent()`/`dispatchManual()`. Results with a non-empty string `.append` are concatenated into `effectiveBrief` with `"\n\n"` separator. Wrapped in `try/catch` so extensions cannot break the pipeline. Contract met.
+
+### Handshake accuracy — GAP
+
+Handshake claims 3 artifacts and 4 changes. Code has at minimum 2 further commits with distinct changes (isValidExtension inline, setExtensions env guard, loadExtensions test suite). `test/extension-system.test.mjs` is not listed as an artifact despite growing by 93 lines. Prior PM reviews in this file evaluated against intermediate states — the most recent prior PM review flagged `setExtensions` as unguarded, which is now resolved but not recorded in the handshake. The handshake is not a reliable record of the current delivery.
+
+### Scope: build-phase only — GAP (carried)
+
+The stated requirement — "`promptAppend` return string is appended to the agent brief before `dispatchToAgent()`" — has no phase qualifier. Four call sites bypass the hook:
+- `run.mjs:1083` — brainstorm dispatch
+- `run.mjs:1231` — review dispatch
+- `run.mjs:1419` — replan dispatch
+- `run.mjs:1469` — replan dispatch
+
+No spec file exists to confirm build-only scope is intentional. Carried from all prior PM reviews.
+
+### Extension authoring contract — PARTIALLY RESOLVED
+
+JSDoc on `fireExtension` (`extension-registry.mjs:22–32`) now documents payload `{ prompt, taskId, phase }` and return `{ append: string }`. Prior finding about zero documentation is closed. No `EXTENSIONS.md` exists for external authors who would not read source. Adequate for in-repo contributors; insufficient for distributable extension authors.
+
+### Test coverage for `loadExtensions` — PARTIAL (gap)
+
+4 tests added: valid load, invalid manifest, import throws, missing directory. Missing: no test verifies that a file at a traversal path (e.g., `../../outside.mjs`) is blocked by the traversal guard at `extension-loader.mjs:31`. The traversal guard is the primary security boundary of the loader and its correctness is unverified by the test suite.
+
+### `setExtensions()` production guard — RESOLVED
+
+`extension-registry.mjs:16–18` now throws `Error` when `NODE_ENV !== "test"`. Prior 🟡 from multiple rounds is closed.
+
+### Integration tests reproduce append loop inline — GAP (carried)
+
+`test/extension-system.test.mjs:236–240, 260–264, 283–287` reproduce the `run.mjs:1164–1168` append loop verbatim. A change to separator, filter condition, or trim behavior in `run.mjs` will not be caught. Carried from prior Tester reviews.
+
+### Spec.md — MISSING (carried)
+
+No `spec.md` in `.team/features/extension-system/`. Acceptance criteria reconstructed from commit messages. Carried from all prior PM reviews.
+
+## Findings
+
+🟡 `.team/features/extension-system/tasks/task-1/handshake.json` — Handshake reflects run_2 state; at least 2 subsequent commits (`552bb99`, `26ff550`) modified the codebase and test suite without updating the handshake; `test/extension-system.test.mjs` is absent from the artifacts list despite 93 lines added; update handshake to reflect final delivery or require a closing run with an accurate summary
+
+🟡 `bin/lib/run.mjs:1163` — `promptAppend` fires only in the build phase; `run.mjs:1083`, `1231`, `1419`, `1469` call `dispatchToAgent()` without hook invocation; document build-only intent with a comment or extend to remaining dispatch sites; carried from all prior PM reviews
+
+🟡 `test/extension-system.test.mjs` — `loadExtensions` test suite has no traversal attempt test; `extension-loader.mjs:31` traversal guard (the primary security boundary of the loader) is unverified — add a test that attempts to load from a path outside the extensions directory and asserts it is skipped
+
+🟡 `test/extension-system.test.mjs:236` — brief-append integration tests reproduce the `run.mjs:1164–1168` append loop inline; a change to separator, filter, or trim logic in `run.mjs` won't be caught; label clearly as logic-unit tests or add a test that exercises the actual `run.mjs` path; carried from prior Tester reviews
+
+🔵 `bin/lib/extension-registry.mjs:1` — No `EXTENSIONS.md`; JSDoc covers in-source readers but external extension authors have no discoverable interface spec; add an `EXTENSIONS.md` with hook name, payload shape, return type, and example; carried from prior PM reviews
+
+🔵 `.team/features/extension-system/` — No `spec.md`; acceptance criteria cannot be verified against an approved document; require `spec.md` at sprint-init for future features
+
+## Summary
+
+The core contract is met: `promptAppend` results are appended to the agent brief before `dispatchToAgent()`, with proper error isolation and type validation. Several prior warnings are resolved (setExtensions guard, undefined result filter, dead traversal branch, JSDoc contract). Two open scope questions remain: build-phase-only scope is undocumented, and the traversal guard is untested despite loadExtensions tests being added. The handshake is stale relative to current code — a process finding, not a correctness blocker. PASS with four backlog items.
+
+---
+
 # Security Review — extension-system / task-1 / run_2
 
 **Reviewer role:** Security Specialist
@@ -769,3 +936,331 @@ No `artifacts/test-output.txt` produced. Gate output supplied in review brief; a
 ## Summary
 
 No critical findings. No new vulnerabilities introduced by the run_2 inlining refactors. The `result != null` change is a minor security improvement. Three warnings carry forward unaddressed from run_1 (size cap, bypassPermissions audit trail, setExtensions production export). One new warning added: module-execution-before-manifest-validation is an inherent dynamic-import constraint that should be documented as an accepted design boundary.
+
+---
+
+# Engineer Review — extension-system / promptAppend hook (current state)
+
+**Reviewer role:** Engineer (implementation correctness, code quality, error handling, performance)
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Actually Read
+
+- `bin/lib/extension-loader.mjs` (57 lines — full)
+- `bin/lib/extension-runner.mjs` (39 lines — full)
+- `bin/lib/extension-registry.mjs` (44 lines — full)
+- `bin/lib/run.mjs` (lines 1155–1184; all `fireExtension`/`dispatchToAgent` call sites via grep)
+- `test/extension-system.test.mjs` (361 lines — full)
+- `.team/features/extension-system/tasks/task-1/handshake.json`
+
+## Handshake Claims vs. Current Source
+
+| Claim (run_2) | Evidence | Status |
+|---|---|---|
+| `getExtensions` inlined into `fireExtension` | `extension-registry.mjs:34–36` — lazy-init directly in function body; no `getExtensions` defined | ✓ |
+| `recordFailure` inlined into catch block | `extension-runner.mjs:36` — `_failures.set(...)` directly in catch; no `recordFailure` defined | ✓ |
+| `safePath` inlined at single call site | `extension-loader.mjs:28–32` — traversal check inline with `// prevent directory traversal` comment | ✓ |
+| `result != null` loose equality | `extension-registry.mjs:41` — `if (result != null) results.push(result)` confirmed | ✓ |
+
+Beyond the run_2 claims, subsequent commits applied all prior actionable findings: `isValidExtension` inlined (Simplicity 🔴), `setExtensions` NODE_ENV-guarded (Security 🟡), `loadExtensions` tests added (Tester 🟡), `undefined` return test added (Tester 🟡), dead `|| full === base` branch removed (Engineer 🔵), JSDoc on `fireExtension` added (PM 🟡).
+
+## Per-Criterion Results
+
+### Correctness — PASS
+
+**Logic path traced end-to-end (build phase, happy path)**:
+1. `buildTaskBrief(...)` produces `brief` (`run.mjs:1158`)
+2. `fireExtension("promptAppend", { prompt: brief, taskId: task.id, phase: "build" }, cwd)` fans out to all extensions declaring the capability (`extension-registry.mjs:38–43`)
+3. Each non-null result with a non-empty string `.append` field is concatenated with `\n\n` (`run.mjs:1164–1168`)
+4. `effectiveBrief` is passed to `dispatchToAgent(agent, effectiveBrief, cwd)` or `dispatchManual(effectiveBrief)` (`run.mjs:1174, 1176`)
+
+**Edge cases verified against source**:
+- Empty/whitespace `.append` → `.trim()` truthiness guard prevents concatenation (`run.mjs:1165`) ✓
+- Non-string `.append` → `typeof r.append === "string"` check ✓
+- Hook throws → `runHook` catch swallows, increments `_failures`, returns `null`; filtered by `result != null` ✓
+- `fireExtension` itself throws → outer try/catch at `run.mjs:1162` preserves `effectiveBrief = brief` ✓
+- No extensions registered → loop skips → `effectiveBrief === brief` ✓
+- Circuit-broken extension → `isCircuitBroken(name)` at `extension-runner.mjs:21` returns early with `null` before hook invoked ✓
+- Hook returns `undefined` → loose `!= null` filter correctly excludes it (`extension-registry.mjs:41`) ✓
+
+### Code Quality — PASS with notes
+
+**Note 1 — `_failures` session scope undocumented**: `extension-runner.mjs:7` has "Per-extension failure counters (keyed by extension name)" but does not state the map is session-scoped. `run.mjs` never calls `resetCircuitBreakers()` between feature iterations. A flaky extension that trips the breaker on feature A is silenced for features B–N in the same `agt run` process.
+
+**Note 2 — build-only phase boundary undocumented**: `run.mjs:1163` hardcodes `phase: "build"` but no comment documents that review (`run.mjs:1231`), replan (`run.mjs:1419, 1469`), and brainstorm (`run.mjs:1083`) dispatches bypass `fireExtension` entirely.
+
+### Error Handling — PASS
+
+All three containment layers correctly wired:
+- `runHook`: `Promise.race` timeout; all sync/async exceptions caught; `null` returned on any failure ✓
+- `fireExtension`: designed never to throw; errors absorbed by `runHook` ✓
+- `run.mjs:1162`: outer try/catch as final safety net ✓
+
+Circuit-breaker increments on both throws and timeouts (timeout rejects → falls into catch → `_failures.set(...)` called). Confirmed by test "circuit-breaks after 3 consecutive failures."
+
+### Performance — PASS with warning
+
+`extension-runner.mjs:27-28` creates a `setTimeout` that is never cancelled when the hook resolves before 5s. `Promise.race` absorbs the eventual rejection, but the timer remains live for the full TIMEOUT_MS per successful hook invocation. With N extensions × M tasks per session this is N×M dangling timers. Negligible at typical scale; one-line fix.
+
+### Test Coverage — PASS with gaps
+
+**Covered:**
+- `runHook`: 5/5 paths (happy path, missing hook, throw, circuit-break, reset) ✓
+- `fireExtension`: 7 tests — empty, single, multi, capability filter, null filter, undefined filter, payload forward ✓
+- `loadExtensions`: 4 tests — valid, invalid manifest, import throws, missing directory ✓
+- Brief integration: 3 tests — concatenation, empty append, non-string append ✓
+
+**Gap 1 — No timeout test**: `TIMEOUT_MS = 5000` is declared and used in `extension-runner.mjs:4,27-33` but no test verifies that a slow hook returns `null` and increments the failure counter.
+
+**Gap 2 — Integration tests duplicate append loop**: `test/extension-system.test.mjs:222–291` reproduce the filter + concatenation logic inline. A change to `run.mjs:1164–1168` (separator, trim, type check) won't be caught.
+
+## Findings
+
+🟡 `bin/lib/extension-runner.mjs:4` — 5-second timeout declared and used but zero test coverage; no test verifies a slow hook returns `null` and increments the failure counter — add a test using fake timers or a hook stub that never resolves within TIMEOUT_MS
+
+🟡 `test/extension-system.test.mjs:222` — "promptAppend brief integration" tests reproduce the append loop inline instead of calling the actual `run.mjs` path; changes to `run.mjs:1164–1168` (separator, filter) won't be caught — label clearly as logic-unit tests or add a separate test exercising the real code path
+
+🔵 `bin/lib/extension-runner.mjs:27` — `setTimeout` handle not stored or cleared when hook resolves before 5s; store the ID and call `clearTimeout(tid)` in a `finally` block to avoid N×M live timers per session
+
+🔵 `bin/lib/extension-runner.mjs:7` — `_failures` Map is session-scoped but undocumented; a circuit-broken extension stays broken for the full `agt run` process — add a comment documenting this as intentional session-wide behavior
+
+🔵 `bin/lib/run.mjs:1163` — `phase: "build"` hardcoded with no comment; review, replan, and brainstorm dispatches bypass `fireExtension` entirely — add a comment documenting the build-only extension hook boundary
+
+## Summary
+
+All four run_2 claimed fixes are present and behavior-preserving. Subsequent commits resolved all prior reviewer findings that were actionable without architectural changes. The core contract is correct: build-phase brief is enriched by extension output before dispatch, protected by a three-layer error boundary. Two warnings remain (no timeout test, integration tests duplicate inline logic). Three suggestions remain open (dangling timer, session-scope comment, build-only boundary comment). No critical issues.
+
+---
+
+# Simplicity Review — extension-system / task-1 / run_3
+
+**Reviewer role:** Simplicity Reviewer
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Actually Read
+
+- `bin/lib/extension-loader.mjs` (57 lines — full)
+- `bin/lib/extension-runner.mjs` (39 lines — full)
+- `bin/lib/extension-registry.mjs` (44 lines — full, including JSDoc)
+- `bin/lib/run.mjs` (lines 1150–1177 + grep for all `fireExtension` call sites)
+- `test/extension-system.test.mjs` (361 lines — full)
+- `.team/features/extension-system/tasks/task-1/handshake.json`
+
+## Handshake vs. Code Reconciliation
+
+The handshake describes run_2 (three inlinings + `!= null` fix). The code on disk reflects subsequent commits (`552bb99`, `26ff550`): `isValidExtension` inlined, `|| full === base` removed, `setExtensions()` guarded by NODE_ENV, JSDoc added on `fireExtension`, `loadExtensions` tests added, `undefined` return test added. Reviewing the current code state.
+
+## Per-Criterion Results
+
+### Dead code — PASS
+
+No commented-out code, unreachable branches, or unused imports.
+- `|| full === base` dead branch noted in run_2 is **gone**: `loader:31` is now `full.startsWith(base + sep) ? full : null` with no dead OR. ✓
+- All exports consumed: `fireExtension` in `run.mjs:26`; `runHook`/`isCircuitBroken`/`resetCircuitBreakers` in tests; `loadExtensions`/`resetRegistry`/`setExtensions` in tests. No export is uncalled.
+
+### Premature abstraction — PASS
+
+All prior single-call-site private helpers are gone:
+- `getExtensions` — inlined into `fireExtension` (run_2). ✓
+- `recordFailure` — inlined into catch block (run_2). ✓
+- `safePath` — inlined with comment (run_2). ✓
+- `isValidExtension` — inlined as compound `if` with `// validate extension manifest` comment (run_3). ✓
+
+Remaining functions pass the 2-call-site bar:
+- `isCircuitBroken`: 1 internal call (`runHook:21`) + 3 test call sites. Justified exported predicate for testability.
+- `resetCircuitBreakers`, `resetRegistry`, `setExtensions`: test utilities with multiple test call sites each.
+
+### Unnecessary indirection — PASS
+
+No wrapper-only delegates. Each module transforms its inputs. Three-module split is genuine responsibility separation.
+
+### Gold-plating — PASS
+
+`phase: "build"` is a contextual payload field documented in JSDoc at `registry:27`. It enables extensions to conditionally branch by phase. Not a config option or feature flag. Not gold-plating.
+
+### Cognitive load — WARN (carried)
+
+`test/extension-system.test.mjs:236–264` — The "promptAppend brief integration" tests reproduce the append loop inline (the `for (const r of appendResults)` block with `typeof r.append === "string"` and `r.append.trim()` guards) rather than calling `run.mjs:1164–1168` directly. A change to the separator, trim logic, or type guard in the real code won't be caught. Carried unchanged from run_1 and run_2.
+
+## Findings
+
+🟡 `test/extension-system.test.mjs:236` — Append loop duplicated inline from `run.mjs:1164–1168`; regression in separator or filter logic in production won't be caught; label as logic-unit tests or add a test exercising the actual `run.mjs` path (carried from run_1 / run_2 backlog)
+
+## Summary
+
+All prior simplicity 🔴 findings are confirmed resolved. No dead code, no premature abstractions, no unnecessary indirection, no gold-plating. One carried 🟡 (integration test append loop duplication) remains in the backlog. No blockers.
+
+---
+
+# Tester Review — extension-system / task-1 / run_3 (post-loadExtensions tests)
+
+**Reviewer role:** Tester
+**Date:** 2026-04-26
+**Verdict:** PASS (with warnings)
+
+---
+
+## Files Actually Read
+
+- `test/extension-system.test.mjs` (362 lines — full)
+- `bin/lib/extension-runner.mjs` (39 lines — full)
+- `bin/lib/extension-registry.mjs` (44 lines — full)
+- `bin/lib/extension-loader.mjs` (57 lines — full)
+- `bin/lib/run.mjs` (lines 1155–1184 — integration point)
+- `.team/features/extension-system/tasks/task-1/handshake.json`
+- `.team/features/extension-system/tasks/task-1/eval.md` (all prior reviews)
+
+---
+
+## Handshake vs. Evidence
+
+| Claim | Evidence | Result |
+|---|---|---|
+| Artifacts exist on disk | `extension-loader.mjs`, `extension-runner.mjs`, `extension-registry.mjs` all present | ✓ |
+| Inlinings complete (`getExtensions`, `recordFailure`, `safePath`) | None of these functions appear in source; lazy-init at registry:34, `_failures.set` at runner:36, traversal check at loader:27–32 | ✓ |
+| `result != null` loose-equality filter | `extension-registry.mjs:41`: `if (result != null)` confirmed | ✓ |
+| `artifacts/test-output.txt` | Absent — gate output supplied in review brief | N/A |
+
+**State delta since run_2 Tester Re-Review:** `loadExtensions` tests added (4 cases); `setExtensions` guarded behind `NODE_ENV !== "test"` — both gaps from the run_2 tester review are resolved.
+
+---
+
+## Per-Criterion Results
+
+### 1. Core contract: `promptAppend` appended to brief before `dispatchToAgent` — PASS
+
+**Evidence:** `run.mjs:1160–1174` — `fireExtension("promptAppend", ...)` fires after `buildTaskBrief()` and before `dispatchToAgent(agent, effectiveBrief, cwd)`. `effectiveBrief` defaults to `brief`; the extension block is wrapped in `try/catch`.
+
+### 2. Unit tests for `runHook` — PASS
+
+**Evidence:** `test/extension-system.test.mjs:15–84` — five cases: happy path, missing hook, throws + null return, circuit-break at 3 failures, `resetCircuitBreakers`. All branch paths covered.
+
+### 3. Unit tests for `fireExtension` / registry — PASS
+
+**Evidence:** `test/extension-system.test.mjs:88–211` — seven cases including the new "skips undefined results" test (lines 172–190) that was absent in run_2.
+
+### 4. `loadExtensions` coverage — PARTIAL
+
+**Evidence:** `test/extension-system.test.mjs:296–361` — four cases added. **Gap 1:** no test for traversal guard at `extension-loader.mjs:31` — the guard is effectively unreachable (`readdirSync` returns bare filenames that cannot contain `/`), so it is dead code with no testable contract. **Gap 2:** no test for extension whose default export is `null` (covers `ext !== null` at loader:39).
+
+### 5. Timeout behavior — FAIL (gap)
+
+**Evidence:** `extension-runner.mjs:4` declares `TIMEOUT_MS = 5000`; runner:27–33 races against it. No test exercises the timeout branch. "Slow hook returns null and records failure" is entirely untested — a regression here is invisible.
+
+### 6. Integration tests copy `run.mjs` logic inline — FAIL (gap)
+
+**Evidence:** `test/extension-system.test.mjs:235–240` reproduces `run.mjs:1163–1168` verbatim: same `"\n\n"` separator, same `.trim()` guard, same `typeof r.append === "string"` check. A change to any of these in `run.mjs` leaves these tests green while the real behavior diverges.
+
+### 7. Build-phase-only scope — undocumented, untested
+
+**Evidence:** `run.mjs:1083` (brainstorm), `1231` (review), `1419/1469` (replan) call `dispatchToAgent()` without `fireExtension`. No comment documents this as intentional; no test asserts the boundary.
+
+### 8. Session-wide circuit-breaker lifespan — undocumented, untested
+
+**Evidence:** `extension-runner.mjs:8` — `_failures` is module-level; `run.mjs` never calls `resetCircuitBreakers()` between feature iterations. A flaky extension that trips the breaker in feature A is silenced for the rest of the session. Undocumented and untested.
+
+---
+
+## Findings
+
+🟡 `bin/lib/extension-runner.mjs:4` — 5-second timeout is a named design feature with zero tests; add a test using fake timers or a never-resolving hook stub to confirm the timeout branch returns `null` and increments the failure counter
+
+🟡 `test/extension-system.test.mjs:235` — "promptAppend brief integration" tests reproduce the `run.mjs:1163–1168` append loop verbatim; a separator or filter change in `run.mjs` won't be caught; label these as registry-API unit tests or replace with a test exercising the actual `run.mjs` code path
+
+🟡 `bin/lib/run.mjs:1163` — `promptAppend` fires only at the build-phase dispatch site; brainstorm (`1083`), review (`1231`), and replan (`1419/1469`) dispatches bypass extensions; document build-only intent with a comment and add a test asserting the boundary if deliberate
+
+🟡 `bin/lib/extension-runner.mjs:8` — `_failures` Map is session-global but undocumented; a circuit-broken extension is silenced for the full `agt run` process; add a comment documenting this as intentional session-wide behavior (or add `resetCircuitBreakers()` to the outer loop if per-feature isolation is desired) and add a test verifying the expected lifespan
+
+🔵 `bin/lib/extension-loader.mjs:31` — traversal guard is unreachable: `readdirSync` returns bare filenames that cannot contain path separators, so `full` can never fail `startsWith(base + sep)`; remove the dead guard or add a comment explaining it defends against future path-construction changes
+
+🔵 `test/extension-system.test.mjs` (loadExtensions) — no test for extension with `null` default export (covers `ext !== null` at `extension-loader.mjs:39`); add one case to the describe block
+
+---
+
+## Summary
+
+Core contract is correctly implemented and main unit tests are solid. Prior gaps (zero loader coverage, unguarded `setExtensions` export) are resolved. Four 🟡 warnings remain: timeout path untested, integration tests duplicate logic inline, build-phase boundary undocumented, session-scoped circuit-breaker undocumented. Two 🔵 minor suggestions. No critical blockers.
+
+---
+
+# Architect Review — extension-system / task-1 (promptAppend integration)
+
+**Reviewer role:** Architect
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Actually Read
+
+- `bin/lib/extension-loader.mjs` (60 lines — full)
+- `bin/lib/extension-runner.mjs` (39 lines — full)
+- `bin/lib/extension-registry.mjs` (44 lines — full)
+- `bin/lib/run.mjs` lines 1079–1090 and 1150–1177, all `fireExtension`/`dispatchToAgent` call sites (via grep)
+- `test/extension-system.test.mjs` (362 lines — full)
+- `.team/features/extension-system/tasks/task-1/handshake.json`
+- `.team/features/extension-system/tasks/task-1/eval.md` (all prior reviews)
+
+## Builder Claims vs. Evidence
+
+| Claim | Evidence | Status |
+|---|---|---|
+| `promptAppend` return appended to brief before `dispatchToAgent` | `run.mjs:1160–1174`: `fireExtension` called after `buildTaskBrief`, result concatenated into `effectiveBrief`, passed to both `dispatchToAgent` and `dispatchManual` | ✓ |
+| Fault isolation: extensions cannot break pipeline | `runHook` catch at `:35`, `fireExtension` designed never to throw, outer `try/catch` at `run.mjs:1169` | ✓ |
+| run_2: three single-call-site helpers inlined | No `getExtensions`, `recordFailure`, or `safePath` functions in current source; all inlined | ✓ |
+| run_2: `result != null` loose equality | `extension-registry.mjs:41`: `if (result != null) results.push(result)` | ✓ |
+
+**Discrepancy noted**: The run_2 Simplicity Re-Review flagged `isValidExtension` as still present (🔴). Evidence from actual source: no `isValidExtension` function exists — the 8-condition predicate is inlined at `extension-loader.mjs:38–49` with a `// validate extension manifest` comment. That 🔴 finding is resolved in current code.
+
+## Per-Criterion Results
+
+### Module decomposition — PASS
+
+Three modules with clean single-responsibility boundaries: loader (disk scan + manifest validation, 60 lines), runner (timeout + circuit-breaker, 39 lines), registry (singleton + capability fan-out, 44 lines). `run.mjs` imports only `fireExtension` from `extension-registry.mjs`; the other two modules are internal. Dependency graph is acyclic and correct.
+
+### Integration point — PASS
+
+`run.mjs:1160–1174`: hook fires after `buildTaskBrief()`, before both dispatch paths (`dispatchToAgent` and `dispatchManual`). Both paths receive `effectiveBrief`. Three-layer fault containment:
+1. `runHook` catch swallows per-hook errors, returns `null`
+2. `fireExtension` never throws by design
+3. Outer `try/catch` at `run.mjs:1162` preserves `effectiveBrief = brief` on any registry-layer failure
+
+### Lazy-init double-initialization race — WARN
+
+`extension-registry.mjs:34–36`:
+```js
+if (_extensions === null) {
+  _extensions = await loadExtensions(cwd);
+}
+```
+Node.js yields at `await`. Two concurrent callers that both enter before either resolves will both invoke `loadExtensions`, and the second assignment silently overwrites the first. Inert for the current sequential task loop in `run.mjs` — `fireExtension` has exactly one call site per task and tasks are processed sequentially. But if a caller ever wraps tasks in `Promise.all`, the race activates without any diagnostic signal. Standard fix: cache the in-flight Promise to serialize initialization:
+```js
+if (_extensionsPromise === null) _extensionsPromise = loadExtensions(cwd);
+_extensions = await _extensionsPromise;
+```
+
+### `_failures` lifespan asymmetry — NOTE
+
+`extension-runner.mjs:8`: `_failures` Map is module-level state. `run.mjs` never calls `resetCircuitBreakers()`. Unlike `_extensions` (which carries `// Single-cwd invariant: extensions are loaded once per process`), `_failures` has no lifespan comment. A circuit-broken extension stays silenced for the full `agt run` session across all features. If session-wide silencing is intentional, the comment should say so; if per-feature isolation is desired, `run.mjs` should call `resetCircuitBreakers()` at the feature loop boundary.
+
+### `setTimeout` not cleared — NOTE (carried)
+
+`extension-runner.mjs:27–33`: rejection timer never stored. When a hook resolves before 5 s the dangling timer fires into an already-settled `Promise.race` (no functional impact). Accumulates one live timer per successful hook invocation. Unchanged from prior reviews.
+
+### `promptAppend` phase scope — NOTE (carried)
+
+`run.mjs:1163`: `promptAppend` fires only at build-phase dispatch. Brainstorm (`1083`), review (`1231`), and replan (`1419`, `1469`) call `dispatchToAgent` directly without the hook. Undocumented. Unchanged from prior reviews.
+
+## Findings
+
+🟡 `bin/lib/extension-registry.mjs:34` — Lazy-init has a double-initialization race: two concurrent async callers both see `_extensions === null` and both invoke `loadExtensions`; second write silently overwrites the first. Inert for current sequential usage but activates on any `Promise.all`-style parallelism. Fix: cache the in-flight Promise — `if (!_extensionsPromise) _extensionsPromise = loadExtensions(cwd); _extensions = await _extensionsPromise`
+
+🔵 `bin/lib/extension-runner.mjs:8` — `_failures` Map is session-scoped but carries no lifespan comment; a circuit-broken extension stays silenced for the full `agt run` process — add a comment documenting this (e.g. "session-scoped: stays broken for the full agt run process; call resetCircuitBreakers() between runs if per-feature isolation is needed") (carried from prior Architect reviews)
+
+🔵 `bin/lib/extension-runner.mjs:27` — `setTimeout` handle not stored or cleared when hook resolves before 5 s; store the timer ID and call `clearTimeout(tid)` in a `finally` block (carried from prior Architect reviews)
+
+🔵 `bin/lib/run.mjs:1163` — `phase: "build"` hardcoded with no comment explaining that `promptAppend` fires only at the build-phase dispatch; brainstorm, review, and replan dispatches bypass extensions entirely — add a comment documenting the deliberate scope boundary (carried from prior Architect reviews)
+
+## Summary
+
+Module decomposition is clean and the integration point is correctly implemented with three-layer fault containment. All builder claims verified against actual source. One new architectural finding: the lazy-init singleton has a double-initialization race under concurrent async callers — safe for today's sequential loop but a silent latent trap for any future parallelism. Three 🔵 suggestions carried from prior reviews unchanged. No critical or blocking issues.
