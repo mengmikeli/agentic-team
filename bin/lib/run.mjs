@@ -1518,10 +1518,16 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
     console.log(`${c.green}✓ Pushed${c.reset}`);
   } catch { /* push failed — not fatal */ }
 
-  // Remove worktree now that execution is complete
-  } finally {
-    if (worktreePath) removeWorktree(worktreePath, mainCwd);
+  // Remove worktree now that execution completed successfully.
+  // On thrown error we deliberately preserve the worktree so a re-invocation
+  // (which calls createWorktreeIfNeeded) can reuse it and pick up where it left off.
+  } catch (err) {
+    if (worktreePath) {
+      console.log(`${c.yellow}⚠ Run failed — preserving worktree for retry: ${worktreePath}${c.reset}`);
+    }
+    throw err;
   }
+  if (worktreePath) removeWorktree(worktreePath, mainCwd);
 
   const duration = Math.round((Date.now() - startTime) / 1000);
   const durationStr = duration > 60 ? `${Math.floor(duration / 60)}m ${duration % 60}s` : `${duration}s`;

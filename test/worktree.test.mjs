@@ -349,3 +349,46 @@ describe("dispatchToAgent cwd injection", () => {
     assert.notEqual(calls[0].opts.cwd, process.cwd());
   });
 });
+
+// ── Worktree preserved on error (source assertion) ───────────────
+
+describe("worktree preserved on thrown error", () => {
+  it("run.mjs does NOT remove worktree in a finally block (preserves on error)", () => {
+    const src = readFileSync(new URL("../bin/lib/run.mjs", import.meta.url), "utf8");
+    // The previous implementation used `} finally { ... removeWorktree ... }` which
+    // would tear down the worktree even on thrown errors, defeating the reuse path.
+    assert.ok(
+      !/}\s*finally\s*{[^}]*removeWorktree\s*\(/.test(src),
+      "removeWorktree must NOT be called from a finally block — it would erase the worktree on error and prevent re-invocation reuse"
+    );
+  });
+
+  it("run.mjs catches errors during the run and preserves the worktree before rethrowing", () => {
+    const src = readFileSync(new URL("../bin/lib/run.mjs", import.meta.url), "utf8");
+    // Look for a catch handler that mentions preserving the worktree and rethrows.
+    assert.ok(
+      /catch\s*\(\s*err\s*\)\s*{[\s\S]*?preserving worktree[\s\S]*?throw\s+err/i.test(src),
+      "run.mjs must catch run errors, log that the worktree is being preserved, then rethrow"
+    );
+  });
+
+  it("createWorktreeIfNeeded reuses an existing worktree path (preserved-on-error → re-run reuse)", () => {
+    // Simulates the lifecycle: previous run errored, worktree dir still on disk.
+    // A new run must reuse it without invoking `git worktree add`.
+    const tmpDir = mkdtempSync(join(tmpdir(), "preserved-wt-"));
+    try {
+      const slug = "errored-feature";
+      const wtPath = join(tmpDir, ".team", "worktrees", slug);
+      mkdirSync(wtPath, { recursive: true }); // simulate left-behind worktree
+
+      const calls = [];
+      const mockExec = (cmd, args, opts) => calls.push({ cmd, args, opts });
+      const result = createWorktreeIfNeeded(slug, tmpDir, mockExec);
+
+      assert.equal(result, wtPath);
+      assert.equal(calls.length, 0, "must reuse existing worktree without spawning git");
+    } finally {
+      try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+});
