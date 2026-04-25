@@ -18,15 +18,6 @@ function isValidExtension(ext) {
   );
 }
 
-// Prevent directory traversal: resolved path must stay within base dir
-function safePath(base, file) {
-  const full = normalize(join(base, file));
-  return full.startsWith(normalize(base) + (process.platform === "win32" ? "\\" : "/")) ||
-    full === normalize(base)
-    ? full
-    : null;
-}
-
 export async function loadExtensions(cwd = process.cwd()) {
   const dirs = [
     join(cwd, ".team", "extensions"),
@@ -46,7 +37,11 @@ export async function loadExtensions(cwd = process.cwd()) {
     }
 
     for (const file of files) {
-      const filePath = safePath(dir, file);
+      // prevent directory traversal: resolved path must stay within base dir
+      const full = normalize(join(dir, file));
+      const base = normalize(dir);
+      const sep = process.platform === "win32" ? "\\" : "/";
+      const filePath = (full.startsWith(base + sep) || full === base) ? full : null;
       if (!filePath) continue;
 
       try {

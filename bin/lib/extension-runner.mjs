@@ -15,10 +15,6 @@ export function resetCircuitBreakers() {
   _failures.clear();
 }
 
-function recordFailure(name) {
-  _failures.set(name, (_failures.get(name) ?? 0) + 1);
-}
-
 export async function runHook(extension, hookName, payload) {
   const { name, hooks } = extension;
 
@@ -37,7 +33,7 @@ export async function runHook(extension, hookName, payload) {
     ]);
     return result;
   } catch {
-    recordFailure(name);
+    _failures.set(name, (_failures.get(name) ?? 0) + 1);
     return null;
   }
 }
