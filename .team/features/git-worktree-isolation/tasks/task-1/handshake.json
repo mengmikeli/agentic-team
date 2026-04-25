@@ -1,0 +1,14 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "createWorktreeIfNeeded(slug, mainCwd) is implemented at bin/lib/run.mjs:162-172. It returns the absolute path .team/worktrees/<slug>, reuses the directory if it already exists, and otherwise invokes `git worktree add <path> -B feature/<sanitized-slug>` via execFileSync. Sanitization is handled by slugToBranch (lowercase, spaces/underscores to dashes, strip non-[a-z0-9.-], cap at 72 chars). Tests in test/worktree.test.mjs cover slug normalization, path computation, reuse, mock execFileSync calls, and -B-vs-b semantics; full npm test passes (539 pass, 0 fail).",
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "test", "path": "test/worktree.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
