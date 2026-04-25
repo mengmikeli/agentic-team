@@ -25,3 +25,6 @@ Intra-file simplifications only. Do NOT:
 - Apply edits directly to the files
 - If you made changes, run `git add -A && git commit -m "chore: simplify-pass — remove dead code and unnecessary complexity"`
 - If there is nothing to simplify, do nothing and do not create a commit
+- After finishing, output a single JSON line with your findings count:
+  `{"critical": N, "warning": N, "suggestion": N}`
+  Where `critical` = issues you could NOT fully resolve (still present in code), `warning` = significant bloat found and removed, `suggestion` = minor improvements applied

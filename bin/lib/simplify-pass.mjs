@@ -55,6 +55,28 @@ export function getChangedFiles(base, cwd, _execFn = execSync) {
   }
 }
 
+// ── Findings parser ───────────────────────────────────────────────
+
+/**
+ * Parse simplify findings from agent output.
+ * Looks for the last JSON line with critical/warning keys.
+ */
+export function parseSimplifyFindings(output) {
+  if (!output) return null;
+  const lines = output.split("\n");
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (!line.startsWith("{")) continue;
+    try {
+      const obj = JSON.parse(line);
+      if (typeof obj.critical === "number" && typeof obj.warning === "number") {
+        return { critical: obj.critical, warning: obj.warning, suggestion: obj.suggestion || 0 };
+      }
+    } catch { /* not valid JSON */ }
+  }
+  return null;
+}
+
 // ── Brief builder ────────────────────────────────────────────────
 
 export function buildSimplifyBrief(files) {
@@ -125,6 +147,8 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
     return { filesReviewed: files.length, filesChanged: 0, skipped: false };
   }
 
+  const findings = parseSimplifyFindings(result.output) || { critical: 0, warning: 0, suggestion: 0 };
+
   // Detect what actually changed after agent ran
   let postSha = preSha;
   try {
@@ -158,7 +182,7 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
   }
 
   if (changedCount === 0) {
-    return { filesReviewed: files.length, filesChanged: 0, skipped: false };
+    return { filesReviewed: files.length, filesChanged: 0, skipped: false, findings };
   }
 
   // Re-run quality gate to validate simplifications don't break anything
@@ -169,7 +193,7 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
     gateResult = { verdict: "FAIL", exitCode: 1 };
   }
   if (gateResult.verdict === "PASS") {
-    return { filesReviewed: files.length, filesChanged: changedCount, skipped: false };
+    return { filesReviewed: files.length, filesChanged: changedCount, skipped: false, findings };
   }
 
   // Gate failed — revert simplify-pass changes
@@ -194,5 +218,5 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
     }
   } catch { /* best-effort revert */ }
 
-  return { filesReviewed: files.length, filesChanged: 0, reverted: true, skipped: false };
+  return { filesReviewed: files.length, filesChanged: 0, reverted: true, skipped: false, findings };
 }

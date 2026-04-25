@@ -9,6 +9,7 @@ import {
   getChangedFiles,
   buildSimplifyBrief,
   runSimplifyPass,
+  parseSimplifyFindings,
 } from "../bin/lib/simplify-pass.mjs";
 
 // ── isCodeFile ───────────────────────────────────────────────────
@@ -460,11 +461,168 @@ describe("run.mjs integration", () => {
   });
 
   it("only runs simplify pass when completed > 0", () => {
-    // Verify guard: if (completed > 0) wraps the simplify pass call
-    const simplifyBlock = src.slice(src.indexOf("runSimplifyPass(") - 200, src.indexOf("runSimplifyPass("));
+    // Verify guard: if (completed > 0 && blocked === 0) wraps the simplify pass call
+    // Look back 500 chars to account for the fix loop added inside the guard
+    const simplifyBlock = src.slice(src.indexOf("runSimplifyPass(") - 500, src.indexOf("runSimplifyPass("));
     assert.ok(
       /completed\s*>\s*0\s*&&\s*blocked\s*===\s*0/.test(simplifyBlock),
       "runSimplifyPass must be guarded by completed > 0 && blocked === 0"
     );
+  });
+
+  it("enters fix loop up to MAX_SIMPLIFY_FIX_ROUNDS when critical findings persist", () => {
+    assert.ok(
+      /MAX_SIMPLIFY_FIX_ROUNDS\s*=\s*2/.test(src),
+      "run.mjs must define MAX_SIMPLIFY_FIX_ROUNDS = 2"
+    );
+    assert.ok(
+      /for\s*\(\s*let\s+round\s*=\s*0\s*;\s*round\s*<=\s*MAX_SIMPLIFY_FIX_ROUNDS/.test(src),
+      "run.mjs must loop up to MAX_SIMPLIFY_FIX_ROUNDS"
+    );
+  });
+
+  it("escalates after fix rounds exhausted with critical findings", () => {
+    assert.ok(src.includes("escalated: true"), "run.mjs must set escalated: true");
+    assert.ok(
+      /findings\?\.critical\s*>\s*0/.test(src),
+      "run.mjs must check findings?.critical > 0 before escalating"
+    );
+  });
+
+  it("blocks harness finalize when escalated", () => {
+    const finalizeIdx = src.indexOf('harness("finalize"');
+    const escalatedBlockIdx = src.indexOf("simplifyResult?.escalated");
+    assert.ok(escalatedBlockIdx !== -1, "run.mjs must check simplifyResult?.escalated");
+    assert.ok(
+      escalatedBlockIdx < finalizeIdx,
+      "escalated check must appear before harness finalize call"
+    );
+  });
+});
+
+// ── parseSimplifyFindings ──────────────────────────────────────────
+
+describe("parseSimplifyFindings", () => {
+  it("returns null for null input", () => {
+    assert.equal(parseSimplifyFindings(null), null);
+  });
+
+  it("returns null for empty string", () => {
+    assert.equal(parseSimplifyFindings(""), null);
+  });
+
+  it("returns null when no JSON found", () => {
+    assert.equal(parseSimplifyFindings("some output\nno json here"), null);
+  });
+
+  it("parses findings from a JSON line", () => {
+    const output = 'Removed dead code.\n{"critical": 1, "warning": 2, "suggestion": 3}\n';
+    const f = parseSimplifyFindings(output);
+    assert.deepEqual(f, { critical: 1, warning: 2, suggestion: 3 });
+  });
+
+  it("finds the last JSON line with findings keys", () => {
+    const output = 'something\n{"other": true}\n{"critical": 0, "warning": 1, "suggestion": 0}';
+    const f = parseSimplifyFindings(output);
+    assert.deepEqual(f, { critical: 0, warning: 1, suggestion: 0 });
+  });
+
+  it("returns suggestion: 0 when key absent", () => {
+    const output = '{"critical": 2, "warning": 0}';
+    const f = parseSimplifyFindings(output);
+    assert.deepEqual(f, { critical: 2, warning: 0, suggestion: 0 });
+  });
+
+  it("ignores JSON without critical/warning keys", () => {
+    const output = '{"foo": "bar"}\n{"critical": 1, "warning": 0, "suggestion": 0}';
+    const f = parseSimplifyFindings(output);
+    assert.deepEqual(f, { critical: 1, warning: 0, suggestion: 0 });
+  });
+});
+
+// ── runSimplifyPass — findings in return value ────────────────────
+
+describe("runSimplifyPass — findings in return value", () => {
+  it("returns findings from agent output when gate passes", () => {
+    let revParseCount = 0;
+    const execFn = (cmd, _opts) => {
+      if (cmd.includes("merge-base")) return "basesha\n";
+      if (cmd.includes("rev-parse HEAD")) {
+        revParseCount++;
+        return revParseCount === 1 ? "sha1\n" : "sha2\n";
+      }
+      if (cmd.includes("--name-only basesha..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("--name-only sha1..HEAD")) return "src/index.mjs\n";
+      return "";
+    };
+    const result = runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: () => ({ ok: true, output: '{"critical": 0, "warning": 1, "suggestion": 2}' }),
+      runGateFn: () => ({ verdict: "PASS", exitCode: 0 }),
+      execFn,
+    });
+    assert.deepEqual(result.findings, { critical: 0, warning: 1, suggestion: 2 });
+  });
+
+  it("returns findings when changedCount is 0 (agent found nothing to change)", () => {
+    const execFn = (cmd, _opts) => {
+      if (cmd.includes("merge-base")) return "basesha\n";
+      if (cmd.includes("rev-parse HEAD")) return "sha1\n";
+      if (cmd.includes("--name-only basesha..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("--name-only HEAD") && !cmd.includes("..")) return "";
+      return "";
+    };
+    const result = runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: () => ({ ok: true, output: '{"critical": 1, "warning": 0, "suggestion": 0}' }),
+      runGateFn: () => ({ verdict: "PASS", exitCode: 0 }),
+      execFn,
+    });
+    assert.deepEqual(result.findings, { critical: 1, warning: 0, suggestion: 0 });
+    assert.equal(result.filesChanged, 0);
+  });
+
+  it("returns findings when gate fails and changes reverted", () => {
+    let revParseCount = 0;
+    const execFn = (cmd, _opts) => {
+      if (cmd.includes("merge-base")) return "basesha\n";
+      if (cmd.includes("rev-parse HEAD")) {
+        revParseCount++;
+        return revParseCount === 1 ? "sha1\n" : "sha2\n";
+      }
+      if (cmd.includes("--name-only basesha..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("--name-only sha1..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("reset --hard")) return "";
+      return "";
+    };
+    const result = runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: () => ({ ok: true, output: '{"critical": 2, "warning": 0, "suggestion": 0}' }),
+      runGateFn: () => ({ verdict: "FAIL", exitCode: 1 }),
+      execFn,
+    });
+    assert.equal(result.reverted, true);
+    assert.deepEqual(result.findings, { critical: 2, warning: 0, suggestion: 0 });
+  });
+
+  it("returns findings: {critical:0, warning:0, suggestion:0} when agent output has no JSON", () => {
+    const execFn = (cmd, _opts) => {
+      if (cmd.includes("merge-base")) return "basesha\n";
+      if (cmd.includes("rev-parse HEAD")) return "sha1\n";
+      if (cmd.includes("--name-only basesha..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("--name-only HEAD") && !cmd.includes("..")) return "";
+      return "";
+    };
+    const result = runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: () => ({ ok: true, output: "nothing to simplify" }),
+      runGateFn: () => ({ verdict: "PASS", exitCode: 0 }),
+      execFn,
+    });
+    assert.deepEqual(result.findings, { critical: 0, warning: 0, suggestion: 0 });
   });
 });

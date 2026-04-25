@@ -1504,12 +1504,25 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
     try {
       console.log(`${c.dim}Running self-simplification pass...${c.reset}`);
       setUsageContext("simplify", null);
-      simplifyResult = runSimplifyPass({
-        featureDir, gateCmd, cwd, agent,
-        dispatchFn: dispatchToAgent,
-        runGateFn: runGateInline,
-      });
-      if (simplifyResult.skipped) {
+      const MAX_SIMPLIFY_FIX_ROUNDS = 2;
+      for (let round = 0; round <= MAX_SIMPLIFY_FIX_ROUNDS; round++) {
+        if (round > 0) {
+          console.log(`  ${c.dim}Simplify fix round ${round}/${MAX_SIMPLIFY_FIX_ROUNDS} (${simplifyResult.findings.critical} critical)...${c.reset}`);
+        }
+        simplifyResult = runSimplifyPass({
+          featureDir, gateCmd, cwd, agent,
+          dispatchFn: dispatchToAgent,
+          runGateFn: runGateInline,
+        });
+        if (simplifyResult.skipped || !(simplifyResult.findings?.critical > 0)) break;
+      }
+      if (simplifyResult.findings?.critical > 0 && !simplifyResult.skipped) {
+        simplifyResult = { ...simplifyResult, escalated: true };
+      }
+      if (simplifyResult.escalated) {
+        console.log(`  ${c.red}✗ Simplify pass escalated: ${simplifyResult.findings.critical} critical finding(s) remain after ${MAX_SIMPLIFY_FIX_ROUNDS} fix rounds${c.reset}`);
+        appendProgress(featureDir, `**Self-simplification pass — ESCALATED**\n- Critical findings: ${simplifyResult.findings.critical}\n- Fix rounds exhausted: ${MAX_SIMPLIFY_FIX_ROUNDS}/${MAX_SIMPLIFY_FIX_ROUNDS}\n- Action required: manual review`);
+      } else if (simplifyResult.skipped) {
         console.log(`  ${c.dim}Simplify pass skipped${simplifyResult.reason ? `: ${simplifyResult.reason}` : ""}${c.reset}`);
       } else if (simplifyResult.reverted) {
         console.log(`  ${c.yellow}⚠ Simplify pass reverted — gate failed after simplification${c.reset}`);
@@ -1527,7 +1540,11 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
 
   // ── Finalize ──
 
-  const finalizeResult = harness("finalize", "--dir", featureDir);
+  if (simplifyResult?.escalated) {
+    console.log(`${c.red}✗ Finalize blocked — critical simplicity findings require manual review${c.reset}`);
+  } else {
+    harness("finalize", "--dir", featureDir);
+  }
 
   // Persist token usage to STATE.json for dashboard visibility
   if (_runUsage.dispatches > 0) {
