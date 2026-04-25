@@ -350,6 +350,67 @@ describe("dispatchToAgent cwd injection", () => {
   });
 });
 
+// ── Parallel safety: two concurrent runs on different features ───
+
+describe("concurrent createWorktreeIfNeeded on different slugs", () => {
+  let repoDir;
+
+  beforeEach(() => {
+    repoDir = mkdtempSync(join(tmpdir(), "wt-parallel-"));
+    execFileSync("git", ["init", "-q", "-b", "main", repoDir], { stdio: "pipe" });
+    execFileSync("git", ["-C", repoDir, "config", "user.email", "t@t"], { stdio: "pipe" });
+    execFileSync("git", ["-C", repoDir, "config", "user.name", "t"], { stdio: "pipe" });
+    execFileSync("git", ["-C", repoDir, "commit", "--allow-empty", "-q", "-m", "init"], { stdio: "pipe" });
+  });
+
+  afterEach(() => {
+    try { rmSync(repoDir, { recursive: true, force: true }); } catch {}
+  });
+
+  it("two concurrent invocations on different features produce two independent worktrees", async () => {
+    const slugA = "feature-alpha";
+    const slugB = "feature-beta";
+
+    // Race them in parallel — neither should fail and they must produce distinct paths.
+    const [pathA, pathB] = await Promise.all([
+      Promise.resolve().then(() => createWorktreeIfNeeded(slugA, repoDir)),
+      Promise.resolve().then(() => createWorktreeIfNeeded(slugB, repoDir)),
+    ]);
+
+    assert.notEqual(pathA, pathB, "two slugs must produce distinct worktree paths");
+    assert.ok(existsSync(pathA), `worktree A directory must exist: ${pathA}`);
+    assert.ok(existsSync(pathB), `worktree B directory must exist: ${pathB}`);
+
+    // Both must show up in `git worktree list` — proves no race corrupted git's bookkeeping.
+    const list = execFileSync("git", ["-C", repoDir, "worktree", "list"], { encoding: "utf8" });
+    const realA = realpathSync(pathA);
+    const realB = realpathSync(pathB);
+    assert.ok(list.includes(realA) || list.includes(pathA), `worktree list must include A:\n${list}`);
+    assert.ok(list.includes(realB) || list.includes(pathB), `worktree list must include B:\n${list}`);
+
+    // Cleanup so afterEach rm -rf doesn't trip git locks
+    removeWorktree(pathA, repoDir);
+    removeWorktree(pathB, repoDir);
+  });
+
+  it("parent .team/worktrees/ directory is not corrupted by concurrent creation", async () => {
+    const slugs = ["f1", "f2", "f3", "f4"];
+    const paths = await Promise.all(
+      slugs.map(s => Promise.resolve().then(() => createWorktreeIfNeeded(s, repoDir)))
+    );
+
+    // All paths distinct, all exist
+    const unique = new Set(paths);
+    assert.equal(unique.size, slugs.length, "all worktree paths must be unique");
+    for (const p of paths) {
+      assert.ok(existsSync(p), `worktree path must exist: ${p}`);
+    }
+
+    // Cleanup
+    for (const p of paths) removeWorktree(p, repoDir);
+  });
+});
+
 // ── Worktree preserved on error (source assertion) ───────────────
 
 describe("worktree preserved on thrown error", () => {
