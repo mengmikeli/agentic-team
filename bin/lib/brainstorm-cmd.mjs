@@ -6,6 +6,7 @@ import { existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { c } from "./util.mjs";
 import { findAgent, dispatchToAgent } from "./run.mjs";
+import { PRD_SECTIONS } from "./spec.mjs";
 
 // ── Helpers ─────────────────────────────────────────────────────
 
@@ -108,31 +109,26 @@ export function buildInteractiveSpec({ idea, problem, users, constraints, requir
 
   return `# Feature: ${idea}
 
-## Goal
-${problem || idea}
-
-## Requirements
-${allRequirements.length > 0 ? allRequirements.map(r => `- ${r}`).join("\n") : "- TBD"}
-
-## Acceptance Criteria
-${acceptanceCriteria.length > 0 ? acceptanceCriteria.map(a => `- ${a}`).join("\n") : "- TBD"}
-
-## Technical Approach
-${techSection}
-
-### Trade-offs
-- Option A (simple): ${approach1 || "N/A"}
-- Option B (robust): ${approach2 || "N/A"}
-- Selected: ${preferred || "TBD"}
-
-## Testing Strategy
-${testingStrategy || "TBD"}
-
-## Out of Scope
-${notScope ? `- ${notScope}` : "- TBD"}
-
-## Done When
-${criteria.map(c => `- [ ] ${c}`).join("\n")}
+${PRD_SECTIONS.map(section => {
+  switch (section) {
+    case "Goal":
+      return `## Goal\n${problem || idea}`;
+    case "Requirements":
+      return `## Requirements\n${allRequirements.length > 0 ? allRequirements.map(r => `- ${r}`).join("\n") : "- TBD"}`;
+    case "Acceptance Criteria":
+      return `## Acceptance Criteria\n${acceptanceCriteria.length > 0 ? acceptanceCriteria.map(a => `- ${a}`).join("\n") : "- TBD"}`;
+    case "Technical Approach":
+      return `## Technical Approach\n${techSection}\n\n### Trade-offs\n- Option A (simple): ${approach1 || "N/A"}\n- Option B (robust): ${approach2 || "N/A"}\n- Selected: ${preferred || "TBD"}`;
+    case "Testing Strategy":
+      return `## Testing Strategy\n${testingStrategy || "TBD"}`;
+    case "Out of Scope":
+      return `## Out of Scope\n${notScope ? `- ${notScope}` : "- TBD"}`;
+    case "Done When":
+      return `## Done When\n${criteria.map(c => `- [ ] ${c}`).join("\n")}`;
+    default:
+      return `## ${section}\nTBD`;
+  }
+}).join("\n\n")}
 `;
 }
 

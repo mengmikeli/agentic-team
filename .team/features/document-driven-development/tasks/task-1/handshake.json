@@ -1,0 +1,16 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Created bin/lib/spec.mjs exporting a single frozen PRD_SECTIONS constant defining the seven required PRD sections (Goal, Requirements, Acceptance Criteria, Technical Approach, Testing Strategy, Out of Scope, Done When). Refactored validateSpecFile in outer-loop.mjs and the minimal-spec generators in run.mjs and outer-loop.mjs, plus the buildInteractiveSpec output in brainstorm-cmd.mjs, to import and use this constant instead of redefining the section list locally. All 580 existing tests pass.",
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/spec.mjs" },
+    { "type": "code", "path": "bin/lib/outer-loop.mjs" },
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "bin/lib/brainstorm-cmd.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

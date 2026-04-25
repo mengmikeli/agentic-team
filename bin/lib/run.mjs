@@ -23,6 +23,7 @@ import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
 import { outerLoop } from "./outer-loop.mjs";
 import { buildReplanBrief, parseReplanOutput, applyReplan } from "./replan.mjs";
+import { PRD_SECTIONS } from "./spec.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "agt-harness.mjs");
@@ -929,8 +930,18 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
   if (existsSync(specPath)) {
     spec = readFileSync(specPath, "utf8");
   } else {
-    // Write a minimal spec from the description
-    const specContent = `# Feature: ${featureDescription}\n\n## Goal\n${featureDescription}\n\n## Done when\n- [ ] ${featureDescription}\n- [ ] Quality gate passes\n`;
+    // Write a minimal spec from the description (covers all PRD_SECTIONS)
+    const sectionBodies = {
+      "Goal": featureDescription,
+      "Requirements": `- ${featureDescription}`,
+      "Acceptance Criteria": "- TBD",
+      "Technical Approach": "TBD",
+      "Testing Strategy": "TBD",
+      "Out of Scope": "- TBD",
+      "Done When": `- [ ] ${featureDescription}\n- [ ] Quality gate passes`,
+    };
+    const specContent = `# Feature: ${featureDescription}\n\n` +
+      PRD_SECTIONS.map(s => `## ${s}\n${sectionBodies[s]}`).join("\n\n") + "\n";
     mkdirSync(featureDir, { recursive: true });
     writeFileSync(specPath, specContent);
     spec = specContent;

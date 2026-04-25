@@ -10,6 +10,7 @@ import { join } from "path";
 import { randomBytes, createHmac, timingSafeEqual } from "crypto";
 import { c, readState, writeState, atomicWriteSync, WRITER_SIG } from "./util.mjs";
 import { runPhaseChecks } from "./doctor.mjs";
+import { PRD_SECTIONS } from "./spec.mjs";
 
 // Write outer loop status for dashboard visibility
 function writeLoopStatus(teamDir, status) {
@@ -403,7 +404,7 @@ export function parsePriorityOutput(output) {
  * @returns {{ valid: boolean, sections: string[], missing: string[] }}
  */
 export function validateSpecFile(specPath) {
-  const required = ["Goal", "Requirements", "Acceptance Criteria", "Technical Approach", "Testing Strategy", "Out of Scope", "Done When"];
+  const required = PRD_SECTIONS;
 
   if (!existsSync(specPath)) {
     return { valid: false, sections: [], missing: required };
@@ -752,7 +753,17 @@ export async function outerLoop(args, deps) {
       // Agent didn't write SPEC.md — create a minimal one from the description
       console.log(`  ${c.yellow}⚠ SPEC.md not written by agent. Creating minimal spec.${c.reset}`);
       mkdirSync(featureDir, { recursive: true });
-      const minimalSpec = `# Feature: ${priority.name}\n\n## Goal\n${priorityDescription}\n\n## Requirements\n- ${priorityDescription}\n\n## Acceptance Criteria\n- TBD\n\n## Technical Approach\nTBD\n\n## Testing Strategy\nTBD\n\n## Out of Scope\n- TBD\n\n## Done When\n- [ ] Feature implemented and tests pass\n- [ ] Quality gate passes\n`;
+      const sectionBodies = {
+        "Goal": priorityDescription,
+        "Requirements": `- ${priorityDescription}`,
+        "Acceptance Criteria": "- TBD",
+        "Technical Approach": "TBD",
+        "Testing Strategy": "TBD",
+        "Out of Scope": "- TBD",
+        "Done When": "- [ ] Feature implemented and tests pass\n- [ ] Quality gate passes",
+      };
+      const minimalSpec = `# Feature: ${priority.name}\n\n` +
+        PRD_SECTIONS.map(s => `## ${s}\n${sectionBodies[s]}`).join("\n\n") + "\n";
       writeFileSync(specPath, minimalSpec);
     }
     console.log();
