@@ -1,0 +1,41 @@
+{
+  "taskId": "task-6",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 2 warning, 4 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T03:27:36.497Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 2,
+    "suggestion": 4
+  },
+  "compoundGate": {
+    "tripped": 1,
+    "layers": [
+      "fabricated-refs"
+    ],
+    "verdict": "WARN"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 or 🟡 findings. Eval written to `.team/features/document-driven-development/tasks/task-6/eval.md`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/flows.test.mjs:1 — The interactive `buildBrainstormBrief` in `bin/lib/brainstorm-cmd.mjs:37` lacks a direct test asserting it advertises every `PRD_SECTIONS` entry; could regress silently."
+    }
+  ]
+}

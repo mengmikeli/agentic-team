@@ -1,0 +1,49 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 2 warning, 5 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T03:12:42.476Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 2,
+    "suggestion": 5
+  },
+  "compoundGate": {
+    "tripped": 1,
+    "layers": [
+      "fabricated-refs"
+    ],
+    "verdict": "WARN"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🟡. No 🔴. The iteration's regex relaxation (`^#{2,}\\s+Name\\b`) and negative test assertions correctly address the prior-review concerns; gate is inline, dependency-free, fails before any side effect, and mirrors the sibling missing-SPEC.md branch."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cli-commands.test.mjs:288 — The regex relaxation (the motivation of this iteration) has no direct test. Add a fixture using `## Goal:`, `### Requirements`, etc., and a negative fixture using `## Goalposts` to pin both the accept and reject sides of the new regex."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴. Eval written to `tasks/task-3/eval-tester.md`."
+    }
+  ]
+}

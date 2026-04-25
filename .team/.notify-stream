@@ -260,3 +260,32 @@
 {"ts":"2026-04-25T01:11:31.268Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (13 tasks planned)"}
 {"ts":"2026-04-25T01:13:20.432Z","event":"task-started","msg":"▶ Task 1/13: A simplicity 🔴 finding in a `multi-review` run produces overall verdict FAIL even when all other roles return only 🟡/🔵."}
 {"ts":"2026-04-25T01:23:32.676Z","event":"task-started","msg":"▶ Task 2/13: A simplicity 🔴 finding in a `build-verify` run (dedicated simplicity pass after main review) produces overall verdict FAIL."}
+{"ts":"2026-04-25T01:39:23.507Z","event":"task-started","msg":"▶ Task 3/13: Simplicity 🔴 findings appear as `[simplicity veto]` in the merged/combined output for both flows."}
+{"ts":"2026-04-25T01:53:03.636Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in simplicity-reviewer-with-veto — stopping execution"}
+{"ts":"2026-04-25T01:53:05.868Z","event":"feature-complete","msg":"Feature complete: simplicity-reviewer-with-veto — 0/13 done, 3 blocked, 41m 35s, $87.40"}
+{"ts":"2026-04-25T01:55:22.727Z","event":"feature-started","msg":"▶ Feature: multi-perspective-code-review (12 tasks planned)"}
+{"ts":"2026-04-25T01:57:22.448Z","event":"task-started","msg":"▶ Task 1/12: A `build-verify` run dispatches 6 parallel reviews (one per role in `PARALLEL_REVIEW_ROLES`) and merges them via `mergeReviewFindings`."}
+{"ts":"2026-04-25T02:02:31.392Z","event":"task-passed","msg":"✓ Task 1/12: A `build-verify` run dispatches 6 parallel reviews (one per role in `PARALLEL_REVIEW_ROLES`) and merges them via `mergeReviewFindings`."}
+{"ts":"2026-04-25T02:02:36.774Z","event":"task-started","msg":"▶ Task 2/12: The merged output starts with a synthesis header showing total severity counts and a per-role count table, followed by the severity-ranked findings."}
+{"ts":"2026-04-25T02:12:09.269Z","event":"task-started","msg":"▶ Task 3/12: A 🔴 from any role in `build-verify` produces overall verdict FAIL (existing `computeVerdict` behavior)."}
+{"ts":"2026-04-25T02:22:46.985Z","event":"task-started","msg":"▶ Task 4/12: A 🔴 simplicity finding in either flow is tagged `[simplicity veto]` and forces FAIL via `hasSimplicityVeto` (unchanged from current behavior)."}
+{"ts":"2026-04-25T02:33:30.644Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in multi-perspective-code-review — stopping execution"}
+{"ts":"2026-04-25T02:33:32.763Z","event":"feature-complete","msg":"Feature complete: multi-perspective-code-review — 1/12 done, 3 blocked, 38m 10s, $73.28"}
+{"ts":"2026-04-25T02:35:26.972Z","event":"feature-started","msg":"▶ Feature: document-driven-development (15 tasks planned)"}
+{"ts":"2026-04-25T02:37:36.762Z","event":"task-started","msg":"▶ Task 1/15: A single exported constant (e.g. `PRD_SECTIONS` in `bin/lib/outer-loop.mjs` or a new `bin/lib/spec.mjs`) defines the seven required sections; all spec-related code paths import it."}
+{"ts":"2026-04-25T02:46:17.413Z","event":"task-passed","msg":"✓ Task 1/15: A single exported constant (e.g. `PRD_SECTIONS` in `bin/lib/outer-loop.mjs` or a new `bin/lib/spec.mjs`) defines the seven required sections; all spec-related code paths import it."}
+{"ts":"2026-04-25T02:46:23.209Z","event":"task-started","msg":"▶ Task 2/15: `agt run my-feature` with no `SPEC.md` exits non-zero with a message naming the missing file and pointing at `agt brainstorm`."}
+{"ts":"2026-04-25T03:03:03.036Z","event":"task-started","msg":"▶ Task 3/15: `agt run my-feature` with a `SPEC.md` that is missing one or more required sections exits non-zero, lists the missing sections, and does NOT modify the file or run any tasks."}
+{"ts":"2026-04-25T03:12:44.648Z","event":"task-started","msg":"▶ Task 4/15: `agt run my-feature` with a fully valid `SPEC.md` proceeds exactly as today (planning, dispatch, gates)."}
+{"ts":"2026-04-25T03:17:21.544Z","event":"task-passed","msg":"✓ Task 4/15: `agt run my-feature` with a fully valid `SPEC.md` proceeds exactly as today (planning, dispatch, gates)."}
+{"ts":"2026-04-25T03:17:27.075Z","event":"task-started","msg":"▶ Task 5/15: The auto-stub branch in `bin/lib/run.mjs` (`writeFileSync(specPath, specContent)` for the minimal spec) is removed."}
+{"ts":"2026-04-25T03:21:55.708Z","event":"task-passed","msg":"✓ Task 5/15: The auto-stub branch in `bin/lib/run.mjs` (`writeFileSync(specPath, specContent)` for the minimal spec) is removed."}
+{"ts":"2026-04-25T03:22:01.253Z","event":"task-started","msg":"▶ Task 6/15: The brainstorm agent brief and template advertise the same seven sections that `validateSpecFile` checks for."}
+{"ts":"2026-04-25T03:33:59.065Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in document-driven-development — stopping execution"}
+{"ts":"2026-04-25T03:34:01.327Z","event":"feature-complete","msg":"Feature complete: document-driven-development — 3/15 done, 3 blocked, 58m 34s, $123.16"}
+{"ts":"2026-04-25T03:34:36.211Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (17 tasks planned)"}
+{"ts":"2026-04-25T03:37:28.599Z","event":"task-started","msg":"▶ Task 1/17: After exactly 3 review FAILs on a task, `task.status` becomes `\"blocked\"` and `task.lastReason` is `\"review-escalation: 3 rounds exceeded\"`."}
+{"ts":"2026-04-25T03:47:54.797Z","event":"task-started","msg":"▶ Task 2/17: After 1 or 2 review FAILs the task is NOT blocked — retry continues normally."}
+{"ts":"2026-04-25T04:00:18.174Z","event":"task-started","msg":"▶ Task 3/17: A GitHub issue comment is posted containing the task title, round count, and deduplicated findings table on escalation."}
+{"ts":"2026-04-25T04:10:18.531Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in max-review-rounds-escalation — stopping execution"}
+{"ts":"2026-04-25T04:10:20.600Z","event":"feature-complete","msg":"Feature complete: max-review-rounds-escalation — 0/17 done, 3 blocked, 35m 44s, $84.09"}

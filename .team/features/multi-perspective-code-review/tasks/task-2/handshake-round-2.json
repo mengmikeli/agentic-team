@@ -1,0 +1,46 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 1 warning, 10 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T02:12:06.947Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 1,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 2,
+    "layers": [
+      "missing-code-refs",
+      "fabricated-refs"
+    ],
+    "verdict": "WARN"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "🔴 iteration-escalation — Persistent eval warning: missing-code-refs, fabricated-refs recurred in iterations 1, 2"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 compound-gate.mjs:0 — Thin review warning: missing-code-refs, fabricated-refs"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 or 🟡 findings."
+    },
+    {
+      "severity": "critical",
+      "text": "Security surface for this change is minimal: pure markdown string formatting with no auth, secrets, file paths, shell, eval, or HTML rendering. Inputs are defensively coerced (`f.output || \"\"`, `f.role || \"reviewer\"`). The synthesis header deliberately avoids leading severity emojis so `parseFindings` (which anchors `/^([🔴🟡🔵])/u`) cannot misinterpret synthesis lines as findings — verified by reading the regex at line 189 and confirming the simplicity-veto test still passes."
+    }
+  ]
+}

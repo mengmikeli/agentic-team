@@ -1,0 +1,42 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 1 warning, 2 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T02:22:44.694Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 1,
+    "suggestion": 2
+  },
+  "compoundGate": {
+    "tripped": 2,
+    "layers": [
+      "missing-code-refs",
+      "fabricated-refs"
+    ],
+    "verdict": "WARN"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 compound-gate.mjs:0 — Thin review warning: missing-code-refs, fabricated-refs"
+    },
+    {
+      "severity": "critical",
+      "text": "Test-only change in `test/flows.test.mjs`. Verified by running `node --test test/flows.test.mjs` → 48/48 pass, including all 6 per-role 🔴 cases plus multi-critical, zero-critical, and the new all-empty edge case. No production code, no input/auth/secrets surface affected."
+    }
+  ]
+}

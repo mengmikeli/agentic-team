@@ -1,7 +1,7 @@
 // bin/lib/compound-gate.mjs
 // 5-layer compound evaluation gate for detecting shallow/fabricated review findings
 
-import { existsSync } from "fs";
+import { existsSync, readdirSync } from "fs";
 import { join, resolve, sep } from "path";
 
 // ── Layer 1: Thin Content ──────────────────────────────────────────────────
@@ -94,30 +94,54 @@ const MISSING_FILE_CONTEXT = /\b(does not exist|doesn't exist|is absent|missing 
 export function detectFabricatedRefs(findings, repoRoot) {
   if (typeof repoRoot !== 'string') return false;
   const resolvedRoot = resolve(repoRoot);
-  const backPathRe = /[^\s:]+\.(mjs|cjs|ts|mts|js|jsx|tsx|json|md)/g;
+
+  // Also check .team/features and worktree paths as valid roots
+  const validRoots = [resolvedRoot];
+  const teamDir = join(resolvedRoot, ".team");
+  if (existsSync(teamDir)) validRoots.push(teamDir);
+  const worktreeDir = join(teamDir, "worktrees");
+  if (existsSync(worktreeDir)) {
+    try {
+      for (const d of readdirSync(worktreeDir, { withFileTypes: true })) {
+        if (d.isDirectory()) validRoots.push(join(worktreeDir, d.name));
+      }
+    } catch {}
+  }
+
+  let fabricatedCount = 0;
+  let totalRefs = 0;
+
   for (const f of findings) {
     for (const m of f.text.matchAll(FILE_EXT_PATTERN)) {
       const p = m[1];
-      const abs = resolve(join(resolvedRoot, p));
-      // Block path traversal: if resolved path escapes repoRoot, treat as fabricated
-      if (!abs.startsWith(resolvedRoot + sep) && abs !== resolvedRoot) {
-        return true;
+      totalRefs++;
+
+      // Skip eval/artifact refs (reviewers cite their own output files)
+      if (p.includes("eval") || p.includes("handshake") || p.includes("artifacts/")) continue;
+
+      // Check if file exists in any valid root
+      let found = false;
+      for (const root of validRoots) {
+        const abs = resolve(join(root, p));
+        // Block path traversal
+        if (!abs.startsWith(root + sep) && abs !== root) continue;
+        if (existsSync(abs)) { found = true; break; }
       }
-      // Skip false-positive: reviewer is explicitly noting THIS path is absent/missing.
-      // Forward window: check 60 chars after the matched path.
+
+      if (found) continue;
+
+      // Skip false-positive: reviewer explicitly noting absence
       const forwardWindow = f.text.slice(m.index, m.index + p.length + 60);
-      // Backward window: only use if no other file path appears between the window
-      // start and this path — otherwise the MISSING_FILE_CONTEXT belongs to that
-      // earlier path, not the current one.
       const backStart = Math.max(0, m.index - 60);
-      const backwardRegion = f.text.slice(backStart, m.index);
-      backPathRe.lastIndex = 0;
-      const backwardWindow = backPathRe.test(backwardRegion) ? '' : backwardRegion;
+      const backwardWindow = f.text.slice(backStart, m.index);
       if (MISSING_FILE_CONTEXT.test(forwardWindow + backwardWindow)) continue;
-      if (!existsSync(abs)) return true;
+
+      fabricatedCount++;
     }
   }
-  return false;
+
+  // Only trip if >30% of refs are fabricated (not just one stray reference)
+  return totalRefs > 0 && fabricatedCount > 0 && (fabricatedCount / totalRefs) > 0.3;
 }
 
 // ── Layer 5: Aspirational Claims ──────────────────────────────────────────

@@ -10,7 +10,7 @@
       "verdict": "PASS",
       "stdout": "warning: deprecated api\n",
       "stderr": "",
-      "timestamp": "2026-04-25T01:00:52.531Z",
+      "timestamp": "2026-04-25T04:11:05.973Z",
       "taskId": null,
       "warnings": 1,
       "newWarnings": 1
@@ -19,6 +19,6 @@
   "transitionCount": 0,
   "transitionHistory": [],
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-25T01:00:52.531Z",
-  "_write_nonce": "cb4866919546dafa"
+  "_last_modified": "2026-04-25T04:11:05.973Z",
+  "_write_nonce": "7c487369da7f6efe"
 }

@@ -1,0 +1,57 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (4 critical, 3 warning, 10 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T03:07:53.697Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 4,
+    "warning": 3,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 1,
+    "layers": [
+      "fabricated-refs"
+    ],
+    "verdict": "WARN"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🟡, no 🔴. Architecture is clean: local to `_runSingleFeature`, no new dependencies, mirrors the existing missing-file gate pattern, fails fast before any side effect."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴. No 🟡."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cli-commands.test.mjs:303 — Partial-spec test asserts missing sections appear, but not that present sections (`Goal`, `Requirements`) are absent from output; inverted-filter regression would pass. Add negative assertions."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:941 — Regex `^##\\s+Name\\s*$` rejects valid variants like `## Goal:`, `### Goal`, `## Goal — purpose`. Either relax or document the exact required form in the error message."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 — implementation matches handshake claims, file-not-modified is asserted, exit-code is asserted, gate runs before task planning."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴, no 🟡. The 21-line gate is inline, single-purpose, mirrors the adjacent missing-SPEC.md branch, and adds no abstraction, indirection, config knobs, or dead code. Eval written to `.team/features/document-driven-development/tasks/task-3/eval.md`."
+    }
+  ]
+}

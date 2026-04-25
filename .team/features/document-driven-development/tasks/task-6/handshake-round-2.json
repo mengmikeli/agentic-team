@@ -1,0 +1,41 @@
+{
+  "taskId": "task-6",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 2 warning, 7 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T03:33:58.971Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 2,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 1,
+    "layers": [
+      "fabricated-refs"
+    ],
+    "verdict": "WARN"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs"
+    },
+    {
+      "severity": "warning",
+      "text": "Tests run locally: **591 pass / 0 fail**. The new `test/brainstorm-cmd.test.mjs` directly covers both the bullet list and the fenced markdown example in `buildBrainstormBrief`, plus the interactive-spec path — closing the prior 🟡 gap about the brainstorm-cmd brief lacking direct coverage. The test regex (`^##\\s+${section}`, \"mi\") is identical to `validateSpecFile` at `bin/lib/outer-loop.mjs:425`, so the tests are a faithful validation proxy."
+    }
+  ]
+}

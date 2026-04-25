@@ -1,0 +1,53 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 3 warning, 11 suggestion). Compound gate: WARN",
+  "timestamp": "2026-04-25T04:10:18.434Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 3,
+    "suggestion": 11
+  },
+  "compoundGate": {
+    "tripped": 1,
+    "layers": [
+      "fabricated-refs"
+    ],
+    "verdict": "WARN"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "🔴 iteration-escalation — Persistent eval warning: fabricated-refs recurred in iterations 1, 2"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 compound-gate.mjs:0 — Thin review warning: fabricated-refs"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1352 — `commentIssue` is fire-and-forget with no try/catch; an API throw would skip the subsequent `markChecklistItemBlocked` + `harness(\"transition\")` calls and lose the block transition. Wrap in try/catch + warn-log, plus a test injecting a throwing `commentIssue`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/review-escalation.test.mjs:243 — Acceptance test exercises `buildEscalationSummary` directly; a regression removing the `commentIssue(...)` line at run.mjs:1352 would still pass. Add a thin integration test that stubs `commentIssue` and asserts it's called with `(task.issueNumber, body)`."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴. PASS — yellow items are coverage gaps for adjacent failure modes, appropriate for backlog. Eval written to `.team/features/max-review-rounds-escalation/tasks/task-3/eval.md`."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 or 🟡 findings. Shell-injection vector is closed via `spawnSync(gh, args, ...)` with array args. JSON parsing of round files is wrapped in try/catch. No secrets/credential handling. Gate `npm test` exit code 0 verified against artifact. Detailed eval written to `tasks/task-3/eval-security.md`."
+    }
+  ]
+}
