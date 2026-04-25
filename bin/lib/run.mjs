@@ -867,6 +867,20 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
     }
   }
 
+  // Read project code from PROJECT.md (first word of "## What" or repo name)
+  let projectCode = 'AGT';
+  try {
+    const projMd = readFileSync(join(teamDir, 'PROJECT.md'), 'utf8');
+    const repoMatch = projMd.match(/## Repo\n.*?([\w-]+)$/m);
+    const whatMatch = projMd.match(/## What\n(.+)/);
+    if (repoMatch) {
+      const repo = repoMatch[1];
+      // Use short codes: sequoia-seed → TRY, api-tasteful-work → API, agentic-team → AGT
+      const codeMap = { 'sequoia-seed': 'TRY', 'api-tasteful-work': 'API', 'agentic-team': 'AGT' };
+      projectCode = codeMap[repo] || repo.slice(0, 4).toUpperCase();
+    }
+  } catch {}
+
   const featureDir = join(teamDir, "features", featureName);
   const gateCmd = detectGateCommand(mainCwd);
   const agent = findAgent();
@@ -1007,7 +1021,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
     for (const task of tasks) {
       if (task.issueNumber) continue; // already has an issue (e.g. from crash recovery)
       const issueNum = createIssue(
-        `[AGT]${featureLabel ? ` [${featureLabel}]` : ''} ${task.title}`,
+        `[${projectCode}]${featureLabel ? ` [${featureLabel}]` : ''} ${task.title}`,
         buildTaskIssueBody(featureName, featureLabel, task.title, state?.approvalIssueNumber),
       );
       if (issueNum) {

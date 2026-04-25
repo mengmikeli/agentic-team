@@ -145,7 +145,7 @@ export async function createApprovalIssue(featureDir, featureName, specPath, pro
   } = deps;
 
   const specContent = existsSync(specPath) ? readFileSync(specPath, "utf8") : "";
-  const title = `[AGT] [Feature] ${featureName}`;
+  const title = `[${projectCode}] [Feature] ${featureName}`;
 
   const issueNumber = createIssue(title, specContent, ["awaiting-approval"]);
   if (!issueNumber) return null;
@@ -601,6 +601,15 @@ export async function outerLoop(args, deps) {
   const teamDir = join(cwd, ".team");
   const productPath = join(teamDir, "PRODUCT.md");
 
+  // Read project code for issue labeling
+  let projectCode = 'AGT';
+  try {
+    const projMd = readFileSync(join(teamDir, 'PROJECT.md'), 'utf8');
+    const repoMatch = projMd.match(/## Repo\n.*?([\w-]+)$/m);
+    const codeMap = { 'sequoia-seed': 'TRY', 'api-tasteful-work': 'API', 'agentic-team': 'AGT' };
+    if (repoMatch) projectCode = codeMap[repoMatch[1]] || repoMatch[1].slice(0, 4).toUpperCase();
+  } catch {}
+
   if (!existsSync(productPath)) {
     console.log(`${c.red}No PRODUCT.md found.${c.reset} Run ${c.bold}agt run${c.reset} (no args) to set one up, or create it manually.`);
     process.exit(1);
@@ -800,7 +809,7 @@ export async function outerLoop(args, deps) {
           featureDir, priority.name, specPath, projectNumber, approvalDeps,
         );
         if (approvalIssueNumber) {
-          console.log(`  ${c.green}→ Created issue #${approvalIssueNumber}: [AGT] [Feature] ${priority.name}${c.reset}`);
+          console.log(`  ${c.green}→ Created issue #${approvalIssueNumber}: [${projectCode}] [Feature] ${priority.name}${c.reset}`);
           // Persist approvalIssueNumber to STATE.json so re-entry can recover it even if approval.json is unavailable
           const stateForNum = readState(featureDir);
           if (isStructurallyComplete(stateForNum) && !stateForNum.approvalIssueNumber) {
