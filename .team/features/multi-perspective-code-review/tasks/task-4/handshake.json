@@ -1,13 +1,14 @@
 {
   "taskId": "task-4",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Added pure `hasSimplicityVeto(findings)` to bin/lib/synthesize.mjs that detects [simplicity veto] tags. Wired it into the multi-review path in bin/lib/run.mjs (used by both build-verify and full-stack flows) so a 🔴 simplicity finding explicitly forces FAIL on top of the existing any-🔴-FAILs behavior. Added unit tests covering empty/null inputs, veto present, plain [simplicity], non-simplicity 🔴, parsed merged output, and immutability.",
+  "summary": "Simplicity veto behavior is unchanged: a 🔴 from the simplicity role is tagged [simplicity veto] by mergeReviewFindings and forces FAIL via hasSimplicityVeto in run.mjs's multi-review path. This iteration addresses the architect's PASS-with-suggestions feedback by extracting the shared SIMPLICITY_VETO_TAG constant from synthesize.mjs and consuming it in flows.mjs to remove the duplicated literal. All 598 tests pass.",
   "timestamp": "2026-04-25T00:00:00Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/synthesize.mjs" },
+    { "type": "code", "path": "bin/lib/flows.mjs" },
     { "type": "code", "path": "bin/lib/run.mjs" },
     { "type": "code", "path": "test/synthesize.test.mjs" }
   ],
