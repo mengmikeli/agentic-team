@@ -1,0 +1,28 @@
+id: add-test-suite
+name: Add Test Suite
+patterns:
+  - type: regex
+    value: "add.*test.*suite|set.*up.*test|init.*test|creat.*test.*framework"
+    weight: 2.0
+  - type: keyword
+    value: "test suite"
+    weight: 1.5
+  - type: keyword
+    value: "testing framework"
+    weight: 1.0
+  - type: keyword
+    value: "unit tests"
+    weight: 1.0
+minScore: 2.5
+tasks:
+  - title: Choose and install testing framework
+    hint: Select a test runner (jest, vitest, mocha, node:test) and install as dev dependency
+  - title: Configure test runner and coverage reporting
+    hint: Add test script to package.json, configure coverage thresholds and reporters
+  - title: Write initial unit tests for core modules
+    hint: Cover happy paths and edge cases for the most critical business logic
+  - title: Add integration tests for key workflows
+    hint: Test interactions between modules and external dependencies using mocks
+  - title: Set up CI to run tests on every push
+    hint: Add test step to CI pipeline, fail build on test failure or coverage drop
+flow: build-verify
