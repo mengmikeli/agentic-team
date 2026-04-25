@@ -1,14 +1,13 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed the JUnit XML parser to match <error> elements alongside <failure> elements, so runtime exceptions produce critical findings instead of silently passing. Also removed a dead try/catch wrapper since regex operations on strings cannot throw. Added a test for the <error> case.",
+  "summary": "Fixed parseJunitXml to use the standard 3-argument signature (stdout, stderr, exitCode) matching the module interface contract and other parsers. Replaced the unnecessary wrapper lambda in the PARSERS registry with a direct function reference, matching the style of the exit-code entry.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/validator-parsers.mjs" },
-    { "type": "code", "path": "test/validator-parsers.test.mjs" }
+    { "type": "code", "path": "bin/lib/validator-parsers.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
