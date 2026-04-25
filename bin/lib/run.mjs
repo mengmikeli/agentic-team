@@ -1623,6 +1623,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
 
   // Write usage to progress log
   if (usage.dispatches > 0) {
+    const activePhases = ["brainstorm", "build", "review", "simplify"].filter(p => phases[p]);
     let summary = `**Run Summary**\n- Tasks: ${completed}/${tasks.length} done, ${blocked} blocked\n- Duration: ${durationStr}\n- Dispatches: ${usage.dispatches}\n- Tokens: ${formatTokens(totalTokens(usage))} (in: ${formatTokens(usage.inputTokens)}, cached: ${formatTokens(usage.cacheRead)}, out: ${formatTokens(usage.outputTokens)})\n- Cost: $${usage.costUsd.toFixed(2)}`;
     if (activePhases.length > 0) {
       summary += `\n- By phase: ${activePhases.map(p => `${p} $${phases[p].costUsd.toFixed(2)}`).join(', ')}`;
