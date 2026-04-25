@@ -327,41 +327,43 @@ describe("mergeReviewFindings", () => {
 describe("build-verify verdict — any 🔴 from any role causes FAIL", () => {
   for (const role of PARALLEL_REVIEW_ROLES) {
     it(`a 🔴 from ${role} alone produces FAIL`, () => {
-      const findings = PARALLEL_REVIEW_ROLES.map(r => ({
-        role: r,
-        ok: r !== role,
-        output: r === role
+      const outputs = PARALLEL_REVIEW_ROLES.map(r =>
+        r === role
           ? `🔴 file.mjs:1 — critical issue from ${r}`
           : `🔵 file.mjs:1 — minor suggestion from ${r}`,
-      }));
-      const allText = findings.map(f => f.output || "").join("\n");
-      const result = computeVerdict(parseFindings(allText));
+      );
+      const result = computeVerdict(parseFindings(outputs.join("\n")));
       assert.equal(result.verdict, "FAIL", `🔴 from ${role} must produce FAIL`);
       assert.ok(result.critical >= 1, "must count at least 1 critical");
     });
   }
 
   it("multiple 🔴 from different roles still produces FAIL with correct count", () => {
-    const findings = [
-      { role: "security",  ok: false, output: "🔴 a.mjs:1 — security issue" },
-      { role: "architect", ok: false, output: "🔴 b.mjs:2 — architecture issue" },
-      { role: "engineer",  ok: true,  output: "🟡 c.mjs:3 — minor warning" },
+    const outputs = [
+      "🔴 a.mjs:1 — security issue",
+      "🔴 b.mjs:2 — architecture issue",
+      "🟡 c.mjs:3 — minor warning",
     ];
-    const allText = findings.map(f => f.output || "").join("\n");
-    const result = computeVerdict(parseFindings(allText));
+    const result = computeVerdict(parseFindings(outputs.join("\n")));
     assert.equal(result.verdict, "FAIL");
     assert.equal(result.critical, 2);
     assert.equal(result.warning, 1);
   });
 
   it("zero 🔴 across all roles produces PASS", () => {
-    const findings = PARALLEL_REVIEW_ROLES.map(r => ({
-      role: r, ok: true, output: `🟡 file.mjs:1 — note from ${r}`,
-    }));
-    const allText = findings.map(f => f.output || "").join("\n");
-    const result = computeVerdict(parseFindings(allText));
+    const outputs = PARALLEL_REVIEW_ROLES.map(r => `🟡 file.mjs:1 — note from ${r}`);
+    const result = computeVerdict(parseFindings(outputs.join("\n")));
     assert.equal(result.verdict, "PASS");
     assert.equal(result.critical, 0);
+  });
+
+  it("all-empty role outputs produce trivial PASS with zero findings", () => {
+    const outputs = PARALLEL_REVIEW_ROLES.map(() => "");
+    const result = computeVerdict(parseFindings(outputs.join("\n")));
+    assert.equal(result.verdict, "PASS");
+    assert.equal(result.critical, 0);
+    assert.equal(result.warning, 0);
+    assert.equal(result.suggestion, 0);
   });
 });
 
