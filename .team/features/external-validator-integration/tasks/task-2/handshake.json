@@ -1,11 +1,11 @@
 {
   "taskId": "task-2",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Added parseTap() to bin/lib/validator-parsers.mjs that parses TAP output and produces one critical finding per 'not ok' line (excluding TODO directives). Registered the parser as 'tap' in the PARSERS registry and added four tests covering the core cases (one failure, all passing, multiple failures, TODO skipping). All 553 tests pass.",
-  "timestamp": "2026-04-26T00:00:00.000Z",
+  "summary": "Fixed TAP parser to match only top-level `not ok` lines by checking the original (untrimmed) line, preventing double-counting of indented subtest failures from `node --test-reporter tap`. Also strips control characters from TAP messages before storing them. Added a regression test covering the subtest double-count scenario; all 553 tests pass.",
+  "timestamp": "2026-04-26T00:00:00Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/validator-parsers.mjs" },
     { "type": "code", "path": "test/validator-parsers.test.mjs" }
