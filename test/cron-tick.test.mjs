@@ -6,8 +6,12 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { execFileSync } from "child_process";
+import { fileURLToPath } from "url";
 
 import { cmdCronTick, cmdCronSetup } from "../bin/lib/cron.mjs";
+
+const agtPath = join(fileURLToPath(new URL(".", import.meta.url)), "..", "bin", "agt.mjs");
 
 function createTmpDir() {
   const dir = join(tmpdir(), `cron-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
@@ -319,5 +323,58 @@ describe("cmdCronSetup", () => {
     const cronLine = logs.find(l => l.includes("* * * *"));
     assert.ok(cronLine, "Should have a crontab line");
     assert.ok(cronLine.includes("'"), "Paths should be single-quoted for shell safety");
+  });
+});
+
+// ── CLI integration tests ─────────────────────────────────────────
+// These validate the CLI wire-up by invoking agt.mjs as a subprocess.
+
+describe("cron-tick CLI integration", () => {
+  let tmpDir;
+
+  beforeEach(() => {
+    tmpDir = join(tmpdir(), `cron-cli-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    mkdirSync(join(tmpDir, ".team"), { recursive: true });
+  });
+
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it("exits 1 with 'not configured' when PROJECT.md has no tracking section", () => {
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Project\n\n## Stack\nNode.js\n");
+    let exitCode = 0;
+    let output = "";
+    try {
+      output = execFileSync("node", [agtPath, "cron-tick"], {
+        cwd: tmpDir,
+        encoding: "utf8",
+        timeout: 10000,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (err) {
+      exitCode = err.status ?? 1;
+      output = err.stdout ?? "";
+    }
+    assert.equal(exitCode, 1, "Should exit 1 when tracking config is missing");
+    assert.ok(output.includes("not configured"), `Expected 'not configured' in: ${output}`);
+  });
+
+  it("exits 1 with 'not configured' when PROJECT.md is missing", () => {
+    let exitCode = 0;
+    let output = "";
+    try {
+      output = execFileSync("node", [agtPath, "cron-tick"], {
+        cwd: tmpDir,
+        encoding: "utf8",
+        timeout: 10000,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (err) {
+      exitCode = err.status ?? 1;
+      output = err.stdout ?? "";
+    }
+    assert.equal(exitCode, 1, "Should exit 1 when PROJECT.md is missing");
+    assert.ok(output.includes("not configured"), `Expected 'not configured' in: ${output}`);
   });
 });

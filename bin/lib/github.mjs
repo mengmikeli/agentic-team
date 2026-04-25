@@ -85,7 +85,16 @@ export function getProjectFieldIds(projectNumber) {
     const inProgress = statusField.options?.find(o => o.name.toLowerCase() === "in progress")?.id ?? null;
     const done = statusField.options?.find(o => o.name.toLowerCase() === "done")?.id ?? null;
     if (!statusField.id || !todo || !inProgress || !done) return null;
-    return { statusFieldId: statusField.id, todoId: todo, inProgressId: inProgress, doneId: done };
+    const pendingApproval = statusField.options?.find(o => o.name.toLowerCase() === "pending approval")?.id ?? null;
+    const ready = statusField.options?.find(o => o.name.toLowerCase() === "ready")?.id ?? null;
+    return {
+      statusFieldId: statusField.id,
+      todoId: todo,
+      inProgressId: inProgress,
+      doneId: done,
+      ...(pendingApproval ? { pendingApprovalId: pendingApproval } : {}),
+      ...(ready ? { readyId: ready } : {}),
+    };
   } catch {
     return null;
   }

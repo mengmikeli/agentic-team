@@ -27,3 +27,12 @@ All UI work must reference `.team/refs/VISUAL-IDENTITY.md`
 
 ## Active Sprint
 {sprint name or "None — planning next"}
+
+## Tracking
+- Project URL: {GitHub project URL}
+- Status Field ID: {ID}
+- Todo Option ID: {ID}
+- In Progress Option ID: {ID}
+- Done Option ID: {ID}
+- Pending Approval Option ID: {ID}
+- Ready Option ID: {ID}

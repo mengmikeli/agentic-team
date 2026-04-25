@@ -6,6 +6,7 @@ import { resolve, dirname, join } from "path";
 import { execSync, spawnSync } from "child_process";
 import { fileURLToPath } from "url";
 import { c } from "./util.mjs";
+import { readTrackingConfig } from "./github.mjs";
 
 // ── Individual check functions (exported for testing) ───────────
 
@@ -199,6 +200,11 @@ export function checkProjectBoard(cwd = process.cwd()) {
 
     // Look for a URL (github.com project link or any https URL)
     if (/https?:\/\/\S+/.test(section)) {
+      // Also check that field IDs are configured (required for cron-tick)
+      const tracking = readTrackingConfig(resolve(cwd, ".team", "PROJECT.md"));
+      if (!tracking || !tracking.statusOptions["ready"]) {
+        return { status: "warn", message: "GitHub Project board configured but field IDs not set — cron-tick will not work" };
+      }
       return { status: "pass", message: "GitHub Project board configured" };
     }
     return { status: "fail", message: "GitHub Project board not configured (no URL found)" };

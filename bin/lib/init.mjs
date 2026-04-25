@@ -51,7 +51,9 @@ export function cmdInit(args) {
       if (board) {
         const fieldIds = getProjectFieldIds(board.number);
         if (fieldIds) {
-          trackingSection = `\n## Tracking\n- Project URL: ${board.url}\n- Status Field ID: ${fieldIds.statusFieldId}\n- Todo Option ID: ${fieldIds.todoId}\n- In Progress Option ID: ${fieldIds.inProgressId}\n- Done Option ID: ${fieldIds.doneId}\n`;
+          const pendingLine = fieldIds.pendingApprovalId ? `- Pending Approval Option ID: ${fieldIds.pendingApprovalId}\n` : "";
+          const readyLine = fieldIds.readyId ? `- Ready Option ID: ${fieldIds.readyId}\n` : "";
+          trackingSection = `\n## Tracking\n- Project URL: ${board.url}\n- Status Field ID: ${fieldIds.statusFieldId}\n- Todo Option ID: ${fieldIds.todoId}\n- In Progress Option ID: ${fieldIds.inProgressId}\n- Done Option ID: ${fieldIds.doneId}\n${pendingLine}${readyLine}`;
           console.log(`${c.green}✓ GitHub Project board created${c.reset} — ${board.url}`);
         }
       }
