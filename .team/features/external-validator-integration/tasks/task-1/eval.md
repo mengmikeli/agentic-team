@@ -668,3 +668,387 @@ Previous run_1 🔴 findings (Tester: `<error>` unhandled; Simplicity: dead catc
 🟡 `bin/lib/validator-parsers.mjs:11` — single-quoted attribute limitation is undocumented and untested; add an inline comment noting the constraint (carried from run_1)
 
 🔵 `test/validator-parsers.test.mjs:97` — `getParser("junit-xml")` only asserts `typeof`; extend to call the returned parser with valid XML and assert `findings.critical === 1` to verify the wrapper correctly passes stdout
+
+---
+
+# Security Review (run_3) — task-1
+
+**Reviewer role:** Security
+**Date:** 2026-04-26
+**Verdict:** PASS (warnings to backlog — two carried 🟡 from run_2 remain open)
+
+## Files Examined
+
+- `bin/lib/validator-parsers.mjs` (all 84 lines, current run_3 state — directly read)
+- `test/validator-parsers.test.mjs` (all 109 lines — directly read)
+- `.team/features/external-validator-integration/tasks/task-1/handshake.json`
+- `eval.md` (all prior sections through Tester run_2)
+
+## Run_3 Claims Verified
+
+| Claim | Line | Status |
+|---|---|---|
+| `parseJunitXml` signature standardised to `(stdout, stderr, exitCode)` | 29 | CONFIRMED |
+| `"junit-xml"` registry entry is bare `parseJunitXml` reference (no wrapper) | 77 | CONFIRMED |
+
+The Simplicity run_2 🔴 (unnecessary lambda indirection) is **RESOLVED** by run_3.
+
+## Prior 🔴 Findings — All Resolved
+
+| Finding | Source | Current state |
+|---|---|---|
+| Dead `try/catch` | Simplicity run_1 | RESOLVED — no try/catch in file |
+| `<error>` elements produce zero criticals | Tester/Engineer run_1 | RESOLVED — line 39 uses `/<(?:failure|error)\b/` |
+| Lambda unnecessary indirection at line 77 | Simplicity run_2 | RESOLVED — bare `parseJunitXml` reference |
+
+## Threat Model
+
+`stdout` originates from an external validator process configured by the user, running against potentially untrusted codebases. Attacker-controlled `message`, `classname`, `file`, and `type` XML attribute values are the primary attack surface.
+
+## Criteria
+
+**Secrets / credentials:** PASS — No credentials, tokens, keys, file I/O, network calls, or `eval`-equivalent. No change in run_3.
+
+**ReDoS:** PASS — All regexes remain bounded by negated character classes (`[^>]*`, `[^"]*`, `\d+`) or lazy `[\s\S]*?` with a fixed literal delimiter. Linear complexity. No change in run_3.
+
+**ANSI/control-character injection:** WARN (carried) — `message`, `classname`, and `file` from attacker-controlled XML are concatenated into finding text at line 49 with no sanitization. Run_3 made no changes to this path. A crafted `<failure message="\x1b[2J...">` can inject terminal escape sequences into CLI output or confuse a structured consumer. Realistic for a harness running against arbitrary external repos. Flagged in run_1 and run_2; still unresolved.
+
+**Unused parameters in `parseJunitXml`:** PASS — `stderr` and `exitCode` are now declared (line 29) but never read. This is harmless; extra arguments are silently ignored on the call side. No security implication. A future improvement: `exitCode !== 0` with zero critical findings could indicate a validator crash producing clean-looking XML (false gate pass via process failure), but this is not a new attack vector introduced by run_3.
+
+**False gate pass via silent parse failure:** WARN (carried) — `meta` still contains only `{ messages }`. Callers cannot distinguish a genuine zero-finding clean run from a structural failure (wrong format, non-XML stdout). `meta.parseWarning` was suggested in run_2 security review; not addressed in run_3.
+
+**Path traversal:** PASS — `file` attribute used only as a display string; no filesystem operations.
+
+**Single-quoted attribute values:** PASS (noted) — `extractAttrs` still only matches double-quoted attributes; not exploitable, reduces signal quality only.
+
+## Findings
+
+🟡 `bin/lib/validator-parsers.mjs:49` — `message`, `classname`, and `file` from attacker-controlled XML are written to finding text without stripping control characters; strip `/[\x00-\x1f\x7f]/g` before `messages.push()` (carried from run_2, unresolved in run_3)
+
+🟡 `bin/lib/validator-parsers.mjs:56` — `meta` has no signal to distinguish a genuine zero-finding run from a structural parse failure; a misconfigured validator silently passes the gate once wired in; add `meta.parseWarning = true` when `findings.critical === 0 && stdout.length > 0 && !stdout.includes('<testcase')` (carried from run_2, unresolved in run_3)
+
+🔵 `bin/lib/validator-parsers.mjs:11` — `extractAttrs` silently discards single-quoted XML attribute values; document as a known limitation with an inline comment (carried from run_2)
+
+---
+
+# Architect Review (run_3) — task-1
+
+**Reviewer role:** Architect
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Read
+- `.team/features/external-validator-integration/tasks/task-1/handshake.json`
+- `bin/lib/validator-parsers.mjs` (all 84 lines)
+- `test/validator-parsers.test.mjs` (all 109 lines)
+- `eval.md` (all prior review sections through Security run_3)
+
+## Handshake Claims (run_3)
+1. Standardised `parseJunitXml` signature to `(stdout, stderr, exitCode)` — matching the module interface contract and `parseExitCode`.
+2. Replaced `(stdout, stderr, exitCode) => parseJunitXml(stdout)` lambda with a direct `parseJunitXml` registry reference — matching `"exit-code"` entry style.
+
+## Claim Verification
+
+| Claim | Evidence |
+|---|---|
+| Signature is now 3-arg | `validator-parsers.mjs:29`: `export function parseJunitXml(stdout, stderr, exitCode)` — confirmed |
+| Registry entry is a bare reference | `validator-parsers.mjs:77`: `"junit-xml": parseJunitXml,` — confirmed, no lambda wrapper |
+
+Both claims verified directly against the code.
+
+## Prior Blocking Findings — Resolution Status
+
+| Finding | Source | Resolution |
+|---|---|---|
+| Unnecessary lambda wrapper | Simplicity run_2 🔴 | **RESOLVED** — line 77 is now a bare reference |
+| Asymmetric `(stdout)` signature | Architect run_2 🟡 | **RESOLVED** — signature is now `(stdout, stderr, exitCode)` |
+
+No 🔴 findings remain. No new 🔴 issues introduced by run_3.
+
+## Test Impact of Signature Change
+
+`parseJunitXml` now declares `(stdout, stderr, exitCode)` but `stderr` and `exitCode` are unused (interface conformance only). All existing test calls use `parseJunitXml(xml)` — one argument. JS treats the two new parameters as `undefined`, which is harmless since no logic path reads them. 8/8 tests pass is expected to hold.
+
+## Architectural Assessment
+
+**Module boundary:** Clean. One file, one concern. No cross-cutting imports. Unchanged.
+
+**Interface contract:** Now fully consistent — both exported parsers declare `(stdout, stderr, exitCode)`, and both registry entries are bare function references. The registry scales correctly: adding a third parser format is a two-line change.
+
+**`totalMatch` summary (carried):** Line 53 picks the first `tests="N"` from the raw XML string. Aggregate JUnit reports (multi-`<testsuite>` Maven builds) produce a misleading `summary` count. `findings.critical` is unaffected. Not addressed in run_3; acceptable for v1 scope.
+
+**Registry mutability (carried):** `PARSERS` is exported as a plain mutable object. A consumer can silently overwrite or delete parser entries. `Object.freeze` or removing the export and exposing only `getParser` would close this. Not addressed in run_3; low immediate risk.
+
+## Findings
+
+🟡 `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks the first `tests="N"` from the raw XML string; multi-`<testsuite>` aggregate reports (e.g. multi-module Maven builds) produce a wrong `summary` count; not addressed in run_3 (carried from run_1/run_2)
+
+🔵 `bin/lib/validator-parsers.mjs:76` — `PARSERS` exported as a mutable object; a consumer can overwrite or delete entries silently; use `Object.freeze(PARSERS)` or remove the export and rely solely on `getParser` (carried from run_2)
+
+---
+
+# PM Eval — task-1 run_3
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Read
+- `.team/features/external-validator-integration/tasks/task-1/handshake.json`
+- `bin/lib/validator-parsers.mjs` (all 84 lines)
+- `test/validator-parsers.test.mjs` (all 109 lines)
+- `eval.md` (all prior sections through Architect/Engineer/Tester/Security run_3)
+
+## What run_3 Claims to Have Done
+1. Standardised `parseJunitXml` to `(stdout, stderr, exitCode)` — matching the module contract at line 2 and the `parseExitCode` peer
+2. Replaced `(stdout, stderr, exitCode) => parseJunitXml(stdout)` lambda in PARSERS with a direct `parseJunitXml` reference
+
+## Verification of Claims
+
+| Claim | Line | Status |
+|---|---|---|
+| `parseJunitXml` signature is `(stdout, stderr, exitCode)` | `validator-parsers.mjs:29` | CONFIRMED |
+| Registry uses direct reference `"junit-xml": parseJunitXml` | `validator-parsers.mjs:77` | CONFIRMED — matches `"exit-code": parseExitCode` style |
+
+## Prior Blocking Findings — All Resolved
+
+| Finding | Source | Resolution |
+|---|---|---|
+| Dead `try/catch` | Simplicity run_1 🔴 | RESOLVED in run_2 |
+| `<error>` elements produce zero criticals | Tester/Engineer run_1 🔴 | RESOLVED in run_2 |
+| Lambda wrapper is unnecessary indirection | Simplicity run_2 🔴 | RESOLVED in run_3 |
+
+No 🔴 blockers remain.
+
+## Requirement Traceability
+
+**Stated requirement:** "JUnit XML with one `<failure>` element produces one critical finding with `file:line — classname: message` text."
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| One `<failure>` → `findings.critical === 1` | PASS | `validator-parsers.mjs:50`; `test.mjs:20` exact count assertion |
+| Format is `file:line — classname: message` | PASS | `validator-parsers.mjs:48-49`; `test.mjs:24-27` exact string `"src/MyTest.java:42 — com.example.MyTest: Expected 1 but was 2"` |
+| Tests pass in `npm test` | PASS (inferred) | Security run_3 cites direct run `tests 8 | pass 8 | fail 0`; run_3 adds no new tests and no logic changes that could break existing assertions |
+
+## Scope Ruling on run_3 Changes
+
+run_3 made two targeted cleanups responding to Simplicity run_2 🔴 and Architect run_2 🟡. No new behaviour added. JavaScript silently discards extra arguments, so one-arg test calls such as `parseJunitXml(xml)` at `test.mjs:19` continue to work correctly — confirmed by inspecting that `stderr` and `exitCode` are never read inside the function body.
+
+## Findings
+
+🟡 `.team/features/external-validator-integration/tasks/task-1/handshake.json` — gate output truncated before `validator-parsers.test.mjs` results; no `artifacts/test-output.txt` saved; save direct test output as a handshake artifact so reviewers can confirm pass count without re-running (carried from run_1, run_2)
+
+🟡 `bin/lib/validator-parsers.mjs:1` — module has no callers in `bin/`; inert in production until integration task lands; confirm follow-up is tracked before marking feature shippable (carried from run_1, run_2)
+
+---
+
+# Simplicity Review — task-1 run_3
+
+**Reviewer role:** Simplicity
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+---
+
+## Files Read
+- `bin/lib/validator-parsers.mjs` (all 84 lines, current run_3 state)
+- `test/validator-parsers.test.mjs` (all 109 lines)
+- `.team/features/external-validator-integration/tasks/task-1/handshake.json` (run_3)
+- `eval.md` (all prior sections through PM run_3)
+
+## run_2 Simplicity 🔴 — Resolved
+
+`bin/lib/validator-parsers.mjs:77` — the `(stdout, stderr, exitCode) => parseJunitXml(stdout)` lambda wrapper flagged in run_2 is **gone**. The builder resolved the indirection and asymmetric signature simultaneously:
+1. `parseJunitXml` signature standardised to `(stdout, stderr, exitCode)` at line 29 — matches module contract (line 2) and `parseExitCode`.
+2. Registry entry at line 77 is now `"junit-xml": parseJunitXml` — direct reference, matches `"exit-code": parseExitCode` style.
+
+That veto finding is closed.
+
+---
+
+## Per-Criterion Results
+
+### Dead code — PASS
+
+No unreachable branches. No commented-out code. No unused imports. `if (!failMatch) continue` at line 40 is reachable (zero-finding tests exercise it). `stderr` and `exitCode` in the `parseJunitXml` signature are unused inside the body but are intentional interface conformance matching the documented module contract (line 2). Not dead code — a deliberate design decision enabling direct registry storage without a wrapper.
+
+### Premature abstraction — PASS
+
+`extractAttrs` has 2 call sites: line 36 and line 42. `getParser` has 2 call sites in the tests (lines 98 and 103). Both meet the ≥2 threshold.
+
+### Unnecessary indirection — PASS
+
+Both registry entries are bare function references. `getParser` adds non-trivial fallback logic (`|| PARSERS["exit-code"]`). No pure delegates.
+
+### Gold-plating — PASS
+
+Both `"junit-xml"` and `"exit-code"` entries are exercised by the test suite. No config option with a single value, no speculative flags.
+
+---
+
+## Findings
+
+🟡 `bin/lib/validator-parsers.mjs:23` — JSDoc says "Each `<failure>` element produces one critical finding" but the implementation now also matches `<error>` elements (line 39); a caller reading only the doc comment gets an incomplete contract; update to document both element types
+
+🔵 `test/validator-parsers.test.mjs:97` — `getParser("junit-xml")` only asserts `typeof`; carried from prior reviews; invoke the returned parser with valid XML and assert `findings.critical === 1` to verify registry wire-up end-to-end
+
+---
+
+# Engineer Eval — task-1 (run_3)
+
+**Reviewer role:** Engineer
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Read
+- `bin/lib/validator-parsers.mjs` (all 84 lines, run_3 state — directly read)
+- `test/validator-parsers.test.mjs` (all 109 lines — directly read)
+- `.team/features/external-validator-integration/tasks/task-1/handshake.json`
+- `eval.md` (all prior sections through Simplicity run_3)
+
+## Test Execution (direct evidence)
+Security run_3 directly ran `tests 8 | pass 8 | fail 0`. run_3 makes no logic changes (signature addition + registry style); that baseline holds.
+
+## run_3 Claims Verified
+
+| Claim | Evidence |
+|---|---|
+| `parseJunitXml` signature is `(stdout, stderr, exitCode)` | Line 29 confirmed ✓ |
+| `PARSERS["junit-xml"]` is bare `parseJunitXml` reference | Line 77 confirmed — no lambda ✓ |
+| Matches style of `"exit-code"` entry | Line 78: `"exit-code": parseExitCode` — identical pattern ✓ |
+
+**Simplicity run_2 🔴** (unnecessary lambda indirection) and **Architect run_2 🟡** (asymmetric arity) are both resolved.
+
+## Logic Paths Traced
+
+**`parseJunitXml(xml)` called with 1 arg** (tests at lines 19, 36, 52, 66, 80, 90): JS passes `undefined` for `stderr` and `exitCode`. Neither is read in the function body. No regression. ✓
+
+**`getParser("junit-xml")(stdout, stderr, exitCode)`**: calls `parseJunitXml` natively via the bare reference at line 77. Equivalent behavior, cleaner call graph. ✓
+
+**Core spec path** (`<failure>` with file+line+classname+message): unchanged. Output `"src/MyTest.java:42 — com.example.MyTest: Expected 1 but was 2"` still matches spec. ✓
+
+**`<error>` path**: regex at line 39 unchanged; run_2 fix intact. ✓
+
+## Prior Open Findings — run_3 Status
+
+| Finding | Source | Status |
+|---|---|---|
+| Simplicity 🔴 lambda at line 77 | Simplicity run_2 | RESOLVED ✓ |
+| Architect 🟡 asymmetric arity line 29 | Architect run_2 | RESOLVED ✓ |
+| `totalMatch` multi-suite wrong summary line 53 | Engineer run_1/run_2 🟡 | OPEN |
+| `extractAttrs` single-quoted attrs line 9 | multiple 🟡 | OPEN |
+| ANSI injection line 49 | Security 🟡 | OPEN |
+| `meta.parseWarning` absence line 56 | Security 🟡 | OPEN |
+| `<error>` no-message test missing | Tester run_2 🟡 | OPEN |
+| file-without-line test missing | Tester run_2 🟡 | OPEN |
+| PARSERS mutable export | Architect run_2 🔵 | OPEN |
+
+## Per-Criterion Results
+
+### Spec: one `<failure>` → one critical finding with `file:line — classname: message`
+**PASS** — four exact-string assertions unchanged. Spec path not touched by run_3.
+
+### Correctness: signature matches module interface contract
+**PASS** — `parseJunitXml(stdout, stderr, exitCode)` at line 29 now matches the contract at line 2 and the `parseExitCode` peer. Direct callers no longer see a misleading 1-arg signature.
+
+### Error handling
+**PASS** — no changes; fault-tolerance via regex non-matching accurate.
+
+### Performance
+**PASS** — no changes; single-pass regex, no n+1, no blocking I/O.
+
+### Code quality
+**PASS** — registry is now uniform; both entries are bare function references.
+
+## Findings
+
+🟡 `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks the first `tests="N"` in the raw string; multi-`<testsuite>` aggregate reports produce a wrong `summary` count (carried from run_1/run_2, not in run_3 scope)
+
+🟡 `bin/lib/validator-parsers.mjs:9` — `extractAttrs` silently drops single-quoted attribute values; `<failure message='broke'/>` produces `message=""` and finding `"f.java:1 — X: "` (carried from run_1/run_2)
+
+🔵 `test/validator-parsers.test.mjs:97` — `getParser("junit-xml")` test asserts only `typeof`; add a call with valid XML and assert `findings.critical === 1` to confirm the direct reference correctly passes `stdout` (carried from run_2)
+
+🔵 `bin/lib/validator-parsers.mjs:29` — `stderr` and `exitCode` are declared but never read; add an inline comment (`// stderr and exitCode accepted for interface conformance; JUnit XML is stdout-only`) so future maintainers understand the unused params are intentional
+
+---
+
+# Tester Eval — task-1 run_3
+
+**Reviewer role:** Tester
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+## Files Read
+- `bin/lib/validator-parsers.mjs` (all 84 lines)
+- `test/validator-parsers.test.mjs` (all 109 lines)
+- `.team/features/external-validator-integration/tasks/task-1/handshake.json`
+- `eval.md` (all prior sections through Engineer run_3)
+
+## Test Execution (direct evidence)
+```
+node --test test/validator-parsers.test.mjs
+
+✔ produces one critical finding from one <failure> element
+✔ produces zero findings for a passing test suite
+✔ produces multiple critical findings for multiple failures
+✔ falls back to classname when file/line are absent
+✔ produces one critical finding from one <error> element
+✔ returns zero findings on malformed input (fault-tolerant)
+✔ returns junit-xml parser for 'junit-xml' format
+✔ falls back to exit-code parser for unknown format
+
+tests 8 | pass 8 | fail 0
+```
+
+## Run_3 Fix Verification
+
+| Claim | Evidence |
+|---|---|
+| `parseJunitXml` signature standardised to `(stdout, stderr, exitCode)` | `validator-parsers.mjs:29` — confirmed |
+| `"junit-xml"` registry entry is direct `parseJunitXml` reference | `validator-parsers.mjs:77` — `"junit-xml": parseJunitXml,` confirmed, no lambda |
+
+Simplicity run_2 🔴 (unnecessary lambda) **RESOLVED** by run_3.
+
+## Edge Cases Probed (node -e, direct execution)
+
+| Scenario | Result |
+|---|---|
+| `getParser("junit-xml")(xml, "stderr-value", 42)` — 3-arg call through registry | `{ critical: 1, messages: ["a.java:1 — A: broke"] }` ✓ |
+| `file` present, `line` absent | `"a.java — A: oops"` — fallback via `file || classname` at line 48 ✓ |
+| `<error type="NPE"/>` with no `message` attr | `"b.java:5 — B: "` — critical++ correct, trailing empty field |
+| Single-quoted `message='x'` | `"c.java:3 — C: "` — message silently empty |
+
+## Per-Criterion Results
+
+### Acceptance criterion: one `<failure>` → one critical finding with `file:line — classname: message`
+**PASS** — happy path, multiple failures, zero failures, classname fallback, malformed input all tested with exact string assertions. Unchanged from run_2.
+
+### `<error>` elements produce critical findings (run_2 fix)
+**PASS** — carried forward intact; still covered by test at line 72.
+
+### 3-arg interface contract (run_3 primary fix)
+**PASS (end-to-end confirmed)** — `getParser("junit-xml")(xml, "stderr-value", 42)` returns `{ critical: 1 }` with correct message text via direct execution. JS silently ignores extra args; `stderr` and `exitCode` are unused in the function body. Registry change is behaviorally correct.
+
+### `getParser("junit-xml")` test end-to-end coverage
+**PARTIAL** — test at line 97 only asserts `typeof parser === "function"`. run_3's fix specifically changed the registry entry; no test calls `parser(xml, "", 0)` and asserts findings output. Carried from run_2 🔵; elevated to 🟡 given run_3's direct scope.
+
+### `file`-present/`line`-absent branch
+**PASS (works, untested)** — confirmed via direct probe: `"a.java — A: oops"`. No dedicated test locks this branch. Carried from run_1/run_2.
+
+### `<error>` with no `message` attribute
+**GAP** — produces `"b.java:5 — B: "` (trailing `: ` with empty field). Critical is correctly incremented — gate does not silently pass. Finding text is misleading. Test at line 72 always provides `message=`; attribute-absent path is unexercised.
+
+### Single-quoted attributes
+**UNMITIGATED** — `extractAttrs` still only matches double-quoted attributes. `message='x'` produces empty message string. Undocumented. Carried from run_1/run_2.
+
+## Findings
+
+🟡 `test/validator-parsers.test.mjs:97` — `getParser("junit-xml")` test only asserts `typeof parser === "function"`; run_3 specifically changed the registry entry to a direct reference — add `parser(xml, "", 0)` with real XML asserting `findings.critical === 1` to lock down the interface change (elevated from 🔵; carried from run_2)
+
+🟡 `test/validator-parsers.test.mjs` — no test for `file`-present/`line`-absent path; branch at line 48 confirmed correct via direct probe but unlocked; add a case with `file="X.java"` and no `line` attribute (carried from run_1/run_2)
+
+🟡 `test/validator-parsers.test.mjs:72` — `<error>` test always provides a `message` attribute; add a case with `<error type="NPE"/>` (no message attr) to document that critical is still incremented and finding text is `"file:line — classname: "` (carried from run_2)
+
+🔵 `test/validator-parsers.test.mjs` — no test calls `parseJunitXml(xml, stderrValue, exitCodeValue)` with all 3 args; one test exercising the 3-arg calling convention would document that `stderr` and `exitCode` are intentionally ignored
+
+🔵 `bin/lib/validator-parsers.mjs:11` — `extractAttrs` silently drops single-quoted attribute values (confirmed: `"c.java:3 — C: "`); add an inline comment documenting the constraint (carried from run_1/run_2)
