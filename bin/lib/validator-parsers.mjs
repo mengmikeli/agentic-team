@@ -93,6 +93,69 @@ export function parseTap(stdout, stderr, exitCode) {
   };
 }
 
+// ── GitHub Actions problem matcher ───────────────────────────────
+
+/**
+ * Parse GitHub Actions workflow command output and return structured findings.
+ * Each `::error ...::message` line produces one critical finding.
+ * Each `::warning ...::message` line produces one warning finding.
+ *
+ * @param {string} stdout
+ * @returns {{ findings: object, summary: string, meta: object }}
+ */
+export function parseGithubActions(stdout, stderr, exitCode) {
+  const findings = { critical: 0, warning: 0, suggestion: 0 };
+  const messages = [];
+
+  // Combine stdout and stderr — GA commands may appear on either stream
+  const combined = [stdout, stderr].filter(Boolean).join('\n');
+
+  // Regex: ::error|warning|notice [properties]::message
+  // Properties are optional key=value pairs separated by commas
+  const lineRe = /^::([a-z]+)(?:\s+([^:]*))?::(.*)$/;
+
+  for (const raw of combined.split('\n')) {
+    const line = raw.replace(/[\x00-\x1f\x7f]/g, '').trim();
+    const m = lineRe.exec(line);
+    if (!m) continue;
+
+    const level = m[1];
+    const propsStr = m[2] || '';
+    const message = m[3] || '';
+
+    // Parse properties: file=src/foo.js,line=5,col=1,...
+    const props = {};
+    for (const part of propsStr.split(',')) {
+      const eq = part.indexOf('=');
+      if (eq !== -1) {
+        props[part.slice(0, eq).trim()] = part.slice(eq + 1).trim();
+      }
+    }
+
+    const file = props.file || '';
+    const line_ = props.line || '';
+    const location = file && line_ ? `${file}:${line_}` : file || '';
+    const label = location ? `${location} — ${message}` : message;
+
+    if (level === 'error') {
+      messages.push(label);
+      findings.critical++;
+    } else if (level === 'warning') {
+      messages.push(label);
+      findings.warning++;
+    } else if (level === 'notice') {
+      messages.push(label);
+      findings.suggestion++;
+    }
+  }
+
+  return {
+    findings,
+    summary: `${findings.critical} error(s), ${findings.warning} warning(s)`,
+    meta: { messages },
+  };
+}
+
 // ── Exit-code (passthrough) ──────────────────────────────────────
 
 export function parseExitCode(stdout, stderr, exitCode) {
@@ -109,6 +172,7 @@ export function parseExitCode(stdout, stderr, exitCode) {
 export const PARSERS = {
   "junit-xml": parseJunitXml,
   "tap": parseTap,
+  "github-actions": parseGithubActions,
   "exit-code": parseExitCode,
 };
 

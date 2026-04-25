@@ -2,7 +2,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseJunitXml, parseTap, getParser } from "../bin/lib/validator-parsers.mjs";
+import { parseJunitXml, parseTap, parseGithubActions, getParser } from "../bin/lib/validator-parsers.mjs";
 
 describe("parseJunitXml", () => {
   it("produces one critical finding from one <failure> element", () => {
@@ -169,10 +169,86 @@ describe("getParser", () => {
     assert.equal(typeof parser, "function");
   });
 
+  it("returns github-actions parser for 'github-actions' format", () => {
+    const parser = getParser("github-actions");
+    assert.equal(typeof parser, "function");
+  });
+
   it("falls back to exit-code parser for unknown format", () => {
     const parser = getParser("unknown-format");
     assert.equal(typeof parser, "function");
     const result = parser("", "", 0);
     assert.equal(result.findings.critical, 0);
+  });
+});
+
+describe("parseGithubActions", () => {
+  it("produces one critical finding from one ::error line", () => {
+    const stdout = "::error file=src/foo.js,line=5::something went wrong";
+
+    const result = parseGithubActions(stdout, "", 0);
+    assert.equal(result.findings.critical, 1, "should have 1 critical finding");
+    assert.equal(result.findings.warning, 0);
+    assert.equal(result.findings.suggestion, 0);
+    assert.equal(result.meta.messages.length, 1);
+    assert.equal(result.meta.messages[0], "src/foo.js:5 — something went wrong");
+  });
+
+  it("produces zero findings for output with no workflow commands", () => {
+    const stdout = "Build succeeded\nAll tests passed\n";
+
+    const result = parseGithubActions(stdout, "", 0);
+    assert.equal(result.findings.critical, 0);
+    assert.equal(result.findings.warning, 0);
+    assert.equal(result.meta.messages.length, 0);
+  });
+
+  it("produces multiple critical findings for multiple ::error lines", () => {
+    const stdout = [
+      "::error file=src/a.js,line=1::error one",
+      "::error file=src/b.js,line=2::error two",
+    ].join('\n');
+
+    const result = parseGithubActions(stdout, "", 1);
+    assert.equal(result.findings.critical, 2);
+    assert.equal(result.meta.messages[0], "src/a.js:1 — error one");
+    assert.equal(result.meta.messages[1], "src/b.js:2 — error two");
+  });
+
+  it("produces one warning finding from one ::warning line", () => {
+    const stdout = "::warning file=src/foo.js,line=10::deprecated usage";
+
+    const result = parseGithubActions(stdout, "", 0);
+    assert.equal(result.findings.critical, 0);
+    assert.equal(result.findings.warning, 1);
+    assert.equal(result.meta.messages[0], "src/foo.js:10 — deprecated usage");
+  });
+
+  it("produces one suggestion finding from one ::notice line", () => {
+    const stdout = "::notice file=src/foo.js,line=3::consider refactoring";
+
+    const result = parseGithubActions(stdout, "", 0);
+    assert.equal(result.findings.critical, 0);
+    assert.equal(result.findings.warning, 0);
+    assert.equal(result.findings.suggestion, 1);
+  });
+
+  it("handles ::error without file/line properties", () => {
+    const stdout = "::error::build failed with no location";
+
+    const result = parseGithubActions(stdout, "", 1);
+    assert.equal(result.findings.critical, 1);
+    assert.equal(result.meta.messages[0], "build failed with no location");
+  });
+
+  it("parses ::error commands from stderr as well", () => {
+    const result = parseGithubActions("", "::error file=src/foo.js,line=5::from stderr", 1);
+    assert.equal(result.findings.critical, 1);
+  });
+
+  it("returns zero findings on empty input (fault-tolerant)", () => {
+    const result = parseGithubActions("", "", 0);
+    assert.equal(result.findings.critical, 0);
+    assert.equal(result.meta.messages.length, 0);
   });
 });
