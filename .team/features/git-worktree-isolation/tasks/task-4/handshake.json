@@ -1,0 +1,13 @@
+{
+  "taskId": "task-4",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "summary": "Verified the run-completion lifecycle: removeWorktree is invoked in the finally block of _runSingleFeature (bin/lib/run.mjs:1523) after a successful run, and `git worktree remove --force` removes both the directory and the tracking entry. Added a real-git integration test in test/worktree.test.mjs that creates a worktree via createWorktreeIfNeeded, calls removeWorktree, and asserts the directory is deleted AND `git worktree list` no longer contains the path. Full suite: 543 pass / 0 fail.",
+  "verdict": null,
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "test", "path": "test/worktree.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

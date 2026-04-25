@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, rmSync, existsSync, mkdtempSync, readFileSync, realpathSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { execFileSync } from "child_process";
 
 import { slugToBranch, createWorktreeIfNeeded, removeWorktree, runGateInline, dispatchToAgent } from "../bin/lib/run.mjs";
 
@@ -162,6 +163,44 @@ describe("removeWorktree", () => {
   it("lifecycle: removeWorktree swallows errors (blocked/already-gone path)", () => {
     const mockExec = () => { throw new Error("worktree not found"); };
     assert.doesNotThrow(() => removeWorktree("/gone/path", "/main", mockExec));
+  });
+});
+
+// ── removeWorktree real-git integration ─────────────────────────
+
+describe("removeWorktree real-git lifecycle", () => {
+  let repoDir;
+
+  beforeEach(() => {
+    repoDir = mkdtempSync(join(tmpdir(), "wt-real-git-"));
+    execFileSync("git", ["init", "-q", "-b", "main", repoDir], { stdio: "pipe" });
+    execFileSync("git", ["-C", repoDir, "config", "user.email", "t@t"], { stdio: "pipe" });
+    execFileSync("git", ["-C", repoDir, "config", "user.name", "t"], { stdio: "pipe" });
+    execFileSync("git", ["-C", repoDir, "commit", "--allow-empty", "-q", "-m", "init"], { stdio: "pipe" });
+  });
+
+  afterEach(() => {
+    try { rmSync(repoDir, { recursive: true, force: true }); } catch {}
+  });
+
+  it("after createWorktreeIfNeeded + removeWorktree, `git worktree list` does not show the path", () => {
+    const slug = "remove-me";
+    const wtPath = createWorktreeIfNeeded(slug, repoDir);
+
+    // Sanity: worktree list shows it
+    let list = execFileSync("git", ["-C", repoDir, "worktree", "list"], { encoding: "utf8" });
+    const realWtPath = realpathSync(wtPath);
+    assert.ok(list.includes(realWtPath) || list.includes(wtPath), `precondition: ${wtPath} should appear in:\n${list}`);
+
+    removeWorktree(wtPath, repoDir);
+
+    // Directory gone
+    assert.ok(!existsSync(wtPath), "worktree directory should be deleted");
+
+    // Tracking entry gone
+    list = execFileSync("git", ["-C", repoDir, "worktree", "list"], { encoding: "utf8" });
+    assert.ok(!list.includes(wtPath), `worktree list should no longer contain ${wtPath}:\n${list}`);
+    assert.ok(!list.includes(realWtPath), `worktree list should no longer contain ${realWtPath}:\n${list}`);
   });
 });
 
