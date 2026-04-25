@@ -4,25 +4,13 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
-import { spawnSync } from "child_process";
-import { readState, writeState, atomicWriteSync } from "./util.mjs";
+
+import { readState, writeState } from "./util.mjs";
+import { ghAvailable, closeIssue, commentIssue } from "./github.mjs";
 
 // ── GitHub helpers ──────────────────────────────────────────────
 
-function gh(...args) {
-  try {
-    const result = spawnSync("gh", args, {
-      encoding: "utf8", timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-      shell: process.platform === "win32",
-    });
-    return result.status === 0 ? result.stdout.trim() : null;
-  } catch { return null; }
-}
 
-function ghAvailable() {
-  return gh("auth", "status") !== null;
-}
 
 // ── State sync: push to GitHub + write local cache ──────────────
 
@@ -42,9 +30,9 @@ export function pushFeatureStatus(featureDir, status, meta = {}) {
   if (ghAvailable() && state._approvalIssueNumber) {
     const issueNum = state._approvalIssueNumber;
     if (status === "completed") {
-      gh("issue", "close", String(issueNum), "--comment", `Feature completed.`);
+      closeIssue(issueNum, "Feature completed.");
     } else if (status === "paused") {
-      gh("issue", "comment", String(issueNum), "--body", `⏸ Feature paused.`);
+      commentIssue(issueNum, `⏸ Feature paused.`);
     }
   }
 
@@ -76,12 +64,12 @@ export function pushTaskStatus(featureDir, taskId, status, meta = {}) {
   if (ghAvailable() && task?.issueNumber) {
     const issueNum = task.issueNumber;
     if (status === "passed") {
-      gh("issue", "close", String(issueNum), "--comment", "✅ Task completed — gate passed.");
+      closeIssue(issueNum, "✅ Task completed — gate passed.");
     } else if (status === "blocked") {
       const reason = meta.lastReason || "blocked after max retries";
-      gh("issue", "comment", String(issueNum), "--body", `❌ Task blocked: ${reason}`);
+      commentIssue(issueNum, `❌ Task blocked: ${reason}`);
     } else if (status === "in-progress") {
-      gh("issue", "comment", String(issueNum), "--body", `▶ Task started (attempt ${meta.attempts || 1})`);
+      commentIssue(issueNum, `▶ Task started (attempt ${meta.attempts || 1})`);
     }
   }
 
@@ -127,51 +115,3 @@ export function syncFromHarness(featureDir, inMemoryTasks) {
  * @param {string} featureDir - Path to feature directory
  * @returns {object|null} Rebuilt state
  */
-export function rebuildFromGitHub(featureDir) {
-  if (!ghAvailable()) return null;
-
-  const state = readState(featureDir) || {};
-  const tasks = state.tasks || [];
-
-  // Check each task's GitHub issue status
-  for (const task of tasks) {
-    if (!task.issueNumber) continue;
-    const json = gh("issue", "view", String(task.issueNumber), "--json", "state,title");
-    if (!json) continue;
-    try {
-      const issue = JSON.parse(json);
-      if (issue.state === "CLOSED" && task.status !== "passed" && task.status !== "blocked") {
-        task.status = "passed"; // closed = done
-      }
-      if (issue.state === "OPEN" && task.status === "passed") {
-        task.status = "pending"; // reopened = needs redo
-      }
-    } catch {}
-  }
-
-  // Check feature-level approval issue
-  if (state._approvalIssueNumber) {
-    const json = gh("issue", "view", String(state._approvalIssueNumber), "--json", "state");
-    if (json) {
-      try {
-        const issue = JSON.parse(json);
-        if (issue.state === "CLOSED" && state.status === "executing") {
-          state.status = "completed";
-        }
-      } catch {}
-    }
-  }
-
-  // Determine overall status from task statuses
-  const allPassed = tasks.length > 0 && tasks.every(t => t.status === "passed");
-  const anyInProgress = tasks.some(t => t.status === "in-progress");
-  if (allPassed && state.status !== "completed") state.status = "completed";
-  if (!anyInProgress && state.status === "executing") {
-    // No in-progress tasks and not all passed — check if agt is running
-    state.status = "paused";
-  }
-
-  state._rebuilt_from_github = new Date().toISOString();
-  writeState(featureDir, state);
-  return state;
-}

@@ -555,14 +555,9 @@ describe("at-harness", () => {
   });
 
   describe("metrics", () => {
-    it("computes metrics from STATE.json", () => {
-      const result = harnessJSON(
-        "metrics", "--dir", join("features", "gate-test")
-      );
-      assert.equal(result.ok, true);
-      assert.ok(result.metrics);
-      assert.equal(result.metrics.feature, "gate-test");
-      assert.ok(result.metrics.gates.total >= 2);
+    it("metrics command was removed in simplification", () => {
+      // harness-metrics.mjs removed — sprint-level metrics are not part of the core loop
+      assert.ok(true);
     });
   });
 

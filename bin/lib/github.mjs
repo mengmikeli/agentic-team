@@ -283,3 +283,5 @@ export function setProjectItemStatus(issueNumber, projectNumber, status) {
     return false;
   }
 }
+
+// ── State sync (merged from state-sync.mjs) ──────────────────
