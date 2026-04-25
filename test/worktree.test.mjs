@@ -654,6 +654,33 @@ describe("grep audit: no process.cwd() in agent dispatch or gate paths", () => {
     );
   });
 
+  it("gate.mjs process.cwd() fallback is contained within cmdGate arg parsing only", () => {
+    const gateSrc = readFileSync(new URL("../bin/lib/gate.mjs", import.meta.url), "utf8");
+    const lines = gateSrc.split("\n");
+    // Find cmdGate function boundaries
+    let cmdGateStart = -1, cmdGateEnd = lines.length - 1;
+    let depth = 0, inCmdGate = false;
+    for (let i = 0; i < lines.length; i++) {
+      if (!inCmdGate && /^export function cmdGate\b/.test(lines[i])) {
+        cmdGateStart = i; inCmdGate = true;
+      }
+      if (inCmdGate) {
+        depth += (lines[i].match(/\{/g) || []).length - (lines[i].match(/\}/g) || []).length;
+        if (depth <= 0 && i > cmdGateStart) { cmdGateEnd = i; break; }
+      }
+    }
+    // process.cwd() OUTSIDE cmdGate is a violation — the fallback is only acceptable in the CLI
+    // arg-parsing section of cmdGate (agents run inside the worktree via cwd: worktreePath spawn)
+    const violations = lines
+      .map((l, i) => ({ l, i }))
+      .filter(({ i }) => i < cmdGateStart || i > cmdGateEnd)
+      .filter(({ l }) => /process\.cwd\(\)/.test(l))
+      .map(({ l, i }) => `gate.mjs:${i + 1}: ${l.trim()}`);
+    assert.equal(violations.length, 0,
+      `gate.mjs process.cwd() must be contained within cmdGate:\n${violations.join("\n")}`
+    );
+  });
+
   it("dispatchToAgent body has no process.cwd() references", () => {
     const src = readFileSync(new URL("../bin/lib/run.mjs", import.meta.url), "utf8");
     // Find the dispatchToAgent function lines
