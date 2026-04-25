@@ -348,6 +348,39 @@ describe("smart entry flow (agt run no args)", () => {
       `should not flag missing sections, got: ${output}`
     );
   });
+
+  it("agt run with fully valid SPEC.md proceeds through planning and dispatch", () => {
+    mkdirSync(join(tmpDir, ".team", "features", "valid-feature"), { recursive: true });
+    writeFileSync(join(tmpDir, ".team", "PRODUCT.md"), "# Test\n## Vision\ntest\n## Roadmap\n1. **test** — test\n");
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Test\n## Quality Gate\n```sh\necho pass\n```\n");
+    writeFileSync(join(tmpDir, ".team", "AGENTS.md"), "# Test\n");
+
+    const fullSpec = [
+      "# Feature: valid-feature",
+      "",
+      "## Goal", "Do a thing.",
+      "## Requirements", "- one",
+      "## Acceptance Criteria", "- [ ] a",
+      "## Technical Approach", "approach",
+      "## Testing Strategy", "tests",
+      "## Out of Scope", "- nothing",
+      "## Done When", "- [ ] done",
+      "",
+    ].join("\n");
+    writeFileSync(join(tmpDir, ".team", "features", "valid-feature", "SPEC.md"), fullSpec);
+
+    const result = runAgt(["run", "valid-feature", "--dry-run"], tmpDir, { timeout: 15000 });
+    const output = result.stdout + result.stderr;
+    assert.ok(result.ok, `should exit 0 with valid SPEC, got code=${result.code}, output=${output}`);
+    assert.ok(!output.includes("missing required section"), `should not flag missing sections: ${output}`);
+    assert.ok(!output.includes("Missing SPEC.md"), `should not flag missing SPEC: ${output}`);
+    assert.ok(/Planned \d+ task\(s\)/.test(output), `should reach planning stage, got: ${output}`);
+    assert.ok(/Flow:/.test(output), `should reach dispatch/flow selection, got: ${output}`);
+    assert.ok(output.includes("Dry run complete"), `should complete dry run, got: ${output}`);
+    // SPEC.md must remain unmodified — the gate is read-only.
+    const after = readFileSync(join(tmpDir, ".team", "features", "valid-feature", "SPEC.md"), "utf8");
+    assert.equal(after, fullSpec, "SPEC.md must not be modified");
+  });
 });
 
 

@@ -1,0 +1,13 @@
+{
+  "taskId": "task-4",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "summary": "Added a regression test asserting that `agt run my-feature` with a fully valid SPEC.md proceeds through the planning and dispatch stages exactly as before. The test verifies exit 0, planning output (`Planned N task(s)`), flow/dispatch selection (`Flow:`), dry-run completion, no spec-gate errors, and that SPEC.md is not mutated. No production code changes were needed — the existing run.mjs gate already lets a complete spec through; this task locks that behavior in.",
+  "verdict": null,
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "test/cli-commands.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
