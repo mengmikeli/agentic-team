@@ -1,0 +1,14 @@
+{
+  "taskId": "task-5",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Replaced the finally-block worktree teardown in bin/lib/run.mjs with a catch-and-rethrow that logs preservation and only calls removeWorktree on the success path. createWorktreeIfNeeded already reuses an existing worktree directory, so a re-invocation after a thrown error resumes in place. Added tests covering the no-finally invariant, the catch+rethrow shape, and the reuse-on-existing-dir path.",
+  "timestamp": "2026-04-25T00:00:00Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "test/worktree.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
