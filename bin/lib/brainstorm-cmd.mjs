@@ -34,10 +34,25 @@ function loadProductContext(cwd) {
 
 // ── Agent-based brainstorm ──────────────────────────────────────
 
-function buildBrainstormBrief(idea, productContext, cwd) {
+const SECTION_PLACEHOLDERS = {
+  "Goal": "{One clear sentence describing the outcome}",
+  "Requirements": "{Concrete list of functional and non-functional requirements}",
+  "Acceptance Criteria": "{Specific, verifiable conditions that must be true for the feature to be complete}",
+  "Technical Approach": "{Technical approach with trade-offs discussed}",
+  "Testing Strategy": "{How the feature will be tested}",
+  "Out of Scope": "{Explicit list of what's excluded}",
+  "Done When": "- [ ] {Concrete, verifiable criterion}\n- [ ] {Concrete, verifiable criterion}",
+};
+
+export function buildBrainstormBrief(idea, productContext, cwd) {
   const productSection = productContext
     ? `## Product Context\n${productContext.slice(0, 3000)}\n`
     : "";
+
+  const sectionList = PRD_SECTIONS.map(s => `- ## ${s}`).join("\n");
+  const exampleBody = PRD_SECTIONS
+    .map(s => `## ${s}\n${SECTION_PLACEHOLDERS[s] ?? "{TBD}"}`)
+    .join("\n\n");
 
   return `You are brainstorming a feature idea. Explore it thoroughly and produce a SPEC.md.
 
@@ -58,34 +73,14 @@ ${cwd}
 Write your analysis and then produce a complete SPEC.md.
 
 The SPEC.md MUST contain each of the following seven sections (same sections validateSpecFile checks for), in this order:
-${PRD_SECTIONS.map(s => `- ## ${s}`).join("\n")}
+${sectionList}
 
 Format the spec as:
 
 \`\`\`markdown
 # Feature: {name}
 
-## Goal
-{One clear sentence describing the outcome}
-
-## Requirements
-{Concrete list of functional and non-functional requirements}
-
-## Acceptance Criteria
-{Specific, verifiable conditions that must be true for the feature to be complete}
-
-## Technical Approach
-{Technical approach with trade-offs discussed}
-
-## Testing Strategy
-{How the feature will be tested}
-
-## Out of Scope
-{Explicit list of what's excluded}
-
-## Done When
-- [ ] {Concrete, verifiable criterion}
-- [ ] {Concrete, verifiable criterion}
+${exampleBody}
 \`\`\`
 
 Output the spec content between SPEC_START and SPEC_END markers:
