@@ -23,6 +23,7 @@ import { buildContextBrief } from "./context.mjs";
 import { selectTier, formatTierBaseline } from "./tiers.mjs";
 import { outerLoop } from "./outer-loop.mjs";
 import { buildReplanBrief, parseReplanOutput, applyReplan } from "./replan.mjs";
+import { fireExtension } from "./extension-registry.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const HARNESS = resolve(dirname(__filename), "..", "agt-harness.mjs");
@@ -1156,12 +1157,23 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
       // Build task brief
       const brief = buildTaskBrief(task, featureName, gateCmd, cwd, lastFailure, brainstormOutput, tier);
 
+      // Extension hook: promptAppend — let extensions inject extra context before dispatch
+      let effectiveBrief = brief;
+      try {
+        const appendResults = await fireExtension("promptAppend", { prompt: brief, taskId: task.id, phase: "build" }, cwd);
+        for (const r of appendResults) {
+          if (r && typeof r.append === "string" && r.append.trim()) {
+            effectiveBrief += "\n\n" + r.append.trim();
+          }
+        }
+      } catch { /* extensions must never break the pipeline */ }
+
       // Dispatch
       let result;
       if (agent) {
-        result = dispatchToAgent(agent, brief, cwd);
+        result = dispatchToAgent(agent, effectiveBrief, cwd);
       } else {
-        result = await dispatchManual(brief);
+        result = await dispatchManual(effectiveBrief);
       }
 
       if (!result.ok && result.error === "skipped by user") {

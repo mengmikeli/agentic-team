@@ -1,0 +1,18 @@
+{
+  "taskId": "task-1",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Implemented the extension system's promptAppend hook: created extension-loader.mjs (scans .team/extensions/ dirs and validates manifests), extension-runner.mjs (invokes hooks with 5s timeout and circuit-breaker after 3 failures), and extension-registry.mjs (singleton that fans out capability calls). Modified run.mjs to call fireExtension('promptAppend') before dispatchToAgent() and append any returned strings to the agent brief.",
+  "timestamp": "2026-04-26T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/extension-loader.mjs" },
+    { "type": "code", "path": "bin/lib/extension-runner.mjs" },
+    { "type": "code", "path": "bin/lib/extension-registry.mjs" },
+    { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "test/extension-system.test.mjs" },
+    { "type": "code", "path": "package.json" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
