@@ -1011,3 +1011,351 @@ test:495–503 uses source-text index ordering. Structural limit: `_runSingleFea
 ## Summary
 
 All three 🟡 gaps from Round-1 Tester review are resolved: behavioral `runSimplifyFixLoop` tests exist with call-count assertions; dispatch-fail return includes `findings`; escalated case present in console summary. The Architect's carried 🟡 (`activePhases2` at run.mjs:1617 omitting `"simplify"` from progress.md log) is confirmed. No new 🔴 or 🟡 findings from the test-coverage lens. Four 🔵 suggestions for untested low-probability paths. **PASS.**
+
+---
+
+# PM Review (post-fix-loop) — self-simplification-pass / task-3
+
+**Feature:** Critical simplicity findings block `finalize`; the harness enters a fix loop (max 2 rounds before escalating to human)
+**Verdict: PASS**
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+
+---
+
+## Files Actually Read
+
+- `bin/lib/simplify-pass.mjs` — full (241 lines)
+- `test/simplify-pass.test.mjs` — full (699 lines)
+- `bin/lib/run.mjs` — line 26 (imports), lines 1503–1542 (simplify integration + finalize gate), lines 1575–1622 (completion report)
+- `roles/simplify-pass.md` — full (31 lines)
+- All three `tasks/task-{1,2,3}/handshake.json`
+- `tasks/task-3/eval.md` — full prior review history
+
+---
+
+## Builder Claims vs Evidence (task-3 final)
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| `result.reverted` added to fix-loop break condition | ✓ | simplify-pass.mjs:234 — `result.skipped \|\| result.reverted \|\| !(result.findings?.critical > 0)` |
+| New behavioral test for reverted-early-exit | ✓ | test:688–698 — `calls.length === 1`, `result.escalated === true` |
+| Speculative `round` arg removed from `runPassFn()` | ✓ | simplify-pass.mjs:233 — `result = runPassFn()` (no arg) |
+| `"simplify"` added to `activePhases2` | ✓ | run.mjs:1617 — `["brainstorm", "build", "review", "simplify"]` |
+| Critical findings block `harness("finalize")` | ✓ | run.mjs:1538–1542 — `if (simplifyResult?.escalated)` guards finalize |
+| Fix loop max 2 rounds | ✓ | run.mjs:1507 `MAX_SIMPLIFY_FIX_ROUNDS = 2`; simplify-pass.mjs:229 `round <= maxRounds` |
+| Escalation to human when rounds exhausted | ✓ | simplify-pass.mjs:236–238 sets `escalated: true`; run.mjs:1518–1519 logs + progress.md; run.mjs:1580 completion summary |
+
+---
+
+## Per-Criterion Results
+
+### 1. Critical findings block `finalize` — PASS
+
+`run.mjs:1538–1542`: `if (simplifyResult?.escalated)` guards `harness("finalize", "--dir", featureDir)`. Optional chaining on `?.escalated` handles `null` (pass never ran) — finalize proceeds. When escalated, logs "Finalize blocked — critical simplicity findings require manual review." Source-assertion test at test:492–503 locks in ordering.
+
+### 2. Fix loop max 2 rounds — PASS
+
+`run.mjs:1507`: `MAX_SIMPLIFY_FIX_ROUNDS = 2`. `simplify-pass.mjs:229`: `for (let round = 0; round <= maxRounds; round++)` — 3 total dispatches (rounds 0, 1, 2). 4 behavioral tests at test:635–686 confirm call counts directly. Spec says "max 2 rounds"; implementation runs 1 initial + 2 fix rounds = 2 fix rounds maximum. Matches.
+
+### 3. Escalation to human — PASS
+
+All four escalation surfaces confirmed in code: `simplify-pass.mjs:236–238` sets flag; `run.mjs:1518–1519` inline console + progress.md; `run.mjs:1538–1539` finalize-blocked console message; `run.mjs:1580` completion summary box. Operator cannot miss escalation.
+
+### 4. No pointless re-dispatch on reverted code — PASS
+
+`simplify-pass.mjs:234` break condition includes `result.reverted`. When gate fails and changes revert, the loop exits immediately on that round — subsequent fix rounds do not dispatch against identical code. Test at test:688–698 verifies `calls.length === 1` and `escalated === true`. Prior PM warning (carried from earlier reviews) is resolved.
+
+### 5. `activePhases2` includes "simplify" — PASS
+
+`run.mjs:1617`: `const activePhases2 = ["brainstorm", "build", "review", "simplify"].filter(p => phases[p])`. "simplify" is present. Tester Round 2 review (at line ~955 in this eval) reported it missing, but that review examined an earlier code state. Current code is correct; simplify-phase costs appear in both the console breakdown (phaseOrder at line 1591) and the written progress.md summary.
+
+---
+
+## Findings
+
+🟡 bin/lib/simplify-pass.mjs:82 — File paths from `git diff --name-only` embedded verbatim in agent prompt; fix loop dispatches up to 3× with `--permission-mode bypassPermissions`; strip control characters before embedding — carried security backlog item, amplified by fix loop
+
+🟡 bin/lib/simplify-pass.mjs:47 — `getChangedFiles` exported function accepts caller-supplied `base` with no SHA format validation before shell interpolation — carried security backlog item
+
+---
+
+## Previously Open PM Findings — Status
+
+| Finding | Source | Status |
+|---|---|---|
+| Escalated case absent from completion summary | PM Round 1 | CLOSED — run.mjs:1580 has `if (simplifyResult.escalated)` branch |
+| Fix loop re-dispatches on already-reverted code | PM Round 1 | CLOSED — simplify-pass.mjs:234 breaks on `result.reverted` |
+| `activePhases2` omits "simplify" in progress.md | PM Round 2 / Architect | CLOSED — run.mjs:1617 includes "simplify" |
+| Dispatch-fail return missing `findings` | Engineer Round 1 | CLOSED — simplify-pass.mjs:147 includes `findings` |
+
+---
+
+## Summary
+
+All core acceptance criteria met. The full fix loop — initial pass + up to 2 fix rounds, break on reverted, escalation after exhaustion, finalize blocked when escalated — is correctly implemented and directly tested with behavioral assertions. All prior open PM findings have been resolved in the current code. Two carried security 🟡 backlog items remain; neither was introduced by this feature. Gate output confirms tests pass. **PASS.**
+
+---
+
+# Engineer Review (final cycle) — self-simplification-pass / task-3
+
+**Reviewer:** Engineer
+**Verdict:** PASS
+**Date:** 2026-04-26
+
+---
+
+## Files Actually Read
+
+- `bin/lib/simplify-pass.mjs` — full (241 lines)
+- `test/simplify-pass.test.mjs` — full (699 lines)
+- `bin/lib/run.mjs` — full (1635 lines)
+- `roles/simplify-pass.md` — full (31 lines)
+- All three `tasks/task-{1,2,3}/handshake.json`
+
+---
+
+## Builder Claims vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| `result.reverted` breaks fix loop early | ✓ | simplify-pass.mjs:234 break condition |
+| New behavioral test: reverted-early-exit escalates | ✓ | test:688–698 — `calls.length===1`, `escalated===true` |
+| Speculative `round` arg removed from `runPassFn()` | ✓ | simplify-pass.mjs:233 — `result = runPassFn()` |
+| `"simplify"` in `activePhases2` | ✓ | run.mjs:1617 — `["brainstorm","build","review","simplify"]` |
+| Finalize blocked when escalated | ✓ | run.mjs:1538–1542 |
+
+---
+
+## Correctness — PASS
+
+Traced all execution paths in `runSimplifyFixLoop`:
+
+1. **No criticals on round 0**: break fires, escalation check `critical > 0` is false → no escalation. Correct.
+2. **Criticals persist all rounds**: loop runs 3× (rounds 0,1,2), no break, escalation fires. Correct.
+3. **Criticals clear on round 1**: round 0 no-break, round 1 break, no escalation. Correct.
+4. **Skipped on round 0**: break fires via `result.skipped`, escalation check `!result.skipped` guards against it. Correct.
+5. **Reverted on round 0, criticals present**: break fires via `result.reverted`, escalation check `critical > 0 && !skipped` is true → `escalated: true`. Code is in clean reverted state; escalation is correct — agent found criticals it couldn't fix without breaking tests.
+6. **Reverted on round 0, no criticals**: break fires, escalation check fails, no escalation. Correct.
+
+`runPassFn()` with no arguments is called at line 233 (no round arg). The `run.mjs` closure `() => runSimplifyPass({...})` ignores any arguments — correct.
+
+**Invariant check for bare `simplifyResult.findings.critical` at run.mjs:1518**: This line is inside `if (simplifyResult.escalated)`. The escalation condition at `simplify-pass.mjs:236` sets `escalated: true` only when `result.findings?.critical > 0` — so `findings` is always defined when `escalated: true`. Safe by invariant, but inconsistent with surrounding `?.critical` usage.
+
+---
+
+## Error Handling — PASS
+
+- All git operations in `runSimplifyPass` are wrapped in try/catch.
+- `runGateFn` call at line 191 wrapped in try/catch, defaults to `{ verdict: "FAIL", exitCode: 1 }`.
+- Entire simplify section in `run.mjs:1504` wrapped in try/catch; `simplifyResult` stays null on throw, `null?.escalated` is undefined → finalize runs. No crash path.
+- Revert at lines 201–219 is best-effort — try/catch swallows revert failures. Acceptable: crash on revert failure would leave state worse.
+
+---
+
+## Performance — PASS
+
+- Maximum 3 agent dispatches (bounded by `maxRounds = 2`).
+- Each pass does O(n) file detection where n = changed files count.
+- No accumulation of state across rounds.
+
+---
+
+## Findings
+
+🔵 bin/lib/run.mjs:1518 — `simplifyResult.findings.critical` uses bare property access (no optional chaining); safe by escalation invariant (`escalated: true` only set when `findings.critical > 0`), but inconsistent with `?.critical` at lines 1517, 1519, 1580 — carried from prior engineer reviews
+
+🔵 bin/lib/run.mjs:1518 — When `escalated: true` and `reverted: true` (agent couldn't fix criticals without breaking gate), the escalation message at line 1518 reads "N critical finding(s) remain after N fix rounds" but does not note the code is already in a clean state (reverted); a reviewer expecting broken code will find a passing test suite — consider noting the revert context in the message
+
+---
+
+## Summary
+
+All prior Engineer and PM findings resolved: `result.reverted` breaks the fix loop, behavioral test covers the reverted+escalated path, `round` arg removed from `runPassFn()`, `activePhases2` includes "simplify". Correctness confirmed across all 6 loop exit paths. Two 🔵 suggestions only. **PASS.**
+
+---
+
+# Security Review (Final) — self-simplification-pass / task-3
+
+**Reviewer role:** Security Specialist
+**Date:** 2026-04-26
+**Overall Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `bin/lib/simplify-pass.mjs` (241 lines — full)
+- `bin/lib/run.mjs` — import block (lines 1–27), `runGateInline` (lines 54–100), simplify integration (lines 1501–1547), completion summary (lines 1575–1622)
+- `test/simplify-pass.test.mjs` (687 lines — full)
+- `roles/simplify-pass.md` (31 lines — full)
+- All three `handshake.json` files
+- All prior security reviews in this eval.md
+
+---
+
+## Builder Claims vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Speculative `round` argument removed from `runPassFn()` | ✓ | simplify-pass.mjs:233 — `result = runPassFn();` no argument |
+| dispatch-fail return includes `findings` | ✓ | simplify-pass.mjs:147–148 — `findings: {critical:0,warning:0,suggestion:0}` |
+| Fix loop bounded at `MAX_SIMPLIFY_FIX_ROUNDS = 2` | ✓ | run.mjs:1507 |
+| `harness("finalize")` blocked when escalated | ✓ | run.mjs:1538–1542 |
+| Break on `result.reverted` avoids re-dispatching on already-reverted code | ✓ | simplify-pass.mjs:234 — `result.reverted` in break condition |
+
+---
+
+## Security Criterion Results
+
+### 1. Shell / Command Injection — PASS
+
+No new shell command construction in this cycle. All interpolated values are git-internal SHA hashes:
+- `${base}` at simplify-pass.mjs:47 — output of `git merge-base` (hex SHA)
+- `${preSha}` at simplify-pass.mjs:166, 202 — output of `git rev-parse HEAD` (hex SHA)
+- `preSha = ""` path: guarded by early return at simplify-pass.mjs:133–141; function returns `skipped: true` before `preSha` is ever used in a command.
+
+`run.mjs:60` uses `shell: true` with `gateCmd` — pre-existing, not introduced here.
+
+### 2. Prompt Injection via Filenames — WARNING (carried; not amplified further)
+
+`buildSimplifyBrief` (simplify-pass.mjs:82–88) embeds raw `git diff --name-only` paths verbatim into the LLM prompt. The fix loop dispatches up to 3× with `--permission-mode bypassPermissions`. The speculative `round` argument was removed in this cycle (simplicity improvement), but the unsanitized file paths were not changed. A file with a crafted name containing newline + injected instructions is replayed to the agent up to 3 times with full filesystem write access. Realistic risk only with external contributors or malicious submodules.
+
+### 3. `parseSimplifyFindings` Output Trust — PASS
+
+`typeof obj.critical === "number"` guard at simplify-pass.mjs:72 prevents string/object coercion. Integers flow only to comparison operators and `console.log`. No exec, no file paths, no command construction. Agent-controlled data cannot escalate privileges through this parser.
+
+### 4. `getChangedFiles` Public API — WARNING (carried)
+
+`getChangedFiles(base, cwd, execFn)` accepts caller-supplied `base` without format validation before shell interpolation at line 47. Production call path is always safe (git-internal hex SHA). Latent API surface risk unchanged by this cycle.
+
+### 5. Silent Revert — State Mismatch — WARNING (carried)
+
+`simplify-pass.mjs:199–219`: empty `catch` body after revert commands returns `{ reverted: true }` regardless of success. If revert fails, worktree retains broken changes while caller sees `reverted: true`. Impact: fix loop correctly breaks on `result.reverted`; escalation check fires if `findings?.critical > 0` — finalize is correctly blocked. However, the worktree is left dirty with no diagnostic log. Operator must clean up manually with no indication of what failed.
+
+### 6. `git clean -fd` Scope — PASS
+
+`run.mjs:1014–1018` throws on worktree creation failure, so `runSimplifyPass` is never called with `cwd` pointing to the main working directory. `git clean -fd` is scoped to the isolated worktree.
+
+### 7. `roles/simplify-pass.md:26` — `git add -A` Scope — PASS (acknowledged)
+
+Agent instructed to use `git add -A`. If untracked credential files land in the worktree without `.gitignore` coverage, they could be committed to the feature branch. Scope is the worktree branch only; no production exposure. Developer-hygiene note, not a blocker.
+
+### 8. Fix Loop Bounds — PASS
+
+`MAX_SIMPLIFY_FIX_ROUNDS = 2` hardcoded. `runSimplifyFixLoop` breaks early on `result.skipped || result.reverted || !(result.findings?.critical > 0)`. At most 3 dispatches regardless of agent behavior. No unbounded retry path.
+
+---
+
+## Findings
+
+🟡 bin/lib/simplify-pass.mjs:82 — File paths from `git diff --name-only` embedded verbatim in LLM prompt; fix loop re-dispatches up to 3× with `--permission-mode bypassPermissions`; strip control characters: `f.replace(/[\x00-\x1f\x7f]/g, "").trim()` — carried 5+ security review cycles
+
+🟡 bin/lib/simplify-pass.mjs:47 — `getChangedFiles` public export accepts caller-supplied `base` with no SHA format validation before shell interpolation; add `/^[0-9a-f]{7,40}$/i` guard — carried 5+ security review cycles
+
+🟡 bin/lib/simplify-pass.mjs:219 — Silent revert: empty `catch` returns `reverted: true` even when `git reset --hard` or `git clean -fd` throws; worktree left dirty with no diagnostic; log the error before swallowing it so operators can diagnose
+
+🔵 bin/lib/simplify-pass.mjs:47 — Six `execSync` calls use template-literal construction; prefer `execFileSync("git", [...splitArgs])` to eliminate the shell anti-pattern entirely — values are provably safe today but `execFileSync` closes the surface permanently
+
+---
+
+## Edge Cases Checked
+
+- `preSha` empty or missing: guarded by early return at lines 133–141 — `preSha` is never used in a command when rev-parse fails ✓
+- `parseSimplifyFindings` with `critical: "1"` (string): rejected by `typeof` guard — safe ✓
+- Fix loop with `reverted: true` + `findings.critical > 0`: loop breaks on round 0 (simplify-pass.mjs:234), escalation fires — finalize blocked ✓
+- `simplifyResult = null` at finalize guard: `null?.escalated = undefined` → finalize runs ✓
+- Revert throws: caught by empty catch, `reverted: true` returned — no crash, but dirty worktree state possible ✓ (bounded by escalation)
+- `getChangedFiles` execFn throws: caught at line 53, returns `[]` — safe ✓
+
+---
+
+## New vs Carried
+
+**Resolved in this cycle:** speculative `round` arg removed from `runPassFn()` (closed confused API surface); dispatch-fail path now includes `findings` (closes undefined propagation risk); `result.reverted` break condition prevents pointless re-dispatch on reverted code (acknowledged prior PM finding).
+
+**Carried backlog:** unsanitized filenames in prompt (🟡, 5+ cycles); no SHA validation on public `base` param (🟡, 5+ cycles); silent revert logging gap (🟡, raised prior security round).
+
+No critical (🔴) findings. No new security surface introduced in this final cycle. **PASS.**
+
+---
+
+# Architect Review (current run) — self-simplification-pass
+
+**Reviewer role:** Architect
+**Date:** 2026-04-26
+**Overall Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `bin/lib/simplify-pass.mjs` (241 lines — full)
+- `test/simplify-pass.test.mjs` (699 lines — full)
+- `bin/lib/run.mjs` — imports (lines 21–27), simplify integration (1501–1543), completion report (1575–1622)
+- `roles/simplify-pass.md` (31 lines — full)
+- `tasks/task-{1,2,3}/handshake.json`
+
+## Tests Run (Direct Verification)
+
+```
+node --test test/simplify-pass.test.mjs
+→ 68 pass, 0 fail
+
+node --test --test-concurrency=1 [all test files]
+→ 607 pass, 0 fail, 2 skip (pre-existing disabled tests)
+```
+
+---
+
+## Builder Claims vs Evidence
+
+| Claim | Verified? | Evidence |
+|---|---|---|
+| Fix loop `MAX_SIMPLIFY_FIX_ROUNDS = 2` | ✓ | run.mjs:1507 |
+| `runSimplifyFixLoop` extracted to `simplify-pass.mjs` | ✓ | simplify-pass.mjs:227–240 |
+| `result.reverted` in break condition | ✓ | simplify-pass.mjs:234 |
+| Reverted-early-exit behavioral test | ✓ | test:688–698 |
+| Speculative `round` arg removed from `runPassFn()` | ✓ | simplify-pass.mjs:233 — `runPassFn()` |
+| `"simplify"` in `activePhases2` | ✓ | run.mjs:1617 — `["brainstorm","build","review","simplify"]` |
+| Finalize blocked when escalated | ✓ | run.mjs:1538–1542 |
+
+---
+
+## Per-Criterion Results
+
+### Module Boundaries — PASS
+
+`runSimplifyFixLoop` correctly owned by `simplify-pass.mjs`. The run.mjs integration is 9 lines delegating entirely to the extracted helper. No circular or unexpected dependencies introduced.
+
+### Fix Loop Architecture — PASS
+
+Break condition `result.skipped || result.reverted || !(result.findings?.critical > 0)` correctly terminates early on revert, skip, or cleared criticals. Escalation at simplify-pass.mjs:236 fires when `critical > 0 && !skipped`. Verified by 5 behavioral tests (test:636–698), all passing.
+
+The `reverted: true + critical > 0 → escalated: true` path is intentional: if the agent's changes broke the gate AND it reported unresolvable issues, human review is warranted on both counts.
+
+### Finalize Gate — PASS
+
+`run.mjs:1538` uses `simplifyResult?.escalated` with optional chaining. `simplifyResult = null` (pass never ran) safely falls through to finalize. The outer try-catch at line 1504 ensures crashes in the simplify block don't leave an inconsistent state.
+
+### Scalability — PASS
+
+3 maximum agent dispatches. O(diff count) per pass. No state accumulation between rounds.
+
+### Coupling — PASS
+
+Plain data boundary between modules: `{ escalated, findings, filesChanged, reverted, skipped }`. No harness internals leak into `simplify-pass.mjs`.
+
+---
+
+## Findings
+
+🔵 bin/lib/run.mjs:1518 — `simplifyResult.findings.critical` without optional chaining; safe by invariant (only reached when `findings.critical > 0`), inconsistent with `?.critical` at lines 1517/1519 — use `simplifyResult.findings?.critical ?? 0`
+
+🔵 bin/lib/simplify-pass.mjs:64 — `parseSimplifyFindings` implicitly couples to the JSON format in `roles/simplify-pass.md`; a role-file format change silently breaks escalation — add a comment linking the parser to the role contract
+
+---
+
+## Summary
+
+Implementation is architecturally clean. All prior architectural concerns across multiple review cycles have been resolved: `runSimplifyFixLoop` extracted and unit-tested, `activePhases2` includes "simplify", revert-early-exit guarded and tested. No critical or warning findings. **PASS.**
