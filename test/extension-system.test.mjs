@@ -3,8 +3,12 @@
 
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, writeFile, mkdir, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { runHook, isCircuitBroken, resetCircuitBreakers } from "../bin/lib/extension-runner.mjs";
 import { fireExtension, resetRegistry, setExtensions } from "../bin/lib/extension-registry.mjs";
+import { loadExtensions } from "../bin/lib/extension-loader.mjs";
 
 // ── extension-runner tests ──────────────────────────────────────────────────
 
@@ -165,6 +169,26 @@ describe("fireExtension — promptAppend", () => {
     assert.deepEqual(results[0], { append: "ok" });
   });
 
+  it("skips undefined results from hooks", async () => {
+    setExtensions([
+      {
+        name: "undefined-ext",
+        version: "1.0.0",
+        capabilities: ["promptAppend"],
+        hooks: { promptAppend: async () => undefined },
+      },
+      {
+        name: "ok-ext",
+        version: "1.0.0",
+        capabilities: ["promptAppend"],
+        hooks: { promptAppend: async () => ({ append: "present" }) },
+      },
+    ]);
+    const results = await fireExtension("promptAppend", { prompt: "base" });
+    assert.equal(results.length, 1);
+    assert.deepEqual(results[0], { append: "present" });
+  });
+
   it("passes prompt and taskId in payload", async () => {
     let captured;
     setExtensions([
@@ -264,5 +288,74 @@ describe("promptAppend brief integration", () => {
     }
 
     assert.equal(effectiveBrief, baseBrief, "non-string append should not modify brief");
+  });
+});
+
+// ── loadExtensions tests ────────────────────────────────────────────────────
+
+describe("loadExtensions", () => {
+  let tmpDir;
+  let extDir;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "ext-test-"));
+    extDir = join(tmpDir, ".team", "extensions");
+    await mkdir(extDir, { recursive: true });
+  });
+
+  // Use afterEach-style cleanup via try/finally in each test (node:test lacks afterEach with async)
+
+  it("loads a valid extension from directory", async () => {
+    const extPath = join(extDir, "my-ext.mjs");
+    await writeFile(extPath, `
+export default {
+  name: "my-ext",
+  version: "1.0.0",
+  capabilities: ["promptAppend"],
+  hooks: { promptAppend: async () => ({ append: "hello" }) },
+};
+`);
+    try {
+      const exts = await loadExtensions(tmpDir);
+      assert.equal(exts.length, 1);
+      assert.equal(exts[0].name, "my-ext");
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("skips extension with invalid manifest (missing hooks)", async () => {
+    const extPath = join(extDir, "bad-ext.mjs");
+    await writeFile(extPath, `
+export default {
+  name: "bad-ext",
+  version: "1.0.0",
+  capabilities: ["promptAppend"],
+  // hooks missing
+};
+`);
+    try {
+      const exts = await loadExtensions(tmpDir);
+      assert.equal(exts.length, 0);
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("skips extension that throws on import", async () => {
+    const extPath = join(extDir, "throw-ext.mjs");
+    await writeFile(extPath, `throw new Error("import failed");`);
+    try {
+      const exts = await loadExtensions(tmpDir);
+      assert.equal(exts.length, 0);
+    } finally {
+      await rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns empty array when directory does not exist", async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+    const exts = await loadExtensions(tmpDir);
+    assert.deepEqual(exts, []);
   });
 });

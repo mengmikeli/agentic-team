@@ -11,14 +11,25 @@ export function resetRegistry() {
   _extensions = null;
 }
 
-// Inject a pre-loaded list of extensions (used in tests to bypass disk scan)
+// Inject a pre-loaded list of extensions (test-only: bypasses disk scan)
 export function setExtensions(list) {
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error("setExtensions() is only available in test environments (NODE_ENV=test)");
+  }
   _extensions = list;
 }
 
-// Fire a capability hook across all registered extensions that declare it.
-// Returns an array of non-null/non-undefined results from each extension.
-// Never throws — errors are swallowed at the runHook level.
+/**
+ * Fire a capability hook across all registered extensions that declare it.
+ *
+ * @param {string} capability - Hook name, e.g. "promptAppend"
+ * @param {object} payload    - Hook-specific payload passed to each extension
+ *   - promptAppend payload: { prompt: string, taskId: string, phase: string }
+ * @param {string} [cwd]      - Working directory used to locate .team/extensions/
+ * @returns {Promise<Array<{append: string}>>} Non-null results from each extension.
+ *   - promptAppend return: { append: string } — content appended to the agent brief
+ * Never throws — errors are swallowed at the runHook level.
+ */
 export async function fireExtension(capability, payload, cwd = process.cwd()) {
   if (_extensions === null) {
     _extensions = await loadExtensions(cwd);
