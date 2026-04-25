@@ -1,13 +1,14 @@
 {
   "taskId": "task-3",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Extracted the executeRun command-processing loop into an exported `runExecuteRunCommands(commands, artifactsDir, cwd)` function in `bin/lib/run.mjs`, fixing the critical ordering bug where the failure flag was set after `writeFileSync` (allowing a write error to silently swallow a required-command failure). Replaced four hand-coded simulation tests with real integration tests that import and call `runExecuteRunCommands` directly, so deleting the production logic now causes test failures. All 576 tests pass.",
-  "timestamp": "2026-04-26T00:20:00Z",
+  "summary": "Fixed writeFileSync in runExecuteRunCommands to be wrapped in its own try/catch so a disk error cannot swallow a required-command failure. Updated the verdictAppend JSDoc to correctly scope its effect to cmdSynthesize only. Replaced inline artifact tests with direct runExecuteRunCommands calls (deleting production artifact code now breaks tests) and added a cwd assertion test that verifies commands execute in the provided working directory.",
+  "timestamp": "2026-04-26T00:30:00Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/run.mjs" },
+    { "type": "code", "path": "bin/lib/extension-registry.mjs" },
     { "type": "code", "path": "test/extension-system.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }

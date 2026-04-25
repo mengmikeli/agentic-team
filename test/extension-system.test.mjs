@@ -546,21 +546,13 @@ describe("fireExtension — executeRun", () => {
 
 describe("executeRun — spawn, artifact, and failure detection", () => {
   it("stores stdout as cli-output artifact when command runs", async () => {
-    const { execSync } = await import("node:child_process");
-    const { writeFileSync, existsSync, readFileSync } = await import("node:fs");
+    const { existsSync, readFileSync } = await import("node:fs");
     const artDir = join(tmpdir(), `ext-art-${Date.now()}`);
     await mkdir(artDir, { recursive: true });
     try {
-      const cmd = "echo cli-output-test";
-      let exitCode = 0, cmdOut = "", cmdErr = "";
-      try {
-        cmdOut = execSync(cmd, { encoding: "utf8", timeout: 5000, shell: true, stdio: ["pipe", "pipe", "pipe"] });
-      } catch (err) {
-        exitCode = err.status ?? 1; cmdOut = err.stdout || ""; cmdErr = err.stderr || err.message || "";
-      }
-      const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
+      runExecuteRunCommands([{ command: "echo cli-output-test" }], artDir, process.cwd());
+      const slug = "echo-cli-output-test";
       const outFile = join(artDir, `ext-run-${slug}.txt`);
-      writeFileSync(outFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
       assert.ok(existsSync(outFile), "artifact file should be created");
       const content = readFileSync(outFile, "utf8");
       assert.ok(content.includes("cli-output-test"), "stdout should appear in artifact");
@@ -571,26 +563,38 @@ describe("executeRun — spawn, artifact, and failure detection", () => {
   });
 
   it("stores stderr in artifact when command writes to stderr", async () => {
-    const { execSync } = await import("node:child_process");
-    const { writeFileSync, readFileSync } = await import("node:fs");
+    const { existsSync, readFileSync } = await import("node:fs");
     const artDir = join(tmpdir(), `ext-art-${Date.now()}`);
     await mkdir(artDir, { recursive: true });
     try {
-      const cmd = "echo stderr-content >&2; exit 1";
-      let exitCode = 0, cmdOut = "", cmdErr = "";
-      try {
-        execSync(cmd, { encoding: "utf8", timeout: 5000, shell: true, stdio: ["pipe", "pipe", "pipe"] });
-      } catch (err) {
-        exitCode = err.status ?? 1; cmdOut = err.stdout || ""; cmdErr = err.stderr || err.message || "";
-      }
-      const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
+      runExecuteRunCommands([{ command: "echo stderr-content >&2; exit 1" }], artDir, process.cwd());
+      const slug = "echo-stderr-content-2-exit";
       const outFile = join(artDir, `ext-run-${slug}.txt`);
-      writeFileSync(outFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+      assert.ok(existsSync(outFile), "artifact file should be created");
       const content = readFileSync(outFile, "utf8");
       assert.ok(content.includes("stderr-content"), "stderr should appear in artifact");
       assert.ok(content.includes("Exit code: 1"), "non-zero exit should appear in artifact");
     } finally {
       await rm(artDir, { recursive: true, force: true });
+    }
+  });
+
+  it("command runs in the provided cwd", async () => {
+    const { mkdtempSync } = await import("node:fs");
+    const artDir = join(tmpdir(), `ext-art-cwd-${Date.now()}`);
+    await mkdir(artDir, { recursive: true });
+    const cwdDir = mkdtempSync(join(tmpdir(), "ext-cwd-"));
+    try {
+      const result = runExecuteRunCommands([{ command: "pwd" }], artDir, cwdDir);
+      assert.ok(!result.failed, "pwd command should not fail");
+      const { readFileSync, readdirSync } = await import("node:fs");
+      const files = readdirSync(artDir);
+      assert.ok(files.length > 0, "at least one artifact file should be written");
+      const content = readFileSync(join(artDir, files[0]), "utf8");
+      assert.ok(content.includes(cwdDir), `artifact stdout should contain the cwd path (${cwdDir})`);
+    } finally {
+      await rm(artDir, { recursive: true, force: true });
+      await rm(cwdDir, { recursive: true, force: true });
     }
   });
 

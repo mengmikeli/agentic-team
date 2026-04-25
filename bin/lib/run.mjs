@@ -314,14 +314,17 @@ export function runExecuteRunCommands(commands, artifactsDir, cwd) {
       cmdOut = err.stdout || "";
       cmdErr = err.stderr || err.message || "";
     }
-    // Set failure flag BEFORE writeFileSync so a write error can never swallow it
     if (exitCode !== 0 && r.required === true) {
       failed = true;
       lastFailure = `executeRun required command failed: "${cmd}" exited ${exitCode}\nstdout: ${cmdOut.slice(0, 500)}\nstderr: ${cmdErr.slice(0, 500)}`;
     }
     const slug = cmd.slice(0, 30).replace(/[^a-z0-9]+/g, "-").toLowerCase().replace(/^-|-$/g, "");
     const artifactFile = join(artifactsDir, `ext-run-${slug}.txt`);
-    writeFileSync(artifactFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+    try {
+      writeFileSync(artifactFile, `# Command: ${cmd}\n# Exit code: ${exitCode}\n\n## stdout\n${cmdOut}\n## stderr\n${cmdErr}`);
+    } catch (_writeErr) {
+      // Artifact write failure is non-fatal; required-command failure is already recorded above
+    }
     console.log(`  ${c.dim}executeRun: "${cmd.slice(0, 50)}" → exit ${exitCode}${c.reset}`);
   }
   return { failed, lastFailure };

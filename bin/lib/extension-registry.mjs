@@ -30,7 +30,10 @@ export function setExtensions(list) {
  * @param {string} [cwd]      - Working directory used to locate .team/extensions/
  * @returns {Promise<Array>} Non-null results from each extension.
  *   - promptAppend return:  { append: string } — content appended to the agent brief
- *   - verdictAppend return: { findings: Finding[] } — extra findings merged before compound gate
+ *   - verdictAppend return: { findings: Finding[] } — extra findings merged into handshake output;
+ *                           only fires during `agt-harness synthesize` (cmdSynthesize), not during
+ *                           `agt run` (_runSingleFeature). Extensions declaring this hook have no
+ *                           effect on the main run pipeline.
  *   - executeRun return:    { command: string, required?: boolean } — command spawned in task cwd;
  *                           non-zero exit with required: true causes task FAIL
  * Never throws — errors are swallowed at the runHook level.
