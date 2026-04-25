@@ -1500,7 +1500,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
 
   // ── Self-simplification pass ──
 
-  if (completed > 0) {
+  if (completed > 0 && blocked === 0) {
     try {
       console.log(`${c.dim}Running self-simplification pass...${c.reset}`);
       setUsageContext("simplify", null);

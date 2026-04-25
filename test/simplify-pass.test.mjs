@@ -152,23 +152,6 @@ describe("runSimplifyPass — skip conditions", () => {
 });
 
 describe("runSimplifyPass — agent dispatch and gate re-run", () => {
-  function makeExecFn({ mergeBase = "basesha", changedFiles = "src/index.mjs\n", preSha = "sha1", postSha = "sha1", postDiff = "" } = {}) {
-    return (cmd, _opts) => {
-      if (cmd.includes("merge-base")) return mergeBase + "\n";
-      if (cmd.includes("rev-parse HEAD") && !cmd.includes("..")) {
-        // Called twice: before dispatch and after
-        return postSha + "\n";
-      }
-      if (cmd.includes("--name-only") && cmd.includes("..HEAD") && !cmd.includes("basesha")) {
-        // post-dispatch diff between preSha..HEAD
-        return postDiff;
-      }
-      if (cmd.includes("--name-only basesha..HEAD")) return changedFiles;
-      if (cmd.includes("--name-only HEAD")) return postDiff;
-      return "";
-    };
-  }
-
   it("dispatches agent when code files are changed", () => {
     const dispatches = [];
     let revParseCount = 0;
@@ -340,6 +323,32 @@ describe("runSimplifyPass — agent dispatch and gate re-run", () => {
     });
     assert.equal(result.skipped, false);
     assert.equal(result.filesChanged, 0);
+  });
+
+  it("reverts changes and returns reverted=true when gate throws", () => {
+    const revertCmds = [];
+    let revParseCount = 0;
+    const execFn = (cmd, _opts) => {
+      if (cmd.includes("merge-base")) return "basesha\n";
+      if (cmd.includes("rev-parse HEAD")) {
+        revParseCount++;
+        return revParseCount === 1 ? "sha1\n" : "sha2\n";
+      }
+      if (cmd.includes("--name-only basesha..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("--name-only sha1..HEAD")) return "src/index.mjs\n";
+      if (cmd.includes("reset --hard")) { revertCmds.push(cmd); return ""; }
+      return "";
+    };
+    const result = runSimplifyPass({
+      featureDir: "/feat", gateCmd: "npm test", cwd: "/cwd",
+      agent: "claude",
+      dispatchFn: () => ({ ok: true, output: "done" }),
+      runGateFn: () => { throw new Error("gate crashed"); },
+      execFn,
+    });
+    assert.equal(result.reverted, true);
+    assert.equal(result.filesChanged, 0);
+    assert.equal(revertCmds.length, 1, "should run git reset --hard on gate exception");
   });
 });
 

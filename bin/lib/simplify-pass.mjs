@@ -162,7 +162,12 @@ export function runSimplifyPass({ featureDir, gateCmd, cwd, agent, dispatchFn, r
   }
 
   // Re-run quality gate to validate simplifications don't break anything
-  const gateResult = runGateFn(gateCmd, featureDir, null, cwd);
+  let gateResult;
+  try {
+    gateResult = runGateFn(gateCmd, featureDir, null, cwd);
+  } catch {
+    gateResult = { verdict: "FAIL", exitCode: 1 };
+  }
   if (gateResult.verdict === "PASS") {
     return { filesReviewed: files.length, filesChanged: changedCount, skipped: false };
   }

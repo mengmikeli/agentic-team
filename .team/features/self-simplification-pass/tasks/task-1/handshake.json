@@ -1,17 +1,15 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Added a self-simplification pass that runs automatically after all tasks complete and before finalize in the feature execution flow (run.mjs). The pass dispatches a simplify-pass agent on code files changed in the feature branch, re-runs the quality gate to validate no regressions, and reverts changes if the gate fails. 45 new tests cover file filtering, changed-file detection, agent dispatch, gate re-run logic, and revert-on-failure behavior.",
+  "summary": "Fixed three review findings: removed the dead makeExecFn helper from tests, tightened the run.mjs guard from `completed > 0` to `completed > 0 && blocked === 0` so the simplify pass only runs when all tasks pass review, and wrapped the runGateFn call in a try/catch so exceptions trigger revert instead of leaving agent changes unreversed. Added a test covering the gate-throws path.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
-    { "type": "code", "path": "roles/simplify-pass.md" },
     { "type": "code", "path": "bin/lib/simplify-pass.mjs" },
     { "type": "code", "path": "bin/lib/run.mjs" },
-    { "type": "code", "path": "test/simplify-pass.test.mjs" },
-    { "type": "code", "path": "package.json" }
+    { "type": "code", "path": "test/simplify-pass.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
