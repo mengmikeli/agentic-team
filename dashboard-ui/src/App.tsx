@@ -11,12 +11,13 @@ import { FeatureTimeline } from './components/feature-timeline';
 import { TaskBoard } from './components/task-board';
 import { FeatureDetail } from './components/feature-detail';
 import { TokenView } from './components/token-view';
+import { AnalyticsView } from './components/analytics-view';
 import { Skeleton } from './components/ui/skeleton';
 import { ErrorBoundary } from './components/error-boundary';
 import { LoopStatusBanner } from './components/loop-status';
 
 function App() {
-  const [currentTab, setCurrentTab] = useState<'project' | 'tokens'>('project');
+  const [currentTab, setCurrentTab] = useState<'project' | 'tokens' | 'analytics'>('project');
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [tokenDays, setTokenDays] = useState(7);
@@ -95,7 +96,9 @@ function App() {
       <LoopStatusBanner />
       
       <main className="container mx-auto px-4 md:px-6 py-4 space-y-4">
-        {currentTab === 'tokens' ? (
+        {currentTab === 'analytics' ? (
+          <AnalyticsView />
+        ) : currentTab === 'tokens' ? (
           <ErrorBoundary fallback="TokenView">
             <TokenView tokenData={tokenData} loading={tokensLoading} days={tokenDays} onDaysChange={setTokenDays} />
           </ErrorBoundary>

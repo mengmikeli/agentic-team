@@ -253,3 +253,10 @@
 {"ts":"2026-04-25T00:06:14.912Z","event":"feature-started","msg":"▶ Feature: document-driven-development (0 tasks planned)"}
 {"ts":"2026-04-25T00:08:12.559Z","event":"feature-complete","msg":"Feature complete: document-driven-development — 0/0 done, 0 blocked, 1m 58s, $0.53"}
 {"ts":"2026-04-25T00:10:40.548Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (0 tasks planned)"}
+{"ts":"2026-04-25T00:14:31.140Z","event":"feature-started","msg":"▶ Feature: max-review-rounds-escalation (17 tasks planned)"}
+{"ts":"2026-04-25T00:18:43.388Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (13 tasks planned)"}
+{"ts":"2026-04-25T00:25:31.451Z","event":"task-started","msg":"▶ Task 1/13: A simplicity 🔴 finding in a `multi-review` run produces overall verdict FAIL even when all other roles return only 🟡/🔵."}
+{"ts":"2026-04-25T00:42:32.062Z","event":"task-started","msg":"▶ Task 2/13: A simplicity 🔴 finding in a `build-verify` run (dedicated simplicity pass after main review) produces overall verdict FAIL."}
+{"ts":"2026-04-25T01:11:31.268Z","event":"feature-started","msg":"▶ Feature: simplicity-reviewer-with-veto (13 tasks planned)"}
+{"ts":"2026-04-25T01:13:20.432Z","event":"task-started","msg":"▶ Task 1/13: A simplicity 🔴 finding in a `multi-review` run produces overall verdict FAIL even when all other roles return only 🟡/🔵."}
+{"ts":"2026-04-25T01:23:32.676Z","event":"task-started","msg":"▶ Task 2/13: A simplicity 🔴 finding in a `build-verify` run (dedicated simplicity pass after main review) produces overall verdict FAIL."}

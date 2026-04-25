@@ -7,8 +7,8 @@ interface NavigationProps {
   projects: Project[];
   currentProject: Project | null;
   onProjectChange: (project: Project) => void;
-  currentTab: 'project' | 'tokens';
-  onTabChange: (tab: 'project' | 'tokens') => void;
+  currentTab: 'project' | 'tokens' | 'analytics';
+  onTabChange: (tab: 'project' | 'tokens' | 'analytics') => void;
   sseConnected: boolean;
   isExecuting: boolean;
 }
@@ -74,6 +74,19 @@ export function Navigation({
                 onClick={() => onTabChange('tokens')}
               >
                 Tokens
+              </button>
+              <button
+                className={cn(
+                  "px-3 py-1 text-xs font-medium rounded-sm transition-all",
+                  currentTab === 'analytics'
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+                role="tab"
+                aria-selected={currentTab === 'analytics'}
+                onClick={() => onTabChange('analytics')}
+              >
+                Analytics
               </button>
             </div>
           </div>

@@ -634,6 +634,44 @@ switch (command) {
             }
             return jsonRes(res, { phase: "idle" });
           }
+          if (pathname === "/api/analytics") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const featDir = join(pp, ".team", "features");
+            if (!fs.existsSync(featDir)) return jsonRes(res, { features: [] });
+            const features = [];
+            let totalPasses = 0, totalReviewFails = 0, totalGateFails = 0, totalReplans = 0, totalCost = 0, totalReviewCost = 0;
+            for (const d of fs.readdirSync(featDir, { withFileTypes: true })) {
+              if (!d.isDirectory()) continue;
+              const progPath = join(featDir, d.name, "progress.md");
+              if (!fs.existsSync(progPath)) continue;
+              const prog = fs.readFileSync(progPath, "utf8");
+              const passes = (prog.match(/✅ PASS/g) || []).length;
+              const reviewFails = (prog.match(/Review FAIL/g) || []).length;
+              const gateFails = (prog.match(/Gate exit code: [^0]/g) || []).length;
+              const replans = (prog.match(/Re-plan/g) || []).length;
+              const costMatch = prog.match(/Cost: \$([\.\d]+)/);
+              const cost = costMatch ? parseFloat(costMatch[1]) : 0;
+              const reviewMatch = prog.match(/review \$([\.\d]+)/);
+              const reviewCost = reviewMatch ? parseFloat(reviewMatch[1]) : 0;
+              const total = passes + reviewFails + gateFails;
+              const failRate = total > 0 ? Math.round((reviewFails + gateFails) / total * 100) : 0;
+              const spPath = join(featDir, d.name, "STATE.json");
+              let status = "unknown";
+              try { status = JSON.parse(fs.readFileSync(spPath, "utf8")).status || "unknown"; } catch {}
+              features.push({ name: d.name, status, passes, reviewFails, gateFails, replans, failRate, cost, reviewCost });
+              totalPasses += passes; totalReviewFails += reviewFails; totalGateFails += gateFails; totalReplans += replans; totalCost += cost; totalReviewCost += reviewCost;
+            }
+            const totalAttempts = totalPasses + totalReviewFails + totalGateFails;
+            return jsonRes(res, {
+              features,
+              totals: {
+                passes: totalPasses, reviewFails: totalReviewFails, gateFails: totalGateFails,
+                replans: totalReplans, cost: totalCost, reviewCost: totalReviewCost,
+                failRate: totalAttempts > 0 ? Math.round((totalReviewFails + totalGateFails) / totalAttempts * 100) : 0,
+                reviewPct: totalCost > 0 ? Math.round(totalReviewCost / totalCost * 100) : 0,
+              }
+            });
+          }
           if (pathname === "/api/sprints") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());
             const sp = join(pp, ".team", "SPRINTS.md");
