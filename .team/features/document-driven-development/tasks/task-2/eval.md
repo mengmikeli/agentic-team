@@ -280,3 +280,216 @@ This is a **net deletion**: ~18 lines of generator scaffolding (sectionBodies di
 
 ## Summary
 Tight, correct, minimal. Implementation is smaller than what it replaces, the dead import was cleaned up, and the test pins the contract. No simplicity-veto findings, no backlog items from this lens.
+
+---
+
+# Engineer Review — task-2 (run_2 follow-up)
+
+## Verdict: PASS
+
+## Files actually opened (this iteration)
+- `bin/lib/run.mjs:920-940` (the tightened error block)
+- `test/cli-commands.test.mjs:266-286` (tightened regression test)
+- `.team/features/document-driven-development/tasks/task-2/handshake.json` (run_2)
+- `.team/features/document-driven-development/tasks/task-2/artifacts/test-output.txt`
+
+## Claim verification (run_2)
+Handshake claims: (a) test pins exit code to 1, (b) asserts the full `agt brainstorm my-feature` hint, (c) asserts no auto-stub side effect, (d) error lines routed through `console.error`, (e) full suite 581/581 green. All five verified:
+- run.mjs:932-934 use `console.error` (was `console.log` previously per prior review notes).
+- run.mjs:935 still `process.exit(1)`.
+- cli-commands.test.mjs:274 pins `result.exitCode === 1` (was `result.ok === false`).
+- cli-commands.test.mjs:277-280 asserts the full `"agt brainstorm my-feature"` substring.
+- cli-commands.test.mjs:281-285 asserts `existsSync(.../SPEC.md) === false`.
+- test-output.txt tail: `tests 581 / pass 581 / fail 0`.
+
+This iteration directly resolves the three 🟡/🔵 findings the Tester left in the prior round (273, 276, 277) and the cosmetic stderr suggestion all four prior reviewers raised. Nothing was rationalized away; the actual code now matches their guidance.
+
+## Per-criterion (engineer lens)
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Correctness — non-zero exit + named file + brainstorm hint | PASS | run.mjs:932-935; assertions at cli-commands.test.mjs:274,276-280 |
+| Stream discipline (errors on stderr) | PASS | All three failure lines now `console.error` |
+| No side effects on the failure path | PASS | No `mkdirSync`/`writeFileSync` in the missing-spec branch; test asserts SPEC.md absence |
+| Code quality | PASS | Three short `console.error` calls + `process.exit(1)`. No new abstractions. |
+| Test rigor | PASS | Exit code pinned, full hint string pinned, side-effect absence pinned |
+
+## Edge cases I checked
+- `featureName` slug interpolation: still goes through the same slugify earlier in `_runSingleFeature`; the test's `my-feature` round-trips unchanged so the literal substring assertion is sound.
+- Mode 2 (no description, picks from roadmap): the brainstorm hint now correctly names the roadmap-derived slug — same code path.
+- ANSI color escapes: assertions are on `stdout + stderr` concatenation; substrings sit between escape sequences, not split by them.
+- `existsSync(specPath)` short-circuits before any I/O — happy path unaffected.
+
+## Findings
+
+No findings.
+
+---
+
+# Architect Review — task-2 (run_2 follow-up)
+
+## Verdict: PASS
+
+## What Changed in run_2
+- `bin/lib/run.mjs:932-934` — three failure lines moved to `console.error` (stderr), addressing the cosmetic 🔵 raised by every prior reviewer.
+- `test/cli-commands.test.mjs:266-286` — regression tightened: pins `exitCode === 1`, asserts the full literal `"agt brainstorm my-feature"`, and asserts `existsSync(.../SPEC.md) === false`.
+
+## Evidence Verified (architecture lens)
+- `bin/lib/run.mjs:927-936` — single `existsSync(specPath)` guard. On miss: three `console.error` lines → `process.exit(1)`. No FS writes. The brainstorm/run boundary is now strict: brainstorm writes the spec, run only reads it.
+- `tasks/task-2/artifacts/test-output.txt` tail: `tests 581 / pass 581 / fail 0`.
+- `handshake.json` artifacts (`bin/lib/run.mjs`, `test/cli-commands.test.mjs`, `artifacts/test-output.txt`) — all present and consistent with claims.
+
+## Per-Criterion (Architecture)
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Component boundaries respected | PASS | `run` no longer authors specs; that responsibility lives only in `brainstorm`. |
+| No unjustified new dependencies | PASS | None added; `PRD_SECTIONS` import already removed in run_1. |
+| Pattern consistency | PASS | `console.error` + `process.exit(1)` is the canonical CLI failure shape. The older `.team/` missing branch at run.mjs:783-786 still uses `console.log` for an error — out of scope here. |
+| Scalability / future-proofing | PASS | Fail-fast with no FS side effect is strictly cheaper and safer than the prior auto-stub. |
+| Test pins observable contract | PASS | Exit code, full message substring, AND the absence of the side-effect file are all asserted. A regression that re-introduces auto-stubbing or shifts the exit code now breaks a test, not just a docstring. |
+
+## Edge Cases Checked
+1. Stdout/stderr split — pipelines that consume stdout no longer get the failure block mixed in. Test asserts on `stdout + stderr` so the move is stable.
+2. Tightened literal `"agt brainstorm my-feature"` — guards against regressions where `featureName` resolves to `undefined` or a wrong slug.
+3. `existsSync(...) === false` — locks in "no auto-stub" as a permanent contract.
+4. Mode 2 (roadmap-pick) path — same guard; the stderr lines print the roadmap-derived slug. Coherent.
+
+## Findings
+
+No findings.
+
+---
+
+# Simplicity Review — task-2 (run_2 follow-up)
+
+## Verdict: PASS
+
+## Scope of run_2
+Surgical follow-up addressing prior backlog: `console.log` → `console.error` for the three missing-SPEC.md lines (`bin/lib/run.mjs:932-934`) and three new test assertions (`exitCode === 1`, full `"agt brainstorm my-feature"` substring, `existsSync(.../SPEC.md) === false`).
+
+## Files actually opened
+- `bin/lib/run.mjs` (full, 1562 lines) — change localized to L932-934
+- `test/cli-commands.test.mjs` L271-287
+- `.team/features/document-driven-development/tasks/task-2/handshake.json` (run_2)
+- `.team/features/document-driven-development/tasks/task-2/artifacts/test-output.txt` — **581/581 pass, 0 fail, 32.3s**
+- `git diff 164e702 HEAD -- bin/lib/run.mjs test/cli-commands.test.mjs`: -3/+3 in run.mjs, +9/-1 in test
+
+## Veto categories (all clear)
+
+| Category | Status | Evidence |
+|---|---|---|
+| Dead code | ✅ clear | Diff is purely substitutive in run.mjs. Test gains assertions, no orphan vars or imports. |
+| Premature abstraction | ✅ clear | Three sequential `console.error` calls — no `errorAndExit()` helper invented. With one call site, abstraction would itself be premature. |
+| Unnecessary indirection | ✅ clear | Direct stderr routing. No wrapper, no re-export. |
+| Gold-plating | ✅ clear | No flag, no env var, no configurable severity. The hint hardcodes `agt brainstorm ${featureName}` because that is the one and only correct next step. |
+
+## Cognitive-load & deletability
+- run_2 increases cognitive footprint by ~zero: `console.log` → `console.error` is a one-token swap that any reader correctly intuits without context.
+- The three new test assertions each lock down a specific regression vector: a thrown exception that incidentally exits with a different non-zero code (caught by `exitCode === 1`); a regression where `featureName` resolves to `undefined` (caught by full-substring); a re-introduction of auto-stubbing alongside the error message (caught by `existsSync === false`). None overlap; none are redundant.
+
+## Edge cases checked
+- Stdout/stderr split: shell consumers piping stdout (`agt run … | grep`) no longer mix the failure block in; non-zero exit code remains the canonical signal. Net correctness improvement.
+- ANSI sequences: `c.red`/`c.bold` continue to wrap the error lines on stderr — terminals interpret escape codes on stderr identically, so no display regression.
+- The new `existsSync` assertion piggybacks on imports already present in the test file — no new test dependency.
+
+## Findings
+No findings.
+
+## Summary
+Exemplary follow-up: smallest possible diff that resolves three concrete backlog items from prior reviewers, no new abstractions, gate strictly tightened (581/581 green). Nothing to flag from a simplicity lens.
+
+---
+
+# PM Review — task-2 (run_2)
+
+## Verdict: PASS
+
+## Task
+> `agt run my-feature` with no `SPEC.md` exits non-zero with a message naming the missing file and pointing at `agt brainstorm`.
+
+## Files Read
+- `bin/lib/run.mjs` (full file; focused on lines 925–936)
+- `test/cli-commands.test.mjs` (focused on lines 266–286)
+- `.team/features/document-driven-development/tasks/task-2/handshake.json`
+- `.team/features/document-driven-development/tasks/task-2/artifacts/test-output.txt`
+
+## Claim Verification (handshake → code)
+Handshake (run_2) claims: pin exit code to 1, assert the full `agt brainstorm my-feature` hint, verify no auto-stub side effect, and route failure messages through `console.error`. All four verified:
+- `bin/lib/run.mjs:932-934` — three `console.error` calls naming SPEC.md and `agt brainstorm <featureName>`.
+- `bin/lib/run.mjs:935` — `process.exit(1)`.
+- `test/cli-commands.test.mjs:274` — `assert.equal(result.exitCode, 1, ...)`.
+- `test/cli-commands.test.mjs:278` — asserts the full literal `agt brainstorm my-feature`.
+- `test/cli-commands.test.mjs:281-285` — asserts SPEC.md does NOT exist after the run.
+- `artifacts/test-output.txt` — `tests 581 / pass 581 / fail 0`.
+
+## Per-Criterion Results (PM lens)
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Spec testable & verified | PASS | All three observable behaviors are pinned by assertions. |
+| User value | PASS | Replaces silent auto-stub with a clear, actionable error naming the file and the next command. Aligns with the document-driven goal: "approved spec before code is written." |
+| Acceptance criteria met from spec alone | PASS | Non-zero exit (pinned to 1), names the file (`SPEC.md`), points at brainstorm (full literal hint). All independently checkable from the test alone. |
+| Scope discipline | PASS | Diff confined to test tightening + stderr routing. No drive-by edits. |
+| No regressions | PASS | 581/581 tests green. |
+| Side-effect contract | PASS | The "no auto-stub" contract — previously only implied by the message — is now explicitly asserted. |
+| Stream discipline | PASS | Failure messages on stderr now match the non-zero exit convention. |
+
+## Edge Cases Considered
+1. ANSI color codes around `SPEC.md` and `agt brainstorm my-feature` — substrings sit between escape sequences, not split by them; merging stdout+stderr in the test means the stderr move doesn't break assertions.
+2. `featureName` slug derivation — `my-feature` → `my-feature` (already lowercase, no special chars), so the literal substring assertion is correct for this CLI input.
+3. Mode 2 (no description, picks from roadmap) — same `specPath` guard; error message uses the roadmap-derived slug. Coherent.
+
+## Findings
+
+No findings.
+
+## Notes
+This iteration closes every open item from the prior round (the tester's three pin-the-contract suggestions plus the stderr suggestion all four reviewers raised). Implementation, test, and handshake are aligned; nothing was rationalized away. Clean PASS.
+
+---
+
+# Tester Review — task-2 (run_2)
+
+## Verdict: PASS
+
+## Files actually opened
+- `bin/lib/run.mjs:925-936` — current missing-SPEC branch (uses `console.error`)
+- `test/cli-commands.test.mjs:266-286` — tightened regression test
+- `.team/features/document-driven-development/tasks/task-2/handshake.json` (run_2)
+- `.team/features/document-driven-development/tasks/task-2/artifacts/test-output.txt` — `tests 581 / pass 581 / fail 0`
+
+## Iteration delta verified
+The earlier Tester review left three coverage gaps. All three are resolved here:
+- 🟡 → ✅ Exit code pinned: `assert.equal(result.exitCode, 1, ...)` at cli-commands.test.mjs:274.
+- 🟡 → ✅ Brainstorm hint tightened to the exact `"agt brainstorm my-feature"` literal at L277-280; wrong-slug or `undefined` interpolations now fail.
+- 🔵 → ✅ No-side-effect contract: `assert.equal(existsSync(.../SPEC.md), false)` at L281-285 locks "no auto-stub" as a contract.
+
+Bonus: the cosmetic `console.error` suggestion every prior reviewer raised is also addressed at run.mjs:932-934. The test reads `result.stdout + result.stderr`, so the channel switch is observed without breaking assertions.
+
+## Per-Criterion Results (Test lens)
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Failure path covered via real CLI | PASS | `runAgt(["run", "my-feature"], tmpDir, …)` at L272 — exercises the binary, not a function call. |
+| Contract pinned (exit code + message + hint) | PASS | Three independent asserts at L274, L276, L277-280 with diagnostic messages. |
+| No-side-effect contract | PASS | L281-285 — re-introducing auto-stub trips this assertion. |
+| Happy path not regressed | PASS (indirect) | Full gate 581/581 green; sibling `agt run --dry-run` test remains green in the same describe block. |
+| Test isolation | PASS | Fresh tmpDir seeded with PRODUCT/PROJECT/AGENTS only — failure is the missing SPEC.md, not pre-flight. |
+
+## Edge cases I checked
+1. **stderr/stdout concat** — assertion concatenates both streams, so `console.error` is observed. ✅
+2. **ANSI color escapes** — `c.red`/`c.bold` wrap parts of the headline but the asserted substrings sit between escape sequences, not split by them. ✅
+3. **Pre-existing STATE.json from a prior failed run** — run.mjs:887 `if (!existsSync(statePath))` skips re-init; the SPEC.md check at L929 still fires, so leftover state cannot bypass the gate.
+4. **Roadmap-pick mode (`agt run` with no args)** — same `existsSync(specPath)` check fires after `featureName` is resolved from the roadmap (run.mjs:864 → 927-936). Not directly tested. Coverage gap noted below.
+5. **Empty/whitespace-only SPEC.md** — `existsSync` returns true and `readFileSync` returns `""`; `planTasks` falls back to a single task from the description. Out of scope for this task but worth flagging if "approved spec" should imply non-empty.
+6. **Featurename interpolation** — the test passes the slug `"my-feature"`, and the assertion now requires that exact slug in the hint, so an `undefined`/wrong-slug regression is caught.
+
+## Coverage Gaps (non-blocking)
+
+🟡 test/cli-commands.test.mjs:266 — No regression test exercises the **roadmap-pick** path (`agt run` with no args, picks the first uncompleted roadmap item with no SPEC.md). Same gate fires but only the explicit-name branch is covered.
+🔵 bin/lib/run.mjs:929 — Consider also rejecting a SPEC.md that exists but is empty/whitespace-only — currently the file is read as-is and `planTasks` falls back to the description-only path, silently re-introducing the "no real spec" failure mode this feature is meant to prevent. Out of this task's scope; flag for backlog.
+
+## Findings
+
+No 🔴 findings. Two non-blocking items above are documented for backlog. The contract for *this* task is fully and correctly tested.
