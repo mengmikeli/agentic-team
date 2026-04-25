@@ -431,6 +431,50 @@ describe("verdictAppend integration", () => {
     assert.equal(captured.findings.length, 1);
     assert.equal(captured.phase, "review");
   });
+
+  it("cmdSynthesize merges verdictAppend extension findings into final verdict (integration)", async () => {
+    const { cmdSynthesize } = await import("../bin/lib/synthesize.mjs");
+
+    setExtensions([
+      {
+        name: "integration-ext",
+        version: "1.0.0",
+        capabilities: ["verdictAppend"],
+        hooks: {
+          verdictAppend: async () => ({
+            findings: [{ severity: "critical", text: "🔴 synthesize.mjs:1 — critical injected by extension" }],
+          }),
+        },
+      },
+    ]);
+
+    // Review text with only a suggestion — would PASS without extension
+    const tmpFile = join(tmpdir(), `synth-test-${Date.now()}.txt`);
+    await writeFile(tmpFile, "🔵 synthesize.mjs:1 — minor style suggestion only");
+
+    let output;
+    const origLog = console.log;
+    console.log = (str) => { output = str; };
+    const origExitCode = process.exitCode;
+
+    try {
+      await cmdSynthesize(["--input", tmpFile]);
+    } finally {
+      console.log = origLog;
+      process.exitCode = origExitCode;
+      await rm(tmpFile, { force: true });
+    }
+
+    const result = JSON.parse(output);
+    // Without extension: only suggestion -> PASS
+    // With extension critical finding: FAIL
+    assert.equal(result.verdict, "FAIL");
+    assert.ok(result.critical >= 1, "should have at least 1 critical from extension");
+    assert.ok(
+      result.findings.some(f => f.text.includes("critical injected by extension")),
+      "extension finding should appear in output findings"
+    );
+  });
 });
 
 // ── loadExtensions tests ────────────────────────────────────────────────────

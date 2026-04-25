@@ -118,12 +118,12 @@ export async function cmdSynthesize(args) {
   // Extension hook: verdictAppend — let extensions inject extra findings before
   // compound gate and computeVerdict see them
   try {
-    const extResults = await fireExtension("verdictAppend", { findings, phase: "review" }, repoRoot);
+    const extResults = await fireExtension("verdictAppend", { findings: [...findings], phase: "review" }, repoRoot);
     for (const r of extResults) {
       if (r && Array.isArray(r.findings)) {
         for (const f of r.findings) {
-          if (f && typeof f.severity === "string" && typeof f.text === "string") {
-            findings = [...findings, f];
+          if (f && ["critical", "warning", "suggestion"].includes(f.severity) && typeof f.text === "string") {
+            findings.push(f);
           }
         }
       }
