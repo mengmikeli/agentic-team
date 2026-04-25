@@ -149,6 +149,18 @@ ok 2 - passing`;
     const result = parseTap(tap, "", 0);
     assert.equal(result.findings.critical, 0);
   });
+
+  it("counts only top-level not ok lines, ignoring indented subtest lines", () => {
+    // Node.js --test-reporter tap produces indented `not ok` for subtests.
+    // One failing subtest should yield exactly one critical finding (the parent).
+    const tap = `TAP version 13
+1..1
+not ok 1 - parent test
+    not ok 1 - child subtest that failed`;
+
+    const result = parseTap(tap, "", 1);
+    assert.equal(result.findings.critical, 1, "indented subtest not ok must not be double-counted");
+  });
 });
 
 describe("getParser", () => {

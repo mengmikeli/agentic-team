@@ -74,9 +74,11 @@ export function parseTap(stdout, stderr, exitCode) {
   const messages = [];
 
   for (const line of stdout.split('\n')) {
-    const trimmed = line.trim();
-    if (/^not ok\b/.test(trimmed) && !/# (?:TODO|SKIP)\b/i.test(trimmed)) {
-      messages.push(trimmed);
+    // Match only top-level `not ok` lines (no leading whitespace).
+    // Indented lines are subtest output — counting them would double-count failures.
+    if (/^not ok\b/.test(line) && !/# (?:TODO|SKIP)\b/i.test(line)) {
+      // Strip control characters before storing (security: untrusted input).
+      messages.push(line.replace(/[\x00-\x1f\x7f]/g, ''));
       findings.critical++;
     }
   }
