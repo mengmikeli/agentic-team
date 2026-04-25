@@ -409,6 +409,100 @@ describe("concurrent createWorktreeIfNeeded on different slugs", () => {
     // Cleanup
     for (const p of paths) removeWorktree(p, repoDir);
   });
+
+  it("two real child processes racing on different slugs both succeed (true OS-level concurrency)", async () => {
+    // Spawn two separate Node processes that each call createWorktreeIfNeeded.
+    // This exercises a real OS-level race on `.team/worktrees/` and on git's
+    // internal `.git/worktrees/` admin directory — Promise.all over execFileSync
+    // would be serialized on the event loop and miss this.
+    const { spawn } = await import("child_process");
+    const helperUrl = new URL("../bin/lib/run.mjs", import.meta.url).href;
+
+    const runChild = (slug) => new Promise((resolve, reject) => {
+      const code = `
+        import("${helperUrl}").then(m => {
+          const p = m.createWorktreeIfNeeded(${JSON.stringify(slug)}, ${JSON.stringify(repoDir)});
+          process.stdout.write("\\n__PATH__" + p + "__END__\\n");
+        }).catch(e => { process.stderr.write(String(e)); process.exit(1); });
+      `;
+      const child = spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: ["ignore", "pipe", "pipe"] });
+      let out = "", err = "";
+      child.stdout.on("data", d => out += d);
+      child.stderr.on("data", d => err += d);
+      child.on("exit", code => {
+        if (code !== 0) return reject(new Error(`child exited ${code}: ${err}`));
+        const m = out.match(/__PATH__(.*?)__END__/);
+        if (!m) return reject(new Error(`no path marker in child output: ${out}`));
+        resolve(m[1]);
+      });
+    });
+
+    const [pathA, pathB] = await Promise.all([runChild("real-race-a"), runChild("real-race-b")]);
+    assert.notEqual(pathA, pathB);
+    assert.ok(existsSync(pathA));
+    assert.ok(existsSync(pathB));
+    const list = execFileSync("git", ["-C", repoDir, "worktree", "list"], { encoding: "utf8" });
+    assert.ok(list.includes(realpathSync(pathA)) || list.includes(pathA));
+    assert.ok(list.includes(realpathSync(pathB)) || list.includes(pathB));
+
+    removeWorktree(pathA, repoDir);
+    removeWorktree(pathB, repoDir);
+  });
+
+  it("two concurrent invocations on the SAME slug: one wins, the other reuses or errors cleanly (no corruption)", async () => {
+    const slug = "same-slug-race";
+    // Race two creates on the same slug. Possible outcomes per call:
+    //  - returns the worktree path (reused or freshly created)
+    //  - throws because git rejects a duplicate `worktree add`
+    // Either is acceptable; what's NOT acceptable is partial state that prevents reuse.
+    const results = await Promise.allSettled([
+      Promise.resolve().then(() => createWorktreeIfNeeded(slug, repoDir)),
+      Promise.resolve().then(() => createWorktreeIfNeeded(slug, repoDir)),
+    ]);
+    const successes = results.filter(r => r.status === "fulfilled");
+    assert.ok(successes.length >= 1, `at least one create must succeed; got: ${JSON.stringify(results)}`);
+    const wtPath = successes[0].value;
+    assert.ok(existsSync(wtPath), "worktree path must exist on disk after the race");
+
+    // A subsequent reuse must succeed (proves no corruption left behind).
+    const reused = createWorktreeIfNeeded(slug, repoDir);
+    assert.equal(reused, wtPath);
+
+    removeWorktree(wtPath, repoDir);
+  });
+});
+
+// ── Path-traversal guard ─────────────────────────────────────────
+
+describe("createWorktreeIfNeeded slug sanitization", () => {
+  it("does not allow `../` in slug to escape .team/worktrees/", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "wt-traversal-"));
+    try {
+      const calls = [];
+      const mockExec = (cmd, args) => calls.push(args);
+      // Raw slug "../evil" must be normalized; the on-disk path must stay under
+      // .team/worktrees/ (slugToBranch strips `/` and `.` is allowed but leading
+      // dots cannot form `..` once `/` is gone).
+      const result = createWorktreeIfNeeded("../evil", tmpDir, mockExec);
+      assert.ok(
+        result.startsWith(join(tmpDir, ".team", "worktrees") + "/") ||
+          result.startsWith(join(tmpDir, ".team", "worktrees") + "\\"),
+        `worktree path must stay under .team/worktrees/, got: ${result}`
+      );
+      assert.ok(!result.includes(".." + "/"), "path must not contain `../`");
+    } finally {
+      try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  it("throws on a slug that sanitizes to empty (e.g. all special chars)", () => {
+    const tmpDir = mkdtempSync(join(tmpdir(), "wt-empty-slug-"));
+    try {
+      assert.throws(() => createWorktreeIfNeeded("@@@///", tmpDir, () => {}), /invalid slug/);
+    } finally {
+      try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    }
+  });
 });
 
 // ── Worktree preserved on error (source assertion) ───────────────
