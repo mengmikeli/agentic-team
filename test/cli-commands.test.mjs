@@ -262,6 +262,19 @@ describe("smart entry flow (agt run no args)", () => {
       "should indicate dry run mode"
     );
   });
+
+  it("agt run with no SPEC.md exits non-zero and points at agt brainstorm", () => {
+    mkdirSync(join(tmpDir, ".team", "features"), { recursive: true });
+    writeFileSync(join(tmpDir, ".team", "PRODUCT.md"), "# Test\n## Vision\ntest\n## Roadmap\n1. **test** — test\n");
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), "# Test\n");
+    writeFileSync(join(tmpDir, ".team", "AGENTS.md"), "# Test\n");
+
+    const result = runAgt(["run", "my-feature"], tmpDir, { timeout: 15000 });
+    assert.equal(result.ok, false, "should exit non-zero");
+    const output = result.stdout + result.stderr;
+    assert.ok(output.includes("SPEC.md"), `output should name SPEC.md, got: ${output}`);
+    assert.ok(output.includes("agt brainstorm"), `output should mention agt brainstorm, got: ${output}`);
+  });
 });
 
 
