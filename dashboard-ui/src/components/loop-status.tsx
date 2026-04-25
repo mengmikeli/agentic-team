@@ -10,11 +10,13 @@ interface LoopStatus {
   project?: string;
 }
 
-const PHASE_CONFIG: Record<string, { icon: typeof Zap; label: string }> = {
+const PHASE_CONFIG: Record<string, { icon: typeof Zap; label: string; accent?: boolean }> = {
   prioritizing: { icon: Search, label: 'Prioritizing' },
   brainstorming: { icon: Zap, label: 'Brainstorming' },
   executing: { icon: Hammer, label: 'Executing' },
   reviewing: { icon: Eye, label: 'Reviewing' },
+  checkpoint: { icon: Eye, label: '⏸ Checkpoint' },
+  blocked: { icon: Zap, label: '⚠ Blocked', accent: true },
 };
 
 const PROJECT_CODES: Record<string, string> = {
@@ -100,7 +102,10 @@ export function LoopStatusBanner({ projects }: { projects: { name: string; path:
   if (!status) return null;
 
   return (
-    <div className="border-b border-primary/20 bg-[var(--ops-accent-subtle)] px-4 md:px-6 py-2">
+    <div className={cn(
+      "border-b px-4 md:px-6 py-2",
+      status.phase === 'blocked' ? "border-[var(--ops-error)]/30 bg-[var(--ops-error)]/5" : "border-primary/20 bg-[var(--ops-accent-subtle)]"
+    )}>
       <div
         className={cn("transition-opacity duration-700 ease-in-out", visible ? "opacity-100" : "opacity-0")}
         onTransitionEnd={handleTransitionEnd}

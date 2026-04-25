@@ -935,6 +935,14 @@ export async function outerLoop(args, deps) {
         if (healthResult.failed > 0) {
           console.log(`${c.red}${c.bold}\u26a0 Phase check found ${healthResult.failed} blocking issue(s). Fix before proceeding.${c.reset}`);
         }
+        // Write pause status so dashboard banner shows the checkpoint
+        const blocked = healthResult.failed > 0;
+        writeLoopStatus(teamDir, {
+          phase: blocked ? "blocked" : "checkpoint",
+          cycle,
+          feature: `Phase ${currentPhase} complete → ${nextUndone.name}`,
+          blocked: blocked ? healthResult.failed : 0,
+        });
         console.log(`${c.yellow}Dogfood mode: pausing for reflection.${c.reset}`);
         console.log(`Run ${c.bold}agt run --dogfood${c.reset} to continue.\n`);
         break;

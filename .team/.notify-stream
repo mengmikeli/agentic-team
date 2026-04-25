@@ -352,3 +352,4 @@
 {"ts":"2026-04-25T11:22:18.753Z","event":"task-started","msg":"▶ Task 3/12: `mergeReviewFindings` rewrites the role label to `simplicity veto` for any simplicity finding whose severity is `critical`, and leaves other severities labeled `simplicity`."}
 {"ts":"2026-04-25T11:36:46.224Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in simplicity-reviewer-with-veto — stopping execution"}
 {"ts":"2026-04-25T11:36:47.393Z","event":"feature-complete","msg":"Feature complete: simplicity-reviewer-with-veto — 0/12 done, 3 blocked, 44m 9s, $100.76"}
+{"ts":"2026-04-25T12:08:02.411Z","event":"feature-started","msg":"▶ Feature: git-worktree-isolation (13 tasks planned)"}
