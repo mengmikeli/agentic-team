@@ -13,7 +13,7 @@ import {
 import { ghAvailable, createIssue, closeIssue, commentIssue, addToProject, setProjectItemStatus, getIssueBody, editIssue, buildTasksChecklist, buildTaskIssueBody, tickChecklistItem, markChecklistItemBlocked } from "./github.mjs";
 import { FLOWS, selectFlow, buildBrainstormBrief, buildReviewBrief, PARALLEL_REVIEW_ROLES, mergeReviewFindings } from "./flows.mjs";
 import { parseFindings, computeVerdict } from "./synthesize.mjs";
-import { pushFeatureStatus, pushTaskStatus, syncFromHarness } from "./state-sync.mjs";
+import { pushFeatureStatus, pushTaskStatus, syncFromHarness, closeFeatureIssues } from "./state-sync.mjs";
 import { runCompoundGate } from "./compound-gate.mjs";
 import { recordWarningIteration, checkEscalation } from "./iteration-escalation.mjs";
 import { incrementReviewRounds, shouldEscalate, buildEscalationSummary } from "./review-escalation.mjs";
@@ -583,7 +583,8 @@ export function applyCrashRecovery(state, plannedTasks, featureDir) {
     const allTerminal = recoveredTasks.length > 0 && pendingOrInProgress.length === 0;
 
     if (allTerminal) {
-      // Previous run failed completely — start fresh with new planned tasks
+      // Previous run failed completely — close old issues and start fresh
+      closeFeatureIssues(featureDir, "superseded by retry");
       state.tasks = plannedTasks;
       state.status = "executing";
       state._previous_run_failed = crashedAt;
@@ -1580,6 +1581,7 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
 
   if (blocked > 0) {
     console.log(`${c.yellow}Blocked tasks need attention. Review and run again or fix manually.${c.reset}`);
+    closeFeatureIssues(featureDir, "feature blocked — tasks need attention");
     return "blocked";
   }
   return "done";

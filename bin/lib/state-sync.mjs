@@ -115,3 +115,31 @@ export function syncFromHarness(featureDir, inMemoryTasks) {
  * @param {string} featureDir - Path to feature directory
  * @returns {object|null} Rebuilt state
  */
+
+
+/**
+ * Close all open issues for a feature. Called on feature completion, failure, or retry.
+ * @param {string} featureDir - Path to feature directory
+ * @param {string} reason - Why issues are being closed (e.g. "completed", "abandoned", "superseded by retry")
+ */
+export function closeFeatureIssues(featureDir, reason = "feature completed") {
+  const state = readState(featureDir);
+  if (!state) return 0;
+  
+  let closed = 0;
+  for (const task of (state.tasks || [])) {
+    if (task.issueNumber && task.status !== "passed") {
+      closeIssue(task.issueNumber, `Auto-closed: ${reason}`);
+      closed++;
+    }
+  }
+  
+  // Also close approval issue if exists
+  if (state.approvalIssueNumber || state._approvalIssueNumber) {
+    const approvalNum = state.approvalIssueNumber || state._approvalIssueNumber;
+    closeIssue(approvalNum, `Auto-closed: ${reason}`);
+    closed++;
+  }
+  
+  return closed;
+}
