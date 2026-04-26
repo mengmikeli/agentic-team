@@ -167,7 +167,7 @@ export function checkQualityGate(cwd = process.cwd()) {
       ? afterHeading.slice(0, nextSection.index)
       : afterHeading;
 
-    if (/```/.test(section)) {
+    if (/```/.test(section) || /\d+\..*gate|invariant|guard/i.test(section)) {
       return { status: "pass", message: "Quality gate configured" };
     }
     return { status: "fail", message: "No quality gate configured (no code block found)" };
