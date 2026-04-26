@@ -2,7 +2,7 @@
 // Prints a readable execution report for a feature from STATE.json
 
 import { existsSync, writeFileSync } from "fs";
-import { join } from "path";
+import { basename, join } from "path";
 import { readState } from "./util.mjs";
 
 export function buildReport(state) {
@@ -127,8 +127,10 @@ export function buildReport(state) {
  */
 export function cmdReport(args = [], deps = {}) {
   const outputIdx = args.indexOf("--output");
-  const outputMd = outputIdx !== -1 && args[outputIdx + 1] === "md";
-  const featureName = args.find((a, i) => !a.startsWith("-") && !(outputMd && i === outputIdx + 1));
+  const outputVal = outputIdx !== -1 ? args[outputIdx + 1] : undefined;
+  const outputMd = outputVal === "md";
+  // Skip --output's value arg so "md" isn't mistaken for the feature name
+  const featureName = args.find((a, i) => !a.startsWith("-") && !(outputIdx !== -1 && i === outputIdx + 1));
 
   const {
     readState: _readState = readState,
@@ -142,6 +144,18 @@ export function cmdReport(args = [], deps = {}) {
 
   if (!featureName) {
     _stderr.write("Usage: agt report <feature>\n");
+    _exit(1);
+    return;
+  }
+
+  if (outputIdx !== -1 && outputVal !== "md") {
+    _stderr.write(`report: unsupported output format: ${outputVal ?? "(none)"}\n`);
+    _exit(1);
+    return;
+  }
+
+  if (featureName !== basename(featureName)) {
+    _stderr.write(`report: invalid feature name: ${featureName}\n`);
     _exit(1);
     return;
   }

@@ -363,7 +363,7 @@ describe("cmdReport", () => {
 
   // ── 8. agt help report has usage string ──────────────────────
 
-  it("agt help report: outputs usage, --md flag, and example", () => {
+  it("agt help report: outputs usage, --output flag, and example", () => {
     const result = spawnSync("node", [agtPath, "help", "report"], {
       encoding: "utf8",
       timeout: 10000,
@@ -372,5 +372,44 @@ describe("cmdReport", () => {
     assert.ok(result.stdout.includes("agt report"), "Should include usage with 'agt report'");
     assert.ok(result.stdout.includes("--output"), "Should mention --output flag");
     assert.ok(result.stdout.includes("agt report my-feature"), "Should include an example");
+  });
+
+  // ── 9. --output md with flag before feature name ─────────────
+
+  it("writes REPORT.md when --output md precedes the feature name", () => {
+    const state = makeState();
+    const deps = makeDeps(true, state);
+    cmdReport(["--output", "md", "test-feature"], deps);
+    const reportPath = join(tmpDir, ".team", "features", "test-feature", "REPORT.md");
+    assert.ok(deps._writtenFiles[reportPath], "Should write REPORT.md");
+    assert.ok(output.join("").includes("written to"), "Should print confirmation");
+    assert.ok(!output.join("").includes("## Task Summary"), "Should not print report to stdout");
+  });
+
+  // ── 10. --output with unsupported format ────────────────────
+
+  it("exits 1 when --output value is not md", () => {
+    const deps = makeDeps(true, makeState());
+    try { cmdReport(["my-feature", "--output", "txt"], deps); } catch {}
+    assert.equal(exitCode, 1);
+    assert.ok(deps._stderrOutput.join("").includes("unsupported output format"), `Expected unsupported format error: ${deps._stderrOutput.join("")}`);
+  });
+
+  // ── 11. --output without value ──────────────────────────────
+
+  it("exits 1 when --output has no value", () => {
+    const deps = makeDeps(true, makeState());
+    try { cmdReport(["my-feature", "--output"], deps); } catch {}
+    assert.equal(exitCode, 1);
+    assert.ok(deps._stderrOutput.join("").includes("unsupported output format"), `Expected unsupported format error: ${deps._stderrOutput.join("")}`);
+  });
+
+  // ── 12. Path traversal rejected ─────────────────────────────
+
+  it("exits 1 when feature name contains path traversal", () => {
+    const deps = makeDeps(true, makeState());
+    try { cmdReport(["../../etc"], deps); } catch {}
+    assert.equal(exitCode, 1);
+    assert.ok(deps._stderrOutput.join("").includes("invalid feature name"), `Expected invalid feature name: ${deps._stderrOutput.join("")}`);
   });
 });
