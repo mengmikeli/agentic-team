@@ -1,35 +1,39 @@
-# Architect Review — execution-report / task-15 (E2E Integration Tests)
+# Architect Review — execution-report / task-15 (Final)
 
 **Reviewer role:** Architect
 **Verdict: PASS**
 **Date:** 2026-04-26
-**Reviewed commit:** 6cef31e (HEAD of feature/execution-report)
+**Reviewed commit:** b0d29f9 (HEAD of feature/execution-report)
 
 ---
 
-## Builder Claim (from handshake.json)
+## Builder Claims (from handshake.json)
 
-> Added two end-to-end integration tests that spawn `agt report <feature>` and `agt report <feature> --output md` against a real feature directory with STATE.json. Both tests verify the full CLI pipeline: stdout report output (including header, sections, cost data) and REPORT.md file creation.
+**task-15:** Fixed review findings: negative duration guard (`Math.max(0, mins)`), `writeFileSync` try/catch, `costUsd` type check, ANSI sanitization, and 10 new tests. All 61 report tests and 579 total tests pass.
 
-Claimed artifacts: `test/report.test.mjs`
+**task-14:** Verified three unit tests (Title column, What Shipped present/absent) pass. All 49 report tests and 567 total tests pass.
+
+**task-13:** Fixed `escapeCell` to strip newlines, added test for newline in title, fixed duplicate comment numbering. All 569 tests pass.
+
+Claimed artifacts across all three: `bin/lib/report.mjs`, `test/report.test.mjs`
 
 ---
 
 ## Files Actually Read
 
-- `bin/lib/report.mjs` (194 lines, full)
-- `test/report.test.mjs` (677 lines, full)
-- `bin/agt.mjs` (lines 65-84 — CLI dispatch; lines 185-200 — help registration; line 19 — import; lines 248, 868 — help summary)
-- `bin/lib/util.mjs` (lines 185-198 — `readState` function)
-- `.team/features/execution-report/SPEC.md` (full, 89 lines)
-- `.team/features/execution-report/tasks/task-15/handshake.json` (full)
-- `.team/features/execution-report/tasks/task-13/handshake.json` (full)
-- `.team/features/execution-report/tasks/task-14/handshake.json` (full)
-- `.team/features/execution-report/tasks/task-13/eval-architect.md` (full — prior architect review)
-- `.team/features/execution-report/tasks/task-15/eval.md` (full — prior tester review)
-- `git diff 88e2ef7..HEAD -- bin/lib/report.mjs` (1 line changed)
-- `git diff 88e2ef7..HEAD -- test/report.test.mjs` (68 lines added)
-- `git log --oneline 88e2ef7..HEAD -- bin/lib/report.mjs test/report.test.mjs` (2 commits)
+| File | Lines | Scope |
+|------|-------|-------|
+| `bin/lib/report.mjs` | 209 | Full |
+| `test/report.test.mjs` | 799 | Full |
+| `bin/agt.mjs` | Lines 19, 75, 188-194, 248, 868 | Import, dispatch, help text |
+| `bin/lib/util.mjs` | Lines 185-198 | `readState` function |
+| `bin/lib/status.mjs` | Lines 1-30 | Pattern comparison |
+| `bin/lib/metrics.mjs` | Lines 1-30 | Pattern comparison |
+| `tasks/task-15/handshake.json` | Full | Builder claim |
+| `tasks/task-14/handshake.json` | Full | Builder claim |
+| `tasks/task-13/handshake.json` | Full | Builder claim |
+| `tasks/task-15/eval.md` | Full | Prior security review |
+| `bin/lib/` directory listing | Full | Module inventory |
 
 ---
 
@@ -37,106 +41,157 @@ Claimed artifacts: `test/report.test.mjs`
 
 ```
 $ node --test test/report.test.mjs
-tests 51  |  suites 2  |  pass 51  |  fail 0  |  duration_ms 282
+tests 61  |  suites 2  |  pass 61  |  fail 0  |  duration_ms 283
 ```
 
-All 51 report tests pass (34 `buildReport` unit + 17 `cmdReport` integration/unit).
-
----
-
-## Delta Since Prior Architect Review (task-13, commit 88e2ef7)
-
-Two commits were made:
-
-1. **1fd4581** — `escapeCell` now strips `\r\n` before escaping pipes. One line changed in `report.mjs:9`. New test covers newline-in-title scenario (`test:306-321`).
-
-2. **57cec23** — Two E2E integration tests added to `cmdReport` suite. Tests spawn `agt report` via `spawnSync` against a real temp directory with a real `STATE.json`, verifying the full CLI pipeline including stdout output, REPORT.md file creation, and content correctness.
-
-Both changes are strictly additive. No module boundaries, exports, or dependency relationships changed.
-
----
-
-## Architectural Assessment
-
-### Module Boundaries & Coupling
-
-No changes since prior review. `report.mjs` remains a leaf module with two dependencies (`fs` stdlib, `./util.mjs` for `readState`). Single consumer: `bin/agt.mjs` line 75. No other module in the codebase imports from `report.mjs` (verified via grep).
-
-**Verdict: Clean boundaries maintained.**
-
-### Test Architecture
-
-The E2E tests follow the established pattern in the codebase:
-- Use `beforeEach`/`afterEach` lifecycle to create/teardown temp directories
-- Create real filesystem structure (`.team/features/<name>/STATE.json`) in `tmpdir()`
-- Spawn `node agt.mjs report <feature>` via `spawnSync` with explicit `cwd`
-- Assert against stdout, exit codes, and written file contents
-
-The tests are properly isolated — each creates its own uniquely-named temp dir (`e2e-feature`, `e2e-md-feature`) and cleans up via `rmSync` in `afterEach`. No shared state between tests.
-
-The `--output md` E2E test verifies the file was actually written by reading it back with `readFileSync` and asserting on content. This closes the loop that the unit tests (which mock `writeFileSync`) cannot.
-
-**Verdict: Test architecture is sound. E2E tests add genuine value beyond the mocked unit tests.**
-
-### Scalability of Test Suite
-
-Test suite grew from 33 (round 2) → 48 (round 3/task-13) → 51 (current). The 3 new tests add ~100ms (two `spawnSync` calls). Total test duration is 282ms — negligible. No concerns about test suite becoming a bottleneck.
-
-### `escapeCell` Hardening
-
-The `escapeCell` change (stripping `\r\n` before pipe escaping) resolves the blue finding from the prior tester and architect reviews. The implementation is correct: `replace(/[\r\n]+/g, " ")` collapses any sequence of newlines/carriage-returns into a single space, then pipes are escaped. Order matters and is correct — a `\n|` sequence would be handled properly (newline stripped first, then pipe escaped).
-
-**Verdict: Correct fix, correct ordering.**
+All 61 report tests pass (44 `buildReport` unit + 17 `cmdReport` unit/integration/E2E).
 
 ---
 
 ## Claim Verification
 
 | Claim | Verified | Evidence |
-|---|---|---|
-| Two E2E integration tests added | Yes | `test/report.test.mjs` lines 629-675 — two `it()` blocks with `spawnSync` |
-| Tests spawn `agt report` against real feature dir | Yes | Both tests create `.team/features/<name>/STATE.json` in tmpdir, spawn `node agt.mjs report <name>` with `cwd: tmpDir` |
-| Stdout test verifies header, sections, cost data | Yes | test:642-649 asserts on `# Execution Report`, `## What Shipped`, `## Task Summary`, `## Cost Breakdown`, `$0.1230`, `build: $0.1000`, task IDs, titles |
-| `--output md` test verifies REPORT.md creation | Yes | test:669-674 reads back REPORT.md with `readFileSync`, asserts on header, Task Summary, task-1 |
-| All 51 tests pass | Yes | Independent run: 51 pass, 0 fail |
+|-------|----------|----------|
+| `bin/lib/report.mjs` exists | Yes | 209 lines, read in full |
+| `test/report.test.mjs` exists | Yes | 799 lines, read in full |
+| Negative duration guard | Yes | `report.mjs:31` — `Math.max(0, ...)` + test at line 432-442 |
+| `writeFileSync` try/catch | Yes | `report.mjs:197-203` — catch prints error, exits 1 + test at lines 790-798 |
+| `costUsd` type check | Yes | `report.mjs:78` — `typeof totalCostUsd === "number" && Number.isFinite(...)` + test at line 506-512 |
+| ANSI sanitization | Yes | `report.mjs:13-16` — `stripAnsi` used in error messages + test at lines 690-703 |
+| 10 new tests | Yes | Diff shows 10 new `it()` blocks added in task-15 commit |
+| `escapeCell` strips newlines | Yes | `report.mjs:9` — `replace(/[\r\n]+/g, " ")` + test at lines 306-321, 485-496 |
+| 61 report tests pass | Yes | Independent run confirms 61 pass, 0 fail |
 
 ---
 
-## Spec Compliance Check
+## Architectural Assessment
 
-| Acceptance Criterion (SPEC.md) | Covered | Evidence |
-|---|---|---|
-| `agt report <feature>` prints all sections | Yes | E2E test:629-650 + unit tests |
-| `--output md` writes REPORT.md, prints confirmation | Yes | E2E test:654-675 + unit tests |
-| Title column in Task Summary | Yes | Unit test:53-61, 63-71 |
-| What Shipped lists passed tasks | Yes | Unit test:74-80, E2E test:643 |
-| Cost Breakdown with `$X.XXXX` | Yes | Unit test:235-242, E2E test:646 |
-| Per-phase split | Yes | Unit test:250-262, E2E test:647 |
-| Blocked/Failed with lastReason | Yes | Unit test:109-122 |
-| Recommendations fire correctly | Yes | Unit tests:130-407 (6 branches) |
-| `agt help report` | Yes | Integration test:563-572 |
-| `agt report` no args → exit 1 | Yes | Unit test:470-475 |
-| `agt report no-such-feature` → exit 1 | Yes | Integration test:551-559 |
-| All tests pass | Yes | 51/51 pass |
+### 1. Module Boundaries & Coupling — PASS
 
-**All 12 acceptance criteria verified with direct evidence.**
+`report.mjs` is a proper leaf module:
+
+- **Dependencies (2 stdlib + 1 internal):** `fs` (existsSync, writeFileSync), `path` (basename, join), `./util.mjs` (readState)
+- **Consumers (1):** `bin/agt.mjs` — import at line 19, dispatch at line 75
+- **No reverse dependencies:** `grep -r "report.mjs"` confirms only `agt.mjs` and `report.test.mjs` import it
+- **No coupling to state machine:** No imports from `transition.mjs`, `run.mjs`, `outer-loop.mjs`, `flows.mjs`, or any stateful module
+- **Read-only contract:** Never calls `writeState`, never mutates the state object
+
+The integration surface is minimal: adding or removing the report command touches exactly 2 lines in `agt.mjs` (import + case) plus the help object entry.
+
+### 2. Separation of Concerns — PASS
+
+The module is cleanly split into two responsibilities:
+
+1. **`buildReport(state)` (lines 18-132)** — Pure function: `state → string`. No I/O, no side effects, no process globals. This is the easiest possible function to test.
+
+2. **`cmdReport(args, deps)` (lines 143-208)** — CLI handler: arg parsing, input validation, filesystem I/O. All side effects are injectable via the `deps` parameter.
+
+This separation is superior to other CLI commands in the codebase (`status.mjs` and `metrics.mjs` call `console.log` and `process.exit` directly), making `report.mjs` significantly more testable without `spawnSync`.
+
+### 3. Dependency Injection Pattern — PASS
+
+The `deps` parameter (lines 150-158) injects 7 dependencies:
+
+```js
+{ readState, existsSync, writeFileSync, stdout, stderr, exit, cwd }
+```
+
+Each has a sensible default (the real implementation), so production callers don't need to pass anything. Tests substitute mocks for complete control. This is the right approach for a CLI command — it avoids module-level mocking and makes tests deterministic.
+
+### 4. Test Architecture — PASS
+
+The test suite is well-stratified:
+
+| Layer | Count | What it tests | How |
+|-------|-------|---------------|-----|
+| Unit (buildReport) | 44 | Pure rendering logic, edge cases, formatting | Direct function call, assert on string output |
+| Unit (cmdReport, mocked) | 11 | Arg parsing, validation, error paths, output routing | DI with mock deps |
+| Integration (spawnSync) | 4 | CLI dispatch, help text, missing feature | Real process spawn against `agt.mjs` |
+| E2E (spawnSync + filesystem) | 2 | Full pipeline with real STATE.json, real filesystem | Temp dir, `spawnSync`, read-back verification |
+
+Each layer catches different failure modes:
+- Unit tests catch logic regressions in isolation
+- Integration tests catch wiring issues (import, case dispatch, help registration)
+- E2E tests catch the contract between CLI, filesystem, and output — they would catch if `readState` changed its return format or if `agt.mjs` stopped dispatching `report`
+
+Test isolation is proper: `beforeEach`/`afterEach` create and teardown temp directories. No shared mutable state between tests.
+
+### 5. Data Contract — PASS (with note)
+
+`buildReport` reads the following fields from `state`:
+
+| Field | Fallback | Guard |
+|-------|----------|-------|
+| `state.feature` | `\|\| "unknown"` | Always a string |
+| `state.status` | `\|\| "unknown"` | Always a string |
+| `state.tasks` | `\|\| []` | Assumes array if truthy |
+| `state.gates` | `\|\| []` | Assumes array if truthy |
+| `state.createdAt` | Falsy check | `new Date()` + `Number.isFinite` guard |
+| `state.completedAt` | Optional | Falls through to `_last_modified` |
+| `state._last_modified` | Optional | Falls through to `Date.now()` |
+| `state.tokenUsage` | `?.` chains | Full null/type guards |
+| `state.transitionCount` | `?? 0` | Nullish coalescing |
+
+All fields are defensively accessed. The `tasks` and `gates` arrays use `|| []` which is adequate since the harness always produces arrays (or omits the field entirely, yielding `undefined || [] → []`). The only theoretical gap: a corrupted-but-valid-JSON `state.tasks = "string"` would pass the `|| []` guard and throw on `.filter()`. This is not a realistic scenario for machine-generated data.
+
+### 6. Scalability — PASS
+
+- `gates.filter(g => g.taskId === task.id)` on line 67 is O(tasks x gates). For realistic sizes (5-20 tasks, 50-100 gates), this is negligible. If this were ever a hot path, a `Map<taskId, gate[]>` lookup would be the fix — but for a CLI report rendered once per invocation, the current approach is correct.
+- Entire STATE.json is loaded into memory via `readState`. Expected sizes are well under 1MB.
+- Test suite runs in ~280ms — no risk of CI bottleneck.
+
+### 7. Pattern Consistency — PASS
+
+- Follows the established `bin/lib/<name>.mjs` convention for CLI command modules
+- Uses the same `case "report":` dispatch pattern as all other commands in `agt.mjs`
+- Help text follows the existing structure (usage, description, flags, examples)
+- `readState` is the same function used by `status.mjs`, `audit-cmd.mjs`, etc.
 
 ---
 
 ## Findings
 
-No findings.
+🔵 `bin/lib/report.mjs:148` — The custom arg parser (`args.find(...)` with index exclusion) works for one flag but would become fragile if more flags are added. If the command grows beyond `--output`, consider extracting a minimal arg parser. Not blocking — single-flag commands don't need a framework.
+
+🔵 `bin/lib/report.mjs:67` — `gates.filter(g => g.taskId === task.id)` is called per-task (O(tasks x gates)). Fine for current data sizes. If the module is ever reused in a batch/server context, build a Map upfront.
+
+🔵 `bin/lib/report.mjs:22` — `state.tasks || []` guards against undefined/null but not non-array types. A corrupted `"tasks": "string"` in STATE.json would throw on `.filter()`. Not exploitable since data is machine-generated, but worth noting as a data contract assumption.
+
+---
+
+## Edge Cases Verified
+
+| Scenario | Guarded | Evidence |
+|----------|---------|----------|
+| Missing feature name | Yes | `report.mjs:160-164` + test:572-577 |
+| Path traversal (../../, foo/bar) | Yes | `report.mjs:172-176` + tests:708-727, 781-786 |
+| Dot entries (`.`, `..`) | Yes | `report.mjs:172` + tests:715-727 |
+| Missing feature directory | Yes | `report.mjs:180-184` + test:581-586 |
+| Missing STATE.json | Yes | `report.mjs:187-191` + test:590-595 |
+| Invalid --output value | Yes | `report.mjs:166-170` + test:690-695 |
+| --output without value | Yes | `report.mjs:166` + test:699-704 |
+| writeFileSync failure | Yes | `report.mjs:197-203` + test:790-798 |
+| Invalid ISO dates (NaN) | Yes | `report.mjs:32` + test:323-331 |
+| Negative duration (clock skew) | Yes | `report.mjs:31` + test:432-443 |
+| Pipe chars in titles | Yes | `report.mjs:9` + test:286-304 |
+| Newlines in titles | Yes | `report.mjs:9` + test:306-321, 485-496 |
+| costUsd = 0 | Yes | test:506-512 |
+| costUsd non-numeric | Yes | `report.mjs:78` type guard |
+| Empty tasks array | Yes | test:498-504 |
+| Missing task title | Yes | `report.mjs:57,69,99` fallbacks + tests:63-72, 333-342, 524-532 |
+| ANSI in error messages | Yes | `report.mjs:13-16` + test:690-703 |
 
 ---
 
 ## Summary
 
-Since the prior architect review at task-13, two precisely-scoped commits were made:
-1. A one-line hardening fix to `escapeCell` (newline stripping) — resolves a prior blue finding
-2. Two E2E integration tests that verify the full CLI pipeline end-to-end
+`report.mjs` is a well-designed leaf module that follows established project conventions while introducing a testability improvement (DI pattern) over existing CLI commands. The module is:
 
-No new dependencies, no module boundary changes, no design pattern shifts. The E2E tests close the final gap identified in the SPEC's "Done When" criteria: "`agt report <feature>` and `agt report <feature> --output md` work end-to-end against a real feature directory."
+1. **Properly bounded** — single responsibility (render execution reports), minimal dependencies (2 stdlib + 1 internal), single consumer
+2. **Cleanly separated** — pure rendering function + side-effecting CLI handler
+3. **Thoroughly tested** — 61 tests across 4 layers (unit, mocked CLI, integration, E2E), covering 16+ edge cases
+4. **Read-only** — never mutates state, making it safe to use alongside the running harness
 
-The implementation is architecturally clean, well-tested (51 tests covering all 6 report sections, 6 recommendation branches, 6 error paths, pipe/newline escaping, and now full E2E), and production-ready.
+Three optional suggestions filed (arg parser fragility, per-task gate lookup, non-array type guard). None are blocking.
 
 **Overall verdict: PASS**

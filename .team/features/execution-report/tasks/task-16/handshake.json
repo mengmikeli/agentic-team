@@ -1,0 +1,14 @@
+{
+  "taskId": "task-16",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "agt help report already exits 0 with correct output showing usage, --output flag, and example. The existing integration test at test/report.test.mjs line 665-674 covers this exact behavior and passes. No code changes needed.",
+  "timestamp": "2026-04-26T22:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/agt.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
