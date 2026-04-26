@@ -1,13 +1,12 @@
 {
   "taskId": "task-5",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "The cmdCronSetup function was already implemented in bin/lib/cron.mjs, printing a crontab entry that cd's to the project root and invokes `agt cron-tick >> .team/cron.log 2>&1`. Added two new tests to verify the cd-to-project-root behavior and the stdout/stderr redirect to cron.log, bringing the cron-tick test suite to 26 passing tests and the full suite to 555 passing.",
+  "summary": "Fixed two tester 🟡 findings from run_1: (1) added dispatch-ordering assertion to the stale+ready coexistence test — now asserts that recovered stale item #3 is dispatched before item #4 via dispatchedIssueNumber tracking in the setProjectItemStatus mock; (2) added a CLI subprocess integration test for `agt cron-setup` in a new describe block that runs `node agt.mjs cron-setup` and asserts the printed crontab line includes `cd`, `.team/cron.log`, and `2>&1`. All 558 tests pass.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/cron.mjs" },
     { "type": "test", "path": "test/cron-tick.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }

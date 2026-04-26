@@ -400,6 +400,7 @@ describe("cmdCronTick", () => {
     writeProjectMd(teamDir);
     const statusTransitions = [];
     let runCalled = false;
+    let dispatchedIssueNumber = null;
     const lockSpy = makeLockSpy();
 
     const deps = {
@@ -412,6 +413,7 @@ describe("cmdCronTick", () => {
       runSingleFeature: async () => { runCalled = true; },
       setProjectItemStatus: (issueNumber, projectNumber, status) => {
         statusTransitions.push({ issueNumber, projectNumber, status });
+        if (status === "in-progress") dispatchedIssueNumber = issueNumber;
         return true;
       },
       commentIssue: () => false,
@@ -425,6 +427,8 @@ describe("cmdCronTick", () => {
       "Should revert stale in-progress item #3 to 'ready'");
     // Normal processing continues (item #3 or #4 dispatched)
     assert.ok(runCalled, "runSingleFeature should be called");
+    // Recovered stale item #3 appears first in the array and should be dispatched before item #4
+    assert.equal(dispatchedIssueNumber, 3, "Recovered stale item #3 should be dispatched before item #4");
     assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
@@ -739,5 +743,31 @@ describe("cron-tick CLI integration", () => {
 
     assert.equal(exitStatus, 0, "Second concurrent process should exit 0 when lock is held");
     assert.ok(output.includes("already running"), `Expected 'already running' in: ${output}`);
+  });
+});
+
+// ── cron-setup CLI integration tests ─────────────────────────────────────────
+// Validates agt cron-setup CLI wire-up by invoking agt.mjs as a subprocess.
+
+describe("cron-setup CLI integration", () => {
+  it("exits 0 and prints a crontab line with cd, .team/cron.log, and 2>&1", () => {
+    let exitCode = 0;
+    let output = "";
+    try {
+      output = execFileSync("node", [agtPath, "cron-setup"], {
+        encoding: "utf8",
+        timeout: 10000,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (err) {
+      exitCode = err.status ?? 1;
+      output = (err.stdout ?? "") + (err.stderr ?? "");
+    }
+    assert.equal(exitCode, 0, `cron-setup should exit 0, got: ${output}`);
+    const cronLine = output.split("\n").find(l => l.includes("* * * *"));
+    assert.ok(cronLine, `Should print a crontab line (output: ${output})`);
+    assert.ok(cronLine.includes("cd "), `crontab line should include cd: ${cronLine}`);
+    assert.ok(cronLine.includes(".team/cron.log"), `crontab line should include .team/cron.log: ${cronLine}`);
+    assert.ok(cronLine.includes("2>&1"), `crontab line should include 2>&1: ${cronLine}`);
   });
 });
