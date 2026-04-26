@@ -1,42 +1,41 @@
 ## Parallel Review Findings
 
-🔴 [product] `.team/runbooks/` — 3 built-in runbook YAMLs do not exist on HEAD. Commits that added them are orphaned/unreachable. Spec ACs #1–#3 unmet.
-🔴 [product] `bin/lib/run.mjs:800` — `planTasks()` never calls `loadRunbooks`/`matchRunbook`/`resolveRunbookTasks`. Only a `mkdirSync` was added. Spec ACs #6, #9 unmet.
-🔴 [product] `bin/agt.mjs` — No `--runbook <name>` flag exists. Spec ACs #7, #8 unmet.
-🔴 [simplicity veto] `bin/lib/runbooks.mjs:138` — `_file: file` stored on every runbook object but never read by any consumer, not in SPEC, no test asserts it. Gold-plating. **Fix:** delete the line.
-[simplicity veto] The implementation is well-scoped overall — 211 lines, 4 focused exports, justified custom YAML parser. The 🔴 is a one-line fix (`_file` removal). After that, this is clean to merge.
-🟡 [architect] `task-1/artifacts/test-output.txt:3` — Stale artifact references test files that no longer exist (`test/runbook-add-cli-command.test.mjs`, `test/active-task-utils.test.mjs`); regenerate from current `npm test`
-🟡 [architect] `bin/lib/runbooks.mjs:12` — Custom YAML parser (66 lines) handles only flat schema; no inline comments, multi-line strings, or flow syntax support; document subset or plan `js-yaml` migration before schema evolves
-🟡 [architect] `bin/lib/runbooks.mjs:197` — `resolveRunbookTasks` silently drops missing `include` refs with no warning, unlike `loadRunbooks` which `console.warn`s; make error reporting consistent
-🟡 [engineer] `bin/lib/runbooks.mjs:118` — `loadRunbooks` validates `patterns` as non-empty array but doesn't validate individual pattern objects for `type`/`value` fields; a malformed pattern silently scores 0 with no warning. Add per-pattern validation in the load loop.
-🟡 [engineer] `bin/lib/runbooks.mjs:126` — Tasks validated only as non-empty array. A task with neither `title` nor `include` produces `{ title: undefined }` in `resolveRunbookTasks`. Add per-task schema check.
-🟡 [engineer] `bin/lib/runbooks.mjs:22` — YAML parser doesn't strip inline comments. `value: foo # comment` parses as `"foo # comment"`. Will bite runbook authors adding comments to regex patterns.
-🟡 [engineer] `bin/lib/runbooks.mjs:156` — `new RegExp(p.value, "i")` compiled on every `scoreRunbook` call. Minor perf concern at scale.
-🟡 [product] `SPEC.md:40-46` — Schema divergence: spec says `pattern`/`keywords`/`threshold`, implementation uses `patterns[]`/`minScore`. Spec never updated.
-🟡 [product] `SPEC.md:22` — `matchRunbook` API takes `(description, runbooks)` not `(description, runbooksDir)` as spec states.
-🟡 [product] `SPEC.md:23` — "Regex narrows candidate set" is misleading; scores are accumulated additively.
-🟡 [product] `SPEC.md:29` — AC #11 claims `--runbook` override test coverage, but those features don't exist.
-🟡 [tester] `bin/lib/runbooks.mjs:161` — `scoreRunbook` crashes on null/undefined description; `description.toLowerCase()` throws TypeError. Confirmed via `node -e`. Add a guard before the module is consumed by `planTasks()`.
-🟡 [tester] `test/runbooks.test.mjs:82` — Only 1 of 5 `loadRunbooks` validation skip branches is tested (missing `id`). Lines 113-129 have 4 untested code paths (missing `name`, `patterns`, `minScore`, `tasks`). All 4 work correctly (confirmed manually), but no regression protection exists.
-🟡 [tester] `test/runbooks.test.mjs:1-298` — No test for the try/catch at `bin/lib/runbooks.mjs:140` (file-read error path). No regression protection for graceful error handling.
-🟡 [security] bin/lib/runbooks.mjs:156 — `new RegExp(p.value, "i").test(description)` compiles regex from YAML without a time/complexity bound; a catastrophically backtracking pattern (e.g., `(a+)+$`) hangs the process. The `try/catch` only catches `SyntaxError`, not ReDoS. Backlog: add a regex execution timeout or compile-time complexity check before use in CI/automation contexts.
-🟡 [simplicity] `test/runbook-dir.test.mjs:34-41` — Tests source-code ordering via `src.indexOf()`, not runtime behavior. Fragile.
-🟡 [simplicity] `bin/lib/runbooks.mjs` — Zero production consumers (only test imports it). Phased delivery by design, but creates orphan risk.
-🟡 [simplicity] Prior eval references `test/runbook-add-cli-command.test.mjs` and `.team/runbooks/add-cli-command.yml` — neither file exists in the current codebase.
-🔵 [architect] `bin/lib/runbooks.mjs:84` — `castValue` number regex skips scientific notation; fine for runbook schema
-🔵 [architect] `bin/lib/runbooks.mjs:156` — Regex compiled on every `scoreRunbook` call; cache if scoring becomes hot path
-🔵 [engineer] `bin/lib/runbooks.mjs:182` — Tie-breaking uses `rb.id` not filename per SPEC. No practical impact; update SPEC.
-🔵 [engineer] `bin/lib/runbooks.mjs` — Schema (`patterns` + `minScore`) deviates from SPEC's documented schema (`pattern` + `keywords` + `threshold`). Implementation is better; SPEC needs updating.
-🔵 [engineer] `test/runbooks.test.mjs` — No explicit test for unknown pattern type. Behavior is correct (scores 0) but undocumented.
-🔵 [product] `bin/lib/runbooks.mjs:156` — ReDoS risk from user-authored regex (low priority, trusted authors).
-🔵 [product] `progress.md:155` — 1/26 tasks completed; $23.85 burned. ENOBUFS infrastructure failure blocked remaining work.
-🔵 [tester] `bin/lib/runbooks.mjs:138` — `_file` property captured but never asserted in tests.
-🔵 [tester] `test/runbooks.test.mjs:123-178` — No test for unknown pattern type or empty description edge cases.
-🔵 [tester] `bin/lib/runbooks.mjs:156` — No ReDoS protection on regex patterns. Acceptable for v1 (project-authored runbooks, not user input).
-🔵 [security] bin/lib/runbooks.mjs:106 — `readFileSync` has no file size guard; a very large YAML file could cause memory pressure. Low risk for local CLI.
-🔵 [security] bin/lib/runbooks.mjs:24 — Custom YAML parser accepts `__proto__` as a key name. Not exploitable (doesn't pollute `Object.prototype`, downstream validation rejects malformed runbooks), but worth noting if parser is reused.
-🔵 [simplicity] `castValue()` boolean/null paths have no test coverage through the YAML parser.
-🔵 [simplicity] `flow` field loaded but has no downstream consumer yet (expected per SPEC phasing).
+[simplicity veto] **0 critical (🔴) | 4 warnings (🟡) | 2 suggestions (🔵)**
+🟡 [architect] bin/lib/runbooks.mjs:155 — ReDoS confirmed: `(a+)+$` pattern takes **4886ms** on 26 chars. Add `safe-regex` validation or execution timeout before CI/automation use.
+🟡 [architect] bin/lib/runbooks.mjs:118–129 — No per-element validation in `loadRunbooks`. Pattern `{ weight: 5 }` (no type/value) silently scores 0; task with no title/include produces `{ title: undefined }`. Add per-item schema checks.
+🟡 [architect] bin/lib/runbooks.mjs:12–78 — Custom YAML parser doesn't strip inline `#` comments (differs from YAML spec). Will corrupt regex patterns if authors add inline comments.
+🟡 [engineer] `bin/lib/runbooks.mjs:155` — ReDoS risk: user-authored regex compiled without timeout guard; catastrophic backtracking pattern in YAML could hang the process
+🟡 [engineer] `bin/lib/runbooks.mjs:118` — Per-pattern validation gap: `loadRunbooks` checks patterns array is non-empty but doesn't validate each pattern has `type` and `value` fields
+🟡 [engineer] `bin/lib/runbooks.mjs:21` — Custom YAML parser doesn't strip inline comments; `value: foo # comment` parses as `"foo # comment"`
+🟡 [product] `test/runbooks.test.mjs` — AC 11 requires tests for `--runbook` override and unknown runbook fallthrough. These code paths in `planTasks()` (run.mjs:426-434) have zero test coverage. Code is correct by inspection but the spec explicitly demands these tests.
+🟡 [product] `SPEC.md:37-53` vs `bin/lib/runbooks.mjs:95-144` — Schema drift: spec says `pattern`/`keywords`/`threshold`, implementation uses `patterns` (typed array)/`minScore`/`{title, hint}` tasks. Better design but never ratified against spec.
+🟡 [product] `SPEC.md:59` vs `bin/lib/runbooks.mjs:176` — Spec says `matchRunbook(description, runbooksDir)`, implementation takes `matchRunbook(description, runbooks[])`. Cleaner separation of concerns but spec is now stale.
+🟡 [tester] `bin/lib/runbooks.mjs:161` — `scoreRunbook` crashes on null/undefined description (TypeError confirmed via `node -e`)
+🟡 [tester] `bin/lib/runbooks.mjs:155` — ReDoS confirmed: pathological regex took **2460ms** to evaluate
+🟡 [tester] `test/runbooks.test.mjs` — No integration test for `planTasks()` → runbook code path (highest-risk untested seam)
+🟡 [tester] `test/runbooks.test.mjs:82` — Only 1 of 5 `loadRunbooks` validation branches has automated coverage
+🟡 [tester] `test/runbooks.test.mjs` — No test for `--runbook nonexistent` fallthrough (spec AC #8)
+🟡 [security] `bin/lib/runbooks.mjs:155` — ReDoS via YAML-defined regex patterns; `new RegExp(p.value, "i")` has no complexity/timeout bound. Low risk: runbooks are repo-authored, not user-input. Backlog before CI/untrusted usage.
+🟡 [security] `bin/lib/runbooks.mjs:161` — `scoreRunbook` crashes on null/undefined description (`description.toLowerCase()` TypeError). Now reachable from `planTasks()` — add defensive guard.
+🟡 [security] `bin/lib/runbooks.mjs:118-129` — No per-pattern or per-task field validation at load time. Missing `type`/`value` silently scores 0; missing `title`/`include` produces `{title: undefined}`.
+🟡 [simplicity] `bin/lib/runbooks.mjs:137` — `flow` field loaded but never consumed downstream; dies as local variable in `planTasks`
+🟡 [simplicity] `bin/lib/run.mjs:447` — `hint` propagated through 3 functions to a dead end; `buildTaskBrief` ignores it
+🟡 [simplicity] `bin/lib/runbooks.mjs:195-205` — `include` resolution has 0 current users among built-in runbooks
+🟡 [simplicity] `bin/lib/runbooks.mjs:12-77` — Custom YAML parser (66 lines) is the largest complexity center; well-documented but will become a bottleneck if schema grows
+🔵 [architect] bin/lib/runbooks.mjs:84 — `castValue` doesn't handle scientific notation. Acceptable for current schema.
+🔵 [architect] bin/lib/run.mjs:420 — `process.cwd()` default for `runbooksDir`. Mitigated by `opts.runbooksDir`.
+🔵 [architect] SPEC.md — Schema diverged from spec. Implementation is better. Update spec.
+🔵 [engineer] `bin/lib/runbooks.mjs:160` — Keyword matching doesn't enforce word boundaries; `"test"` matches in `"testing"`
+🔵 [engineer] `bin/lib/runbooks.mjs:25` — `parseYaml` silently skips unparseable lines (downstream validation catches missing fields)
+🔵 [engineer] `tasks/task-1/handshake.json:7` — Summary claims 603 tests but artifact shows 546
+🔵 [product] `SPEC.md:23` — AC 5 text ("narrows candidate set") conflicts with Technical Approach (additive scoring). AC should be revised.
+🔵 [product] `.team/features/runbook-system/STATE.json` — 16/18 tasks blocked despite working code. Execution machinery issues (buffer overflow, approval-gate) polluted the state, not the runbook implementation.
+🔵 [tester] `test/runbooks.test.mjs` — No tests for unknown pattern type, empty description, or file-read error path
+🔵 [security] `bin/lib/runbooks.mjs:24` — `__proto__` allowed as YAML key by parser regex. Not exploitable (no global prototype pollution), but a defense-in-depth blocklist would be prudent.
+🔵 [security] `bin/lib/runbooks.mjs:106` — No file size guard on `readFileSync`. Low risk for CLI tool.
+🔵 [security] `bin/lib/runbooks.mjs:22` — Inline YAML comments not stripped; corrupts regex patterns. Usability issue, not security.
+🔵 [simplicity] `bin/lib/run.mjs:420` — `process.cwd()` default inconsistent with `mainCwd` used elsewhere
+🔵 [simplicity] `bin/lib/runbooks.mjs:181` — Tie-break by `id` vs SPEC's "filename" — equivalent in practice but imprecise
 
 ## Compound Gate
 

@@ -5,6 +5,7 @@ import type { Feature, Issue, BacklogItem } from '../types';
 export function useFeatures(projectPath: string | null) {
   const [features, setFeatures] = useState<Feature[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [repoUrl, setRepoUrl] = useState<string | null>(null);
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sseConnected, setSseConnected] = useState(false);
@@ -27,7 +28,8 @@ export function useFeatures(projectPath: string | null) {
         ]);
         
         setFeatures(featuresData);
-        setIssues(issuesData);
+        setIssues(issuesData.issues);
+        setRepoUrl(issuesData.repoUrl);
         setBacklogItems(backlogData);
       } catch (error) {
         console.error('Failed to load project data:', error);
@@ -84,5 +86,5 @@ export function useFeatures(projectPath: string | null) {
     };
   }, [projectPath]);
 
-  return { features, issues, backlogItems, loading, sseConnected };
+  return { features, issues, backlogItems, repoUrl, loading, sseConnected };
 }

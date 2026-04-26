@@ -55,7 +55,7 @@ function App() {
   const [tokenDays, setTokenDays] = useState(7);
 
   const { projects, loading: projectsLoading } = useProjects();
-  const { features, issues, backlogItems, loading: _featuresLoading, sseConnected } = useFeatures(
+  const { features, issues, backlogItems, repoUrl, loading: _featuresLoading, sseConnected } = useFeatures(
     currentProject?.path || null
   );
   const { tokenData, loading: tokensLoading } = useTokens(tokenDays);
@@ -163,7 +163,7 @@ function App() {
             </ErrorBoundary>
             
             <ErrorBoundary fallback="Backlog">
-              <Backlog backlogItems={backlogItems} issues={issues} />
+              <Backlog backlogItems={backlogItems} issues={issues} repoUrl={repoUrl} />
             </ErrorBoundary>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

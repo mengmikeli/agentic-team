@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import type { Project } from '@/types';
 import { cn } from '@/lib/utils';
-import { Sun, Moon, Zap, ExternalLink } from 'lucide-react';
+import { Sun, Moon, Zap } from 'lucide-react';
 
 interface NavigationProps {
   projects: Project[];
@@ -113,14 +113,7 @@ export function Navigation({
             </button>
 
             <a
-              href="https://github.com/mengmikeli/agentic-team/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-1.5 rounded-sm hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              aria-label="GitHub Issues"
-              title="GitHub Issues"
             >
-              <ExternalLink className="size-3.5" />
             </a>
           </div>
         </div>

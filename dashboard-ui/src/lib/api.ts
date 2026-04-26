@@ -33,10 +33,12 @@ export const api = {
     return data?.sprints || [];
   },
 
-  async getIssues(projectPath: string): Promise<Issue[]> {
+  async getIssues(projectPath: string): Promise<{ issues: Issue[]; repoUrl: string | null }> {
     const path = encodeURIComponent(projectPath);
-    const data = await apiFetch<Issue[]>(`/api/issues?path=${path}`);
-    return data || [];
+    const data = await apiFetch<{ issues: Issue[]; repoUrl: string | null }>(`/api/issues?path=${path}`);
+    // Handle old format (plain array) and new format (object with repoUrl)
+    if (Array.isArray(data)) return { issues: data, repoUrl: null };
+    return data || { issues: [], repoUrl: null };
   },
 
   async getBacklog(projectPath: string): Promise<BacklogItem[]> {

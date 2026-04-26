@@ -708,9 +708,15 @@ switch (command) {
             const cwd = expandTilde(url.searchParams.get("path") || process.cwd());
             try {
               const r = spawnSync("gh", ["issue", "list", "--state", "open", "--json", "number,title,labels,state", "--limit", "50"], { encoding: "utf8", timeout: 10000, cwd });
-              if (r.status === 0 && r.stdout) return jsonRes(res, JSON.parse(r.stdout));
+              // Get repo URL
+              let repoUrl = null;
+              try {
+                const rr = spawnSync("gh", ["repo", "view", "--json", "url", "-q", ".url"], { encoding: "utf8", timeout: 5000, cwd });
+                if (rr.status === 0 && rr.stdout) repoUrl = rr.stdout.trim();
+              } catch {}
+              if (r.status === 0 && r.stdout) return jsonRes(res, { issues: JSON.parse(r.stdout), repoUrl });
             } catch {}
-            return jsonRes(res, []);
+            return jsonRes(res, { issues: [], repoUrl: null });
           }
           if (pathname === "/api/backlog") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());

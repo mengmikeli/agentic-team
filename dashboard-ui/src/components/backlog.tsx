@@ -1,21 +1,37 @@
 import type { BacklogItem, Issue } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ExternalLink } from 'lucide-react';
 
 interface BacklogProps {
   backlogItems: BacklogItem[];
   issues: Issue[];
+  repoUrl?: string | null;
 }
 
-export function Backlog({ backlogItems, issues }: BacklogProps) {
+export function Backlog({ backlogItems, issues, repoUrl }: BacklogProps) {
   if (!backlogItems.length && !issues.length) {
     return null;
   }
 
+  const issuesUrl = repoUrl ? `${repoUrl}/issues` : null;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Backlog</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Backlog</CardTitle>
+          {issuesUrl && (
+            <a
+              href={issuesUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              GitHub Issues <ExternalLink className="size-3" />
+            </a>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -40,17 +56,23 @@ export function Backlog({ backlogItems, issues }: BacklogProps) {
           ))}
           
           {issues.map((issue) => (
-            <div
+            <a
               key={`issue-${issue.number}`}
-              className="p-3 rounded-lg border border-border bg-muted/20 space-y-2"
+              href={issuesUrl ? `${issuesUrl}/${issue.number}` : '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-3 rounded-lg border border-border bg-muted/20 space-y-2 hover:border-primary/40 hover:bg-muted/40 transition-colors block"
             >
-              <Badge variant="outline" className="text-xs">
-                issue #{issue.number}
-              </Badge>
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className="text-xs">
+                  #{issue.number}
+                </Badge>
+                <ExternalLink className="size-3 text-muted-foreground" />
+              </div>
               <div className="font-medium text-sm text-foreground">
                 {issue.title}
               </div>
-            </div>
+            </a>
           ))}
         </div>
       </CardContent>

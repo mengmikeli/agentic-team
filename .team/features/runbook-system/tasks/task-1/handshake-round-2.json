@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (1 critical, 13 warning, 11 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T14:42:41.548Z",
+  "summary": "Parallel review: FAIL (1 critical, 21 warning, 14 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T16:28:30.388Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -14,8 +14,8 @@
   ],
   "findings": {
     "critical": 1,
-    "warning": 13,
-    "suggestion": 11
+    "warning": 21,
+    "suggestion": 14
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,59 +25,91 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-cli-command.test.mjs`:27 — `flow:` field validated for presence only via `/^flow:/m`; `flow: bogus` passes all 5 schema assertions — add an allowlist check against known flow keys (`light-review`, `build-verify`, `full-stack`) before the matching engine is implemented"
+      "text": "🟡 bin/lib/runbooks.mjs:155 — ReDoS confirmed: `(a+)+$` pattern takes **4886ms** on 26 chars. Add `safe-regex` validation or execution timeout before CI/automation use."
     },
     {
       "severity": "warning",
-      "text": "The one 🟡 item (flow-value not allowlist-checked in tests) is a low-effort pre-engine backlog task; it does not block merge."
+      "text": "🟡 bin/lib/runbooks.mjs:118–129 — No per-element validation in `loadRunbooks`. Pattern `{ weight: 5 }` (no type/value) silently scores 0; task with no title/include produces `{ title: undefined }`. Add per-item schema checks."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-cli-command.test.mjs:20` — Schema validated by raw-string regex, not YAML parsing. A structurally broken YAML passes all 5 assertions as long as field names appear in the text. Backlog: add a YAML parse step before field assertions."
+      "text": "🟡 bin/lib/runbooks.mjs:12–78 — Custom YAML parser doesn't strip inline `#` comments (differs from YAML spec). Will corrupt regex patterns if authors add inline comments."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-dir.test.mjs:34` — Asserts `runbooks` `mkdirSync` appears after `features` `mkdirSync` by string index in source text (`src.indexOf(...)`). Tests source layout, not runtime behavior. Any valid refactor of `init.mjs` breaks this test without breaking functionality. Backlog: replace with behavioral filesystem assertion."
+      "text": "🟡 `bin/lib/runbooks.mjs:155` — ReDoS risk: user-authored regex compiled without timeout guard; catastrophic backtracking pattern in YAML could hang the process"
     },
     {
       "severity": "warning",
-      "text": "**Summary:** The primary deliverable is correct. The runbook YAML is clean (no speculative fields), `flow: build-verify` maps to a live constant in `flows.mjs:31`, both `mkdirSync` scaffolding calls are idempotent (`{ recursive: true }`), and all 4 tasks have substantive hints. The two 🟡 findings are test fragility issues — not functional defects. Neither blocks merge but both should be backlogged before the runbook engine is built."
+      "text": "🟡 `bin/lib/runbooks.mjs:118` — Per-pattern validation gap: `loadRunbooks` checks patterns array is non-empty but doesn't validate each pattern has `type` and `value` fields"
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/features/runbook-system/tasks/task-1/` — No `artifacts/test-output.txt` captured. Handshake lists 3 artifacts but no test evidence is saved. Future audits can't verify without re-running. Backlog: save test output as part of builder handshake."
+      "text": "🟡 `bin/lib/runbooks.mjs:21` — Custom YAML parser doesn't strip inline comments; `value: foo # comment` parses as `\"foo # comment\"`"
     },
     {
       "severity": "warning",
-      "text": "🟡 Gate output (provided) — Truncated; ends before `runbook-add-cli-command.test.mjs` results appear. Cannot confirm pass/fail from gate capture alone. Investigate gate output truncation."
+      "text": "🟡 `test/runbooks.test.mjs` — AC 11 requires tests for `--runbook` override and unknown runbook fallthrough. These code paths in `planTasks()` (run.mjs:426-434) have zero test coverage. Code is correct by inspection but the spec explicitly demands these tests."
     },
     {
       "severity": "warning",
-      "text": "**Requirement met:** File exists, valid schema, exactly 4 tasks with `title` + `hint`. The prior Simplicity FAIL (gold-plated fields) was resolved in run_2 before this review. No blocking findings. The two 🟡 warnings are process gaps for backlog."
+      "text": "🟡 `SPEC.md:37-53` vs `bin/lib/runbooks.mjs:95-144` — Schema drift: spec says `pattern`/`keywords`/`threshold`, implementation uses `patterns` (typed array)/`minScore`/`{title, hint}` tasks. Better design but never ratified against spec."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-cli-command.test.mjs:20` — schema validated via raw regex, not YAML parsing; a structurally broken YAML file (bad indentation, duplicate keys) still passes all 5 assertions; add a `YAML.parse()` roundtrip before field checks"
+      "text": "🟡 `SPEC.md:59` vs `bin/lib/runbooks.mjs:176` — Spec says `matchRunbook(description, runbooksDir)`, implementation takes `matchRunbook(description, runbooks[])`. Cleaner separation of concerns but spec is now stale."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-dir.test.mjs:26` — tests `init.mjs` source code text, not runtime behavior; a valid refactor extracting `mkdirSync` to a helper breaks the test without breaking functionality; replace with an integration assertion on the resulting filesystem state"
+      "text": "🟡 `bin/lib/runbooks.mjs:161` — `scoreRunbook` crashes on null/undefined description (TypeError confirmed via `node -e`)"
     },
     {
       "severity": "warning",
-      "text": "- The two 🟡 findings are test quality problems, not functional defects. Both become meaningful when the runbook engine is built and these tests become the regression guard. They should be backlogged now rather than discovered then."
+      "text": "🟡 `bin/lib/runbooks.mjs:155` — ReDoS confirmed: pathological regex took **2460ms** to evaluate"
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/runbooks/add-cli-command.yml:3-13` — `patterns` + `minScore` define a scoring/matching system with zero consumers; no code reads any runbook YAML file (confirmed by exhaustive grep — only `mkdirSync` references exist). Aspirational schema for a matcher not yet built. Does not hit the gold-plating veto threshold because \"valid schema\" was the stated task requirement, but defer adding these fields to further runbook files until the matcher is implemented."
+      "text": "🟡 `test/runbooks.test.mjs` — No integration test for `planTasks()` → runbook code path (highest-risk untested seam)"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-dir.test.mjs:34-41` — Asserts source-code ordering of two `mkdirSync` calls by text index in `init.mjs`. Tests layout, not behavior. A valid refactor of `init.mjs` (extracting dirs to an array, reordering) silently breaks this test without breaking runtime behavior. Replace with a filesystem assertion after running `agt init`."
+      "text": "🟡 `test/runbooks.test.mjs:82` — Only 1 of 5 `loadRunbooks` validation branches has automated coverage"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs` — No test for `--runbook nonexistent` fallthrough (spec AC #8)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:155` — ReDoS via YAML-defined regex patterns; `new RegExp(p.value, \"i\")` has no complexity/timeout bound. Low risk: runbooks are repo-authored, not user-input. Backlog before CI/untrusted usage."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:161` — `scoreRunbook` crashes on null/undefined description (`description.toLowerCase()` TypeError). Now reachable from `planTasks()` — add defensive guard."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:118-129` — No per-pattern or per-task field validation at load time. Missing `type`/`value` silently scores 0; missing `title`/`include` produces `{title: undefined}`."
     },
     {
       "severity": "critical",
-      "text": "No 🔴 vetoes. The prior Simplicity FAIL (four speculative tracking fields: `tier`, `createdAt`, `usageCount`, `lastUsedAt`) was cleanly resolved by run_2. What remains is a minimal, focused change: one YAML data file, two test files, two `mkdirSync` one-liners. The two warnings should go to the backlog before the runbook engine is built."
+      "text": "**0 critical (🔴) | 4 warnings (🟡) | 2 suggestions (🔵)**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:137` — `flow` field loaded but never consumed downstream; dies as local variable in `planTasks`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:447` — `hint` propagated through 3 functions to a dead end; `buildTaskBrief` ignores it"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:195-205` — `include` resolution has 0 current users among built-in runbooks"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:12-77` — Custom YAML parser (66 lines) is the largest complexity center; well-documented but will become a bottleneck if schema grows"
     }
   ]
 }
