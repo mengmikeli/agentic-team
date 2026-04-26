@@ -1,33 +1,29 @@
-# Product Manager Review — execution-report / Title Column (Final)
+# Tester Review — execution-report / task-13
 
-**Reviewer role:** Product Manager
+**Reviewer role:** Test Strategist
 **Verdict: PASS**
 **Date:** 2026-04-26
-**Reviewed commit:** 0f6ed9f (HEAD of feature/execution-report)
 
 ---
 
-## Acceptance Criterion Under Review
+## What the Builder Claimed
 
-> Task Summary table includes a Title column populated from `task.title` (or `—` when absent).
+From `handshake.json`:
+- `buildReport` renders Title column in Task Summary table (`report.mjs:58-63`, with `escapeCell` and `'—'` fallback)
+- Emits What Shipped section for passed tasks (`report.mjs:47-54`, with `task.id` fallback when title is absent)
+- All 568 tests pass with 0 failures
+
+Artifacts listed: `bin/lib/report.mjs`, `test/report.test.mjs`
 
 ---
 
 ## Files Actually Read
 
-- `bin/lib/report.mjs` (194 lines, full) — production implementation
-- `test/report.test.mjs` (499 lines, full) — test suite
-- `git diff main...HEAD -- bin/lib/report.mjs` — full branch diff (+97/-35)
-- `git diff main...HEAD -- test/report.test.mjs` — full branch diff
-- `.team/features/execution-report/tasks/task-1/handshake.json` — build 1 claim
-- `.team/features/execution-report/tasks/task-2/handshake.json` — build 2 claim
-- `.team/features/execution-report/tasks/task-3/handshake.json` — build 3 claim
-- `.team/features/execution-report/tasks/task-7/handshake.json` — build 7 claim
-- `.team/features/execution-report/tasks/task-8/eval.md` — tester review (round 1)
-- `.team/features/execution-report/tasks/task-9/eval.md` — simplicity review
-- `.team/features/execution-report/tasks/task-10/eval.md` — tester review (round 2)
-- `.team/features/execution-report/tasks/task-11/eval.md` — PM review (round 1)
-- `.team/features/execution-report/tasks/task-12/eval.md` — security review
+| File | Lines | Purpose |
+|------|-------|---------|
+| `bin/lib/report.mjs` | 1-194 (full) | Production implementation |
+| `test/report.test.mjs` | 1-609 (full) | Test suite |
+| `.team/features/execution-report/tasks/task-13/handshake.json` | 1-15 (full) | Builder's claim |
 
 ---
 
@@ -35,89 +31,90 @@
 
 ```
 $ node --test test/report.test.mjs
-tests 40  |  suites 2  |  pass 40  |  fail 0  |  duration_ms 130
+tests 48  |  suites 2  |  pass 48  |  fail 0  |  duration_ms 199
+
+$ npm test
+tests 568  |  suites 114  |  pass 566  |  fail 0  |  skipped 2  |  duration_ms 32563
 ```
 
-All 40 tests pass (26 `buildReport` unit + 14 `cmdReport` integration).
+All report tests pass. Full suite: 566 pass, 2 skipped (pre-existing), 0 failures.
+
+Note: Handshake claims "All 568 tests pass" — actual is 566 pass + 2 skipped. Minor inaccuracy; no test regressions.
 
 ---
 
-## Requirements Traceability
+## Claim Verification
 
-### Primary AC: Title Column in Task Summary
+### 1. Title Column in Task Summary Table
 
-| Requirement | Code Location | Verified | Evidence |
-|---|---|---|---|
-| Table header has "Title" column | `report.mjs:58` | Yes | `\| Task \| Title \| Status \| Attempts \| Gate Verdict \|` |
-| Title populated from `task.title` | `report.mjs:63` | Yes | `${escapeCell(task.title \|\| "—")}` interpolated in row |
-| Falls back to `—` when absent | `report.mjs:63` | Yes | `task.title \|\| "—"` — JS `\|\|` treats `undefined`, `null`, `""` as falsy |
-| Column ordering correct | `report.mjs:58` | Yes | Task → Title → Status → Attempts → Gate Verdict |
-| Test: title present | `test:53-61` | Yes | Asserts 5-column header string and "Do something" title text |
-| Test: title absent | `test:63-71` | Yes | Asserts `\| task-1 \| — \|` substring in rendered output |
-| Pipe chars in title escaped | `report.mjs:8-10,63` | Yes | `escapeCell()` applied; test at test:247-264 with column count verification |
+| Aspect | Code Location | Test Coverage | Verified? |
+|--------|---------------|---------------|-----------|
+| Header has `\| Title \|` | `report.mjs:58` | `test:53-57` — asserts 5-column header string | Yes |
+| Row populates from `task.title` | `report.mjs:63` | `test:59` — asserts "Do something" appears | Yes |
+| Fallback to `—` when title absent | `report.mjs:63` — `task.title \|\| "—"` | `test:63-72` — asserts `\| task-1 \| — \|` | Yes |
+| Pipe chars escaped | `report.mjs:8-10,63` — `escapeCell()` | `test:286-304` — pipe in title + column count verification | Yes |
 
-**Verdict: PASS** — the acceptance criterion is fully met.
+### 2. What Shipped Section
 
----
-
-## Prior Review Findings — All Resolved
-
-This is the final PM review. All 🟡 findings from earlier review rounds have been resolved:
-
-| Prior Finding | Source | Resolution | Evidence |
-|---|---|---|---|
-| 🟡 `.`/`..` path traversal bypass | task-8 | FIXED | report.mjs:163 explicit reject; tests at test:485-497 |
-| 🟡 NaN duration from invalid createdAt | task-8 | FIXED | report.mjs:26 `Number.isFinite` guard; test at test:267-275 |
-| 🟡 "X task(s) need attention" untested | task-10 | FIXED | New test at test:288-299 (commit 6fa6c1a) |
-| 🟡 "No gate passes recorded" untested | task-10 | FIXED | New test at test:301-314 (commit 6fa6c1a) |
-
-**No open 🟡 findings remain across any review round.**
+| Aspect | Code Location | Test Coverage | Verified? |
+|--------|---------------|---------------|-----------|
+| Section rendered for passed tasks | `report.mjs:47-54` | `test:74-80` — asserts heading + both titles | Yes |
+| Omitted when no passed tasks | `report.mjs:47-48` | `test:82-90` — asserts heading absent for blocked task | Yes |
+| Falls back to `task.id` when title absent | `report.mjs:51` — `task.title \|\| task.id` | `test:316-325` — asserts `- task-1` in output | Yes |
 
 ---
 
-## Scope Assessment
+## Coverage Analysis — Edge Cases Checked
 
-The implementation is within scope. The Title column change is 3 lines of production code:
-
-1. `report.mjs:58` — header gains `| Title |`
-2. `report.mjs:59` — separator gains `|-------|`
-3. `report.mjs:63` — row gains `${escapeCell(task.title || "—")}`
-
-All other changes on the branch trace to prior reviewer findings (pipe escaping, path traversal guard, NaN duration guard, recommendation test coverage, stderr for errors, `--output` format validation). No speculative features were added. No scope creep.
-
----
-
-## User Value Assessment
-
-Before this change, the Task Summary table showed only task IDs (e.g., `task-1`, `task-2`), requiring users to cross-reference STATE.json to understand what each task was about. The Title column surfaces human-readable descriptions directly in the report, making it scannable without context switching. The `—` fallback ensures backward compatibility with STATE.json files that predate the `title` field.
-
----
-
-## Edge Cases Verified
-
-| Input | Expression | Output | Correct? |
-|---|---|---|---|
-| `task.title = "Do X"` | `"Do X" \|\| "—"` | `"Do X"` | Yes |
-| `task.title = undefined` | `undefined \|\| "—"` | `"—"` | Yes |
-| `task.title = null` | `null \|\| "—"` | `"—"` | Yes (JS semantics) |
-| `task.title = ""` | `"" \|\| "—"` | `"—"` | Yes (empty → absent) |
-| `task.title = "foo \| bar"` | `escapeCell(...)` | `foo \\| bar` | Yes (table intact) |
-| No tasks array | `state.tasks \|\| []` | Empty table body | Yes |
+| Edge Case | Tested? | Evidence |
+|-----------|---------|----------|
+| Title present | Yes | `test:53-61` |
+| Title absent (undefined) | Yes | `test:63-72` |
+| Title fallback in What Shipped | Yes | `test:316-325` |
+| Pipe `\|` in title (table-breaking) | Yes | `test:286-304` with column count assertion |
+| Empty string title (`""`) | Implicitly | JS `"" \|\| "—"` is falsy → `"—"`. Same code path as undefined. |
+| Null title | Implicitly | JS `null \|\| "—"` → `"—"`. Same code path. |
+| No passed tasks → no What Shipped | Yes | `test:82-90` |
+| Mixed passed/blocked tasks | Partially | `test:327-338` has the data but asserts Recommendations, not What Shipped directly. Logic is trivial (filter on status). |
+| Empty tasks array `[]` | No | Code handles correctly (empty filter + empty loop) but no explicit test. |
+| Title with newline character | No | `escapeCell` only escapes `\|`; a `\n` in title would break the table row. |
+| Whitespace-only title `"   "` | No | JS `"   " \|\| "—"` is truthy → renders whitespace in table. |
 
 ---
 
 ## Findings
 
-No findings.
+🟡 `bin/lib/report.mjs:8-10` — `escapeCell` only escapes pipe characters; a `\n` in `task.title` would break the markdown table row. Add newline stripping (e.g., `.replace(/\n/g, " ")`) or add a test that documents expected behavior. Low likelihood in practice but unbounded input from STATE.json.
 
-The implementation precisely matches the acceptance criterion. The Title column is present in the correct position, populated from `task.title`, falls back to `—` when absent, and is covered by targeted tests. All prior 🟡 findings have been closed. No scope creep. No open gaps.
+🔵 `test/report.test.mjs` — No test for `buildReport` with empty tasks array (`tasks: []`). Code handles it correctly, but this is an untested path that a future refactor could break.
+
+🔵 `test/report.test.mjs` — No test for whitespace-only title (`"   "`). The `||` fallback doesn't catch truthy whitespace strings, resulting in a visually empty cell. Minor cosmetic edge case.
+
+---
+
+## Regression Risk Assessment
+
+- **Low risk.** The Title column adds 3 lines of production code (header, separator, row interpolation). The What Shipped section is 8 lines of additive logic with no mutation of existing data structures.
+- **No existing behavior was modified.** The 4-column table became a 5-column table. Separator alignment was updated to match.
+- **All 48 report tests pass.** Full suite of 568 tests confirms no regressions.
+- **`escapeCell` is correctly applied** — the one realistic table-breaking input (pipe) is handled and tested with column-count verification.
+
+---
+
+## Test Quality Assessment
+
+The test suite is well-structured:
+- **33 `buildReport` unit tests** cover all sections, status labels, cost formatting, recommendations, and edge cases
+- **15 `cmdReport` tests** cover error paths (missing feature, invalid name, path traversal), happy paths (stdout, --output md), and integration tests (actual process spawn)
+- **Boundary testing** is thorough for attempts threshold (2 vs 3), gate verdicts, and deduplication
+- **The `makeDeps` pattern** enables clean DI testing without filesystem side effects
 
 ---
 
 ## Summary
 
-The acceptance criterion "Task Summary table includes a Title column populated from `task.title` (or `—` when absent)" is fully met. The implementation is minimal (3 lines of production code), correctly positioned in the table, uses an appropriate fallback, and has direct test coverage for both present and absent title cases. The `escapeCell` hardening for pipe characters prevents a real table-breaking edge case.
+The builder's claims are accurate. The Title column renders correctly in the Task Summary table with `escapeCell` and `—` fallback. The What Shipped section correctly lists passed task titles with `task.id` fallback. Test coverage for the claimed features is strong, with 7 directly targeted tests across the two features.
 
-All prior review findings (4 🟡 across rounds 1 and 2) have been resolved with code fixes and new tests. The test suite grew from 33 → 40 across iterations, reflecting systematic resolution of reviewer feedback. No open warnings remain.
+One yellow finding (newline in title could break table) goes to backlog. Two blue suggestions for completeness. No blockers.
 
 **Overall verdict: PASS**
