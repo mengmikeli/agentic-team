@@ -404,4 +404,45 @@ describe("cron-tick CLI integration", () => {
     assert.equal(exitCode, 1, "Should exit 1 when PROJECT.md is missing");
     assert.ok(output.includes("not configured"), `Expected 'not configured' in: ${output}`);
   });
+
+  it("exits 0 with 'already running' when another process holds the lock", () => {
+    // Write a valid PROJECT.md so cron-tick passes pre-flight checks and reaches the lock check
+    writeFileSync(join(tmpDir, ".team", "PROJECT.md"), [
+      "# Project",
+      "https://github.com/users/test/projects/42",
+      "",
+      "## Tracking",
+      "- Status Field ID: field-123",
+      "- Todo Option ID: opt-todo",
+      "- In Progress Option ID: opt-inprogress",
+      "- Done Option ID: opt-done",
+      "- Ready Option ID: opt-ready",
+    ].join("\n") + "\n");
+
+    // Write a lock file owned by the current (live) test-runner process.
+    // lockFile() appends ".lock" to the path, so the actual file is .cron-lock.lock.
+    const lockPath = join(tmpDir, ".team", ".cron-lock.lock");
+    writeFileSync(lockPath, JSON.stringify({
+      pid: process.pid,
+      timestamp: new Date().toISOString(),
+      command: "cron-tick",
+    }, null, 2) + "\n");
+
+    let exitStatus = 0;
+    let output = "";
+    try {
+      output = execFileSync("node", [agtPath, "cron-tick"], {
+        cwd: tmpDir,
+        encoding: "utf8",
+        timeout: 10000,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch (err) {
+      exitStatus = err.status ?? 1;
+      output = err.stdout ?? "";
+    }
+
+    assert.equal(exitStatus, 0, "Second concurrent process should exit 0 when lock is held");
+    assert.ok(output.includes("already running"), `Expected 'already running' in: ${output}`);
+  });
 });
