@@ -30,7 +30,7 @@ export function checkHarness(execFn = execSync) {
   try {
     // Check if the harness binary exists relative to this package
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const harnessPath = join(__dirname, "..", "at-harness.mjs");
+    const harnessPath = join(__dirname, "..", "agt-harness.mjs");
     if (existsSync(harnessPath)) {
       return { status: "pass", message: "agt-harness available" };
     }
@@ -154,7 +154,7 @@ export function checkQualityGate(cwd = process.cwd()) {
   try {
     const content = readFileSync(projectPath, "utf8");
     // Find "## Quality Gate" section
-    const qgMatch = content.match(/^## Quality Gate\b/m);
+    const qgMatch = content.match(/^#{2,3} Quality Gates?\b/m);
     if (!qgMatch) {
       return { status: "fail", message: "No quality gate configured" };
     }
