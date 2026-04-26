@@ -138,6 +138,13 @@ export function cmdFinalize(args) {
       } catch { /* best-effort */ }
     }
 
+    // Sync project board status to Done
+    if (freshState.approvalIssueNumber && freshState.projectNumber) {
+      try {
+        setProjectItemStatus(freshState.approvalIssueNumber, freshState.projectNumber, "Done");
+      } catch { /* best-effort */ }
+    }
+
     console.log(JSON.stringify({
       finalized: true,
       feature: freshState.feature,

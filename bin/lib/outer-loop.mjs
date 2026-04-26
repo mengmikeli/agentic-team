@@ -858,6 +858,11 @@ export async function outerLoop(args, deps) {
 
     console.log(`${c.bold}Executing...${c.reset}`);
     writeLoopStatus(teamDir, { phase: "executing", cycle, feature: priority.name });
+
+    // Sync project board: In Progress
+    if (approvalIssueNumber && projectNumber) {
+      try { setProjectItemStatus(approvalIssueNumber, projectNumber, "In Progress"); } catch {}
+    }
     const executeResult = await runSingleFeature(args, priorityDescription, roadmapLabel, featureName);
     console.log();
 
