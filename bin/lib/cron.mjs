@@ -92,18 +92,23 @@ export async function cmdCronTick(args = [], deps = {}) {
       const s = i.status?.toLowerCase();
       return s === "in-progress" || s === "in progress";
     });
+    const recoveredItems = [];
     for (const staleItem of inProgressItems) {
       const reverted = _setProjectItemStatus(staleItem.issueNumber, projectNumber, "ready");
       if (!reverted) {
         console.warn(`cron-tick: warning — could not recover stale in-progress item #${staleItem.issueNumber}`);
       } else {
         console.log(`cron-tick: recovered stale in-progress item #${staleItem.issueNumber} — reverted to 'ready'`);
-        staleItem.status = "ready"; // include in ready pool below
+        recoveredItems.push(staleItem);
       }
     }
 
-    // Filter for Ready items (case-insensitive status match)
-    const readyItems = items.filter(i => i.status?.toLowerCase() === "ready");
+    // Build ready pool: recovered items first, then natively-Ready items.
+    // Using an explicit array avoids depending on in-place mutation of the items array.
+    const readyItems = [
+      ...recoveredItems,
+      ...items.filter(i => i.status?.toLowerCase() === "ready"),
+    ];
 
     if (readyItems.length === 0) {
       console.log("cron-tick: no ready items on project board");
@@ -176,4 +181,5 @@ export function cmdCronSetup(args = []) {
   console.log(cronLine);
   console.log();
   console.log(`This will run 'agt cron-tick' every ${interval} minutes and log output to .team/cron.log`);
+  console.log("Note: Re-run 'agt cron-setup' after Node upgrades or project moves.");
 }

@@ -1,13 +1,14 @@
 {
   "taskId": "task-5",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed two tester 🟡 findings from run_1: (1) added dispatch-ordering assertion to the stale+ready coexistence test — now asserts that recovered stale item #3 is dispatched before item #4 via dispatchedIssueNumber tracking in the setProjectItemStatus mock; (2) added a CLI subprocess integration test for `agt cron-setup` in a new describe block that runs `node agt.mjs cron-setup` and asserts the printed crontab line includes `cd`, `.team/cron.log`, and `2>&1`. All 558 tests pass.",
+  "summary": "Fixed cron.mjs:101 to build the ready pool explicitly via a recoveredItems array instead of mutating listProjectItems result objects in-place, eliminating the implicit ordering dependency. Added a printed note to cmdCronSetup output advising users to re-run 'agt cron-setup' after Node upgrades or project moves. Stored full test runner output (558 tests, 556 pass, 2 skipped, 0 fail) as a task artifact.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
-    { "type": "test", "path": "test/cron-tick.test.mjs" }
+    { "type": "code", "path": "bin/lib/cron.mjs" },
+    { "type": "test-output", "path": ".team/features/cron-based-outer-loop/tasks/task-5/artifacts/test-output.txt" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
