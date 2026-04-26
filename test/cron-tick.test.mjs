@@ -3,7 +3,7 @@
 
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync, existsSync, rmSync } from "fs";
+import { mkdirSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { execFileSync } from "child_process";
