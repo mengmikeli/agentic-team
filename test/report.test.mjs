@@ -303,6 +303,23 @@ describe("buildReport", () => {
     assert.equal(unescapedPipes, 6, `Table row should have 6 unescaped pipe delimiters but got ${unescapedPipes}: ${tableRow}`);
   });
 
+  it("strips newlines from task.title in the table row", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", title: "Line one\nLine two", status: "passed", attempts: 1 },
+      ],
+      gates: [
+        { taskId: "task-1", verdict: "PASS", command: "npm test", exitCode: 0 },
+      ],
+    });
+    const report = buildReport(state);
+    const lines = report.split("\n");
+    const tableRow = lines.find(l => l.includes("task-1") && l.includes("passed"));
+    assert.ok(tableRow, "Should have a table row for task-1");
+    assert.ok(!tableRow.includes("\n") || tableRow === lines.find(l => l.includes("task-1")), "Newline should be replaced");
+    assert.ok(tableRow.includes("Line one Line two"), "Newlines should be replaced with spaces");
+  });
+
   it("renders N/A duration for invalid createdAt ISO string", () => {
     const state = makeState({
       createdAt: "not-a-date",
@@ -554,7 +571,7 @@ describe("cmdReport", () => {
     assert.ok(result.stdout.includes("agt report my-feature"), "Should include an example");
   });
 
-  // ── 9. --output md with flag before feature name ─────────────
+  // ── 10. --output md with flag before feature name ────────────
 
   it("writes REPORT.md when --output md precedes the feature name", () => {
     const state = makeState();

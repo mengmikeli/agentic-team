@@ -6,7 +6,7 @@ import { basename, join } from "path";
 import { readState } from "./util.mjs";
 
 function escapeCell(text) {
-  return text.replace(/\|/g, "\\|");
+  return text.replace(/[\r\n]+/g, " ").replace(/\|/g, "\\|");
 }
 
 export function buildReport(state) {

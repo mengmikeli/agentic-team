@@ -1,11 +1,11 @@
 {
   "taskId": "task-13",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Verified that buildReport renders the Title column in the Task Summary table (report.mjs:58-63, with escapeCell and '—' fallback) and emits the What Shipped section for passed tasks (report.mjs:47-54, with task.id fallback when title is absent). All 568 tests pass with 0 failures.",
-  "timestamp": "2026-04-26T00:00:00.000Z",
+  "summary": "Fixed escapeCell to strip newlines (preventing broken markdown table rows), added test for newline in task title, and fixed duplicate section comment numbering in test file. All 569 tests pass (567 pass, 2 skipped, 0 fail).",
+  "timestamp": "2026-04-26T12:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/report.mjs" },
     { "type": "code", "path": "test/report.test.mjs" }
