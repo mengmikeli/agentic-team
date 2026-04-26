@@ -1,3 +1,182 @@
+# Simplicity Review — task-5 (run_2): cron-based-outer-loop final state
+
+**Reviewer role:** Simplicity Advocate
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-{1..5}/handshake.json` (all five)
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 773 lines)
+- `bin/lib/util.mjs` (lockFile at lines 98–157; getFlag at lines 35–38)
+- `bin/lib/outer-loop.mjs` (readProjectNumber at lines 117–127)
+- `bin/agt.mjs` (cron routing at lines 18, 72–73, 174–187, 246–247, 866–867)
+
+---
+
+## Test Verification
+
+Ran `node --test test/cron-tick.test.mjs`: 27 tests, 0 failures.
+Ran full suite via `npm test`: 558 tests, 556 pass, 2 skipped, 0 fail. Matches handshake claim.
+
+---
+
+## Four Veto Categories
+
+### 1. Dead Code — PASS
+
+No unused imports, unreachable branches, or commented-out code in `cron.mjs` or
+`test/cron-tick.test.mjs`. The `lockFile` dep in early-exit tests (no-config, no-project-number)
+is never called due to the pre-lock `process.exit(1)` path — this is defensive test setup, not
+production dead code.
+
+### 2. Premature Abstraction — PASS
+
+- `quotePath` (cron.mjs:172) — used 4 times on the following line. Earns its keep.
+- `makeLockSpy` (test:44) — used in 13 test cases across the file. Not premature.
+- `readProjectNumber` dep injection (cron.mjs:53) — mocked in 7 test cases. Not premature.
+- No new single-use abstractions introduced across any task in this feature.
+
+### 3. Unnecessary Indirection — PASS
+
+No wrapper functions or re-exports that only delegate. Every layer transforms or isolates.
+
+### 4. Gold-Plating — PASS
+
+`--interval` is explicitly required in SPEC.md. Four unit tests exercise its boundary cases
+(default, custom, zero, negative). The `PATH=...` field in the generated cron line solves an
+immediate practical problem (cron's minimal PATH). No speculative extensibility or unused config
+options.
+
+---
+
+## Carry-Forward Finding
+
+### `readProjectNumber` duplication — 🟡 (carry-forward, not introduced by this feature cycle)
+
+`bin/lib/cron.mjs:20–31` and `bin/lib/outer-loop.mjs:117–127` are body-for-body identical:
+same file path construction, same `/\/projects\/(\d+)/` regex, same try/catch, same return
+contract. The only difference is the argument name (`cwd` vs `teamDir`). If the project-URL
+format changes, both copies need updating. Flagged in every prior simplicity eval; still
+unresolved. Not introduced by this feature.
+
+---
+
+## Findings
+
+🟡 `bin/lib/cron.mjs:20` — `readProjectNumber` duplicates `outer-loop.mjs:117` body-for-body; extract to a shared helper in `util.mjs` (carry-forward from run_1; not introduced by this feature)
+
+---
+
+## Summary
+
+The feature is implemented in 179 lines of production code and 773 lines of tests. No veto-category
+violations in any of the five tasks. One carry-forward 🟡 for `readProjectNumber` duplication —
+this existed before the feature and was not worsened by it.
+
+**Simplicity Verdict: PASS**
+
+---
+
+# Tester Eval — task-5 (run_2): dispatch-ordering assertion + cron-setup CLI integration test
+
+**Reviewer role:** Test Strategist
+**Date:** 2026-04-26
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-{1..5}/handshake.json` (all five)
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 773 lines)
+- `bin/agt.mjs` (cron-tick / cron-setup wiring, lines 18, 72–73, 174–187, 243–247)
+- `bin/lib/util.mjs` (lockFile, getFlag — lines 35–157)
+- `bin/lib/github.mjs` (listProjectItems, setProjectItemStatus — synchronous, lines 238–255)
+- `.team/features/cron-based-outer-loop/tasks/task-5/eval.md` (prior rounds — tester run_1 through engineer)
+
+---
+
+## Claims vs Evidence
+
+### Claim 1: dispatch-ordering assertion added to stale+ready coexistence test — VERIFIED
+
+`test/cron-tick.test.mjs:414–416`: `setProjectItemStatus` mock sets `dispatchedIssueNumber = issueNumber` when `status === "in-progress"`.
+`test/cron-tick.test.mjs:431`: `assert.equal(dispatchedIssueNumber, 3, "Recovered stale item #3 should be dispatched before item #4")`.
+
+Logic path confirmed: items array from mock is `[{#3, "In Progress"}, {#4, "Ready"}]`. After stale recovery, `staleItem.status` is mutated to `"ready"` in place. `readyItems = items.filter(ready)` preserves array order → `[{#3}, {#4}]`. `readyItems[0]` = #3 → transitions to `"in-progress"` → assertion passes. Prior run_1 🟡 is closed.
+
+### Claim 2: CLI subprocess integration test for `agt cron-setup` added — VERIFIED
+
+`test/cron-tick.test.mjs:752–773`: new `describe("cron-setup CLI integration")` block. Runs `execFileSync("node", [agtPath, "cron-setup"])`, asserts exit 0, finds crontab line via `"* * * *"` search, asserts `"cd "`, `".team/cron.log"` (with `.team/` prefix), and `"2>&1"`. Prior run_1 🟡 is closed.
+
+### Claim 3: 558 full-suite tests pass — CANNOT INDEPENDENTLY VERIFY
+
+No `test-output.txt` artifact stored. Handshake claims "All 558 tests pass" but gate output in task spec is truncated. Count is plausible (553 from task-4 + 3 new tests claimed by task-4 + 2 new here = 558). Carry-forward from every prior PM eval.
+
+---
+
+## Prior run_1 🟡 Findings — Disposition
+
+| Finding | Status |
+|---|---|
+| No CLI subprocess test for `agt cron-setup` | **FIXED** — test added at line 752 |
+| Stale+ready coexistence only asserts `runCalled` | **FIXED** — `assert.equal(dispatchedIssueNumber, 3)` at line 431 |
+
+---
+
+## Remaining Coverage Gaps
+
+### 🔵 Stale recovery: hyphen-format "in-progress" branch never exercised in stale tests
+
+`cron.mjs:93`: matches `s === "in-progress"` (hyphen) OR `s === "in progress"` (space). All stale recovery tests (`cron-tick.test.mjs:409, 442, 477`) use `"In Progress"` (space format only). The hyphen branch is never tested as a stale item. Carry-forward from task-4.
+
+### 🔵 Redirect unit test checks `cron.log` without `.team/` prefix
+
+`test/cron-tick.test.mjs:609`: `assert.ok(output.includes("cron.log"), ...)` would pass if the log path regressed from `.team/cron.log` to `cron.log`. The CLI integration test at line 770 does assert `.team/cron.log` (stronger). Carry-forward from run_1.
+
+### 🔵 Dead double-quote branch in cd unit test
+
+`test/cron-tick.test.mjs:642`: assertion accepts `cd "${cwd}"` but `quotePath` only ever produces single-quoted output. The OR branch is dead. Carry-forward from run_1.
+
+### 🔵 `PATH=` field not asserted in any test
+
+`cron.mjs:173` embeds `PATH=${quotePath(process.env.PATH ?? "")}` — required for `agt` to resolve in cron's minimal environment. Neither the unit tests nor the CLI integration test assert this field is present. Removal would pass all 558 tests silently. Carry-forward from run_1.
+
+### 🔵 `--interval` with non-integer string untested
+
+`cron.mjs:166–167`: `parseInt("foo", 10)` → `NaN`; `!NaN` is `true` → defaults to 30. Correct behavior, but the NaN-default branch has no test. Carry-forward from run_1.
+
+### 🔵 Multiple simultaneous stale in-progress items untested
+
+All stale recovery tests exercise exactly one stale item. The loop at `cron.mjs:95–103` handles multiple, but no test verifies that all are recovered when two or more co-exist.
+
+---
+
+## Findings
+
+🔵 `test/cron-tick.test.mjs:642` — Redirect unit test asserts `cronLine.includes("cron.log")` without `.team/` prefix; assert `".team/cron.log"` to match the stronger CLI integration test assertion at line 770 (carry-forward)
+
+🔵 `test/cron-tick.test.mjs:638` — cd assertion accepts `cd "${cwd}"` as valid but `quotePath` always produces single-quoted output; the double-quote OR branch is dead — remove it (carry-forward)
+
+🔵 `test/cron-tick.test.mjs` (cmdCronSetup block) — No test asserts `PATH=` is present in the generated cron line; a regression removing this field would pass all current tests (carry-forward)
+
+🔵 `test/cron-tick.test.mjs:409,442,477` — All stale recovery tests use `"In Progress"` (space); the `"in-progress"` (hyphen) branch at `cron.mjs:93` is never exercised in a stale-item scenario (carry-forward)
+
+---
+
+## Summary
+
+Both run_1 🟡 findings are closed with direct evidence: dispatch-ordering assertion is present and logically correct (`dispatchedIssueNumber === 3`), and the `cron-setup` CLI integration test is a real subprocess test asserting exit 0 + three key tokens. No critical (🔴) or warning (🟡) findings. Four 🔵 suggestions, all carry-forwards from prior rounds. No new regressions introduced.
+
+**Verdict: PASS**
+
+---
+
 # Tester Eval — task-5 (run_1): cron-setup cd-to-project-root and log-redirect tests
 
 **Reviewer role:** Test Strategist
@@ -610,3 +789,380 @@ cd's to project root, sets PATH, invokes `agt cron-tick`, and appends stdout+std
 `.team/cron.log`. The `>>` + `2>&1` ordering is correct. POSIX single-quote escaping handles
 special characters. Two new tests directly exercise the task-5 deliverables. Three
 suggestion-level findings only; none block merge.
+
+---
+
+# Security Gate Review — cron-based-outer-loop (gate run)
+
+**Reviewer role:** Security specialist
+**Date:** 2026-04-26
+**Verdict:** PASS
+
+---
+
+## Files Actually Read
+
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `bin/lib/util.mjs` (full, 220 lines)
+- `test/cron-tick.test.mjs` (full, 773 lines)
+- `bin/agt.mjs` lines 1–80 (CLI wire-up)
+- `bin/lib/github.mjs` — `listProjectItems`, `commentIssue`, `setProjectItemStatus` (grep + context)
+- All 5 `handshake.json` files
+- `tasks/task-5/eval.md` prior security review section (lines 111–233)
+
+---
+
+## Per-Criterion Results
+
+### 1. Crontab shell injection — PASS
+
+`cron.mjs:172–173`: `quotePath` wraps every runtime value in single quotes and escapes embedded
+single quotes via the POSIX `'\''` technique (`p.replace(/'/g, "'\\''")`). All four values are
+quoted: `cwd`, `process.env.PATH`, `agtPath`, and the log path. `--interval` is `parseInt`'d
+before substitution; a value like `1; rm -rf /` becomes `NaN` → defaults to 30. No injection
+surface.
+
+### 2. Prompt injection via issue title — PASS
+
+`cron.mjs:118`: regex `[\r\n\x00-\x1f\x7f\u0085\u2028\u2029]` strips all ASCII control
+characters (U+0000–U+001F, U+007F), CR/LF, and Unicode structural newlines (NEL, LS, PS).
+Truncated to 200 chars. Four dedicated tests at lines 320–395 cover each character class.
+
+### 3. Shell injection via `commentIssue(err.message)` — PASS
+
+`github.mjs:219–221`: `commentIssue` calls `runGh("issue", "comment", String(number), "--body",
+body)` — args array passed to `spawnSync` with no `shell: true`. The `body` string is a literal
+argv element regardless of content; shell metacharacters in `err.message` are inert.
+
+### 4. Concurrent run protection — PASS
+
+`util.mjs:134`: lock written with `{ flag: "wx" }` (O_EXCL atomic create). PID liveness checked
+on read; stale locks cleaned up. `timeout: 0` = try-once. Lock released unconditionally in
+`finally` block at `cron.mjs:153–155`. CLI integration test at line 707 writes a live-PID lock
+file and asserts subprocess exits 0 with "already running".
+
+### 5. `--dry-run` flag isolation — PASS
+
+`cron.mjs:129`: `_runSingleFeature([], title)` — empty args array hardcoded, not forwarded from
+CLI. Test at line 177 asserts `runArgs` is `[]`.
+
+### 6. `listProjectItems` null safety — PASS
+
+`github.mjs:238–241`: function explicitly returns `[]` on failure (`if (!itemsJson) return []`),
+never `null`. The `.filter()` call at `cron.mjs:91` is safe.
+
+---
+
+## Edge Cases Checked
+
+- Path with embedded single quote → `quotePath` escapes correctly (`'/foo'\''bar'`)
+- `--interval` injection string → `parseInt` returns `NaN` → defaults to 30
+- SIGKILL'd stale in-progress items → reverted before dispatch, lock prevents double-run
+- Lock file owned by dead PID → cleaned and re-acquired
+- `commentIssue` throws → swallowed, original error preserved in console.error
+
+---
+
+## Findings
+
+🔵 `bin/lib/cron.mjs:144` — `err.message` has no length bound before posting as a GitHub comment;
+if a feature throws a very large error, the `gh issue comment` call may fail silently (already
+handled: returns false → logs warning). Consider `.slice(0, 2000)` to stay well under GitHub's
+65,536-char body limit.
+
+🔵 `bin/lib/cron.mjs:173` — `process.env.PATH ?? ""` bakes `PATH=''` when PATH is unset; cron
+job would fail to find `node`. No security impact, but silently produces a broken crontab entry.
+Consider omitting the `PATH=` clause or emitting a warning when PATH is empty.
+
+---
+
+## Overall Verdict: PASS
+
+No critical (🔴) or warning (🟡) findings. Both suggestion-level findings are carry-forwards from
+the prior security review. All six threat areas verified against actual code paths with direct
+evidence.
+
+---
+
+# Architect Review — task-5 (run_2): dispatch-ordering assertion + cron-setup CLI integration test
+
+**Reviewer role:** Software Architect
+**Date:** 2026-04-26
+**Handshake run:** run_2
+**Verdict: PASS**
+
+---
+
+## Files Read
+
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 773 lines)
+- `bin/agt.mjs` (cron dispatch lines 72–73)
+- `bin/lib/util.mjs` (lockFile, lines 98–154)
+- `.team/features/cron-based-outer-loop/SPEC.md`
+- All five `handshake.json` files
+
+---
+
+## What Changed in run_2
+
+1. `test/cron-tick.test.mjs:431` — `assert.equal(dispatchedIssueNumber, 3)` added to stale+ready coexistence test (addresses tester 🟡 from run_1)
+2. `test/cron-tick.test.mjs:749–773` — New `cron-setup CLI integration` describe block with one subprocess test (addresses tester 🟡 from run_1)
+
+Both run_1 tester warnings are closed. Code in `cron.mjs` is unchanged.
+
+---
+
+## Per-Criterion Results
+
+### AC1–AC7 — PASS (code unchanged from run_1; carry-forward from prior Architect eval)
+
+### New test: dispatch-ordering assertion — PASS
+
+`test/cron-tick.test.mjs:414–431`: `setProjectItemStatus` mock records the last `issueNumber` transitioned to `"in-progress"` as `dispatchedIssueNumber`. `assert.equal(dispatchedIssueNumber, 3)` verifies the recovered stale item is dispatched rather than the pre-existing ready item (#4).
+
+The ordering guarantee is deterministic: `staleItem.status = "ready"` mutates the object at index 0 of `items` (`cron.mjs:101`), so `items.filter(ready)` returns `[item3, item4]` and `readyItems[0]` is item3. The SPEC (AC4) says recovered items "may be dispatched in the same tick" — no ordering mandate. If a future change to `listProjectItems` sorts by creation date, item #4 may arrive first, this test would fail, and that is the correct outcome (forces a conscious ordering decision).
+
+### New test: cron-setup CLI integration — PASS
+
+`test/cron-tick.test.mjs:752–773`: `execFileSync("node", [agtPath, "cron-setup"])` spawns the real CLI. Asserts exit 0, crontab line present, contains `cd `, `.team/cron.log`, and `2>&1`. Closes the gap where only `cmdCronSetup()` was called directly — the CLI wire-up at `agt.mjs:73` is now exercised end-to-end.
+
+---
+
+## Findings
+
+🟡 `bin/lib/cron.mjs:101` — `staleItem.status = "ready"` mutates a `listProjectItems` result object in-place. The ready pool filter at line 106 depends silently on this mutation. If `listProjectItems` ever returns frozen or cloned objects, stale recovery silently no-ops. Build the ready pool explicitly to remove the reference dependency. (Carry-forward — unresolved across all prior architect evals.)
+
+🟡 `bin/lib/cron.mjs:173` — `process.env.PATH` is baked into the generated crontab at setup time. A Node upgrade (nvm) or project move silently breaks the cron job. Add a one-line note in the printed instructions: "Re-run `agt cron-setup` after Node upgrades or project moves." (Carry-forward.)
+
+🔵 `bin/lib/cron.mjs:173` — `cwd + "/.team/cron.log"` uses string concatenation; rest of module uses `path.join()`. Change to `join(cwd, ".team", "cron.log")`. (Carry-forward.)
+
+---
+
+## Artifacts
+
+No `test-output.txt` in `task-5/artifacts/`. Builder claimed 558 tests pass. Gate output confirms suite is running; exact count not independently verifiable from the file system. Process gap, not a code defect.
+
+---
+
+## Overall Verdict: PASS
+
+All seven acceptance criteria confirmed. Both run_1 tester 🟡 warnings resolved. Two carry-forward 🟡 warnings (in-place mutation coupling, stale PATH capture) should remain in the backlog. No critical issues. Safe to merge.
+
+---
+
+# PM Eval — task-5 (run_2): dispatch-ordering assertion + cron-setup CLI integration test
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Handshake run:** run_2
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-5/handshake.json` (run_2)
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 773 lines)
+- `.team/features/cron-based-outer-loop/SPEC.md` (full)
+- `.team/features/cron-based-outer-loop/tasks/task-5/eval.md` (run_1 PM section)
+
+---
+
+## Requirement
+
+The feature task being reviewed:
+> `agt cron-setup` prints a crontab line that cd's to the project root and invokes `agt cron-tick >> .team/cron.log 2>&1`
+
+run_2 closes two tester 🟡 findings from run_1:
+1. Add dispatch-ordering assertion to the stale+ready coexistence test.
+2. Add a CLI subprocess integration test for `agt cron-setup`.
+
+---
+
+## Per-Criterion Results
+
+### CR1: Dispatch-ordering assertion added — PASS
+
+`test/cron-tick.test.mjs:431`:
+```js
+assert.equal(dispatchedIssueNumber, 3, "Recovered stale item #3 should be dispatched before item #4");
+```
+`dispatchedIssueNumber` is captured by the `setProjectItemStatus` spy at line 416 when
+`status === "in-progress"`. The assertion directly verifies the recovered stale item (#3) is
+dispatched before the pre-existing ready item (#4). Exact gap flagged in run_1 — closed. ✅
+
+Trace verified: mock returns `[item3 (In Progress), item4 (Ready)]` → stale recovery mutates
+`item3.status = "ready"` → filter produces `[item3, item4]` → `readyItems[0]` = item3 →
+`_setProjectItemStatus(3, _, "in-progress")` → `dispatchedIssueNumber = 3`. Assertion holds. ✅
+
+### CR2: CLI subprocess integration test for `agt cron-setup` — PASS
+
+`test/cron-tick.test.mjs:752–773`: new describe block `"cron-setup CLI integration"` runs
+`node agt.mjs cron-setup` as a subprocess and asserts:
+- Exit code 0 ✅
+- A cron line containing `* * * *` is printed ✅
+- `cronLine.includes("cd ")` ✅
+- `cronLine.includes(".team/cron.log")` ✅
+- `cronLine.includes("2>&1")` ✅
+
+Directly addresses the run_1 finding: "cron-setup has zero subprocess tests." The new test
+validates CLI wire-up through the live `agt.mjs` entry point. ✅
+
+---
+
+## Scope Check
+
+run_2 made exactly two changes: one assertion added to an existing test (line 431), and one new
+describe block with one test (lines 749–773). No implementation code changed. Total cron-tick
+suite: 27 tests (26 from run_1 + 1 new). No scope creep. ✅
+
+---
+
+## Findings
+
+🟡 `.team/features/cron-based-outer-loop/tasks/*/artifacts/` — No `test-output.txt` in any task
+artifact directory; gate output is truncated (stops mid-run, never reaches cron-tick suite);
+handshake claims 558 total but only 1 net-new test visible in cron-tick.test.mjs (27 − 26 = 1),
+leaving the claimed total of 558 (vs. 555) unverifiable by +2 — store full test runner output
+as an artifact (carry-forward from all prior PM evals)
+
+🔵 `test/cron-tick.test.mjs:769` — CLI integration asserts `cronLine.includes("cd ")` with no
+path check; a regression where `cd` points to an unrelated directory would pass silently —
+tighten to assert that the actual project path appears after `cd`
+
+🔵 `test/cron-tick.test.mjs:431` — Assert `dispatchedIssueNumber === 3` encodes an ordering
+guarantee (stale before ready) not stated in SPEC.md; SPEC says "may be dispatched in the same
+tick" with no priority order — either document the contract in SPEC.md or relax the assertion
+
+---
+
+## Summary
+
+Both run_2 fixes are present and verified by direct code inspection. The core feature requirement
+was already complete; run_2 closed the two test-coverage gaps the tester flagged. No critical
+findings. The persistent missing-artifact issue remains the only 🟡 carry-forward.
+
+**PM Verdict: PASS**
+
+---
+
+# Engineer Review — task-5 (run_2): dispatch-ordering assertion + cron-setup CLI integration test
+
+**Reviewer role:** Software engineer
+**Date:** 2026-04-26
+**Handshake run:** run_2
+**Verdict:** PASS
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-{1..5}/handshake.json` (all five)
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 774 lines)
+- `bin/agt.mjs` (shebang + cron wire-up, lines 1–73)
+- `bin/lib/util.mjs` (getFlag lines 35–38, lockFile lines 98–170)
+- `bin/lib/github.mjs` (readTrackingConfig lines 41–65, listProjectItems lines 238–255, setProjectItemStatus lines 258–295)
+- `.team/features/cron-based-outer-loop/SPEC.md` (full)
+
+---
+
+## Claim Verification (run_2)
+
+1. Dispatch-ordering assertion added: `assert.equal(dispatchedIssueNumber, 3)` — **VERIFIED** (`test/cron-tick.test.mjs:431`)
+2. CLI subprocess integration test for `agt cron-setup` added — **VERIFIED** (`test/cron-tick.test.mjs:752–773`)
+
+---
+
+## Per-Criterion Results
+
+### 1. `cmdCronSetup` crontab line — PASS
+
+`cron.mjs:173`:
+```js
+const cronLine = `*/${interval} * * * * cd ${quotePath(cwd)} && PATH=${quotePath(process.env.PATH ?? "")} ${quotePath(agtPath)} cron-tick >> ${quotePath(cwd + "/.team/cron.log")} 2>&1`;
+```
+- `cd ${quotePath(cwd)}`: absolute path from `process.cwd()`, single-quoted. Unconditional.
+- `>> ${quotePath(cwd + "/.team/cron.log")} 2>&1`: `>>` before `2>&1` is the correct ordering — appends stdout to log, then routes stderr to that same fd. Inverted form (`2>&1 >> file`) would send stderr to the terminal. This is right.
+- `PATH=${quotePath(...)}`: valid POSIX sh `VAR=value command` syntax. Required because cron's minimal PATH excludes `/usr/local/bin` where `node` usually lives.
+- `agt.mjs` has `#!/usr/bin/env node` shebang (line 1), so it is directly executable without an explicit `node` prefix.
+
+### 2. POSIX shell quoting — PASS
+
+`quotePath` (cron.mjs:172): `'${p.replace(/'/g, "'\\''")}'`
+
+For `/path/with'quotes`: replace → `/path/with'\''quotes`, wrap → `'/path/with'\''quotes'`. Shell decodes to `/path/with'quotes`. Standard POSIX single-quote escaping, applied to all four runtime values.
+
+`--interval` is `parseInt`'d before embedding — not a shell injection surface.
+
+### 3. Stale in-progress recovery logic — PASS (ordering dependency noted)
+
+`cron.mjs:91–106`: filters items by `"in-progress"` or `"in progress"` (case-insensitive), reverts each via `setProjectItemStatus`, and on success mutates `staleItem.status = "ready"` in-place so the item enters the `readyItems` filter at line 106.
+
+Trace for the dispatch-ordering test:
+- `items = [{#3, "In Progress"}, {#4, "Ready"}]`
+- After loop: `items[0].status = "ready"`
+- `readyItems = [{#3, "ready"}, {#4, "Ready"}]`
+- `item = readyItems[0]` → `#3` dispatched, `dispatchedIssueNumber = 3` ✓
+
+**Implicit ordering dependency:** correctness depends on the `readyItems` filter (line 106) running after the mutation loop (lines 95–103). No structural constraint enforces this. See findings.
+
+### 4. Dispatch-ordering assertion (run_2 addition) — PASS
+
+`test/cron-tick.test.mjs:431`:
+```js
+assert.equal(dispatchedIssueNumber, 3, "Recovered stale item #3 should be dispatched before item #4");
+```
+`dispatchedIssueNumber` is set in the `setProjectItemStatus` mock when `status === "in-progress"`, pinning the assertion to observable dispatch behavior rather than internal array ordering. Correct.
+
+### 5. `cron-setup` CLI integration test (run_2 addition) — PASS
+
+`test/cron-tick.test.mjs:752–773`: spawns `execFileSync("node", [agtPath, "cron-setup"])` using the real `bin/agt.mjs` path. Asserts exit 0, crontab line found, `"cd "`, `".team/cron.log"`, `"2>&1"` present. Validates the full chain — CLI wire-up → `cmdCronSetup` → stdout — without any mocking.
+
+### 6. Lock acquire/release — PASS
+
+`timeout: 0` → `deadline = Date.now()` → live-holder check returns `{acquired: false}` immediately. Lock released unconditionally in `finally` (cron.mjs:154). Pre-flight exits (lines 58–74) occur before lock acquisition, so no release needed on those paths.
+
+### 7. Empty args forwarded to `runSingleFeature` — PASS
+
+`cron.mjs:129`: `await _runSingleFeature([], title)`. Empty array hardcoded. Test line 177 asserts `runArgs === []`. Prevents `--dry-run` or other flags from leaking.
+
+### 8. Failure path exit code — PASS
+
+When `runSingleFeature` throws: `catch` block handles revert + comment + `console.error`, then falls through. `finally` releases lock. Function returns normally → process exits 0. Satisfies AC3.
+
+---
+
+## Edge Cases Checked
+
+| Case | Result |
+|---|---|
+| No ready items | `return` before dispatch; lock released in `finally` ✓ |
+| Lock held by live PID | `process.exit(0)` before `try` block; no lock to release ✓ |
+| `readTrackingConfig` returns null | `process.exit(1)` before lock acquired ✓ |
+| `"ready"` absent from config | `process.exit(1)` at line 65 ✓ |
+| Stale item revert fails | status NOT mutated; item absent from `readyItems`; warning logged ✓ |
+| `commentIssue` throws | inner try/catch swallows; `console.error` still logs original error ✓ |
+| Title 300 chars | `slice(0, 200)` verified by dedicated test ✓ |
+| `--interval 0` / negative / NaN | `(!rawInterval || rawInterval < 1)` → 30 ✓ |
+| `process.env.PATH` undefined | `?? ""` fallback; `PATH=''` generated — cron job would fail to find `node` |
+
+---
+
+## Findings
+
+🟡 `bin/lib/cron.mjs:101` — `staleItem.status = "ready"` mutates the `items` array element in-place; the `readyItems` filter at line 106 is only correct because it runs after this loop. If the filter is moved above the loop in a future refactor, stale items silently drop from dispatch with no error. Add a comment documenting the ordering dependency, or build `readyItems` explicitly as `[...recoveredItems, ...items.filter(i => i.status?.toLowerCase() === "ready")]` with a separate tracked array.
+
+🔵 `bin/lib/cron.mjs:173` — `cwd + "/.team/cron.log"` uses string concatenation; the rest of the module uses `join(cwd, ...)`. Functionally equivalent on POSIX but inconsistent.
+
+🔵 `bin/lib/cron.mjs:169` — `agtPath = process.argv[1]` is not injectable via the `deps` pattern used by `cmdCronTick`. In unit test context this resolves to the test runner binary, making the generated cron line wrong. Tests avoid the issue by not asserting on the path value. Adding `agtPath` as an optional `deps` parameter would make the function fully unit-testable.
+
+🔵 `test/cron-tick.test.mjs:642` — `cronLine.includes(\`cd '${cwd}'\`) || cronLine.includes(\`cd "${cwd}"\`)` — the double-quote branch is dead since `quotePath` always produces single-quoted output. Double-quotes do not prevent `$VAR` expansion in POSIX sh; a quoting regression to double-quotes would pass this test silently. Assert single-quote form only.
+
+---
+
+## Overall Verdict: PASS
+
+Both run_2 deliverables are present and correct. The dispatch-ordering assertion (line 431) directly verifies recovered stale items are dispatched before native ready items. The `cron-setup` CLI integration test (lines 752–773) validates the full subprocess path. All SPEC acceptance criteria (AC1–AC7) are satisfied. One 🟡 finding: implicit ordering dependency in stale recovery. Three 🔵 suggestions, none blocking.
