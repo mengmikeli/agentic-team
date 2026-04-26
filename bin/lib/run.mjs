@@ -1042,7 +1042,10 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
         try {
           const projectMd = readFileSync(join(teamDir, "PROJECT.md"), "utf8");
           const projMatch = projectMd.match(/projects\/(\d+)/);
-          if (projMatch) addToProject(issueNum, parseInt(projMatch[1]));
+          if (projMatch) {
+            addToProject(issueNum, parseInt(projMatch[1]));
+            setProjectItemStatus(issueNum, parseInt(projMatch[1]), "in-progress");
+          }
         } catch {}
         console.log(`  ${c.green}✓${c.reset} #${issueNum}: ${task.title}`);
       }

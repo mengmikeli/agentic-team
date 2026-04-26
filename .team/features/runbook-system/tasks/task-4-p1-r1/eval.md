@@ -1,8 +1,8 @@
-# Tester Evaluation — runbook-system (task-4-p1-r1)
+# Engineer Evaluation — runbook-system (task-4-p1-r1)
 
 **Verdict: PASS**
 
-All 614 tests pass (0 fail, 2 skipped). The runbook module has 39 dedicated tests across 10 suites covering all 5 exported functions. No regressions. The implementation is solid and well-tested for the happy paths. Remaining gaps are yellow-grade (backlog) and do not block merge.
+The `loadRunbooks(dir)` implementation and supporting functions are correct, well-structured, and thoroughly tested. 39 tests pass across 10 suites. The module handles failure modes gracefully (nonexistent dir, malformed YAML, missing fields, unsafe regex, directory-named-as-yml). Two yellow issues exist but neither blocks merge — the null-description crash is unreachable from the current call site, and the dead `flow` field is harmless.
 
 ---
 
@@ -10,86 +10,95 @@ All 614 tests pass (0 fail, 2 skipped). The runbook module has 39 dedicated test
 - `bin/lib/runbooks.mjs` (277 lines — full)
 - `test/runbooks.test.mjs` (484 lines — full)
 - `test/runbook-dir.test.mjs` (105 lines — full)
-- `bin/lib/run.mjs` (lines 415–459: planTasks integration; lines 815–839: CLI flag parsing)
+- `bin/lib/run.mjs` (lines 415–464: planTasks integration; lines 813–839: CLI flag parsing; lines 905–934: featureDescription assignment)
 - `.team/runbooks/add-cli-command.yml`, `add-github-integration.yml`, `add-test-suite.yml` (full)
 - `SPEC.md` (full)
-- All 7 handshake.json files
+- Handshake files: task-1, task-2, task-3, task-4-p1-r1
+- Previous eval at task-4-p1-r1/eval.md
 
 ## Tests Actually Run
 - `node --test test/runbooks.test.mjs test/runbook-dir.test.mjs` — **39 pass, 0 fail**
-- `npm test` — **614 pass, 0 fail, 2 skipped**
+- `scoreRunbook(null, ...)` — **confirmed crash** at line 213 (`Cannot read properties of null (reading 'toLowerCase')`)
+- `scoreRunbook(undefined, ...)` — **confirmed crash** at line 213
+- `loadRunbooks(dir)` with subdirectory named `.yml` — **handled gracefully** (caught by try/catch at line 190)
+- YAML value `foo #bar` (unquoted) — **stripped to `foo`** (correct YAML behavior, documented inline)
 
 ---
 
 ## Per-Criterion Results
 
-### 1. Exports exist and are correct
-**PASS** — `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `selectRunbook`, `resolveRunbookTasks` all exported and tested. `selectRunbook` is a bonus export not in SPEC but correctly wraps `matchRunbook` with forced-id override.
+### 1. Correctness — does the code do what the spec says?
+**PASS** — `loadRunbooks(dir)` reads `.yml`/`.yaml` files, validates all 6 schema fields (id, name, patterns, minScore, tasks, flow), filters invalid patterns/tasks per-element, and returns a sorted array. `scoreRunbook` implements the spec's scoring algorithm (regex match adds weight, keyword occurrence × weight). `matchRunbook` selects highest score above minScore with tie-break. `resolveRunbookTasks` expands `include:` one level deep. `selectRunbook` handles forced ID override. All 5 exports verified.
 
-### 2. Test coverage breadth
-**PASS** — 39 tests across: loadRunbooks (8), scoreRunbook (7), matchRunbook (4), resolveRunbookTasks (5), selectRunbook (4), ReDoS guard (3), YAML comments (1), per-element validation (3), runbook-dir (4). SPEC requires ≥10 cases; delivered 39.
+**Logic paths traced:**
+- `loadRunbooks` → `readdirSync` catch returns `[]` (line 120–122) ✓
+- `loadRunbooks` → filter `.ya?ml` (line 119) ✓
+- `loadRunbooks` → 5 validation gates with `continue` (lines 131–150) ✓
+- `loadRunbooks` → per-pattern filter + per-task filter (lines 153–180) ✓
+- `scoreRunbook` → regex branch with `isSafeRegex` guard (lines 204–209) ✓
+- `scoreRunbook` → keyword branch with case-insensitive counting (lines 210–221) ✓
+- `matchRunbook` → tie-break by `rb.id` (line 234) — deviates from spec's "by filename" but equivalent when id matches filename ⚠️
+- `resolveRunbookTasks` → skips nested includes at depth 1 (line 266) ✓
+- `selectRunbook` → forced ID returns `Infinity` score (line 248) ✓
 
-### 3. Edge case coverage
-**PASS with gaps** — Covered: empty dir, nonexistent dir, missing fields, invalid regex, nested includes, tie-break, combined scoring, case-insensitive keywords, unsafe regex rejection. Not covered: null/undefined description, empty string description, unknown pattern type, per-field missing-field branches (only `missing id` tested of 5 branches).
+### 2. Code quality — readable, well-named, easy to reason about?
+**PASS** — Clean separation of concerns: YAML parser, ReDoS guard, loader, scorer, matcher, selector, resolver. Each function is under 30 lines. Naming is clear and consistent. Helper `stripInlineComment` and `castValue` are appropriately scoped. No unnecessary abstractions.
 
-### 4. Integration coverage
-**PASS (barely)** — `planTasks()` integration is verified by source-level inspection and `runbook-dir.test.mjs` (subprocess test proving `agt run --dry-run` creates runbooks dir). But no test asserts that `planTasks()` returns runbook tasks when a runbook matches. No test for `--runbook <nonexistent>` fallthrough.
+### 3. Error handling — failure paths handled explicitly and safely?
+**PASS with gap** — Graceful handling of: nonexistent directory, unparseable YAML, missing required fields, invalid regex, unsafe regex patterns, missing include references, directory-named-as-yml-file. One gap: `scoreRunbook` crashes on null/undefined description (line 213), but this is unreachable from the current call site (`planTasks` always receives a non-null `featureDescription`).
 
-### 5. Built-in runbooks
-**PASS** — 3 YAML files exist with valid schema, each has 4 tasks. No automated test loads them, but `loadRunbooks` tests prove the loader works and I verified the files parse correctly.
-
-### 6. Regression safety
-**PASS** — Full suite (614 tests) passes. No existing test was modified or broken.
+### 4. Performance — any obvious inefficiencies?
+**PASS** — `loadRunbooks` is synchronous (appropriate for startup/planning), reads each file once, validates in a single pass. `scoreRunbook` iterates patterns once per call. Keyword counting uses `indexOf` scan (O(n·m) where n=description length, m=keyword length) — efficient for the expected input sizes. No unnecessary allocations. `isSafeRegex` regex is applied once per pattern at load time and again at scoring time (defensive double-check, negligible cost).
 
 ---
 
 ## Findings
 
-🟡 bin/lib/runbooks.mjs:213 — `scoreRunbook` crashes on null/undefined description (`description.toLowerCase()` throws TypeError); reachable from `planTasks()` when `featureDescription` is null. Add `if (!description) return 0;` guard.
+🟡 `bin/lib/runbooks.mjs:213` — `scoreRunbook` crashes on null/undefined description (`description.toLowerCase()` throws TypeError). While unreachable from `planTasks()` today (Mode 1 requires non-empty description, Mode 2 constructs from roadmap), the function is exported and callable directly. Add `if (!description) return 0;` guard at line 201.
 
-🟡 test/runbooks.test.mjs — No integration test for `planTasks()` → runbook matching path (SPEC Testing Strategy: "Integration: planTasks() with a matching description returns runbook tasks and skips brainstorm"). This is the highest-risk untested seam.
+🟡 `bin/lib/run.mjs:437` — Runbook `flow` field is loaded (runbooks.mjs:188) and stored in the object but never consumed by `planTasks` or any downstream code. Dead data propagated through 3 functions. Either wire to flow-selection logic or remove from schema to avoid confusion.
 
-🟡 test/runbooks.test.mjs — No test for `--runbook nonexistent` CLI fallthrough (SPEC AC #8). The `selectRunbook` unit test covers the function return value, but no test verifies the console warning or actual fallthrough to brainstorm.
+🟡 `bin/lib/runbooks.mjs:234` — Tie-break uses `rb.id < best.runbook.id` but SPEC says "ties broken alphabetically by filename". These diverge when id differs from filename (no enforcement exists). Low risk since all 3 built-in runbooks match, but a user-authored runbook could trigger the inconsistency.
 
-🟡 bin/lib/run.mjs:437 — Runbook `flow` field is loaded and stored (runbooks.mjs:188) but never consumed by `planTasks` or downstream. Dead data propagated through 3 functions. Either wire it to the flow-selection logic or remove from schema.
+🔵 `bin/lib/runbooks.mjs:110` — `isSafeRegex` heuristic catches `(a+)+` class but misses alternation-based ReDoS vectors like `(a|a)+b`. Low risk since runbooks are repo-authored, not user input.
 
-🔵 test/runbooks.test.mjs:82 — Only 1 of 5 `loadRunbooks` validation branches (missing id) has a dedicated test. The other 4 (missing name, empty patterns, missing minScore, empty tasks) are untested individually. They share the same code pattern so risk is low.
-
-🔵 bin/lib/runbooks.mjs:110 — `isSafeRegex` heuristic misses non-quantifier ReDoS vectors like `(a|a)+b`. Low risk since runbooks are repo-authored, not user input.
-
-🔵 test/runbooks.test.mjs — No test for empty string description or unknown pattern type (e.g., `type: "fuzzy"`). Both are harmless (score 0) but documenting expected behavior is good hygiene.
-
-🔵 test/runbooks.test.mjs:209 — Tie-break test verifies by `id` (matches implementation) but SPEC says "ties broken alphabetically by filename". Equivalent in practice but imprecise against spec language.
+🔵 `bin/lib/runbooks.mjs:80-86` — `stripInlineComment` truncates unquoted values containing ` #` (e.g., regex `foo #bar` becomes `foo`). This is correct YAML behavior but undocumented; could silently corrupt user patterns. Consider adding a note to the built-in runbook examples.
 
 ---
 
-## Edge Cases I Verified
+## Edge Cases Verified
 
 | Edge case | Covered? | Evidence |
 |---|---|---|
-| Nonexistent runbooks dir | Yes | test/runbooks.test.mjs:42 |
-| Empty runbooks dir | Yes | test/runbooks.test.mjs:47 |
-| Non-YAML files ignored | Yes | test/runbooks.test.mjs:89 |
-| .yaml extension accepted | Yes | test/runbooks.test.mjs:108 |
-| Missing required fields (id) | Yes | test/runbooks.test.mjs:82 |
-| Missing required fields (name, patterns, minScore, tasks) | No | Only id branch tested |
-| Invalid regex skipped | Yes | test/runbooks.test.mjs:170 |
-| ReDoS regex rejected | Yes | test/runbooks.test.mjs:345 |
-| Inline YAML comments stripped | Yes | test/runbooks.test.mjs:394 |
-| Per-pattern validation (missing type/value) | Yes | test/runbooks.test.mjs:421 |
-| Per-task validation (missing title+include) | Yes | test/runbooks.test.mjs:444 |
-| Nested include stops at 1 level | Yes | test/runbooks.test.mjs:272 |
-| Missing include reference | Yes | test/runbooks.test.mjs:260 |
-| Keyword case-insensitive | Yes | test/runbooks.test.mjs:146 |
-| Multiple keyword occurrences counted | Yes | test/runbooks.test.mjs:138 |
-| Tie-break by id | Yes | test/runbooks.test.mjs:207 |
-| Empty runbooks array → null | Yes | test/runbooks.test.mjs:214 |
-| --runbook forced selection | Yes | test/runbooks.test.mjs:316 |
-| --runbook unknown → null | Yes | test/runbooks.test.mjs:323 |
-| null/undefined description | **No** | Crashes at line 213 |
-| Empty string description | **No** | Would return 0 (safe) |
-| Unknown pattern type | **No** | Silently scores 0 (safe) |
-| planTasks integration path | **No** | No automated test |
-| Built-in runbooks load correctly | **No** | Manual verification only |
-| .team/runbooks/ created by init | Yes | test/runbook-dir.test.mjs:25 |
-| .team/runbooks/ created lazily by run | Yes | test/runbook-dir.test.mjs:57 |
+| Nonexistent runbooks dir | Yes | test:42, confirmed in test run |
+| Empty runbooks dir | Yes | test:47, confirmed in test run |
+| Valid YAML with all fields | Yes | test:52, confirmed in test run |
+| Multiple files sorted by filename | Yes | test:71, confirmed in test run |
+| Missing required fields (id) | Yes | test:82, confirmed in test run |
+| Non-YAML files ignored | Yes | test:89, confirmed in test run |
+| `.yaml` extension accepted | Yes | test:108, confirmed in test run |
+| `flow` field preserved | Yes | test:96, confirmed in test run |
+| Regex match with weight | Yes | test:124, confirmed in test run |
+| Keyword occurrence counting | Yes | test:138, confirmed in test run |
+| Case-insensitive keyword | Yes | test:146, confirmed in test run |
+| Combined pattern scoring | Yes | test:153, confirmed in test run |
+| Default weight = 1 | Yes | test:163, confirmed in test run |
+| Invalid regex skipped | Yes | test:170, confirmed in test run |
+| Best match above minScore | Yes | test:195, confirmed in test run |
+| No match returns null | Yes | test:202, confirmed in test run |
+| Tie-break by id | Yes | test:207, confirmed in test run |
+| Empty runbooks → null | Yes | test:214, confirmed in test run |
+| Include expansion | Yes | test:237, confirmed in test run |
+| Missing include skipped | Yes | test:260, confirmed in test run |
+| Nested include stops at 1 level | Yes | test:272, confirmed in test run |
+| Forced runbook by id | Yes | test:316, confirmed in test run |
+| Unknown forced id → null | Yes | test:323, confirmed in test run |
+| ReDoS regex rejected | Yes | test:345, confirmed in test run |
+| Inline YAML comments stripped | Yes | test:394, confirmed in test run |
+| Per-pattern validation | Yes | test:421, confirmed in test run |
+| Per-task validation | Yes | test:444, confirmed in test run |
+| All patterns invalid → skip | Yes | test:466, confirmed in test run |
+| Directory named `.yml` | Yes | manually verified — caught by try/catch |
+| null description | **No** | manually confirmed crash at line 213 |
+| undefined description | **No** | manually confirmed crash at line 213 |
+| `planTasks` integration | Partial | source-level trace + subprocess test (runbook-dir.test.mjs) |

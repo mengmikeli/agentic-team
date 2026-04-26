@@ -121,9 +121,8 @@ export function cmdFinalize(args) {
           : `Feature finalized. Task status: ${task.status}.`;
         try {
           closeIssue(task.issueNumber, comment);
-          if (tracking) {
-            const projMatch = String(tracking.statusFieldId || "").match(/\d+/);
-            // Best-effort: move to done on project board
+          if (freshState.projectNumber) {
+            setProjectItemStatus(task.issueNumber, freshState.projectNumber, "done");
           }
           issuesClosed++;
         } catch { /* best-effort */ }
