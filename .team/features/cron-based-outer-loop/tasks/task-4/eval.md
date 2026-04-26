@@ -844,3 +844,531 @@ four claimed tests exist, are correctly structured, and directly exercise the co
 target. Failure path sequencing, lock release, and title sanitization are all correct.
 
 **Engineer Verdict: PASS**
+
+---
+
+# Security Review — task-4 run_3 (cron-tick: Unicode sanitization, args fix, stale recovery)
+
+**Reviewer role:** Security Specialist
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `bin/lib/github.mjs` (full)
+- `bin/lib/run.mjs` (runSingleFeature signature and flag parsing)
+- `bin/lib/util.mjs` (lockFile, isPidAlive)
+- `test/cron-tick.test.mjs` (full)
+- All four `handshake.json` files
+
+---
+
+## Threat Model
+
+Adversary: anyone who can write GitHub issues visible to the project board (repo collaborators, or any user if issues are public). Primary vector: issue title injected into an LLM agent prompt. Secondary vector: error messages from agent runs reflected back to the originating issue.
+
+---
+
+## Per-Criterion Results
+
+### 1. Title sanitization — PASS (prior finding closed)
+
+`cron.mjs:118` now strips `\r\n\x00-\x1f\x7f\u0085\u2028\u2029`. The prior 🟡 finding about Unicode line separators (U+0085/U+2028/U+2029) is closed. Tests at `test/cron-tick.test.mjs:346-395` verify all three Unicode separators are stripped.
+
+Residual gap: Unicode bidirectional control characters (U+200E, U+200F, U+202A–U+202E, U+2066–U+2069) are not stripped. These appear in known LLM prompt-injection obfuscation payloads. The threat is narrow (requires a crafted issue title and a sophisticated attacker) but real if the project board is accessible beyond a single developer.
+
+### 2. Args no longer forwarded to runSingleFeature — PASS (prior finding closed)
+
+`cron.mjs:129`: `await _runSingleFeature([], title)` — empty array confirmed. The prior 🟡 finding about `--dry-run` flag leakage is closed. Test at `cron-tick.test.mjs:177` asserts `runArgs` is `[]`.
+
+### 3. Stale in-progress recovery — PASS
+
+New code at `cron.mjs:88-103`. Recovery executes while holding the advisory lock (acquired at `cron.mjs:78-82`). Since only one process can hold the lock at a time, treating "in-progress" items as ownerless is correct — no TOCTOU window. The `setProjectItemStatus` call uses hardcoded `"ready"` status (no user-controlled value flows). No new attack surface.
+
+### 4. Shell injection via gh CLI — PASS (unchanged)
+
+All `github.mjs` calls use `spawnSync("gh", args, ...)` with an array and no `shell: true`. The `commentIssue` body at `cron.mjs:144` is passed as a positional argument — not interpolated into a shell string. No injection surface regardless of body content.
+
+### 5. `err.message` in GitHub comment — suggestion (unchanged)
+
+`cron.mjs:144`: `` `cron-tick failed: ${err.message || String(err)}` `` posted verbatim. In common failure modes this includes internal file paths (e.g., `Cannot create worktree for "feature": ENOENT /home/user/...`). If the repo is public or shared, internal paths are disclosed. Acceptable risk for a personal CLI tool; worth capping for shared use.
+
+### 6. Lock file / PID recycling — acceptable
+
+`util.mjs:89-96`: `isPidAlive` uses `process.kill(pid, 0)`. If a cron-tick dies and its PID is recycled by an unrelated process, the lock appears still held. Impact: next cron-tick exits 0 with "already running" and defers to the following interval. Not a security vulnerability — an operational nuisance bounded by one cron interval.
+
+---
+
+## Findings
+
+🔵 `bin/lib/cron.mjs:118` — Unicode bidirectional control characters (U+200E, U+200F, U+202A–U+202E, U+2066–U+2069) are not stripped from the issue title before LLM prompt injection; used in known prompt-obfuscation attacks — extend the regex to include `\u200e\u200f\u202a-\u202e\u2066-\u2069`
+
+🔵 `bin/lib/cron.mjs:144` — `err.message` posted verbatim to GitHub issues may expose internal file paths in shared/public repos — consider capping to first line and 200 chars: `(err.message || String(err)).split('\n')[0].slice(0, 200)`
+
+---
+
+## Summary
+
+**Verdict: PASS**
+
+The two previously flagged security findings are closed: Unicode line separators (U+0085/U+2028/U+2029) are now stripped, and CLI args are no longer forwarded to `runSingleFeature`. The new stale-in-progress recovery introduces no new attack surface. Two suggestions remain, both calibrated to narrow threat scenarios for a personal developer tool.
+
+---
+
+# Simplicity Review — task-4 (run_3): stale in-progress recovery + Unicode sanitization + empty-args fix
+
+**Reviewer role:** Simplicity Advocate
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-4/handshake.json`
+- `bin/lib/cron.mjs` (full, 180 lines)
+- `test/cron-tick.test.mjs` (full, 727 lines)
+- `bin/lib/github.mjs` (lines 38–65: `readTrackingConfig`)
+- `bin/lib/outer-loop.mjs` (lines 117–127: `readProjectNumber`)
+- `.team/features/cron-based-outer-loop/SPEC.md`
+
+---
+
+## Four Veto Categories
+
+### 1. Dead Code — PASS
+
+No dead code in run_3 changes. All new code paths are reachable and tested:
+- `cron.mjs:91-103` (stale recovery loop): exercised by three new tests at lines 399–499.
+- `cron.mjs:118` (Unicode regex extension `\u0085\u2028\u2029`): exercised by test at line 346.
+- `cron.mjs:129` (`[]` instead of `args`): exercised by the successful-dispatch test assertion at line 177 (`assert.deepEqual(runArgs, [])`).
+
+One carry-forward note: `args` at line 42 is accepted by `cmdCronTick` but never read. JSDoc says "(unused for now)". This follows the codebase calling convention for all cmd* functions and is not harmful; flagged 🔵 below.
+
+### 2. Premature Abstraction — PASS
+
+No new abstractions. The stale-recovery logic is 13 lines of inline iteration at `cron.mjs:91–103`. Not extracted.
+
+### 3. Unnecessary Indirection — PASS
+
+No new wrappers or delegates.
+
+### 4. Gold-Plating — PASS
+
+No new config options, feature flags, or speculative extensibility.
+
+---
+
+## Additional Complexity Review
+
+### Mutation to feed downstream filter (new in run_3) — 🟡
+
+`cron.mjs:101`: `staleItem.status = "ready"; // include in ready pool below`
+
+The recovery loop mutates the status field of an element in the `items` array so that the filter at line 106 (`items.filter(i => i.status?.toLowerCase() === "ready")`) picks up the recovered item. This works correctly and the comment explains the intent, but the coupling is non-obvious: a reader must look 5 lines ahead to understand why the mutation happens. An explicit variable (`recoveredItems.push(staleItem); ... readyItems = [...explicitReadyItems, ...recoveredItems]`) would make the data flow visible without mutation. Not a veto violation, but a genuine complexity concern.
+
+### `readProjectNumber` duplication — carry-forward 🟡
+
+`cron.mjs:20-31` and `outer-loop.mjs:117-127` are body-for-body identical. Both read PROJECT.md with the same regex and the same try/catch return contract. The only difference is the parameter name (`cwd` vs `teamDir`). Not introduced by run_3; carry-forward from prior simplicity eval.
+
+### Inline tracking config duplicate in tests — carry-forward 🔵
+
+`test/cron-tick.test.mjs:526-535` inlines a full tracking-config object (with "ready" key) that is structurally identical to the shared `TRACKING_CONFIG` constant at lines 23-31. The "missing Ready option" test at line 556 intentionally omits "ready" and cannot use the constant. The one at line 526 could. Carry-forward from run_2.
+
+---
+
+## Findings
+
+🟡 `bin/lib/cron.mjs:101` — `staleItem.status = "ready"` mutates the input array element to include recovered items in the ready pool via a filter 5 lines later; coupling is implicit — collect recovered items into an explicit variable and merge with `readyItems` to make the data flow visible
+
+🟡 `bin/lib/cron.mjs:20` — `readProjectNumber` duplicates `outer-loop.mjs:117` body-for-body; if the project-URL regex ever changes, both copies need updating — extract to a shared utility (carry-forward, not introduced by run_3)
+
+🔵 `bin/lib/cron.mjs:42` — `args` accepted by `cmdCronTick` but never read; SPEC guarantees flags are not forwarded — drop the "for now" annotation or remove the parameter
+
+🔵 `test/cron-tick.test.mjs:526` — inline tracking config duplicates `TRACKING_CONFIG` constant at line 23; use the shared constant (carry-forward from run_2)
+
+---
+
+## Summary
+
+Run_3 changes are minimal and proportional: inline stale-recovery logic (13 lines), a one-line regex extension, an empty-array pass-through fix, and targeted test hardening (try/finally restores, lock-release spies, three new recovery tests, one Unicode test). No veto-category violations. The mutation-feeds-filter pattern at line 101 is the only new complexity concern worth a backlog item.
+
+**Simplicity Verdict: PASS**
+
+---
+
+# Engineer Eval — task-4 run_3 (stale in-progress recovery + run_2 findings)
+
+**Reviewer role:** Software Engineer
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-4/handshake.json` (run_3)
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 727 lines)
+- `bin/lib/github.mjs` (lines 218–294: commentIssue, listProjectItems, setProjectItemStatus)
+- Prior eval sections for run_1 and run_2 (all roles)
+
+---
+
+## Tests Run
+
+```
+node --test test/cron-tick.test.mjs
+ℹ tests 24 | pass 24 | fail 0
+```
+
+Executed directly. 24 tests = 20 from run_2 + 3 stale-recovery + 1 Unicode sanitization. All pass.
+
+---
+
+## Claim Verification (run_3 handshake)
+
+### Claim 1: Empty array passed to `runSingleFeature` — VERIFIED
+
+`cron.mjs:129`: `await _runSingleFeature([], title)` — empty array, not the forwarded `args`.
+Test at `cron-tick.test.mjs:177`: `assert.deepEqual(runArgs, [], "runSingleFeature must be called with empty args")`. ✅
+Prior architect finding (--dry-run flag leakage) is closed.
+
+### Claim 2: Unicode line separators added to title sanitization regex — VERIFIED
+
+`cron.mjs:118`: `.replace(/[\r\n\x00-\x1f\x7f\u0085\u2028\u2029]/g, " ")` — U+0085, U+2028, U+2029 present.
+New test at `cron-tick.test.mjs:346–370` passes title `"Inject\u0085NEL\u2028LS\u2029PS"` and asserts all three are stripped. ✅
+Prior security finding is closed.
+
+### Claim 3: Stale in-progress recovery pre-flight — VERIFIED
+
+`cron.mjs:88–103`: filters items for "in-progress"/"in progress" (case-insensitive), calls `_setProjectItemStatus(..., "ready")` on each, logs warning on failure, and mutates `staleItem.status = "ready"` on success so the item enters the ready pool below.
+Three new tests at lines 399–499 cover: mixed stale+ready (stale reverted, run called), only-stale (reverted → dispatched), stale revert failure (warning, no dispatch).
+The mutation at line 101 is the bridge between recovery and re-dispatch — traced correctly. ✅
+
+### Claim 4: Console mock restores and lock.release() spies — VERIFIED
+
+All tests that set `console.log/warn/error` now restore via `try {} finally {}`:
+- Line 98–103 (no ready items) ✅
+- Lines 206–210 (board API warning) ✅
+- Lines 271–274 (commentIssue false) ✅
+- Lines 304–309 (commentIssue throws) ✅
+- Lines 487–492 (stale revert warning) ✅
+
+All acquired-lock tests use `makeLockSpy()` and assert `lockSpy.releaseCalls === 1`. Tests 5–7 (early-exit via `process.exit(1)`) are correctly exempted — `lockFile` is never called in those paths because pre-flight guards at lines 58–74 run before `lockFile` at line 78. ✅
+
+---
+
+## Correctness
+
+### Stale recovery → ready pool interaction — PASS
+
+`inProgressItems` at line 91 is a filtered snapshot of `items`. The `for...of` loop at line 95 mutates `staleItem.status = "ready"` on the shared object, which is also referenced in `items`. When `readyItems` is computed at line 106 from `items`, the recovered stale items appear as "ready". Recovered items appearing before other ready items in the original array are dispatched first (FIFO from board order). Logic is correct; test at line 431 traces this exact path.
+
+### Recovered-then-dispatched item sequencing — PASS
+
+For the only-stale case (test line 431): stale item is first reverted to "ready" via `_setProjectItemStatus(..., "ready")`, then picked up by `readyItems`, then transitions to in-progress via `_setProjectItemStatus(..., "in-progress")`, then runs, then transitions to "done". Three calls to `setProjectItemStatus` for the same issue. Test records all transitions and asserts all three statuses. ✅
+
+### `lock.release()` safety — PASS (carry-forward: still holds)
+
+Lock is acquired at line 78 only when `!lock.acquired` is false (meaning lock IS acquired). `process.exit(0/1)` paths at lines 61, 66, 73, 81 are all before the `try` block at line 84. `lock.release()` at line 154 is inside the outer `finally`, unconditional. ✅
+
+---
+
+## Edge Cases Checked
+
+| Case | Covered? | Evidence |
+|---|---|---|
+| Stale item + ready items present | Yes | test line 399 |
+| Only stale item (no independent ready) | Yes | test line 431 |
+| Stale revert fails (returns false) | Yes | test line 468 |
+| Stale item reverted, still gets dispatched first | Yes | test line 431 (traced above) |
+| `runSingleFeature` receives empty args | Yes | test line 177 |
+| Title with U+0085 / U+2028 / U+2029 | Yes | test line 346 |
+| Multiple stale items (> 1) | Not tested | All reverted; only first becomes ready[0] |
+| Stale item where `issueNumber` is null | Not tested | `setProjectItemStatus` guards on `!issueNumber` and returns false; stale item gets the "could not recover" warning path |
+
+---
+
+## Findings
+
+🔵 `bin/lib/cron.mjs:86` — `_listProjectItems(projectNumber)` called without `await`; carry-forward from run_2 engineer eval; no comment or JSDoc signals the synchronous contract; an injected async stub would return a Promise and `items.filter` would throw `TypeError: items.filter is not a function`
+
+🔵 `bin/lib/cron.mjs:101` — `staleItem.status = "ready"` mutates the object in-place to include recovered items in the ready pool; relies on an implicit (undocumented) contract that objects returned by `_listProjectItems` are mutable; works correctly in all current production/test paths
+
+---
+
+## Summary
+
+All four run_3 claims are verified against code and tests. The three prior open findings (--dry-run leakage, Unicode sanitization gap, stale in-progress stranding) are closed with code and tests. Console mock restores and lock.release() spies have been hardened across all applicable tests. 24 tests pass, verified by direct execution.
+
+No new correctness or safety issues. Two 🔵 suggestions are carry-forward quality notes with no runtime risk in current code.
+
+**Engineer Verdict: PASS**
+
+---
+
+# Architect Eval — task-4 run_3 (stale recovery + empty-args fix + Unicode sanitization)
+
+**Reviewer role:** Software Architect
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 726 lines)
+- `bin/lib/github.mjs` (full, ~295 lines)
+- `bin/lib/util.mjs` (lockFile section, lines 95–166)
+- `bin/lib/run.mjs` (`_runSingleFeature` signature, line 780)
+- `.team/features/cron-based-outer-loop/SPEC.md` (full)
+- All four `handshake.json` files
+
+---
+
+## Per-Criterion Results (SPEC AC1–AC7)
+
+### AC1: Dispatch — PASS
+`cron.mjs:113–129`: picks `readyItems[0]`, transitions to "in-progress", calls `_runSingleFeature([], title)`. Empty-args fix: `[]` passed explicitly, not forwarded CLI args. Asserted at `test/cron-tick.test.mjs:177`.
+
+### AC2: Success path — PASS
+`cron.mjs:131–135`: `_setProjectItemStatus(..., "done")` on success. Warning on false return is non-fatal.
+
+### AC3: Failure path — PASS
+`cron.mjs:136–152`: catch block reverts to "ready", wraps `_commentIssue` in its own try/catch so a throwing comment call cannot suppress the original `console.error`. Tests 4b and 4c cover false return and throwing respectively.
+
+### AC4: Stale in-progress recovery — PASS
+`cron.mjs:88–103`: filters `status.toLowerCase()` against `"in-progress"` and `"in progress"` (covers both internal key and GitHub API capitalization). On successful revert, `staleItem.status = "ready"` mutates the object reference in-place so the item enters `readyItems` at line 106 without an extra API call. Three stale-recovery tests at lines 399–498: stale+fresh, stale-only, stale-revert-fails.
+
+### AC5: Concurrent execution guard — PASS
+`cron.mjs:76–82`: `lockFile(lockPath, { timeout: 0 })`. CLI integration test at line 686 writes a live-PID lock file and asserts the subprocess exits 0 with "already running".
+
+### AC6: Pre-flight validation — PASS
+`cron.mjs:56–74`: three sequential guards before lock acquisition. No lock is held during pre-flight; no release needed.
+
+### AC7: Title sanitization — PASS
+`cron.mjs:118`: regex `/[\r\n\x00-\x1f\x7f\u0085\u2028\u2029]/g` covers all SPEC-required characters. Truncated to 200 chars. Tests at lines 320–394 cover ASCII injection, Unicode injection, and length overflow.
+
+---
+
+## Architectural Findings
+
+### Redundant PROJECT.md reads
+`cron.mjs:57` (`_readTrackingConfig`) and `cron.mjs:70` (`_readProjectNumber`) both read the same file. In production, `setProjectItemStatus` (github.mjs:275) calls `readTrackingConfig()` again per status transition. A full tick with stale recovery + dispatch reads PROJECT.md 4–5 times. Acceptable for a cron-period operation.
+
+### `setProjectItemStatus` re-reads config with implicit `process.cwd()`
+`github.mjs:275`: `readTrackingConfig()` with no arguments. If cwd diverges from project root during a run, status transitions silently return false while pre-flight passed with an explicit path. Carry-forward risk; bounded by current `process.cwd()` usage in `runSingleFeature`.
+
+### `process.exit()` for pre-flight errors
+`cron.mjs:60, 66, 73, 81`: direct `process.exit()` calls break the async interface contract and require monkey-patching in all pre-flight tests. A thrown error would be more composable.
+
+### `_listProjectItems` sync contract undocumented
+`cron.mjs:86`: called without `await`. An async injection fixture would silently produce a Promise in `items`, causing `filter` to iterate over `[Promise]`. Low risk today; a comment would prevent a future footgun.
+
+---
+
+## Edge Cases Checked
+
+| Case | Result |
+|---|---|
+| No ready items | exits 0, "no ready items" logged |
+| Lock already held (live PID) | exits 0, "already running" |
+| runSingleFeature throws | reverts to ready, comments, exits 0 |
+| commentIssue returns false | warns, does not throw |
+| commentIssue throws | inner catch absorbs it; original error logged |
+| title with ASCII control chars | stripped |
+| title with U+0085/U+2028/U+2029 | stripped |
+| title > 200 chars | truncated |
+| stale in-progress + fresh ready | stale reverted, fresh dispatched |
+| stale in-progress only | reverted, re-dispatched |
+| stale revert fails | warning, item not re-queued |
+| tracking config missing | exits 1 |
+| Ready option ID missing | exits 1 |
+| project number missing | exits 1 |
+| args forwarded to runSingleFeature | FIXED: `[]` passed explicitly |
+
+---
+
+## Findings
+
+🔵 `bin/lib/github.mjs:275` — `setProjectItemStatus` calls `readTrackingConfig()` with implicit `process.cwd()`; pass tracking config as a parameter to eliminate the implicit dependency and avoid silent failures if cwd changes
+
+🔵 `bin/lib/cron.mjs:60` — pre-flight errors call `process.exit()` directly; consider throwing instead for composability and cleaner test setup
+
+🔵 `bin/lib/cron.mjs:86` — `_listProjectItems` called without `await` with no comment documenting the sync requirement; add a JSDoc note to prevent a future async fixture from silently breaking the filter chain
+
+---
+
+## Summary
+
+All seven SPEC acceptance criteria are met with direct code evidence. The run_3 hardening correctly addresses all prior 🟡 warnings: empty args fix (AC1), Unicode line-separator sanitization (AC7), stale in-progress recovery (AC4), and test quality improvements (try/finally console restores, lock spy assertions). No critical or warning-level findings against the current implementation.
+
+**Architect Verdict: PASS**
+
+---
+
+# PM Eval — task-4 run_3: cron-based-outer-loop (final feature review)
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 553 lines)
+- `bin/lib/github.mjs` (`commentIssue` excerpt, lines 218–222)
+- `.team/features/cron-based-outer-loop/SPEC.md` (full, 65 lines)
+- `tasks/task-{1,2,3,4}/handshake.json` (all four)
+
+No `tasks/*/artifacts/test-output.txt` files exist — see finding below.
+
+---
+
+## Requirement (from SPEC.md)
+
+> `agt cron-tick` when feature run fails reverts the board item to "Ready" and comments on the GitHub issue.
+
+SPEC.md exists and was read in full; all seven acceptance criteria were verified against code.
+
+---
+
+## Per-Criterion Results
+
+### AC1: Dispatch — PASS
+
+`cron.mjs:130`: first `readyItems[0]` is selected. `runSingleFeature` called with `([], title)` — empty args, not forwarded CLI flags (prior 🟡 `args` leakage closed in run_3). Test at `cron-tick.test.mjs:177` asserts `assert.deepEqual(runArgs, [])`.
+
+### AC2: Success path — PASS
+
+Board item transitions in-progress → done (`cron.mjs:131–135`). Function returns normally (no explicit `process.exit`) → OS exit 0. Transition ordering verified at test lines 104–109.
+
+### AC3: Failure path — PASS
+
+`cron.mjs:137–153`: inner `catch(err)` reverts to "ready", then wraps `_commentIssue` in its own try-catch so a throwing comment call never masks the original error. `console.error` emits the failure to stderr (captured by cron's `2>&1` log). Process exits 0 (no `process.exit(1)` in catch). Tests 4, 4b, and 4c cover revert + comment, comment returns false, and comment throws.
+
+### AC4: Stale in-progress recovery — PASS
+
+Pre-flight loop at `cron.mjs:89–103` runs after lock acquisition and before ready-item filtering. Handles `"in-progress"` and `"in progress"` casing. Mutates `staleItem.status = "ready"` so recovered items enter `readyItems` in the same tick. Three tests cover: recovery + dispatch of normal item, recovery + dispatch of recovered-only item, and warning on failed revert.
+
+### AC5: Concurrent execution guard — PASS
+
+`_lockFile(lockPath, { timeout: 0 })` tries once; if not acquired, exits 0 with "already running". CLI integration test at `cron-tick.test.mjs:330` writes a real lock file owned by the live test-runner PID and asserts the spawned subprocess exits 0.
+
+### AC6: Pre-flight validation — PASS
+
+Three guards before lock acquisition: (1) no tracking config → exit 1 "not configured", (2) `"ready"` option absent → exit 1, (3) project number unparseable → exit 1. All three exercised by unit tests; two by CLI integration tests.
+
+### AC7: Title sanitization — PASS
+
+`cron.mjs:118`: regex extended in run_3 to include U+0085/U+2028/U+2029 (prior 🟡 security finding closed). Truncates to 200 chars. Tests cover control chars, Unicode separators, and truncation.
+
+---
+
+## Scope Check
+
+run_3 delivered exactly the four fixes stated in handshake.json: empty-args pass-through, Unicode regex extension, stale in-progress pre-flight, and test hardening. No out-of-spec additions detected.
+
+---
+
+## Findings
+
+🟡 `.team/features/cron-based-outer-loop/tasks/*/artifacts/` — No `test-output.txt` stored in any task's artifact directory; test counts in handshakes (549, 553) cannot be independently verified from artifacts alone — store test runner output as a task artifact in future runs.
+
+🔵 `bin/lib/cron.mjs:89–103` — Stale recovered items are always retried immediately in the same tick; if a feature was killed due to resource limits it will be dispatched again immediately; no spec prohibition but may surprise operators — file backlog item for optional retry-count cap.
+
+---
+
+## Summary
+
+All seven SPEC acceptance criteria have direct code evidence and test coverage. Both primary user-facing behaviors (revert to "Ready" + failure comment) are implemented and hardened across four runs. The two open prior 🟡 findings (args leakage, Unicode sanitization) are confirmed closed in run_3. No blocking issues found.
+
+**PM Verdict: PASS**
+
+---
+
+# Tester Eval — task-4 run_3 (stale recovery, Unicode sanitization, args fix, test hardening)
+
+**Reviewer role:** Test Strategist
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-4/handshake.json` (run_3)
+- `bin/lib/cron.mjs` (full, 179 lines)
+- `test/cron-tick.test.mjs` (full, 727 lines)
+- `.team/features/cron-based-outer-loop/SPEC.md` (full)
+- `bin/lib/github.mjs` (`listProjectItems` — confirmed synchronous, line 238)
+
+## Tests Run
+
+```
+node --test test/cron-tick.test.mjs
+tests 24 | pass 24 | fail 0 | skipped 0
+
+npm test (full suite)
+tests 555 | pass 553 | fail 0 | skipped 2
+```
+
+Executed directly. Builder claimed 553 pass; verified.
+
+---
+
+## Per-Criterion Results
+
+### AC1: Dispatch — PASS
+Test at line 146 verifies `runSingleFeature` called with `[]` (`assert.deepEqual(runArgs, [])`), correct title, correct status sequence.
+
+### AC2: Success path — PASS
+Same test asserts `done` transition follows `in-progress` transition in order.
+
+### AC3: Failure path — PASS
+Tests at lines 220, 253, 283 cover: revert to ready, comment with error message, comment returns false warning, comment throws warning. Prior finding (commentIssue not wrapped) is closed.
+
+### AC4: Stale in-progress recovery — PASS
+Three tests at lines 399, 431, 468. All pass. All use "In Progress" (space format) — see findings.
+
+### AC5: Concurrent execution guard — PASS
+Unit test (line 111) and CLI integration test (line 686).
+
+### AC6: Pre-flight validation — PASS
+Three unit tests (lines 503, 525, 555) and two CLI integration tests (lines 649, 668).
+
+### AC7: Title sanitization — PASS
+Tests at lines 320, 346, 372 cover control chars, Unicode line separators, truncation. Prior security finding closed.
+
+---
+
+## Findings
+
+🟡 `cron.mjs:86` — `listProjectItems` called bare inside the outer `try` with no inner catch; if the GH API throws (network failure, auth expiry), the exception propagates as an unhandled rejection with no `console.error` log — the `finally` block releases the lock but the failure is invisible in the cron log; add a test where `listProjectItems` throws and assert `console.error` is invoked with a useful message
+
+🟡 `test/cron-tick.test.mjs:399` — Stale+ready coexistence: dispatch priority not asserted; after stale recovery, item #3 (mutated to "ready") appears first in `readyItems` and gets dispatched ahead of item #4 (originally "Ready"), but the test asserts only `runCalled === true` — a regression that changes dispatch ordering would pass silently; add an assertion on the dispatched `issueNumber`
+
+🔵 `test/cron-tick.test.mjs:409` — All stale recovery tests use `status: "In Progress"` (space format); the `s === "in-progress"` (hyphen) branch at `cron.mjs:93` is never exercised by a stale-scenario test; add one fixture item with `status: "in-progress"` (hyphen)
+
+🔵 `cron.mjs:118` — No test for `item.title` being `null` or `undefined`; the `|| ""` guard is correct but untested
+
+---
+
+## Summary
+
+All 24 cron-tick tests pass (553/555 full suite). All seven SPEC acceptance criteria have direct test coverage with evidence. Prior 🟡 warnings from runs 1–2 (commentIssue guard, Unicode sanitization, args forwarding, lock-release spies, try/finally console-restore) are all closed. Two new 🟡 backlog items: `listProjectItems` error path lacks test coverage and error logging; stale+ready dispatch priority is untested. No critical findings.
+
+**Tester Verdict: PASS**
