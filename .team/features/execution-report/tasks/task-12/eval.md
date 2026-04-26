@@ -267,3 +267,324 @@ The report module is architecturally sound. It has clean boundaries (pure functi
 One yellow-level finding (selective `escapeCell` application) should go to backlog — it's not blocking today since non-title fields are harness-controlled, but it represents an incomplete hardening pattern. Two blue suggestions (fallback inconsistency, newline handling) are optional improvements.
 
 The implementation is right-sized for a v1 — no over-engineering, no premature abstractions, no unnecessary dependencies.
+
+---
+
+# Architect Review — execution-report / Final Gate (task-12)
+
+**Reviewer role:** Architect
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Reviewed commit:** 10e0ce1 (HEAD of feature/execution-report)
+
+---
+
+## Builder Claim
+
+Task-12 handshake states: "All 48 existing test/report.test.mjs tests pass (33 buildReport + 15 cmdReport). Full project suite passes: 566 pass, 0 fail, 2 skipped. No code changes were needed."
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (194 lines, full) — production implementation
+- `test/report.test.mjs` (609 lines, full) — test suite
+- `bin/agt.mjs` (grep for "report") — CLI wiring: import L19, dispatch L75, help L188-195, summary L248/868
+- `bin/lib/util.mjs:188-198` — `readState` dependency
+- `.team/features/execution-report/tasks/task-12/handshake.json` — builder claim
+- `.team/features/execution-report/tasks/task-12/eval.md` (270 lines) — prior engineer + architect reviews
+- `git diff main -- bin/lib/report.mjs test/report.test.mjs bin/agt.mjs` — full diff of all report-related files
+
+---
+
+## Tests Independently Run
+
+```
+$ node --test test/report.test.mjs
+tests 48  |  suites 2  |  pass 48  |  fail 0  |  skipped 0  |  duration_ms 179
+```
+
+Builder claimed 48 tests (33 buildReport + 15 cmdReport). Confirmed: 48 pass, 0 fail.
+
+---
+
+## Claim Verification
+
+| Claim | Evidence | Confirmed? |
+|-------|----------|------------|
+| 48 tests pass | Ran `node --test test/report.test.mjs` — 48 pass, 0 fail | Yes |
+| 33 buildReport + 15 cmdReport | Counted: `describe("buildReport")` has 33 `it()` blocks, `describe("cmdReport")` has 15 `it()` blocks | Yes |
+| No code changes needed | `git log` shows task-12 commit has no diff to report.mjs or report.test.mjs — prior tasks already got code into shape | Yes |
+| Full suite passes | Gate output in prompt shows all suites passing | Yes (trusted from harness) |
+
+---
+
+## Architectural Assessment — Final State
+
+### 1. Module Boundaries — PASS
+
+The report module maintains clean separation of concerns:
+
+- `buildReport(state)`: Pure function. State in, markdown string out. No I/O, no side effects. Ideal for testing and composition.
+- `cmdReport(args, deps)`: Thin CLI adapter. Validates input, resolves paths, delegates to `buildReport`, handles output routing.
+- `escapeCell(text)`: Private helper. Not exported. Single responsibility.
+
+Import graph is minimal and acyclic: `report.mjs` → `util.mjs` (for `readState`), `fs`, `path`. No coupling to the harness's state machine (`transition.mjs`, `run.mjs`, etc.). The report module is strictly read-only — it never mutates STATE.json.
+
+### 2. CLI Integration Footprint — PASS
+
+Two lines in `agt.mjs`:
+- `import { cmdReport } from "./lib/report.mjs"` (L19)
+- `case "report": cmdReport(args); break;` (L75)
+
+Plus help metadata at L188-195 and summary text at L248/868. Adding or removing the report command is a localized change. No global state, no middleware registration, no side-effects on import.
+
+### 3. Test Architecture — PASS
+
+The test suite uses two complementary strategies:
+
+1. **Unit tests (33)**: `buildReport()` receives synthetic state objects via `makeState()`. Tests assert on output string content. No filesystem, no processes, no mocking.
+2. **Integration tests (15)**: `cmdReport()` receives a `deps` object with injectable stubs for `readState`, `existsSync`, `writeFileSync`, `stdout`, `stderr`, `exit`, and `cwd`. Two tests use actual `spawnSync` against the real CLI binary for end-to-end verification.
+
+This is a well-structured test pyramid. The dependency injection pattern avoids brittle global mocking while still enabling complete environment control.
+
+### 4. Error Handling Chain — PASS
+
+Five error paths in `cmdReport`, all following the same pattern: write to stderr, exit(1), return. The validation order is correct (cheapest checks first):
+
+1. Missing feature name (no I/O)
+2. Invalid `--output` format (no I/O)
+3. Path traversal (string check, no I/O)
+4. Missing feature directory (one `existsSync` call)
+5. Missing STATE.json (one `readState` call)
+
+Each path has dedicated test coverage. Errors on stderr, reports on stdout — enables `agt report x > file.md` piping.
+
+### 5. Data Contract Stability — PASS
+
+`buildReport` reads from the established STATE.json schema (`feature`, `status`, `tasks`, `gates`, `tokenUsage`, `transitionCount`, `createdAt`, `completedAt`). Every field has a safe fallback (`||`, `??`, `?.`, conditional guards). The function never throws on missing or malformed data — critical for a reporting function that may read state from crashed or partially-completed runs.
+
+No new data shapes were introduced. The report module consumes existing contracts without extending them.
+
+### 6. Scalability — PASS (adequate)
+
+The `O(tasks * gates)` gate lookup at L61 is the only algorithmic concern. At current scale (~10 tasks, ~20 gates), this is negligible. At 10x (100 tasks, 200 gates), still sub-millisecond. At 100x, a Map-based index would be warranted, but that's premature optimization for a CLI report generator that runs once per feature completion.
+
+---
+
+## Edge Cases Independently Verified
+
+| Edge case | Code location | Test coverage | Result |
+|-----------|--------------|---------------|--------|
+| Missing title → `—` in table | report.mjs:63 | report.test.mjs:63-72 | PASS |
+| Missing title → `task.id` in What Shipped | report.mjs:51 | report.test.mjs:316-325 | PASS |
+| Pipe chars in title → escaped | report.mjs:63 + escapeCell | report.test.mjs:286-304 | PASS |
+| Invalid date → N/A duration | report.mjs:26 | report.test.mjs:306-314 | PASS |
+| Path traversal rejected | report.mjs:163 | report.test.mjs:589-608 | PASS |
+| `--output md` before feature name | report.mjs:139 | report.test.mjs:559-567 | PASS |
+| No gates → `—` verdict | report.mjs:62 | report.test.mjs:92-98 | PASS |
+| All tasks blocked → stalled rec | report.mjs:108 | report.test.mjs:216-226 | PASS |
+| Zero FAIL gates → no false recommendation | report.mjs:113 | report.test.mjs:355-364 | PASS |
+| Multiple recommendations fire simultaneously | report.mjs:97-119 | report.test.mjs:366-390 | PASS |
+| Gate warning deduplication | report.mjs:104-106 | report.test.mjs:392-413 | PASS |
+
+---
+
+## Findings
+
+🟡 bin/lib/report.mjs:8 — `escapeCell` handles pipes but not newlines. A `task.title` containing `\n` would break the markdown table row. Harness-generated titles are single-line today, but this should go to backlog as a hardening item.
+
+🟡 test/report.test.mjs:557 — Test section comment says `── 9.` but should be `── 10.` (duplicate numbering with line 544). Cosmetic, but makes test navigation harder during debugging. Should go to backlog.
+
+🔵 bin/lib/report.mjs:90 — Fallback for missing title in Blocked/Failed section is `"(no title)"`, while Task Summary table uses `"—"` and What Shipped uses `task.id`. Three different fallback conventions for the same missing data. Consider unifying.
+
+🔵 bin/lib/report.mjs:139 — Feature name extraction uses positional index skipping rather than a proper arg parser. Correct for the single `--output` flag supported today, but would need rework if additional flags are added. Acceptable for current scope.
+
+---
+
+## Overall Verdict: PASS
+
+The task-12 gate claim is verified: all 48 tests pass, the implementation is architecturally sound, and no code changes were needed at this stage. The feature implementation across tasks 1-12 produced a well-bounded report module with clean separation (pure function + CLI adapter), proper dependency injection, comprehensive test coverage (33 unit + 15 integration), and correct error handling following Unix conventions.
+
+Two yellow findings should go to backlog (newline handling in `escapeCell`, duplicate test comment numbering). Two blue suggestions are optional improvements (fallback inconsistency, arg parsing fragility). None block merge.
+
+The implementation is appropriately scoped for a v1 — no over-engineering, no premature abstractions, and minimal integration surface.
+
+---
+
+# Engineer Review — execution-report / Gate: All Tests Pass (task-12)
+
+**Reviewer role:** Engineer
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Reviewed commit:** 10e0ce1 (HEAD of feature/execution-report)
+
+---
+
+## Builder Claim (task-12 handshake)
+
+> "All 48 existing test/report.test.mjs tests pass (33 buildReport + 15 cmdReport). Full project suite passes: 566 pass, 0 fail, 2 skipped. No code changes were needed."
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (194 lines, full) — production implementation
+- `test/report.test.mjs` (609 lines, full) — test suite
+- `bin/agt.mjs` (grep: lines 19, 75, 188-194, 248, 868) — CLI wiring
+- `bin/lib/util.mjs:190-198` — `readState` function
+- `.team/features/execution-report/tasks/task-{10,11,12}/handshake.json` — builder claims
+- `.team/features/execution-report/tasks/task-{12,13,14,15}/eval.md` — prior reviews (all 4 files, full)
+- `git diff 0f6ed9f..HEAD -- bin/lib/report.mjs` — 1 production code change since prior reviews
+- `git diff 0f6ed9f..HEAD -- test/report.test.mjs` — 8 new tests since prior reviews
+- `git show --stat 10e0ce1` — gate commit contents (metadata only)
+
+---
+
+## Tests Independently Run
+
+```
+$ node --test test/report.test.mjs
+tests 48  |  suites 2  |  pass 48  |  fail 0  |  skipped 0  |  duration_ms 175
+```
+
+All 48 tests pass (33 `buildReport` + 15 `cmdReport`). Independently confirmed.
+
+---
+
+## Claim Verification
+
+| Claim | Evidence | Confirmed? |
+|-------|----------|------------|
+| 48 tests pass (33+15) | Independent test run: 48 pass, 0 fail | Yes |
+| No code changes in gate commit | `git show --stat 10e0ce1`: only metadata files changed | Yes |
+| Full suite passes | Gate output: 566 pass, 0 fail, 2 skipped | Yes |
+
+---
+
+## Delta Since Prior Reviews (0f6ed9f -> HEAD)
+
+Prior reviews (tasks 12-15) evaluated the code at 40 tests. Since then:
+
+### Production Code Change (1 fix)
+
+Commit `53ba88a` fixed per-phase cost rendering at report.mjs:77:
+
+```
+- `${k}: $${v.costUsd?.toFixed(4) ?? "N/A"}`
++ `${k}: ${v.costUsd != null ? `$${v.costUsd.toFixed(4)}` : "N/A"}`
+```
+
+**Old behavior:** `review: $N/A` (dollar sign prepended before nullish coalescing evaluated)
+**New behavior:** `review: N/A` (conditional prevents dollar sign on null/undefined)
+
+The fix is correct. `v.costUsd != null` catches both `null` and `undefined`. The `$` prefix is only applied when `toFixed()` will succeed.
+
+### New Tests (8 added, 40 -> 48)
+
+| Test | Covers |
+|------|--------|
+| `shows $X.XXXX total cost when present` | Cost formatting happy path |
+| `shows N/A for total cost when absent` | Cost N/A fallback |
+| `renders byPhase with phase names and label` | Enhanced assertions on phase names |
+| `shows N/A for per-phase split when byPhase absent` | byPhase missing -> N/A |
+| `shows N/A for phase whose costUsd is missing` | Validates bug fix at `53ba88a` |
+| `does NOT recommend gate review when no gates ran` | Negative boundary: prevents false positive |
+| `fires multiple recommendations simultaneously` | All 4 recommendation branches in one report |
+| `deduplicates gate warning layers` | Set-based dedup across entries |
+| `agt report no-such-feature (integration)` | End-to-end spawnSync test |
+
+All 8 are correctly structured and test genuine behaviors.
+
+---
+
+## Per-Criterion Results
+
+### 1. Correctness — PASS
+
+Verified 12 logic paths through the implementation:
+
+| Path | Lines | Verified by |
+|------|-------|-------------|
+| Happy path (complete feature) | L12-122 | test "prints report to stdout" |
+| Missing feature name | L151-155 | test "exits 1 with usage" |
+| Non-existent feature | L171-175 | unit test + integration test (spawnSync) |
+| Missing STATE.json | L178-182 | test "exits 1 when STATE.json is missing" |
+| `--output md` writes file | L186-189 | test "writes REPORT.md" |
+| `--output md` suppresses stdout | L186-189 | test "does not print full report" |
+| Path traversal (`../../etc`, `.`, `..`) | L163-167 | 3 tests |
+| Invalid `--output` format | L157-161 | 2 tests (bad value + no value) |
+| Blocked/failed tasks rendering | L86-94 | test "includes blocked tasks" |
+| Duration N/A on invalid dates | L26 | test "renders N/A duration" |
+| Per-phase cost with missing costUsd | L77 | test "shows N/A for phase" |
+| Flag/feature arg order flexibility | L139 | test "writes REPORT.md when --output md precedes" |
+
+### 2. Code Quality — PASS
+
+- Pure function / CLI adapter separation (`buildReport` / `cmdReport`) is clean
+- Dependency injection enables full test isolation without global mocking
+- Sequential section pattern in `buildReport` is readable top-to-bottom
+- Error messages include the problematic value for diagnostics
+- Consistent early-return guard pattern in `cmdReport`
+
+### 3. Error Handling — PASS
+
+Five error paths in `cmdReport`, all writing to stderr and calling `_exit(1)`:
+
+1. Missing feature name (L151) — "Usage: agt report <feature>"
+2. Unsupported output format (L158) — includes the bad value
+3. Path traversal (L164) — includes the invalid name
+4. Missing feature directory (L172) — includes the full path
+5. Missing STATE.json (L179) — includes the directory
+
+All verified by tests. Errors on stderr, reports on stdout — correct Unix convention.
+
+### 4. Performance — PASS
+
+- `buildReport` is O(tasks x gates) at L61 — adequate for report generation
+- String building via `lines.push()` + `join("\n")` — efficient for this scale
+- No I/O in `buildReport` — pure function
+- No blocking operations, no unnecessary allocations
+
+---
+
+## Edge Cases Checked
+
+| Edge Case | Covered? | Result |
+|-----------|----------|--------|
+| Title present | Yes (test) | Renders in column |
+| Title absent (undefined) | Yes (test) | Falls back to `---` in table |
+| Title with pipe chars | Yes (test) | Escaped; column structure preserved (6 unescaped pipes) |
+| Invalid createdAt (NaN) | Yes (test) | Duration: N/A |
+| Path traversal `../../etc` | Yes (test) | exit 1 |
+| `.` and `..` as feature name | Yes (test) | exit 1 |
+| `--output txt` | Yes (test) | exit 1 with format error |
+| `--output` (no value) | Yes (test) | exit 1 with format error |
+| `--output md` before feature name | Yes (test) | Works correctly |
+| Phase with missing costUsd | Yes (test) | Shows "N/A" not "$N/A" |
+| byPhase absent | Yes (test) | Shows "N/A" |
+| No gates ran | Yes (test) | Does NOT fire zero-pass recommendation |
+| Multiple recommendations at once | Yes (test) | All fire correctly |
+| Gate warning layer deduplication | Yes (test) | Set-based dedup works |
+| Title with newline | No | Would break table row (carried forward) |
+| Negative duration | No | Shows negative minutes (carried forward) |
+
+---
+
+## Findings
+
+No new findings beyond what prior reviews identified.
+
+Carried forward from prior reviews:
+
+- 🟡 bin/lib/report.mjs:9 — `escapeCell` does not strip newlines from `task.title`. A `\n` would break the table row. Low probability (machine-generated titles) but fix is trivial.
+- 🔵 bin/lib/report.mjs:28 — Negative duration renders as negative minutes. Guard with `mins < 0 ? "N/A" : ...`.
+- 🔵 bin/lib/report.mjs:90 — Title fallback inconsistency: `"(no title)"` vs `"---"` vs `task.id` across sections.
+
+---
+
+## Summary
+
+The gate claim is verified: all 48 tests pass, no production code changed in the gate commit, and the implementation is correct across all 12 verified logic paths.
+
+The delta since prior reviews is minimal and sound: one correct bug fix (per-phase `$N/A` -> `N/A`) and 8 well-structured tests closing previously untested branches. The code demonstrates clean separation of pure logic from I/O, proper DI, and comprehensive error handling. One yellow finding (newline in titles) carried forward — should go to backlog. Two blue suggestions for optional hardening.
+
+**Overall verdict: PASS**
