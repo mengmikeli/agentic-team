@@ -286,7 +286,7 @@ export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
     if (agent === "claude") {
       const MAX_RETRIES = 3;
       for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        const result = _spawnFn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
+        const result = _spawnFn("claude", ["--print", "--output-format", "json", "--model", process.env.ANTHROPIC_DEFAULT_OPUS_MODEL || "claude-opus-4.6-1m", "--permission-mode", "bypassPermissions", brief], {
           encoding: "utf8",
           cwd,
           timeout: 600000,
@@ -344,7 +344,7 @@ function dispatchToAgentAsync(agent, brief, cwd) {
     }
     let stdout = "";
     let stderr = "";
-    const child = spawn("claude", ["--print", "--output-format", "json", "--permission-mode", "bypassPermissions", brief], {
+    const child = spawn("claude", ["--print", "--output-format", "json", "--model", process.env.ANTHROPIC_DEFAULT_OPUS_MODEL || "claude-opus-4.6-1m", "--permission-mode", "bypassPermissions", brief], {
       cwd,
       stdio: ["pipe", "pipe", "pipe"],
       env: { ...process.env },
