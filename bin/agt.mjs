@@ -186,12 +186,12 @@ switch (command) {
         examples: ["agt cron-setup", "agt cron-setup --interval 15"],
       },
       report: {
-        usage: "agt report <feature> [--md]",
+        usage: "agt report <feature> [--output md]",
         description: "Print a readable execution report for a feature. Shows status, task summary, gate results, blocked tasks, and recommendations. Reads from STATE.json in .team/features/<feature>/.",
         flags: [
-          "--md   Write report to REPORT.md in the feature directory instead of stdout",
+          "--output md   Write report to REPORT.md in the feature directory instead of stdout",
         ],
-        examples: ["agt report my-feature", "agt report my-feature --md"],
+        examples: ["agt report my-feature", "agt report my-feature --output md"],
       },
       version: {
         usage: "agt version",

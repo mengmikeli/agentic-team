@@ -321,24 +321,24 @@ describe("cmdReport", () => {
     assert.equal(exitCode, null, "Should not exit with error");
   });
 
-  // ── 5. --md writes REPORT.md ──────────────────────────
+  // ── 5. --output md writes REPORT.md ──────────────────────────
 
-  it("writes REPORT.md to feature dir when --md is given", () => {
+  it("writes REPORT.md to feature dir when --output md is given", () => {
     const state = makeState();
     const deps = makeDeps(true, state);
-    cmdReport(["test-feature", "--md"], deps);
+    cmdReport(["test-feature", "--output", "md"], deps);
     const reportPath = join(tmpDir, ".team", "features", "test-feature", "REPORT.md");
     assert.ok(deps._writtenFiles[reportPath], "Should write REPORT.md");
     assert.ok(deps._writtenFiles[reportPath].includes("test-feature"), "REPORT.md should contain feature name");
     assert.ok(output.join("").includes("written to"), "Should print confirmation");
   });
 
-  // ── 6. --md does not print report to stdout ───────────
+  // ── 6. --output md does not print report to stdout ───────────
 
-  it("does not print full report to stdout when --md is given", () => {
+  it("does not print full report to stdout when --output md is given", () => {
     const state = makeState();
     const deps = makeDeps(true, state);
-    cmdReport(["test-feature", "--md"], deps);
+    cmdReport(["test-feature", "--output", "md"], deps);
     const out = output.join("");
     assert.ok(!out.includes("## Task Summary"), "Should not print Task Summary to stdout in md mode");
   });
@@ -370,7 +370,7 @@ describe("cmdReport", () => {
     });
     assert.equal(result.status, 0, `agt help report should exit 0; stderr: ${result.stderr}`);
     assert.ok(result.stdout.includes("agt report"), "Should include usage with 'agt report'");
-    assert.ok(result.stdout.includes("--md"), "Should mention --md flag");
+    assert.ok(result.stdout.includes("--output"), "Should mention --output flag");
     assert.ok(result.stdout.includes("agt report my-feature"), "Should include an example");
   });
 });

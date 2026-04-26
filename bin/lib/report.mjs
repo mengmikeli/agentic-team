@@ -120,14 +120,15 @@ export function buildReport(state) {
  * agt report <feature>
  *
  * Reads STATE.json for the given feature and prints a structured report to stdout.
- * With --md, writes REPORT.md to the feature directory instead.
+ * With --output md, writes REPORT.md to the feature directory instead.
  *
- * @param {string[]} args - CLI args; positional <feature> + optional --md
+ * @param {string[]} args - CLI args; positional <feature> + optional --output md
  * @param {object}   deps - Injectable dependencies for testing
  */
 export function cmdReport(args = [], deps = {}) {
-  const outputMd = args.includes("--md");
-  const featureName = args.find(a => !a.startsWith("-"));
+  const outputIdx = args.indexOf("--output");
+  const outputMd = outputIdx !== -1 && args[outputIdx + 1] === "md";
+  const featureName = args.find((a, i) => !a.startsWith("-") && !(outputMd && i === outputIdx + 1));
 
   const {
     readState: _readState = readState,

@@ -1,0 +1,15 @@
+{
+  "taskId": "task-2",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Changed CLI flag from --md to --output md for agt report command. Updated flag parsing in cmdReport to handle two-arg --output md syntax, updated help text in agt.mjs, and updated all tests. Full test suite passes: 547 pass, 0 fail.",
+  "timestamp": "2026-04-26T12:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "bin/agt.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
