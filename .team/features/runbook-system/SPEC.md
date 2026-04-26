@@ -1,33 +1,32 @@
 # Feature: Runbook System
 
 ## Goal
-Store reusable task decompositions as YAML runbooks in `.team/runbooks/` and automatically inject matching task lists at planning time, eliminating repeated brainstorm work for known feature patterns.
+Automatically match feature descriptions to reusable YAML task recipes, injecting pre-defined task lists at planning time to skip brainstorm for known patterns.
 
 ## Requirements
-
-- Runbooks are YAML files in `.team/runbooks/` with a regex pattern, keyword list, description, and ordered task list.
-- Matching runs in `planTasks()` before brainstorm: score each runbook against the feature description by regex match + keyword frequency, select the highest-scoring match above a threshold.
-- When a runbook matches, its task list is used directly (formatted as `- [ ] {task}` items) instead of calling the brainstorm agent.
-- `agt run --runbook <name>` forces a specific runbook by filename slug, bypassing scoring.
-- If no runbook matches (or `--runbook` names an unknown file), fall through to the existing brainstorm agent behavior — no behavior change for unmatched features.
-- Ship at least 3 built-in example runbooks covering common agentic-team patterns (e.g., add-cli-command, add-github-integration, add-test-suite).
-- Runbook match and task injection are logged to stdout so the user can see which runbook was selected.
-- Runbooks are composable: a task entry may reference another runbook by `include: <name>` to embed its task list inline (one level deep only — no recursive includes).
+- Runbooks are YAML files in `.team/runbooks/` with id, name, patterns (regex + keyword with weights), minScore threshold, ordered tasks, and flow selection.
+- A new module `bin/lib/runbooks.mjs` provides `loadRunbooks()`, `scoreRunbook()`, `matchRunbook()`, and `resolveRunbookTasks()`.
+- Scoring: regex match adds its weight; each keyword occurrence multiplied by its weight; total must meet `minScore` to trigger. Highest score wins; ties broken alphabetically by filename.
+- `planTasks()` in `run.mjs` calls `matchRunbook()` before falling through to brainstorm. When matched, runbook tasks are used directly — brainstorm is skipped entirely.
+- `agt run --runbook <name>` forces a specific runbook by id, bypassing scoring. Unknown name logs a warning and falls through to brainstorm.
+- Console output logs `[runbook] matched: {name} (score {n})` before task dispatch.
+- Runbook tasks support `include: <runbook-id>` to inline another runbook's tasks (one level deep, no recursion).
+- Ship 3 built-in runbooks: `add-cli-command`, `add-github-integration`, `add-test-suite` (already exist on `feature/runbook-system` branch).
+- No behavior change for unmatched features — existing brainstorm/checkbox-parse path is unchanged.
 
 ## Acceptance Criteria
-
-- [ ] A `.team/runbooks/add-cli-command.yml` runbook exists with a valid schema and at least 4 tasks.
-- [ ] A `.team/runbooks/add-github-integration.yml` runbook exists with a valid schema and at least 4 tasks.
-- [ ] A `.team/runbooks/add-test-suite.yml` runbook exists with a valid schema and at least 4 tasks.
-- [ ] `matchRunbook(description, runbooksDir)` returns the best-matching runbook or `null` when score is below threshold.
-- [ ] Regex match in a runbook correctly narrows candidate set before keyword scoring.
-- [ ] `planTasks()` uses runbook tasks when a match is found, falling through to brainstorm when no match.
-- [ ] `agt run --runbook add-cli-command` forces that runbook regardless of feature description.
+- [ ] `bin/lib/runbooks.mjs` exists and exports `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks`.
+- [ ] `loadRunbooks(dir)` reads all `.yml` files from a directory, validates schema (id, name, patterns, minScore, tasks, flow), returns array.
+- [ ] `scoreRunbook(description, runbook)` returns a numeric score: regex patterns add their weight on match, keyword patterns add `occurrences × weight`.
+- [ ] `matchRunbook(description, runbooks)` returns `{ runbook, score }` for the best match above threshold, or `null`.
+- [ ] `resolveRunbookTasks(runbook, allRunbooks)` expands `include:` entries one level deep and returns flat task array.
+- [ ] `planTasks()` in `run.mjs` loads runbooks, matches, and uses matched tasks when found.
+- [ ] `agt run --runbook add-cli-command` forces that runbook regardless of description.
 - [ ] `agt run --runbook nonexistent` logs a warning and falls through to brainstorm.
-- [ ] Console output identifies the matched runbook name and score before task dispatch begins.
-- [ ] `include:` in a task entry is resolved one level deep and inline tasks are inserted at that position.
-- [ ] Unit tests cover: exact regex match, keyword-only match, no-match fallthrough, `--runbook` override, unknown runbook fallthrough, `include:` resolution.
-- [ ] Existing tests pass without modification (no regression).
+- [ ] Console output names the matched runbook and score before task execution.
+- [ ] 3 built-in runbooks exist in `.team/runbooks/` with valid schema and ≥4 tasks each.
+- [ ] Unit tests cover: scoring (regex hit, keyword hit, combined, below threshold), matching (best-of-many, tie-break, no-match), `--runbook` override, unknown runbook fallthrough, `include:` resolution.
+- [ ] Full test suite (`npm test`) passes with no regressions.
 
 ## Technical Approach
 
@@ -35,87 +34,91 @@ Store reusable task decompositions as YAML runbooks in `.team/runbooks/` and aut
 
 ```yaml
 # .team/runbooks/add-cli-command.yml
-name: add-cli-command
-description: Add a new subcommand to the agt CLI
-pattern: "add.*cli.*command|new.*agt.*command|implement.*agt\\s+\\w+"   # regex tested against feature description (case-insensitive)
-keywords:
-  - cli: 3       # keyword → weight
-  - command: 2
-  - subcommand: 3
-  - agt: 2
-threshold: 4     # minimum total score to trigger (regex match OR keyword score >= threshold)
+id: add-cli-command
+name: Add CLI Command
+patterns:
+  - type: regex
+    value: "add.*cli.*command|new.*command"
+    weight: 2.0
+  - type: keyword
+    value: "subcommand"
+    weight: 1.0
+minScore: 2.5
 tasks:
-  - Add argument parsing and --help text for the new command in bin/lib/commands/
-  - Implement core command logic with error handling and exit codes
-  - Wire command into main CLI entry point (bin/agt.mjs)
-  - Write unit tests covering flag parsing, happy path, and error cases
-  - Update PLAYBOOK.md with usage examples for the new command
+  - title: "Define CLI command signature and options"
+    hint: "Specify the command name, arguments, flags, and help text"
+  - title: "Implement the command handler function"
+    hint: "Write the core logic that executes when the command is invoked"
+  # ... more tasks
+flow: build-verify
 ```
 
-### New Module: `bin/lib/runbooks.mjs`
+### New module: `bin/lib/runbooks.mjs`
 
-Exports:
-- `loadRunbooks(runbooksDir)` — reads all `.yml` files, parses and validates schema, returns `RunbookDef[]`
-- `matchRunbook(description, runbooks)` — scores each runbook, returns `{ runbook, score }` or `null`
-- `resolveRunbookTasks(runbook, allRunbooks)` — expands `include:` entries one level deep, returns `string[]`
-- `scoreRunbook(description, runbook)` — pure function: regex test + keyword sum → numeric score
+```
+loadRunbooks(dir)         → RunbookDef[]     — read + validate all .yml files
+scoreRunbook(desc, rb)    → number           — pure scoring function
+matchRunbook(desc, rbs)   → {runbook, score} | null
+resolveRunbookTasks(rb, all) → Task[]        — expand include: entries
+```
+
+**Scoring algorithm:**
+```
+score = 0
+for each pattern in runbook.patterns:
+  if pattern.type === "regex":
+    if description matches pattern.value (case-insensitive): score += pattern.weight
+  if pattern.type === "keyword":
+    occurrences = count of pattern.value in description (case-insensitive)
+    score += occurrences × pattern.weight
+trigger if score >= runbook.minScore
+```
 
 ### Changes to `bin/lib/run.mjs`
 
 In `planTasks(description, spec, opts)`:
-1. Load runbooks from `.team/runbooks/` (or `opts.runbooksDir` for tests).
-2. If `opts.runbook` is set, find by name, warn + fall through if not found.
-3. Otherwise call `matchRunbook()`.
-4. If match found: log `[runbook] matched: {name} (score {n})`, return `resolveRunbookTasks()` result as task array.
-5. Else: existing brainstorm / checkbox-parse path unchanged.
+1. Load runbooks from `.team/runbooks/`.
+2. If `opts.runbook` is set, find by id; warn + fall through if not found.
+3. Otherwise call `matchRunbook(description, runbooks)`.
+4. If match: log `[runbook] matched: {name} (score {n})`, return tasks as `{ id, title, status, attempts }` array.
+5. Else: existing spec-parse / single-task fallback unchanged.
 
-### Scoring Algorithm
+### CLI flag
 
-```
-score = 0
-if description matches runbook.pattern (case-insensitive regex): score += 5
-for each keyword in runbook.keywords:
-  occurrences = count of keyword in description (case-insensitive)
-  score += occurrences × weight
-trigger if score >= runbook.threshold
-```
+Parse `--runbook <name>` in `cmdRun()` alongside existing `--flow`, `--tier`, etc.
 
-Tie-break: highest score wins; ties broken by file name alphabetically.
-
-### File Layout
+### File layout
 
 ```
-.team/runbooks/
-  add-cli-command.yml
-  add-github-integration.yml
-  add-test-suite.yml
-bin/lib/runbooks.mjs      ← new module
-bin/lib/run.mjs           ← planTasks() modified
-test/runbooks.test.mjs    ← new test file
+bin/lib/runbooks.mjs           ← new module
+bin/lib/run.mjs                ← planTasks() modified, --runbook flag
+.team/runbooks/                ← 3 built-in YAML files (from feature branch)
+test/runbooks.test.mjs         ← new: unit tests for scoring/matching/loading
+test/runbook-*.test.mjs        ← existing: YAML schema validation tests
 ```
 
 ## Testing Strategy
 
-- **Unit tests** (`test/runbooks.test.mjs`): `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks`. Use fixture YAML files in `test/fixtures/runbooks/`. No file I/O beyond fixtures.
-- **Integration smoke test**: Run `planTasks()` with a description that matches `add-cli-command` runbook; assert tasks array starts with the runbook's first task and no brainstorm agent is called.
-- **Regression**: Run full test suite (`npm test`) and confirm no existing tests break.
-- Manual: `agt run --runbook add-cli-command` on a scratch feature, confirm tasks list printed matches the YAML, agent dispatched with those tasks.
+- **Unit tests** (`test/runbooks.test.mjs`): Test `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks` with fixture YAML files in `test/fixtures/runbooks/`. Cover: exact regex match, keyword-only match, combined scoring, below-threshold no-match, best-of-many selection, alphabetical tie-break, `--runbook` override, unknown runbook fallthrough, `include:` expansion, malformed YAML handling.
+- **Schema validation tests** (`test/runbook-*.test.mjs`): Already exist on feature branch. Verify each built-in runbook has required fields, ≥4 tasks, and id matching filename.
+- **Integration**: `planTasks()` with a matching description returns runbook tasks and skips brainstorm.
+- **Regression**: Full `npm test` suite passes.
 
 ## Out of Scope
-
-- Auto-generating new runbooks from past execution data (learning system).
+- Auto-generating runbooks from past execution data (learning system).
 - Remote runbook registry or npm-distributed runbooks.
 - Runbook versioning or migration tooling.
-- Recursive (multi-level) `include:` resolution.
-- Merging runbook tasks with brainstorm output (runbook replaces, not augments).
-- Extension system hooks for runbooks (deferred per roadmap).
-- Runbook editor or validation CLI command (`agt runbook validate`).
+- Recursive (multi-level) `include:` resolution — one level only.
+- Merging runbook tasks with brainstorm output — runbook replaces, not augments.
+- Extension system hooks for runbooks.
+- `agt runbook validate` CLI command.
+- Runbook editor UI.
 
 ## Done When
-
-- [ ] `test/runbooks.test.mjs` passes with ≥11 cases covering all acceptance criteria scenarios.
-- [ ] 3 built-in runbooks exist in `.team/runbooks/` with valid schema and ≥4 tasks each.
-- [ ] `planTasks()` in `run.mjs` uses runbook tasks on match and falls through correctly on no-match.
-- [ ] `agt run --runbook <name>` flag parsed and wired to `planTasks()`.
+- [ ] `bin/lib/runbooks.mjs` exists with `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks` exports.
+- [ ] `planTasks()` in `run.mjs` integrates runbook matching before brainstorm fallback.
+- [ ] `agt run --runbook <name>` flag is parsed and wired through.
+- [ ] 3 built-in runbooks in `.team/runbooks/` with valid schema and ≥4 tasks each.
+- [ ] `test/runbooks.test.mjs` passes with ≥10 cases covering scoring, matching, loading, includes, and CLI override.
 - [ ] Full test suite (`npm test`) passes with no regressions.
 - [ ] Console output names the matched runbook before task execution begins.

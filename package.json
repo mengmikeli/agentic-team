@@ -4,8 +4,8 @@
   "description": "CLI + harness for autonomous AI agent teams",
   "type": "module",
   "bin": {
-    "agt": "./bin/agt.mjs",
-    "agt-harness": "./bin/agt-harness.mjs"
+    "agt": "bin/agt.mjs",
+    "agt-harness": "bin/agt-harness.mjs"
   },
   "files": [
     "bin/",
@@ -35,6 +35,6 @@
   "homepage": "https://github.com/mengmikeli/agentic-team",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mengmikeli/agentic-team.git"
+    "url": "git+https://github.com/mengmikeli/agentic-team.git"
   }
 }

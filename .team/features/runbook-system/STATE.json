@@ -1,229 +1,143 @@
 {
   "version": "2.0",
   "feature": "runbook-system",
-  "status": "completed",
+  "status": "paused",
   "tasks": [
     {
       "id": "task-1",
-      "title": "A `.team/runbooks/add-cli-command.yml` runbook exists with a valid schema and at least 4 tasks.",
-      "status": "blocked",
+      "title": "`bin/lib/runbooks.mjs` exists and exports `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks`.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 387,
-      "lastTransition": "2026-04-25T14:50:19.594Z",
-      "ticks": 1,
-      "reviewRounds": 3,
-      "lastReason": "review-escalation: 3 rounds exceeded"
-    },
-    {
-      "id": "task-2",
-      "title": "A `.team/runbooks/add-github-integration.yml` runbook exists with a valid schema and at least 4 tasks.",
-      "status": "passed",
-      "attempts": 2,
-      "issueNumber": 388,
-      "lastTransition": "2026-04-25T15:01:56.555Z",
+      "issueNumber": 543,
+      "lastTransition": "2026-04-26T16:03:26.019Z",
       "ticks": 1,
       "reviewRounds": 1
     },
     {
-      "id": "task-3",
-      "title": "A `.team/runbooks/add-test-suite.yml` runbook exists with a valid schema and at least 4 tasks.",
-      "status": "blocked",
+      "id": "task-2",
+      "title": "`loadRunbooks(dir)` reads all `.yml` files from a directory, validates schema (id, name, patterns, minScore, tasks, flow), returns array.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 389,
-      "lastTransition": "2026-04-25T15:30:13.178Z",
-      "ticks": 1,
-      "reviewRounds": 1,
-      "lastReason": "blocked after 3 attempts"
+      "issueNumber": 544
+    },
+    {
+      "id": "task-3",
+      "title": "`scoreRunbook(description, runbook)` returns a numeric score: regex patterns add their weight on match, keyword patterns add `occurrences × weight`.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 545
     },
     {
       "id": "task-4",
-      "title": "`matchRunbook(description, runbooksDir)` returns the best-matching runbook or `null` when score is below threshold.",
-      "status": "blocked",
+      "title": "`matchRunbook(description, runbooks)` returns `{ runbook, score }` for the best match above threshold, or `null`.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 390,
-      "lastTransition": "2026-04-25T16:03:22.157Z",
-      "ticks": 1,
-      "lastReason": "Failed after 3 attempts"
-    },
-    {
-      "id": "task-4-p1",
-      "title": "Guard runbook tests from approval-gate and buffer overflow",
-      "description": "Audit test/runbook-match.test.mjs to confirm it imports only from bin/lib/runbook.mjs and test fixture YAMLs — no imports that pull in the approval-gate, GitHub polling, or run.mjs integration paths. If any transitive import triggers the gate, stub or mock it. Also verify the test file is registered in package.json test glob without duplicates that could cause the test runner to emit excessive output. Run the single file in isolation with `node --test test/runbook-match.test.mjs` and confirm it exits cleanly with no ENOBUFS or approval-gate output.",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 3,
-      "replanSource": "task-4",
-      "lastTransition": "2026-04-25T16:36:21.972Z",
-      "lastReason": "Failed after 3 attempts"
-    },
-    {
-      "id": "task-4-p1-p1",
-      "title": "Bypass approval-gate when NODE_ENV=test",
-      "description": "In the approval-gate module (or wherever the polling loop is started), add a guard: if process.env.NODE_ENV === 'test' (or the TEST env var is set), skip issue creation and polling entirely and resolve immediately. Also ensure the test npm script sets NODE_ENV=test so every test file benefits automatically. This eliminates the ENOBUFS buffer-overflow risk by preventing the large polling stdout from being captured during test runs.",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 5,
-      "replanSource": "task-4-p1",
-      "lastTransition": "2026-04-25T17:09:26.931Z",
-      "lastReason": "Failed after 3 attempts"
-    },
-    {
-      "id": "task-4-p1-p1-s1",
-      "title": "Add NODE_ENV=test short-circuit to approval-gate before any polling",
-      "description": "In the approval-gate module, check process.env.NODE_ENV === 'test' (or SKIP_APPROVAL_GATE env var) at the top of the wait/poll function and return immediately with an approved result. Ensure no GitHub API calls or issue creation are attempted when running under test. Verify the existing integrity-check warning path also short-circuits cleanly.",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 6,
-      "replanSource": "task-4-p1-p1",
-      "lastReason": "tick-limit-exceeded",
-      "lastTransition": "2026-04-25T17:09:53.245Z"
-    },
-    {
-      "id": "task-4-p1-p1-s2",
-      "title": "Fix spawnSync ENOBUFS in outer-loop by increasing maxBuffer or switching to streaming",
-      "description": "The spawnSync call accumulating stdout hits Node's default 1 MB buffer limit. Either pass maxBuffer: 10 * 1024 * 1024 to all spawnSync/execSync calls in outer-loop.mjs and related test helpers, or switch to spawn with piped streams. Also ensure test fixtures do not emit unbounded output (e.g. suppress polling log lines when NODE_ENV=test).",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 6,
-      "replanSource": "task-4-p1-p1",
-      "lastReason": "tick-limit-exceeded",
-      "lastTransition": "2026-04-25T17:09:53.302Z"
-    },
-    {
-      "id": "task-4-p1-r1",
-      "title": "Guard runbook tests from approval-gate and buffer overflow",
-      "description": "Audit test/runbook-match.test.mjs to confirm it imports only from bin/lib/runbook.mjs and test fixture YAMLs — no imports that pull in the approval-gate, GitHub polling, or run.mjs integration paths. If any transitive import triggers the gate, stub or mock it. Also verify the test file is registered in package.json test glob without duplicates that could cause the test runner to emit excessive output. Run the single file in isolation with `node --test test/runbook-match.test.mjs` and confirm it exits cleanly with no ENOBUFS or approval-gate output.",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 5,
-      "replanSource": "task-4-p1",
-      "lastTransition": "2026-04-25T17:42:50.708Z",
-      "lastReason": "Failed after 3 attempts"
-    },
-    {
-      "id": "task-4-p1-r1-s1",
-      "title": "Prevent approval-gate from triggering during npm test",
-      "description": "Add a guard in the approval-gate and outer-loop code so that when NODE_TEST_CONTEXT or a TEST env var is set (as it is under node --test), the approval polling path is skipped entirely. This stops the test suite from blocking on issue #42 and eliminates the flood of polling output that causes the buffer overflow.",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 6,
-      "replanSource": "task-4-p1-r1"
-    },
-    {
-      "id": "task-4-p1-r1-s2",
-      "title": "Guard runbook tests from buffer overflow and approval-gate side-effects",
-      "description": "With the approval-gate guard in place, re-attempt the original task: ensure test/runbook-match.test.mjs and any outer-loop tests that spawn subprocesses use maxBuffer-safe options or stream-based child_process calls (exec/spawn async) instead of spawnSync, so ENOBUFS cannot recur even if output grows.",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 6,
-      "replanSource": "task-4-p1-r1"
-    },
-    {
-      "id": "task-4-r1",
-      "title": "`matchRunbook(description, runbooksDir)` returns the best-matching runbook or `null` when score is below threshold.",
-      "description": "",
-      "status": "blocked",
-      "attempts": 0,
-      "ticks": 2,
-      "replanSource": "task-4"
+      "issueNumber": 546
     },
     {
       "id": "task-5",
-      "title": "Regex match in a runbook correctly narrows candidate set before keyword scoring.",
-      "status": "blocked",
+      "title": "`resolveRunbookTasks(runbook, allRunbooks)` expands `include:` entries one level deep and returns flat task array.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 391
+      "issueNumber": 547
     },
     {
       "id": "task-6",
-      "title": "`planTasks()` uses runbook tasks when a match is found, falling through to brainstorm when no match.",
-      "status": "blocked",
+      "title": "`planTasks()` in `run.mjs` loads runbooks, matches, and uses matched tasks when found.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 392
+      "issueNumber": 548
     },
     {
       "id": "task-7",
-      "title": "`agt run --runbook add-cli-command` forces that runbook regardless of feature description.",
-      "status": "blocked",
+      "title": "`agt run --runbook add-cli-command` forces that runbook regardless of description.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 393
+      "issueNumber": 549
     },
     {
       "id": "task-8",
       "title": "`agt run --runbook nonexistent` logs a warning and falls through to brainstorm.",
-      "status": "blocked",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 394
+      "issueNumber": 550
     },
     {
       "id": "task-9",
-      "title": "Console output identifies the matched runbook name and score before task dispatch begins.",
-      "status": "blocked",
+      "title": "Console output names the matched runbook and score before task execution.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 395
+      "issueNumber": 551
     },
     {
       "id": "task-10",
-      "title": "`include:` in a task entry is resolved one level deep and inline tasks are inserted at that position.",
-      "status": "blocked",
+      "title": "3 built-in runbooks exist in `.team/runbooks/` with valid schema and ≥4 tasks each.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 396
+      "issueNumber": 552
     },
     {
       "id": "task-11",
-      "title": "Unit tests cover: exact regex match, keyword-only match, no-match fallthrough, `--runbook` override, unknown runbook fallthrough, `include:` resolution.",
-      "status": "blocked",
+      "title": "Unit tests cover: scoring (regex hit, keyword hit, combined, below threshold), matching (best-of-many, tie-break, no-match), `--runbook` override, unknown runbook fallthrough, `include:` resolution.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 397
+      "issueNumber": 553
     },
     {
       "id": "task-12",
-      "title": "Existing tests pass without modification (no regression).",
-      "status": "blocked",
+      "title": "Full test suite (`npm test`) passes with no regressions.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 398
+      "issueNumber": 554
     },
     {
       "id": "task-13",
-      "title": "`test/runbooks.test.mjs` passes with ≥11 cases covering all acceptance criteria scenarios.",
-      "status": "blocked",
+      "title": "`bin/lib/runbooks.mjs` exists with `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks` exports.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 399
+      "issueNumber": 555
     },
     {
       "id": "task-14",
-      "title": "3 built-in runbooks exist in `.team/runbooks/` with valid schema and ≥4 tasks each.",
-      "status": "blocked",
+      "title": "`planTasks()` in `run.mjs` integrates runbook matching before brainstorm fallback.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 400
+      "issueNumber": 556
     },
     {
       "id": "task-15",
-      "title": "`planTasks()` in `run.mjs` uses runbook tasks on match and falls through correctly on no-match.",
-      "status": "blocked",
+      "title": "`agt run --runbook <name>` flag is parsed and wired through.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 401
+      "issueNumber": 557
     },
     {
       "id": "task-16",
-      "title": "`agt run --runbook <name>` flag parsed and wired to `planTasks()`.",
-      "status": "blocked",
+      "title": "3 built-in runbooks in `.team/runbooks/` with valid schema and ≥4 tasks each.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 402
+      "issueNumber": 558
     },
     {
       "id": "task-17",
-      "title": "Full test suite (`npm test`) passes with no regressions.",
-      "status": "blocked",
+      "title": "`test/runbooks.test.mjs` passes with ≥10 cases covering scoring, matching, loading, includes, and CLI override.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 403
+      "issueNumber": 559
     },
     {
       "id": "task-18",
-      "title": "Console output names the matched runbook before task execution begins.",
-      "status": "blocked",
+      "title": "Full test suite (`npm test`) passes with no regressions.",
+      "status": "pending",
       "attempts": 0,
-      "issueNumber": 404
+      "issueNumber": 560
+    },
+    {
+      "id": "task-19",
+      "title": "Console output names the matched runbook before task execution begins.",
+      "status": "pending",
+      "attempts": 0,
+      "issueNumber": 561
     }
   ],
   "gates": [
@@ -406,9 +320,18 @@
       "stderr": "spawnSync /bin/sh ENOBUFS",
       "timestamp": "2026-04-25T17:42:50.449Z",
       "taskId": "task-4-p1-r1"
+    },
+    {
+      "command": "npm test",
+      "exitCode": 0,
+      "verdict": "PASS",
+      "stdout": "\n> @mengmikeli/agentic-team@2.1.0 test\n> node --test --test-concurrency=1 test/cli-commands.test.mjs test/compound-gate.test.mjs test/context.test.mjs test/crash-recovery.test.mjs test/cron-tick.test.mjs test/doctor.test.mjs test/e2e.test.mjs test/flows.test.mjs test/handshake.test.mjs test/harness.test.mjs test/integration.test.mjs test/iteration-escalation.test.mjs test/oscillation-ticks.test.mjs test/parent-checklist.test.mjs test/replan.test.mjs test/report.test.mjs test/review-escalation.test.mjs test/runbook-dir.test.mjs test/runbooks.test.mjs test/smoke-terminates.test.mjs test/synthesize-compound.test.mjs test/synthesize.test.mjs test/tiers.test.mjs test/token-usage.test.mjs test/worktree.test.mjs\n\n▶ CLI help text\n  ✔ shows review command in help (69.587458ms)\n  ✔ shows audit command in help (60.601208ms)\n  ✔ shows brainstorm command in help (60.598917ms)\n  ✔ help text includes all three new commands with descriptions (62.298083ms)\n✔ CLI help text (253.6935ms)\n▶ agt review\n  ✔ handles review gracefully (with or without agent) (79.537042ms)\n  ✔ prints review header (83.7885ms)\n✔ agt review (163.435667ms)\n▶ agt audit\n  ✔ runs audit and reports missing .team/ (63.623708ms)\n  ✔ runs audit with .team/ present and reports structure (138.307333ms)\n  ✔ detects missing required files (133.24075ms)\n  ✔ reports feature with issues (131.647375ms)\n  ✔ shows summary line (61.069334ms)\n✔ agt audit (528.454292ms)\n▶ agt brainstorm\n  ✔ prints brainstorm header with idea (20003.77025ms)\n✔ agt brainstorm (20003.822625ms)\n▶ smart entry flow (agt run no args)\n  ✔ agt run with explicit description still works with .team/ (201.494792ms)\n  ✔ agt run with --dry-run shows tasks without executing (184.560792ms)\n✔ smart entry flow (agt run no args) (386.119083ms)\n▶ agt help <command>\n  ✔ agt help run shows usage, flags, and examples (62.11ms)\n  ✔ agt help init shows usage and examples (61.383709ms)\n  ✔ agt help status shows usage and examples (61.120167ms)\n  ✔ agt help review shows usage and examples (60.433625ms)\n  ✔ agt help audit shows usage and examples (60.731666ms)\n  ✔ agt help brainstorm shows usage and examples (61.209333ms)\n  ✔ agt help doctor shows usage and examples (61.392416ms)\n  ✔ agt help cron-tick shows usage and examples (61.090833ms)\n  ✔ agt help cron-setup shows usage, flags, and examples (61.16225ms)\n  ✔ agt help <unknown> exits non-zero and shows error (59.066875ms)\n  ✔ agt help (no subcommand) lists all commands (60.528083ms)\n  ✔ agt help run mentions 'Pending Approval' and 'Ready' board columns (61.223ms)\n  ✔ agt help run shows Prerequisites section for board setup (60.210084ms)\n✔ agt help <command> (791.969ms)\n▶ audit-cmd module\n  ✔ can be imported without errors (4.414833ms)\n✔ audit-cmd module (4.443459ms)\n▶ review module\n  ✔ can be imported without errors (3.846541ms)\n✔ review module (3.87025ms)\n▶ brainstorm-cmd module\n  ✔ can be imported without errors (0.314709ms)\n  ✔ exports buildInteractiveSpec function (0.038666ms)\n  ✔ buildInteractiveSpec includes Requirements section (0.106417ms)\n  ✔ buildInteractiveSpec includes Acceptance Criteria section (0.043ms)\n  ✔ buildInteractiveSpec includes Technical Approach section (0.039417ms)\n  ✔ buildInteractiveSpec includes Testing Strategy section (0.042ms)\n  ✔ buildInteractiveSpec includes all seven required sections (0.057625ms)\n✔ brainstorm-cmd module (0.703583ms)\n▶ detectThinContent\n  ✔ trips when >50% of non-suggestion findings have generic phrases (0.819083ms)\n  ✔ does not trip when <=50% of non-suggestion findings have generic phrases (0.0945ms)\n  ✔ does not trip when all findings are suggestions (0.044625ms)\n  ✔ does not trip for empty findings (0.039041ms)\n  ✔ trips on 'seems correct' phrase (0.039125ms)\n✔ detectThinContent (1.617541ms)\n▶ detectMissingCodeRefs\n  ✔ trips when no non-suggestion finding has a file:line reference (0.161667ms)\n  ✔ does not trip when at least one non-suggestion finding has a code ref (0.037625ms)\n  ✔ does not trip when all findings are suggestions (0.043792ms)\n  ✔ does not trip for empty findings (0.051917ms)\n✔ detectMissingCodeRefs (0.391",
+      "stderr": "",
+      "timestamp": "2026-04-26T16:08:36.185Z",
+      "taskId": "task-1"
     }
   ],
-  "transitionCount": 14,
+  "transitionCount": 15,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -507,13 +430,20 @@
       "status": "blocked",
       "reason": "Failed after 3 attempts",
       "timestamp": "2026-04-25T17:42:50.708Z"
+    },
+    {
+      "taskId": "task-1",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-26T16:03:26.019Z"
     }
   ],
   "createdAt": "2026-04-25T14:23:33.866Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-25T17:43:17.612Z",
-  "_write_nonce": "416074f70f1c03de",
-  "_runStartedAt": "2026-04-25T14:23:33.870Z",
+  "_last_modified": "2026-04-26T16:14:24.912Z",
+  "_write_nonce": "9bea406d701359a3",
+  "_runStartedAt": "2026-04-26T15:58:39.742Z",
   "roadmapLabel": "P5/#21",
   "tokenUsage": {
     "byTask": {
@@ -617,5 +547,6 @@
     }
   },
   "completedAt": "2026-04-25T22:12:25.728Z",
-  "_reconciled_at": "2026-04-25T22:12:25.728Z"
+  "_reconciled_at": "2026-04-26T16:14:58.256Z",
+  "_previous_runs_failed": 1
 }

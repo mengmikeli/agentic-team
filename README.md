@@ -117,9 +117,6 @@ Validate the entire execution chain before marking a feature complete:
 - No unapproved state edits (nonce check)
 - `--strict`: every passed task must have a gate result
 
-### `agt-harness metrics --dir <path>`
-Compute feature metrics from STATE.json + git log. Returns JSON.
-
 ## Web Dashboard
 
 Static HTML/JS — no build step, no framework.
@@ -203,7 +200,7 @@ The verdict is written directly to STATE.json with a nonce signature. If the age
 
 ```bash
 npm test
-# Runs 17 tests covering init, transition, gate, notify, finalize, metrics, tamper detection
+# Runs 579+ tests covering CLI, harness, review, outer loop, doctor, report, worktrees
 ```
 
 ## Project Structure (managed by at)

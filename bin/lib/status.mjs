@@ -52,7 +52,7 @@ export function cmdStatus(args) {
   }
 
   // Summary
-  const active = features.filter(f => f.status === "active").length;
+  const active = features.filter(f => f.status === "executing" || f.status === "active").length;
   const completed = features.filter(f => f.status === "completed").length;
   console.log();
   console.log(`  ${c.dim}${completed} completed · ${active} active · ${features.length} total${c.reset}`);
@@ -107,8 +107,8 @@ function readFeatures(teamDir) {
   } catch { /* empty */ }
 
   return features.sort((a, b) => {
-    if (a.status === "active" && b.status !== "active") return -1;
-    if (b.status === "active" && a.status !== "active") return 1;
+    if (a.status === "executing" || a.status === "active" && b.status !== "active") return -1;
+    if (b.status === "executing" || b.status === "active" && a.status !== "active") return 1;
     return 0;
   });
 }

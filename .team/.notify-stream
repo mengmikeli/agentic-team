@@ -431,3 +431,5 @@
 {"ts":"2026-04-26T01:32:46.548Z","event":"feature-complete","msg":"Feature complete: cron-based-outer-loop — 2/13 done, 3 blocked, 121m 17s, $51.03"}
 {"ts":"2026-04-26T01:35:58.009Z","event":"feature-started","msg":"▶ Feature: execution-report (17 tasks planned)"}
 {"ts":"2026-04-26T01:39:01.519Z","event":"task-started","msg":"▶ Task 1/17: `agt report <feature>` prints all required sections to stdout for a completed feature."}
+{"ts":"2026-04-26T15:58:39.809Z","event":"feature-started","msg":"▶ Feature: runbook-system (19 tasks planned)"}
+{"ts":"2026-04-26T16:03:28.217Z","event":"task-started","msg":"▶ Task 1/19: `bin/lib/runbooks.mjs` exists and exports `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks`."}

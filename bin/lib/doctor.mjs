@@ -481,8 +481,26 @@ export function checkZeroTaskCompletions(cwd = process.cwd()) {
     } catch {}
   }
   
+  // Check for stale lifecycle state
+  const staleState = [];
+  for (const d of readdirSync(featDir, { withFileTypes: true })) {
+    if (!d.isDirectory()) continue;
+    const sp = join(featDir, d.name, "STATE.json");
+    if (!existsSync(sp)) continue;
+    try {
+      const state = JSON.parse(readFileSync(sp, "utf8"));
+      // Completed with completedAt but status is executing/active
+      if ((state.status === "executing" || state.status === "active") && state.completedAt) {
+        staleState.push(d.name);
+      }
+    } catch {}
+  }
+
   if (zeroTask.length > 0) {
     return { status: "fail", message: `${zeroTask.length} feature(s) completed with 0 tasks: ${zeroTask.join(", ")}` };
+  }
+  if (staleState.length > 0) {
+    return { status: "warn", message: `${staleState.length} feature(s) with stale lifecycle state (executing + completedAt): ${staleState.join(", ")}` };
   }
   if (zeroPassed.length > 0) {
     return { status: "warn", message: `${zeroPassed.length} feature(s) completed with 0 passed tasks: ${zeroPassed.join(", ")}` };
