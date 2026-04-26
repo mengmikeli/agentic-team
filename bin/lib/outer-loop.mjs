@@ -861,7 +861,7 @@ export async function outerLoop(args, deps) {
 
     // Sync project board: In Progress
     if (approvalIssueNumber && projectNumber) {
-      try { setProjectItemStatus(approvalIssueNumber, projectNumber, "In Progress"); } catch {}
+      try { setProjectItemStatus(approvalIssueNumber, projectNumber, "in-progress"); } catch {}
     }
     const executeResult = await runSingleFeature(args, priorityDescription, roadmapLabel, featureName);
     console.log();

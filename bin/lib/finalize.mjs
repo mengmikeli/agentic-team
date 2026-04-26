@@ -141,7 +141,7 @@ export function cmdFinalize(args) {
     // Sync project board status to Done
     if (freshState.approvalIssueNumber && freshState.projectNumber) {
       try {
-        setProjectItemStatus(freshState.approvalIssueNumber, freshState.projectNumber, "Done");
+        setProjectItemStatus(freshState.approvalIssueNumber, freshState.projectNumber, "done");
       } catch { /* best-effort */ }
     }
 
