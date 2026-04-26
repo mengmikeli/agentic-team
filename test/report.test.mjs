@@ -232,6 +232,21 @@ describe("buildReport", () => {
     assert.ok(!report.includes("run in progress"), "Should not show 'run in progress' for a blocked feature");
   });
 
+  it("shows $X.XXXX total cost when tokenUsage.total.costUsd is present", () => {
+    const state = makeState({
+      tokenUsage: { total: { costUsd: 0.005 } },
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("$0.0050"), "Should format total cost as $X.XXXX");
+    assert.ok(report.includes("Total cost (USD):         $0.0050"), "Total cost line should show dollar amount, not N/A");
+  });
+
+  it("shows N/A for total cost when tokenUsage.total.costUsd is absent", () => {
+    const state = makeState();
+    const report = buildReport(state);
+    assert.ok(report.includes("Total cost (USD):         N/A"), "Should show N/A when costUsd is absent");
+  });
+
   it("renders tokenUsage.byPhase in Cost Breakdown", () => {
     const state = makeState({
       tokenUsage: {
@@ -240,6 +255,7 @@ describe("buildReport", () => {
       },
     });
     const report = buildReport(state);
+    assert.ok(report.includes("$0.0100"), "Should show total cost as $X.XXXX");
     assert.ok(report.includes("$0.0060"), "Should show per-phase cost for build");
     assert.ok(report.includes("$0.0040"), "Should show per-phase cost for gate");
   });
