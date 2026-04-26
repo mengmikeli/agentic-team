@@ -50,13 +50,43 @@ describe("buildReport", () => {
     assert.ok(report.includes("my-cool-feature"), "Should include feature name");
   });
 
-  it("includes Task Summary section with task rows", () => {
+  it("includes Task Summary section with Title column", () => {
     const state = makeState();
     const report = buildReport(state);
     assert.ok(report.includes("## Task Summary"), "Should have Task Summary section");
+    assert.ok(report.includes("| Task | Title | Status | Attempts | Gate Verdict |"), "Should have 5-column header");
     assert.ok(report.includes("task-1"), "Should include task-1");
-    assert.ok(report.includes("task-2"), "Should include task-2");
+    assert.ok(report.includes("Do something"), "Should include task title");
     assert.ok(report.includes("PASS"), "Should show gate verdict");
+  });
+
+  it("shows — for task title when title is absent", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", status: "passed", attempts: 1 },
+      ],
+    });
+    const report = buildReport(state);
+    // Table row should have — for missing title
+    assert.ok(report.includes("| task-1 | — |"), "Should show — for missing title");
+  });
+
+  it("includes What Shipped section for passed tasks", () => {
+    const state = makeState();
+    const report = buildReport(state);
+    assert.ok(report.includes("## What Shipped"), "Should have What Shipped section");
+    assert.ok(report.includes("- Do something"), "Should list passed task title");
+    assert.ok(report.includes("- Do something else"), "Should list second passed task title");
+  });
+
+  it("omits What Shipped section when no tasks passed", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", title: "Blocked task", status: "blocked", attempts: 1 },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(!report.includes("## What Shipped"), "Should not have What Shipped section when no tasks passed");
   });
 
   it("shows — for tasks with no gate runs", () => {
@@ -183,6 +213,25 @@ describe("buildReport", () => {
     const report = buildReport(state);
     assert.ok(report.includes("stalled"), "Should recommend stalled for all-blocked feature");
   });
+
+  it("marks blocked features in header", () => {
+    const state = makeState({ status: "blocked" });
+    const report = buildReport(state);
+    assert.ok(report.includes("blocked"), "Should show blocked status in header");
+    assert.ok(!report.includes("run in progress"), "Should not show 'run in progress' for a blocked feature");
+  });
+
+  it("renders tokenUsage.byPhase in Cost Breakdown", () => {
+    const state = makeState({
+      tokenUsage: {
+        total: { costUsd: 0.01 },
+        byPhase: { build: { costUsd: 0.006 }, gate: { costUsd: 0.004 } },
+      },
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("$0.0060"), "Should show per-phase cost for build");
+    assert.ok(report.includes("$0.0040"), "Should show per-phase cost for gate");
+  });
 });
 
 describe("cmdReport", () => {
@@ -206,14 +255,17 @@ describe("cmdReport", () => {
 
   function makeDeps(featureExists, state) {
     const writtenFiles = {};
+    const stderrOutput = [];
     return {
       readState: () => state,
       existsSync: () => featureExists,
       writeFileSync: (path, data) => { writtenFiles[path] = data; },
       stdout: { write: (s) => { output.push(s); } },
+      stderr: { write: (s) => { stderrOutput.push(s); } },
       exit: (code) => { exitCode = code; throw new Error(`exit(${code})`); },
       cwd: () => tmpDir,
       _writtenFiles: writtenFiles,
+      _stderrOutput: stderrOutput,
     };
   }
 
@@ -223,7 +275,7 @@ describe("cmdReport", () => {
     const deps = makeDeps(false, null);
     try { cmdReport([], deps); } catch {}
     assert.equal(exitCode, 1);
-    assert.ok(output.join("").includes("Usage:"), `Expected Usage in: ${output.join("")}`);
+    assert.ok(deps._stderrOutput.join("").includes("Usage:"), `Expected Usage in stderr: ${deps._stderrOutput.join("")}`);
   });
 
   // ── 2. Missing feature directory ─────────────────────────────
@@ -232,7 +284,7 @@ describe("cmdReport", () => {
     const deps = makeDeps(false, null);
     try { cmdReport(["no-such-feature"], deps); } catch {}
     assert.equal(exitCode, 1);
-    assert.ok(output.join("").includes("not found"), `Expected 'not found' in: ${output.join("")}`);
+    assert.ok(deps._stderrOutput.join("").includes("not found"), `Expected 'not found' in stderr: ${deps._stderrOutput.join("")}`);
   });
 
   // ── 3. Missing STATE.json ─────────────────────────────────────
@@ -241,7 +293,7 @@ describe("cmdReport", () => {
     const deps = makeDeps(true, null);
     try { cmdReport(["my-feature"], deps); } catch {}
     assert.equal(exitCode, 1);
-    assert.ok(output.join("").includes("STATE.json"), `Expected STATE.json in: ${output.join("")}`);
+    assert.ok(deps._stderrOutput.join("").includes("STATE.json"), `Expected STATE.json in stderr: ${deps._stderrOutput.join("")}`);
   });
 
   // ── 4. Stdout default output ──────────────────────────────────

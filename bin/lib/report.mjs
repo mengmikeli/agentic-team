@@ -13,7 +13,6 @@ export function buildReport(state) {
   const gates = state.gates || [];
 
   // Section 1: Header
-  const isComplete = status === "completed";
   let duration = "N/A";
   if (state.createdAt) {
     const startMs = new Date(state.createdAt).getTime();
@@ -38,14 +37,24 @@ export function buildReport(state) {
   if (state.completedAt) lines.push(`Completed: ${state.completedAt}`);
   lines.push("");
 
-  // Section 2: Task Summary
+  // Section 2: What Shipped
+  const passedTasks = tasks.filter(t => t.status === "passed");
+  if (passedTasks.length > 0) {
+    lines.push("## What Shipped");
+    for (const task of passedTasks) {
+      lines.push(`- ${task.title || task.id}`);
+    }
+    lines.push("");
+  }
+
+  // Section 3: Task Summary
   lines.push("## Task Summary");
-  lines.push("| Task | Status | Attempts | Gate Verdict |");
-  lines.push("|------|--------|----------|--------------|");
+  lines.push("| Task | Title | Status | Attempts | Gate Verdict |");
+  lines.push("|------|-------|--------|----------|--------------|");
   for (const task of tasks) {
     const taskGates = gates.filter(g => g.taskId === task.id);
     const lastVerdict = taskGates.length > 0 ? taskGates[taskGates.length - 1].verdict : "—";
-    lines.push(`| ${task.id} | ${task.status} | ${task.attempts ?? 0} | ${lastVerdict} |`);
+    lines.push(`| ${task.id} | ${task.title || "—"} | ${task.status} | ${task.attempts ?? 0} | ${lastVerdict} |`);
   }
   lines.push("");
 
@@ -125,12 +134,13 @@ export function cmdReport(args = [], deps = {}) {
     existsSync: _existsSync = existsSync,
     writeFileSync: _writeFileSync = writeFileSync,
     stdout: _stdout = process.stdout,
+    stderr: _stderr = process.stderr,
     exit: _exit = (code) => process.exit(code),
     cwd: _cwd = () => process.cwd(),
   } = deps;
 
   if (!featureName) {
-    _stdout.write("Usage: agt report <feature>\n");
+    _stderr.write("Usage: agt report <feature>\n");
     _exit(1);
     return;
   }
@@ -138,14 +148,14 @@ export function cmdReport(args = [], deps = {}) {
   const featureDir = join(_cwd(), ".team", "features", featureName);
 
   if (!_existsSync(featureDir)) {
-    _stdout.write(`report: feature directory not found: ${featureDir}\n`);
+    _stderr.write(`report: feature directory not found: ${featureDir}\n`);
     _exit(1);
     return;
   }
 
   const state = _readState(featureDir);
   if (!state) {
-    _stdout.write(`report: STATE.json missing or unreadable in ${featureDir}\n`);
+    _stderr.write(`report: STATE.json missing or unreadable in ${featureDir}\n`);
     _exit(1);
     return;
   }

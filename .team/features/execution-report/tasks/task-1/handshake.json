@@ -1,15 +1,14 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_3",
+  "runId": "run_1",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed status label in buildReport to correctly show 'failed'/'blocked' instead of 'Run in progress' for terminal-state features. Updated stale JSDoc and test comments from '--output md' to '--md'. Updated PRODUCT.md spec to match the shipped interface. Added tests for 'failed' task status covering both the header label and the [FAILED] section label. All 541 tests pass.",
-  "timestamp": "2026-04-26T00:00:00.000Z",
+  "summary": "Added 'What Shipped' section listing passed-task titles between Header and Task Summary, and added Title column to the Task Summary table with '—' fallback when title is absent. Added 4 new tests: Title column header and content, missing title fallback, What Shipped with passed tasks, What Shipped omitted when no tasks passed. All 546 tests pass.",
+  "timestamp": "2026-04-26T12:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/report.mjs" },
-    { "type": "code", "path": "test/report.test.mjs" },
-    { "type": "code", "path": ".team/PRODUCT.md" }
+    { "type": "code", "path": "test/report.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

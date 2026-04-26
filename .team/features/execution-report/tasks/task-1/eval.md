@@ -700,3 +700,555 @@ Both still describe `--output md`. Anyone reading the function signature gets co
 ## Overall Verdict: PASS
 
 The two targeted changes in run_2 are correct: `--md` boolean cleanly replaces the value-arg interface, and the error message is accurate. No regressions. The stale JSDoc is a real inconsistency (🟡) that should enter the backlog. Two prior Engineer warnings remain open but are not regressions from this run.
+
+---
+
+# Engineer Review — execution-report (run_3)
+
+**Reviewer role:** Engineer
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Reviewed run:** run_3 (status label fix + JSDoc/test/spec updates)
+
+---
+
+## Files Actually Read
+
+- `.team/features/execution-report/tasks/task-1/handshake.json` (full)
+- `bin/lib/report.mjs` (full, 163 lines)
+- `test/report.test.mjs` (full, 313 lines)
+- `bin/agt.mjs` (grep — report hits at lines 19, 75, 188–195, 248, 868)
+- `bin/lib/util.mjs` (lines 188–198, `readState` implementation)
+- `.team/PRODUCT.md` (roadmap entry #26)
+
+---
+
+## Builder Claims vs Evidence
+
+Handshake summary states:
+1. Fixed status label (`'failed'`/`'blocked'` instead of `'Run in progress'`) — **Verified**: report.mjs:31–34 has explicit ternary chain; tests at report.test.mjs:148–153 (header) and 155–167 (`[FAILED]` label) confirm.
+2. Updated stale JSDoc `--output md` → `--md` — **Verified**: JSDoc at report.mjs:112–115 now reads `--md`.
+3. Updated PRODUCT.md spec — **Verified**: PRODUCT.md roadmap item 26 now reads `--md writes REPORT.md`.
+4. Added tests for `'failed'` status — **Verified**: two new tests at report.test.mjs:148–167.
+5. All 541 tests pass — **Not independently re-run**; gate output provided shows suite passing.
+
+---
+
+## Per-Criterion Results
+
+### 1. Correctness — does code do what the spec says?
+
+**PASS**
+
+Spec (PRODUCT.md #26): `agt report <feature>` prints to stdout; `--md` writes REPORT.md. Required sections: what shipped, what passed/failed, time spent, token usage, recommendations.
+
+All five sections present:
+- Header with feature, status, duration, timestamps (report.mjs:15–39)
+- Task Summary table with gate verdicts (report.mjs:41–50)
+- Cost Breakdown with dispatch count, gate counts, per-phase split (report.mjs:53–68)
+- Blocked / Failed Tasks (report.mjs:70–79, conditional)
+- Recommendations (report.mjs:81–105, conditional)
+
+Status label: verified ternary chain at lines 31–34 correctly handles `"completed"`, `"failed"`, `"blocked"`, and everything else (`"run in progress"`). This fixes the prior Engineer run_2 warning.
+
+Flag-before-positional ordering (`agt report --md my-feature`): `args.find(a => !a.startsWith("-"))` at line 121 correctly skips `--md` regardless of position.
+
+### 2. Code quality — readable, well-named, easy to reason about?
+
+**PASS with one dead-code warning**
+
+`buildReport` is straightforward procedural construction; each section is clearly labeled with comments. `cmdReport` dependency injection is clean and makes tests filesystem-independent.
+
+**Issue**: `isComplete` at line 16 is declared but never referenced anywhere in the function. The explicit ternary chain at lines 31–34 replaced its prior use. This variable was left behind.
+
+### 3. Error handling — failure paths handled explicitly and safely?
+
+**PASS with one channel warning**
+
+- Missing feature name → usage + exit 1 (lines 132–136) ✓
+- Missing feature dir → error + exit 1 (lines 140–144) ✓
+- Missing/corrupt STATE.json → `readState` returns null, handled at lines 147–151 ✓
+- `buildReport` never throws: optional chaining guards all nullable paths (`state.tokenUsage?.total?.costUsd`, `task.attempts ?? 0`, `task.status || "unknown"`) ✓
+
+**Issue**: All three error paths write to `_stdout` (lines 133, 141, 148) rather than stderr. This is a carried-forward 🟡 from run_1 and run_2 Architect reviews. For a CLI that emits machine-readable markdown on the happy path, errors on stdout break piped consumers. Not regressed by run_3; remains open.
+
+### 4. Performance — obvious inefficiencies?
+
+**PASS**
+
+Single parse of in-memory STATE.json; no n+1, no repeated I/O. Gate filtering is O(n×m) over small per-feature collections.
+
+### 5. Edge cases checked
+
+| Edge case | Result |
+|---|---|
+| `--md` before positional arg | ✓ `args.find` skips flags correctly |
+| No feature name | ✓ usage + exit 1 |
+| Feature dir missing | ✓ tested |
+| STATE.json missing or corrupt | ✓ `readState` returns null, caught |
+| Task with no gates | ✓ "—" shown in table |
+| Failed feature header label | ✓ explicit ternary, tested (new in run_3) |
+| Blocked feature header label | ✓ explicit ternary branch exists; no dedicated test |
+| `[FAILED]` label in blocked/failed section | ✓ tested (new in run_3) |
+| All tasks blocked → stalled rec | ✓ tested |
+| Invalid `createdAt` ISO string | ⚠ `NaN` arithmetic → `"NaNh"` duration; no guard |
+
+---
+
+## Findings
+
+🟡 bin/lib/report.mjs:133 — Error messages (usage, not-found, STATE.json) written to `_stdout`; should write to stderr so pipeline consumers don't receive error text in the data stream (carried forward from run_1/run_2)
+
+🟡 bin/lib/report.mjs:16 — `isComplete` declared but never used; remove dead variable introduced when status-label logic was rewritten in run_3
+
+🔵 bin/lib/report.mjs:17 — Invalid ISO string in `createdAt` produces `"NaNh"` duration; add `Number.isFinite(mins)` guard before the formatting block
+
+---
+
+## Overall Verdict: PASS
+
+run_3 correctly resolves the status-label bug and JSDoc/spec staleness from the backlog. The feature implements all spec requirements. Two 🟡 warnings (error-to-stdout, dead variable) are real quality issues but don't break stated functionality; both should enter the backlog. No critical blockers.
+
+---
+
+# Tester Review — execution-report (run_3)
+
+**Reviewer role:** Tester
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Run:** run_3 (status-label fix + failed-task tests)
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (full, 163 lines)
+- `test/report.test.mjs` (full, 313 lines)
+- `bin/agt.mjs` (grep hits: lines 19, 75, 188–195)
+- `.team/PRODUCT.md` (line 64 — spec source)
+- `.team/features/execution-report/tasks/task-1/handshake.json`
+
+---
+
+## Builder Claims (run_3 handshake)
+
+1. Fixed status label in `buildReport` to correctly show `failed`/`blocked` instead of "Run in progress"
+2. Updated stale JSDoc and test comments from `--output md` to `--md`
+3. Updated `PRODUCT.md` spec to match the shipped interface
+4. Added tests for `failed` task status (both header label and `[FAILED]` section label)
+5. All 541 tests pass
+
+---
+
+## Per-Criterion Results
+
+### 1. Status label fix — `failed` and `blocked` in header
+
+**PASS for `failed` / PARTIAL for `blocked`**
+
+Code at `report.mjs:31–34`:
+```js
+const statusLabel = status === "completed" ? "completed"
+  : status === "failed" ? "failed"
+  : status === "blocked" ? "blocked"
+  : "run in progress";
+```
+
+- `completed` → "completed": tested at `report.test.mjs:169` ✅
+- `failed` → "failed": tested at `report.test.mjs:148–153` ✅
+- `blocked` (feature-level status) → "blocked": **no test exercises this path**
+- `executing`/other → "run in progress": tested at `report.test.mjs:142–146` ✅
+
+The `blocked` branch was added in this fix run and is live code, but it has no corresponding test. A regression in this branch would go undetected.
+
+### 2. `[FAILED]` label for failed tasks
+
+**PASS** — Test at `report.test.mjs:155–167` exercises a task with `status: "failed"`, asserts `[FAILED]` label and `lastReason`. Direct evidence that this branch fires.
+
+### 3. Stale comment / JSDoc cleanup
+
+**PASS** — All four stale references called out by the run_2 Tester and Simplicity reviewers are resolved:
+- `report.mjs:113`: "With --md, writes REPORT.md…" ✅
+- `report.mjs:116`: "@param … optional --md" ✅
+- `report.test.mjs:261`: section comment `--md writes REPORT.md` ✅
+- `report.test.mjs:273`: section comment `--md does not print report to stdout` ✅
+- `report.test.mjs:303`: test title updated to "--md flag" ✅
+
+### 4. PRODUCT.md spec updated
+
+**PASS** — `PRODUCT.md:64` now reads `--md` (not `--output md`). Verified directly. ✅
+
+### 5. `tokenUsage.byPhase` rendering path
+
+**STILL OPEN** — `report.mjs:61–63` formats `$X.XXXX` per phase when `byPhase` is present. This path is untested; only the `N/A` fallback branch is covered. Carried forward from run_2 Tester 🟡. Not in scope for run_3 but remains a gap.
+
+### 6. Test count verifiability
+
+**UNVERIFIED** — Gate output is truncated before `report.test.mjs` results appear. The claimed "541 tests pass" cannot be confirmed from the supplied evidence. The test file exists and the logic is sound, but independent count cannot be confirmed from the gate log alone.
+
+---
+
+## Findings
+
+🟡 `test/report.test.mjs` — No test for feature-level `status: "blocked"` producing "blocked" in the header; `report.mjs:33` adds this branch but it is entirely untested — a regression would go undetected.
+
+🟡 `test/report.test.mjs` — `tokenUsage.byPhase` rendering path (`report.mjs:61–63`) still untested; only N/A fallback is exercised. Carried from run_2, not addressed in run_3.
+
+🟡 Gate output truncated — `report.test.mjs` results not visible in the supplied gate log; claimed 541-test pass count is unverifiable from the evidence provided.
+
+🔵 `bin/lib/report.mjs:18–29` — Invalid ISO string in `createdAt` produces `"NaNm"` duration; no guard or test (carried from run_2).
+
+🔵 `bin/lib/report.mjs:89–91` — Empty `gateWarningHistory[].layers` yields `"Task X has repeated gate warnings: "` (blank suffix); no guard or test (carried from run_2).
+
+🔵 `test/report.test.mjs` — No CLI-level integration test runs `agt report <feature>` against a real STATE.json fixture; dispatch-level regressions would only be caught incidentally (carried from run_2).
+
+---
+
+## Overall Verdict: PASS
+
+run_3 delivers on all four builder claims: status label correctly maps `failed` and `blocked`, tests for `failed` task status are present and cover both the header and section label, all stale documentation references are resolved, and PRODUCT.md is updated. No 🔴 findings. Three 🟡 warnings belong in backlog: untested `blocked` feature-level header, untested cost-data formatting, and truncated gate evidence. Three 🔵 suggestions are optional quality improvements.
+
+
+---
+
+# Security Review — execution-report (run_3)
+
+**Reviewer role:** Security
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Reviewed run:** run_3
+
+---
+
+## Files Actually Read
+
+- `.team/features/execution-report/tasks/task-1/handshake.json` (full)
+- `bin/lib/report.mjs` (full, 162 lines)
+- `test/report.test.mjs` (full, 313 lines)
+- `bin/lib/util.mjs` (full, 219 lines)
+- `bin/agt.mjs` (lines 19–22, 60–76 — import, argv setup, dispatch)
+
+---
+
+## What run_3 Changed
+
+Per handshake: fixed status label (`failed`/`blocked` instead of "Run in progress"), updated stale JSDoc and test comments from `--output md` → `--md`, updated PRODUCT.md spec, added tests for `failed` task status.
+
+---
+
+## Criteria Results
+
+### 1. Path traversal — `featureName` from CLI args (carried forward from run_1)
+
+**Result: WARN (unresolved)**
+
+`report.mjs:121` extracts `featureName` from raw process args with no sanitization:
+
+```js
+const featureName = args.find(a => !a.startsWith("-"));
+```
+
+`report.mjs:138` passes it directly into `path.join()`:
+
+```js
+const featureDir = join(_cwd(), ".team", "features", featureName);
+```
+
+`path.join()` normalizes `..` segments. `join("/base", ".team", "features", "../../../../etc")` resolves to `/etc`. Two impact paths:
+- **Read**: `existsSync` + `readState` attempt to open STATE.json from an arbitrary directory.
+- **Write** (`--md`): `writeFileSync(join(featureDir, "REPORT.md"), ...)` writes to an attacker-controlled path.
+
+Threat model for direct CLI use: self-harm only — the invoking user already controls the filesystem. Escalated threat: any automated context where feature names derive from external input (branch names, GitHub PR titles, webhook payloads) turns this into a real write-path injection. CI pipelines calling `agt report` with a branch-name-as-feature-name are a realistic scenario.
+
+Not introduced or worsened by run_3 — carry-forward from run_1.
+
+Fix: validate `featureName` before constructing `featureDir`, e.g., `/^[a-zA-Z0-9_-]+$/.test(featureName)`, and exit 1 if it contains `/`, `\`, or `..`.
+
+### 2. No new security issues introduced in run_3
+
+**Result: PASS**
+
+The three run_3 changes (status label mapping at lines 31–34, JSDoc/test comments, PRODUCT.md) have no security surface. The status label is a pure string lookup from an internal state value; no user-controlled input reaches it. JSDoc and PRODUCT.md updates are inert.
+
+### 3. Data from STATE.json in report output
+
+**Result: PASS**
+
+`task.id`, `task.title`, `task.status`, `task.lastReason` from STATE.json are interpolated into stdout/file output. This is plain text/markdown — no web rendering, no `eval`, no shell execution. No injection risk.
+
+### 4. Secrets handling
+
+**Result: PASS**
+
+No credentials, tokens, or API keys read or printed. `tokenUsage.total.costUsd` is numeric cost metadata, not a secret.
+
+### 5. Command injection / eval
+
+**Result: PASS**
+
+No `exec`, `spawn`, `eval`, `Function()`, or dynamic `import()` in the report code path. Report generation is pure string concatenation and file I/O.
+
+### 6. `writeFileSync` content safety
+
+**Result: PASS**
+
+`writeFileSync(outPath, report + "\n")` writes a formatted string derived from STATE.json fields via string interpolation — no executable code, no shell metacharacters, no binary data. File is written synchronously with no TOCTOU window between path construction and write.
+
+---
+
+## Findings
+
+🟡 bin/lib/report.mjs:138 — `featureName` from CLI args passed unsanitized to `path.join()`; with `--md`, writes REPORT.md to an attacker-controlled path (e.g., `agt report ../../../../tmp --md`). Validate `featureName` matches `/^[a-zA-Z0-9_-]+$/` before constructing `featureDir`. (Carry-forward from run_1; unchanged in run_3.)
+
+---
+
+## Overall Verdict: PASS
+
+No critical findings. No new security issues were introduced in run_3. The one open warning (unsanitized path traversal via feature name) is a carry-forward with limited direct-CLI impact and moderate CI-context risk — it belongs in the backlog. The run_3 changes are correctness/documentation fixes with no security surface.
+
+---
+
+# Simplicity Review — execution-report (run_3)
+
+**Reviewer role:** Simplicity
+**Verdict: FAIL**
+**Date:** 2026-04-26
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (full, 162 lines)
+- `bin/agt.mjs` (lines 19, 75, 188–195, 248, 868 — import, dispatch, help)
+- `test/report.test.mjs` (full, 313 lines)
+- `.team/features/execution-report/tasks/task-1/handshake.json`
+- `.team/PRODUCT.md` (line 64)
+
+---
+
+## Context
+
+run_3 claimed to fix: status label bug (`"Run in progress"` shown for `failed`/`blocked`), stale JSDoc/test comments, PRODUCT.md spec, and add `failed`-status tests. All four claims were verified by the Tester. This review checks only for the four simplicity veto categories.
+
+---
+
+## Per-Criterion Results
+
+### 1. Dead Code
+
+**FAIL — introduced in run_3**
+
+`bin/lib/report.mjs:16` declares:
+
+```js
+const isComplete = status === "completed";
+```
+
+In run_2 this variable was used:
+```js
+const statusLabel = isComplete ? "completed" : "Run in progress";
+```
+
+In run_3 the statusLabel line was replaced with a multi-branch ternary referencing `status` directly — but `isComplete` was never removed. It is now declared and never read anywhere in the function (lines 17–108).
+
+Confirmed: grep for `isComplete` in `report.mjs` returns exactly one match at line 16 (the declaration).
+
+**Fix:** Delete `bin/lib/report.mjs:16`.
+
+### 2. Premature Abstraction
+
+**PASS** — `buildReport` has two call sites: `cmdReport` (production path) and 16 direct unit tests. No new abstractions introduced in run_3.
+
+### 3. Unnecessary Indirection
+
+**PASS** — No new wrappers or re-exports. All run_3 changes are in-place modifications to existing code.
+
+### 4. Gold-Plating
+
+**PASS** — No new config options or speculative extensibility. The `failed`/`blocked`/`completed` statusLabel branches correspond to real, documented feature states. No unplanned variations.
+
+---
+
+## Findings
+
+🔴 bin/lib/report.mjs:16 — Dead code: `const isComplete = status === "completed"` is declared but never used after the run_3 statusLabel refactor inlined the check directly. Delete this line.
+
+---
+
+## Overall Verdict: FAIL
+
+One 🔴 dead-code finding blocks merge. All four builder claims for run_3 are substantively correct — the status label fix is right, tests were added, JSDoc and PRODUCT.md are updated. The sole issue is the dangling `isComplete` variable left behind when the ternary was expanded. Delete `report.mjs:16` and re-gate.
+
+---
+
+# Architect Review — execution-report (run_3)
+
+**Reviewer role:** Architect
+**Date:** 2026-04-26
+**Verdict:** PASS (2 warnings → backlog)
+
+---
+
+## Files Actually Read
+
+- `.team/features/execution-report/tasks/task-1/handshake.json` (full)
+- `bin/lib/report.mjs` (full, 162 lines)
+- `test/report.test.mjs` (full, 314 lines)
+- `bin/agt.mjs` (lines 17–22, 185–201 — import, dispatch, help entry)
+- `.team/PRODUCT.md` (grep — line 64)
+- `.team/features/execution-report/tasks/task-1/eval.md` (all prior reviews)
+
+---
+
+## Builder Claims (run_3 handshake)
+
+1. Status label fix: `failed`/`blocked` displayed correctly instead of "Run in progress"
+2. Stale JSDoc and test comments updated to `--md`
+3. PRODUCT.md spec updated to reflect `--md`
+4. Tests added for `failed` task status (header label + `[FAILED]` section label)
+5. All 541 tests pass
+
+---
+
+## Criteria
+
+### 1. Artifact Existence
+
+**PASS.** All three handshake artifacts exist and were read: `bin/lib/report.mjs`, `test/report.test.mjs`, `.team/PRODUCT.md`. No `artifacts/test-output.txt` stored; gate output is truncated before `report.test.mjs` results appear. 541-test claim is unverifiable from stored evidence. Process gap, not a code defect — carried from prior runs.
+
+### 2. Status Label Fix — Correctness and Completeness
+
+**PASS.** `report.mjs:31–34` is a correct, exhaustive four-branch ternary covering all known terminal states and a sensible fallback. The prior 🟡 from run_1 Architect review is resolved.
+
+One residue: `const isComplete = status === "completed"` at `report.mjs:16` was the original basis for the single-branch label but is now unused. Confirmed by grep — single occurrence at line 16, no uses elsewhere. This is a dead-variable residue from incomplete refactoring. Already flagged 🔴 by the Simplicity review; no additional architectural finding here — the Simplicity FAIL correctly handles it.
+
+### 3. Design Stability
+
+**PASS.** The core architectural split — pure `buildReport(state)` with no I/O, plus injectable `cmdReport(args, deps)` — is unchanged through three fix cycles. No new modules, no new abstractions, no new dependencies introduced. The design is stable and correctly scoped for its purpose.
+
+### 4. Fix Scope: Minimal Footprint
+
+**PASS.** run_3 changes are confined to: one ternary expansion in `report.mjs`, one variable removal missed (dead code), two JSDoc lines, four test comment lines, and one PRODUCT.md sentence. No structural changes. No new entry points, no new APIs, no shared state.
+
+### 5. Outstanding: Error Output Channel
+
+**STILL OPEN (backlog).** `cmdReport` writes all three error paths via `_stdout.write` (report.mjs:133, 141, 149), not stderr. Flagged 🟡 in run_1, confirmed open in run_2, not addressed in run_3. The architectural consequence: piping `agt report` output into another tool will mix error text with report content. The fix requires adding a `stderr` injection point to `deps` and routing the three error calls through it, consistent with `console.error` usage in `gate.mjs`, `transition.mjs`, and `harness-init.mjs`.
+
+### 6. Outstanding: False-Positive Gate Recommendation
+
+**STILL OPEN (backlog).** `report.mjs:98–100`: `if (failGates > 0 && passGates === 0)` produces a "review quality gate command" recommendation for in-progress features on their first failed gate run. Flagged 🔵 in run_2 Engineer and Architect reviews. Not addressed in run_3.
+
+### 7. Untested `blocked` Header Branch
+
+**NEW GAP.** `report.mjs:33` adds the `blocked` header label but no test exercises `status: "blocked"` at the feature level. The `failed` path is tested; the `blocked` path is not. Flagged 🟡 by run_3 Tester. From an architectural standpoint: new code paths must have corresponding tests at the point of introduction, not deferred to backlog.
+
+---
+
+## Findings
+
+🟡 bin/lib/report.mjs:133 — Error messages route to `_stdout.write`, not stderr; add a `stderr` dep injection point and route all three error exits there. Breaks Unix pipe idiom. Carried from run_1. (backlog)
+
+🟡 test/report.test.mjs — Feature-level `status: "blocked"` header label (report.mjs:33) has no test; a regression would be silent. New code path introduced in run_3 without test coverage. (backlog)
+
+🔵 bin/lib/report.mjs:98 — "No gate passes recorded" recommendation fires for in-progress features on first gate failure; guard on terminal status to eliminate false positives. Carried from run_2. (backlog)
+
+---
+
+## Overall Verdict: PASS
+
+The four substantive run_3 claims are verified: status label ternary is correct and exhaustive, JSDoc and test comments are consistent with `--md`, PRODUCT.md spec is updated, and `failed`-status tests are present. No new architectural regressions. Two 🟡 backlog items: error-output-channel inconsistency (carried) and untested `blocked` header branch (new gap). One 🔵 for the false-positive recommendation (carried). The dead `isComplete` variable (🔴 Simplicity FAIL) is an incomplete-refactoring residue, not an architectural concern — the Simplicity gate correctly blocks merge on that finding.
+
+---
+
+# Product Manager Review — execution-report (run_3)
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Verdict: ITERATE**
+
+---
+
+## Scope of run_3
+
+Builder claimed four targeted fixes: status label for `failed`/`blocked`, stale JSDoc updated to `--md`, PRODUCT.md spec updated to `--md`, and new tests for `failed` task status.
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (full, 163 lines)
+- `test/report.test.mjs` (lines 133–167 — new failed-status tests; lines 261–312 — `--md` tests and help test)
+- `bin/agt.mjs` (lines 188–195, 248 — help entry and top-level dispatch)
+- `.team/PRODUCT.md` (line 64 — spec source)
+- `.team/features/execution-report/tasks/task-1/handshake.json`
+
+---
+
+## Per-Criterion Results
+
+### 1. Primary requirement: `agt report <feature>` prints all required sections to stdout
+
+**PASS — unchanged**
+
+`cmdReport` at `report.mjs:159–160` calls `_stdout.write(report + "\n")` for the default path. `buildReport` emits all five sections: Header, Task Summary, Cost Breakdown, Blocked/Failed Tasks (conditional), Recommendations (conditional). Not regressed by run_3.
+
+### 2. Status label fix — `failed`/`blocked` no longer shown as "Run in progress"
+
+**PASS — direct evidence**
+
+`report.mjs:31–34` explicitly maps `failed` → "failed", `blocked` → "blocked", `completed` → "completed", other → "run in progress". Two new tests at `test/report.test.mjs:148–167` confirm both the header label and the `[FAILED]` section label for `failed` task status. The run_2 Engineer 🟡 is resolved.
+
+### 3. JSDoc accuracy — `--md` not `--output md`
+
+**PASS — direct evidence**
+
+`report.mjs:113` reads "With --md, writes REPORT.md…" and `report.mjs:116` reads "@param … optional --md". The run_2 Simplicity/Engineer/Architect stale-JSDoc 🟡 items are resolved.
+
+### 4. PRODUCT.md spec updated to `--md`
+
+**PASS — direct evidence**
+
+`PRODUCT.md:64` now reads: `` `agt report <feature>` prints to stdout; `--md` writes REPORT.md. `` The run_2 PM 🟡 is resolved. Spec and implementation are consistent.
+
+### 5. Tests for `failed` task status
+
+**PASS — direct evidence**
+
+`test/report.test.mjs:148–153`: header label test confirms `"failed"` in header, not `"run in progress"`.
+`test/report.test.mjs:155–167`: section label test confirms `[FAILED]` label and `lastReason` rendered.
+The run_2 Tester 🟡 is resolved.
+
+### 6. Simplicity gate result
+
+**FAIL — blocks merge**
+
+Simplicity run_3 issued a 🔴 for dead code: `const isComplete = status === "completed"` at `report.mjs:16`. Independently verified — `isComplete` appears exactly once in the file (declaration only; never read). The run_3 status-label refactor inlined the check directly into the ternary and left the variable behind. Per gate rules, any 🔴 = FAIL. Fix is a single-line deletion.
+
+### 7. Test count claim (541 tests pass)
+
+**UNVERIFIABLE**
+
+No `artifacts/test-output.txt` stored. Gate output is truncated before `report.test.mjs` results appear. The 541-test claim cannot be confirmed from stored evidence. Recurring process gap (flagged in all three runs).
+
+---
+
+## Findings
+
+🔴 `bin/lib/report.mjs:16` — Dead code: `const isComplete = status === "completed"` declared and never read after the run_3 statusLabel refactor. Simplicity gate blocks merge. Delete this line and re-gate.
+
+🔵 `.team/features/execution-report/tasks/task-1/` — No `artifacts/test-output.txt` stored for the third consecutive run; test count is unverifiable. Store gate output as a required artifact.
+
+---
+
+## Carried-Forward Backlog Items (not new, not blocking)
+
+- 🟡 `bin/lib/report.mjs:138` — `featureName` unsanitized in `path.join()`; path traversal risk in CI contexts. (Security, run_1)
+- 🟡 `bin/lib/report.mjs:131` — Errors written to stdout instead of stderr. (Architect, run_1)
+- 🟡 `bin/lib/report.mjs:95` — "No gate passes" recommendation false positive for in-progress features. (Engineer, run_1)
+- 🟡 `test/report.test.mjs` — Feature-level `status: "blocked"` header label untested. (Tester, run_3)
+
+---
+
+## Overall Verdict: ITERATE
+
+All four substantive run_3 claims are verified correct in code. Spec is consistent with implementation. The Simplicity gate issued a 🔴 blocking finding for dead code (`isComplete` at `report.mjs:16`) — a one-line fix. Remove the declaration and re-gate. No other PM-level gaps.
