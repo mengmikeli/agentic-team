@@ -85,6 +85,23 @@ export async function cmdCronTick(args = [], deps = {}) {
     // Query board for all items
     const items = _listProjectItems(projectNumber);
 
+    // Pre-flight: recover stale in-progress items left by a SIGKILL'd previous run.
+    // Since we hold the lock, any in-progress item has no active owner — revert to ready.
+    // Match both "in-progress" (internal) and "in progress" (GitHub API field name format).
+    const inProgressItems = items.filter(i => {
+      const s = i.status?.toLowerCase();
+      return s === "in-progress" || s === "in progress";
+    });
+    for (const staleItem of inProgressItems) {
+      const reverted = _setProjectItemStatus(staleItem.issueNumber, projectNumber, "ready");
+      if (!reverted) {
+        console.warn(`cron-tick: warning — could not recover stale in-progress item #${staleItem.issueNumber}`);
+      } else {
+        console.log(`cron-tick: recovered stale in-progress item #${staleItem.issueNumber} — reverted to 'ready'`);
+        staleItem.status = "ready"; // include in ready pool below
+      }
+    }
+
     // Filter for Ready items (case-insensitive status match)
     const readyItems = items.filter(i => i.status?.toLowerCase() === "ready");
 
@@ -97,7 +114,8 @@ export async function cmdCronTick(args = [], deps = {}) {
     const item = readyItems[0];
     const { issueNumber } = item;
     // Sanitize title: strip newlines and control chars to prevent prompt injection
-    const title = (item.title || "").replace(/[\r\n\x00-\x1f\x7f]/g, " ").trim().slice(0, 200);
+    // Includes Unicode line separators (U+0085, U+2028, U+2029) which LLMs treat as structural newlines
+    const title = (item.title || "").replace(/[\r\n\x00-\x1f\x7f\u0085\u2028\u2029]/g, " ").trim().slice(0, 200);
 
     console.log(`cron-tick: dispatching issue #${issueNumber} — ${title}`);
 
@@ -108,7 +126,7 @@ export async function cmdCronTick(args = [], deps = {}) {
     }
 
     try {
-      await _runSingleFeature(args, title);
+      await _runSingleFeature([], title);
       // Transition to done on success
       const doneSet = _setProjectItemStatus(issueNumber, projectNumber, "done");
       if (!doneSet) {

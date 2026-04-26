@@ -38,6 +38,15 @@ function writeProjectMd(teamDir, projectNumber = 42) {
   );
 }
 
+// Helper to create a lock stub with a release spy.
+// Spread into deps: { ...makeLockSpy() } contributes lockFile to deps.
+// After the test, check spy.releaseCalls === 1 to verify the finally block ran.
+function makeLockSpy() {
+  const spy = { releaseCalls: 0 };
+  spy.lockFile = () => ({ acquired: true, release: () => { spy.releaseCalls++; } });
+  return spy;
+}
+
 describe("cmdCronTick", () => {
   let tmpDir;
   let teamDir;
@@ -71,25 +80,30 @@ describe("cmdCronTick", () => {
     writeProjectMd(teamDir);
     const logs = [];
     const origLog = console.log;
-    console.log = (...a) => { logs.push(a.join(" ")); };
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
       readProjectNumber: () => 42,
       listProjectItems: () => [
         { issueNumber: 1, title: "Some issue", status: "Todo", id: "item-1" },
-        { issueNumber: 2, title: "In progress", status: "In Progress", id: "item-2" },
+        { issueNumber: 2, title: "Completed issue", status: "Done", id: "item-2" },
       ],
       runSingleFeature: async () => { throw new Error("should not be called"); },
       setProjectItemStatus: () => false,
       commentIssue: () => false,
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
-    await cmdCronTick([], deps);
-    console.log = origLog;
+    try {
+      console.log = (...a) => { logs.push(a.join(" ")); };
+      await cmdCronTick([], deps);
+    } finally {
+      console.log = origLog;
+    }
 
     assert.ok(logs.some(l => l.includes("no ready items")), `Expected 'no ready items' in: ${logs.join(", ")}`);
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   // ── 2. Lock already held ──────────────────────────────────────
@@ -98,7 +112,6 @@ describe("cmdCronTick", () => {
     writeProjectMd(teamDir);
     const logs = [];
     const origLog = console.log;
-    console.log = (...a) => { logs.push(a.join(" ")); };
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -111,11 +124,15 @@ describe("cmdCronTick", () => {
     };
 
     try {
-      await cmdCronTick([], deps);
-    } catch (e) {
-      // process.exit throws in test
+      console.log = (...a) => { logs.push(a.join(" ")); };
+      try {
+        await cmdCronTick([], deps);
+      } catch (e) {
+        // process.exit throws in test
+      }
+    } finally {
+      console.log = origLog;
     }
-    console.log = origLog;
 
     assert.ok(
       logs.some(l => l.includes("already running")),
@@ -130,6 +147,8 @@ describe("cmdCronTick", () => {
     writeProjectMd(teamDir);
     const statusTransitions = [];
     let runCalled = false;
+    let runArgs = null;
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -140,6 +159,7 @@ describe("cmdCronTick", () => {
       ],
       runSingleFeature: async (args, title) => {
         runCalled = true;
+        runArgs = args;
         assert.equal(title, "Add dark mode", "Should dispatch first ready item");
         return "done";
       },
@@ -148,17 +168,19 @@ describe("cmdCronTick", () => {
         return true;
       },
       commentIssue: () => false,
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
     await cmdCronTick([], deps);
 
     assert.ok(runCalled, "runSingleFeature should have been called");
+    assert.deepEqual(runArgs, [], "runSingleFeature must be called with empty args, not forwarded CLI args");
     const inProgressIdx = statusTransitions.findIndex(t => t.issueNumber === 7 && t.status === "in-progress");
     const doneIdx = statusTransitions.findIndex(t => t.issueNumber === 7 && t.status === "done");
     assert.ok(inProgressIdx !== -1, "Should transition issue to in-progress before running");
     assert.ok(doneIdx !== -1, "Should transition issue to done after success");
     assert.ok(inProgressIdx < doneIdx, "in-progress must come before done");
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   // ── 3b. Board API failure warning ────────────────────────────
@@ -167,7 +189,7 @@ describe("cmdCronTick", () => {
     writeProjectMd(teamDir);
     const warns = [];
     const origWarn = console.warn;
-    console.warn = (...a) => { warns.push(a.join(" ")); };
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -178,14 +200,19 @@ describe("cmdCronTick", () => {
       runSingleFeature: async () => "done",
       setProjectItemStatus: () => false,
       commentIssue: () => false,
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
-    await cmdCronTick([], deps);
-    console.warn = origWarn;
+    try {
+      console.warn = (...a) => { warns.push(a.join(" ")); };
+      await cmdCronTick([], deps);
+    } finally {
+      console.warn = origWarn;
+    }
 
     assert.ok(warns.some(w => w.includes("in-progress")), `Expected in-progress warning in: ${warns.join(", ")}`);
     assert.ok(warns.some(w => w.includes("done")), `Expected done warning in: ${warns.join(", ")}`);
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   // ── 4. Failed dispatch ────────────────────────────────────────
@@ -194,6 +221,7 @@ describe("cmdCronTick", () => {
     writeProjectMd(teamDir);
     const statusTransitions = [];
     const comments = [];
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -207,7 +235,7 @@ describe("cmdCronTick", () => {
         return true;
       },
       commentIssue: (issueNumber, body) => { comments.push({ issueNumber, body }); return true; },
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
     await cmdCronTick([], deps);
@@ -218,6 +246,7 @@ describe("cmdCronTick", () => {
       "Should revert to ready after failure");
     assert.ok(comments.some(c => c.issueNumber === 5 && c.body.includes("agent exploded")),
       "Should comment failure message on issue");
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   // ── 4b. Failed dispatch — commentIssue returns false ─────────
@@ -225,7 +254,7 @@ describe("cmdCronTick", () => {
     writeProjectMd(teamDir);
     const warns = [];
     const origWarn = console.warn;
-    console.warn = (...a) => { warns.push(a.join(" ")); };
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -236,13 +265,18 @@ describe("cmdCronTick", () => {
       runSingleFeature: async () => { throw new Error("feature failed"); },
       setProjectItemStatus: () => true,
       commentIssue: () => false,
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
-    await cmdCronTick([], deps);
-    console.warn = origWarn;
+    try {
+      console.warn = (...a) => { warns.push(a.join(" ")); };
+      await cmdCronTick([], deps);
+    } finally {
+      console.warn = origWarn;
+    }
 
     assert.ok(warns.some(w => w.includes("failed to comment")), `Expected 'failed to comment' warning in: ${warns.join(", ")}`);
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   // ── 4c. Failed dispatch — commentIssue throws ─────────────────
@@ -252,8 +286,7 @@ describe("cmdCronTick", () => {
     const warns = [];
     const origError = console.error;
     const origWarn = console.warn;
-    console.error = (...a) => { errors.push(a.join(" ")); };
-    console.warn = (...a) => { warns.push(a.join(" ")); };
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -264,23 +297,30 @@ describe("cmdCronTick", () => {
       runSingleFeature: async () => { throw new Error("run exploded"); },
       setProjectItemStatus: () => true,
       commentIssue: () => { throw new Error("GH auth error"); },
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
-    await cmdCronTick([], deps);
-    console.error = origError;
-    console.warn = origWarn;
+    try {
+      console.error = (...a) => { errors.push(a.join(" ")); };
+      console.warn = (...a) => { warns.push(a.join(" ")); };
+      await cmdCronTick([], deps);
+    } finally {
+      console.error = origError;
+      console.warn = origWarn;
+    }
 
     // Original error must appear in console.error
     assert.ok(errors.some(e => e.includes("run exploded")), `Expected 'run exploded' in errors: ${errors.join(", ")}`);
     // commentIssue error must be warned, not thrown
     assert.ok(warns.some(w => w.includes("GH auth error")), `Expected 'GH auth error' in warns: ${warns.join(", ")}`);
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   // ── 4d. Title sanitization ────────────────────────────────────
   it("strips newlines and control chars from issue title", async () => {
     writeProjectMd(teamDir);
     let dispatchedTitle = null;
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -291,7 +331,7 @@ describe("cmdCronTick", () => {
       runSingleFeature: async (args, title) => { dispatchedTitle = title; },
       setProjectItemStatus: () => true,
       commentIssue: () => true,
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
     await cmdCronTick([], deps);
@@ -300,12 +340,40 @@ describe("cmdCronTick", () => {
     assert.ok(!dispatchedTitle.includes("\r"), "Title must not contain \\r");
     assert.ok(!dispatchedTitle.includes("\n"), "Title must not contain \\n");
     assert.ok(!/[\x00-\x1f\x7f]/.test(dispatchedTitle), "Title must not contain control chars");
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
+  });
+
+  it("strips Unicode line separators from issue title", async () => {
+    writeProjectMd(teamDir);
+    let dispatchedTitle = null;
+    const lockSpy = makeLockSpy();
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 15, title: "Inject\u0085NEL\u2028LS\u2029PS", status: "Ready", id: "item-15" },
+      ],
+      runSingleFeature: async (args, title) => { dispatchedTitle = title; },
+      setProjectItemStatus: () => true,
+      commentIssue: () => true,
+      lockFile: lockSpy.lockFile,
+    };
+
+    await cmdCronTick([], deps);
+
+    assert.ok(dispatchedTitle !== null, "runSingleFeature should have been called");
+    assert.ok(!dispatchedTitle.includes("\u0085"), "Title must not contain U+0085 NEL");
+    assert.ok(!dispatchedTitle.includes("\u2028"), "Title must not contain U+2028 Line Separator");
+    assert.ok(!dispatchedTitle.includes("\u2029"), "Title must not contain U+2029 Paragraph Separator");
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   it("truncates issue title to 200 characters", async () => {
     writeProjectMd(teamDir);
     const longTitle = "A".repeat(300);
     let dispatchedTitle = null;
+    const lockSpy = makeLockSpy();
 
     const deps = {
       readTrackingConfig: () => TRACKING_CONFIG,
@@ -316,13 +384,118 @@ describe("cmdCronTick", () => {
       runSingleFeature: async (args, title) => { dispatchedTitle = title; },
       setProjectItemStatus: () => true,
       commentIssue: () => true,
-      lockFile: () => ({ acquired: true, release: () => {} }),
+      lockFile: lockSpy.lockFile,
     };
 
     await cmdCronTick([], deps);
 
     assert.ok(dispatchedTitle !== null, "runSingleFeature should have been called");
     assert.ok(dispatchedTitle.length <= 200, `Title length ${dispatchedTitle.length} exceeds 200`);
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
+  });
+
+  // ── 4e. Stale in-progress recovery ────────────────────────────
+
+  it("reverts stale in-progress items to ready before processing new ready items", async () => {
+    writeProjectMd(teamDir);
+    const statusTransitions = [];
+    let runCalled = false;
+    const lockSpy = makeLockSpy();
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 3, title: "Stale feature", status: "In Progress", id: "item-3" },
+        { issueNumber: 4, title: "New feature", status: "Ready", id: "item-4" },
+      ],
+      runSingleFeature: async () => { runCalled = true; },
+      setProjectItemStatus: (issueNumber, projectNumber, status) => {
+        statusTransitions.push({ issueNumber, projectNumber, status });
+        return true;
+      },
+      commentIssue: () => false,
+      lockFile: lockSpy.lockFile,
+    };
+
+    await cmdCronTick([], deps);
+
+    // Stale in-progress item should be reverted to ready
+    assert.ok(statusTransitions.some(t => t.issueNumber === 3 && t.status === "ready"),
+      "Should revert stale in-progress item #3 to 'ready'");
+    // Normal processing continues (item #3 or #4 dispatched)
+    assert.ok(runCalled, "runSingleFeature should be called");
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
+  });
+
+  it("dispatches stale in-progress item after recovery when no other ready items exist", async () => {
+    writeProjectMd(teamDir);
+    const statusTransitions = [];
+    let runCalled = false;
+    const lockSpy = makeLockSpy();
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 20, title: "Stale only", status: "In Progress", id: "item-20" },
+      ],
+      runSingleFeature: async () => { runCalled = true; },
+      setProjectItemStatus: (issueNumber, projectNumber, status) => {
+        statusTransitions.push({ issueNumber, projectNumber, status });
+        return true;
+      },
+      commentIssue: () => false,
+      lockFile: lockSpy.lockFile,
+    };
+
+    await cmdCronTick([], deps);
+
+    // Stale item should be reverted to ready first
+    assert.ok(
+      statusTransitions.some(t => t.issueNumber === 20 && t.status === "ready"),
+      "Should revert stale in-progress item #20 to 'ready'",
+    );
+    // Then re-dispatched (transitions to in-progress for run)
+    assert.ok(
+      statusTransitions.some(t => t.issueNumber === 20 && t.status === "in-progress"),
+      "Should transition item #20 back to in-progress for dispatch",
+    );
+    assert.ok(runCalled, "runSingleFeature should be called for recovered item");
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
+  });
+
+  it("logs a warning when stale in-progress item cannot be reverted", async () => {
+    writeProjectMd(teamDir);
+    const warns = [];
+    const origWarn = console.warn;
+    const lockSpy = makeLockSpy();
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 30, title: "Stuck feature", status: "In Progress", id: "item-30" },
+      ],
+      runSingleFeature: async () => {},
+      // setProjectItemStatus returns false → stale revert fails → warning
+      setProjectItemStatus: () => false,
+      commentIssue: () => false,
+      lockFile: lockSpy.lockFile,
+    };
+
+    try {
+      console.warn = (...a) => { warns.push(a.join(" ")); };
+      await cmdCronTick([], deps);
+    } finally {
+      console.warn = origWarn;
+    }
+
+    assert.ok(
+      warns.some(w => w.includes("could not recover stale") && w.includes("30")),
+      `Expected stale recovery warning in: ${warns.join(", ")}`,
+    );
+    assert.equal(lockSpy.releaseCalls, 1, "lock.release should be called once");
   });
 
   // ── 5. Not configured ─────────────────────────────────────────

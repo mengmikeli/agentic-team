@@ -1,14 +1,15 @@
 {
   "taskId": "task-4",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed two issues in the failure-path of cmdCronTick: (1) wrapped _commentIssue in a try-catch so a throwing comment call cannot swallow the original run error, and (2) added a return-value check so a false/falsy result from _commentIssue emits a console.warn. Added four new unit tests covering title sanitization (newlines, control chars, >200-char truncation) and the two new _commentIssue failure cases (returns false, throws). All 549 tests pass.",
-  "timestamp": "2026-04-26T10:00:00.000Z",
+  "summary": "Fixed four issues flagged in prior reviews: (1) args no longer forwarded verbatim to runSingleFeature — empty array passed instead, preventing --dry-run flag leakage; (2) title sanitization regex extended to strip Unicode line separators U+0085, U+2028, U+2029; (3) stale in-progress recovery added as a pre-flight step — on startup, any board items left in 'in-progress' by a SIGKILL'd previous run are reverted to 'ready' before dispatching; (4) test quality hardened — console mock restores moved to try/finally blocks, lock.release() spy added to all acquired-lock tests and asserted, plus three new stale-recovery tests and one Unicode sanitization test added. All 553 tests pass.",
+  "timestamp": "2026-04-26T10:30:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/cron.mjs" },
-    { "type": "code", "path": "test/cron-tick.test.mjs" }
+    { "type": "code", "path": "test/cron-tick.test.mjs" },
+    { "type": "doc", "path": ".team/features/cron-based-outer-loop/SPEC.md" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }
