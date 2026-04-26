@@ -629,6 +629,23 @@ describe("cmdCronSetup", () => {
     assert.ok(cronLine, "Should have a crontab line");
     assert.ok(cronLine.includes("'"), "Paths should be single-quoted for shell safety");
   });
+
+  it("includes cd to the project root in the crontab line", () => {
+    cmdCronSetup([]);
+    const cronLine = logs.find(l => l.includes("* * * *"));
+    assert.ok(cronLine, "Should have a crontab line");
+    const cwd = process.cwd();
+    assert.ok(cronLine.includes(`cd '${cwd}'`) || cronLine.includes(`cd "${cwd}"`),
+      `Should cd to project root (${cwd}) in: ${cronLine}`);
+  });
+
+  it("redirects cron-tick output to .team/cron.log", () => {
+    cmdCronSetup([]);
+    const cronLine = logs.find(l => l.includes("* * * *"));
+    assert.ok(cronLine, "Should have a crontab line");
+    assert.ok(cronLine.includes(">> ") && cronLine.includes("cron.log") && cronLine.includes("2>&1"),
+      `Should redirect stdout and stderr to cron.log in: ${cronLine}`);
+  });
 });
 
 // ── CLI integration tests ─────────────────────────────────────────
