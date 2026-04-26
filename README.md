@@ -2,8 +2,10 @@
 
 CLI + harness + dashboard for autonomous AI agent teams. The human defines direction, agents execute, a harness enforces quality, and a dashboard shows everything.
 
+**v2.1.0** — [npm](https://www.npmjs.com/package/@mengmikeli/agentic-team) · [GitHub Project Board](https://github.com/users/mengmikeli/projects/2)
+
 ```
-npx @mengmikeli/agentic-team
+npx @mengmikeli/agentic-team init
 ```
 
 ## Prerequisites
@@ -20,21 +22,27 @@ Human: "Build X"
      ↓
   agt init → scaffold project
      ↓
-  agt run → autonomous loop
+  agt run → autonomous outer loop
      │
+     ├─ prioritize (reads PRODUCT.md roadmap)
      ├─ brainstorm → SPEC.md
-     ├─ plan tasks
-     ├─ dispatch subagents
-     ├─ agt-harness gate (quality checks)
-     ├─ agt-harness transition (state management)
-     ├─ agt-harness notify (progress updates)
-     └─ agt-harness finalize (validate chain)
+     ├─ create GitHub issues + project board sync
+     ├─ wait for human approval (Ready on board)
+     ├─ execute (inner loop):
+     │   ├─ plan tasks (or match runbook)
+     │   ├─ dispatch coding agent per task
+     │   ├─ quality gate (npm test, etc.)
+     │   ├─ multi-perspective review (6 roles)
+     │   ├─ compound evaluation gate
+     │   └─ iterate or advance
+     ├─ finalize (merge, close issues, sync board)
+     └─ review outcome → next cycle
      ↓
-  Human reviews PR
+  Human verifies deliverable
 ```
 
 Two binaries:
-- **`at`** — CLI for humans: init projects, check status, view boards
+- **`agt`** — CLI for humans: init projects, run autonomous execution, check status, view boards, generate reports
 - **`agt-harness`** — enforcement layer for agents: tamper-detected state, quality gates, validated transitions
 
 ## Quick start
@@ -43,26 +51,32 @@ Two binaries:
 # Set up a new project
 agt init
 
+# Start autonomous execution
+agt run
+
 # Check project status
 agt status
 
 # View task board
 agt board
 
-# See token usage + git stats
-agt metrics
-
-# Start the web dashboard
+# Launch web dashboard
 agt dashboard
 
 # Health check
 agt doctor
+
+# Generate execution report
+agt report <feature>
 ```
 
 ## CLI Commands
 
 ### `agt init`
-Interactive setup wizard. Creates `.team/` with PRODUCT.md, PROJECT.md, AGENTS.md.
+Interactive setup wizard. Creates `.team/` with PRODUCT.md, PROJECT.md, AGENTS.md. Sets up GitHub Project board.
+
+### `agt run [description]`
+Autonomous execution loop. Reads PRODUCT.md roadmap, picks the highest-priority incomplete item, brainstorms a spec, creates GitHub issues, waits for human approval, executes with quality gates and multi-perspective review, finalizes and syncs project board. Repeats until roadmap is complete.
 
 ### `agt status`
 Cross-project dashboard in terminal — features, task counts, gate pass rates.
@@ -71,10 +85,10 @@ Cross-project dashboard in terminal — features, task counts, gate pass rates.
 Kanban-style task board. Shows tasks grouped by status: pending → in-progress → passed → blocked.
 
 ### `agt metrics`
-Token usage from [pew](https://github.com/mengmikeli/pew) data, git log stats, feature metrics. Includes a contribution-graph style heatmap.
+Token usage from [pew](https://github.com/nicepkg/pew) data, git log stats, feature metrics.
 
-### `agt run [description]`
-Autonomous execution loop *(autonomous feature execution (brainstorm, build, review, ship))*.
+### `agt report <feature> [--output md]`
+Structured post-run report: what shipped, task summary with titles, cost breakdown (total + per-phase), blocked/failed analysis, actionable recommendations. `--output md` writes REPORT.md.
 
 ### `agt stop [feature]`
 Pause active features. Run `agt run` to resume.
@@ -83,143 +97,74 @@ Pause active features. Run `agt run` to resume.
 Execution history — transitions, gate results, timing.
 
 ### `agt dashboard [port]`
-Serves the web dashboard at `http://localhost:3847` (default port). Shows overview cards, feature timeline, task board, and metrics.
+Web dashboard at `http://localhost:3847`. React + shadcn/ui + Recharts. Feature timeline, task board, token breakdown, analytics. Light/dark toggle.
 
-### `agt doctor`
-Health check for your setup. Verifies Node.js version, tool availability (gh, claude/codex, pew), `.team/` project structure, quality gate configuration, and GitHub Project board. Color-coded output with pass/warn/fail status.
+### `agt doctor [--phase] [--fix]`
+Health check. Verifies Node.js, tools (gh, claude/codex, pew), `.team/` structure, quality gates, GitHub Project board. `--phase` checks roadmap integrity, stale features, zero-passed completions, orphaned issues.
 
 ## Harness Commands
 
-The enforcement layer. Agent calls these; output is JSON; state is tamper-detected.
+The enforcement layer. Agents call these; output is JSON; state is tamper-detected.
 
 ### `agt-harness init --feature <name>`
 Create feature state in `.team/features/{name}/STATE.json`.
 
 ### `agt-harness gate --cmd <command> --dir <path> [--task <id>]`
-Run a quality gate. Execute the command, capture exit code + output, write verdict.
-- Exit 0 → PASS, non-zero → FAIL
-- Writes nonce signature — can't be faked by agent editing STATE.json
+Run a quality gate. Exit 0 → PASS, non-zero → FAIL. Writes nonce signature — can't be faked.
 
 ### `agt-harness transition --task <id> --status <status> --dir <path>`
-Validated state transition with safety guards:
-- Checks allowed transitions (pending → in-progress → passed/failed)
-- Enforces cycle limits (max 3 retries per task)
-- Detects oscillation (A→B→A→B pattern)
-- Idempotency guard (dedup within 5s window)
-- File locking for concurrent safety
+Validated state transitions with cycle limits, oscillation detection, file locking.
 
-### `agt-harness notify --event <type> --msg <message> [--channel <target>]`
-Dispatch progress events. Events: `feature-started`, `task-started`, `task-passed`, `task-failed`, `task-blocked`, `progress`, `anomaly`, `feature-complete`.
+### `agt-harness notify --event <type> --msg <message>`
+Progress events: `feature-started`, `task-passed`, `task-blocked`, `feature-complete`, etc.
 
 ### `agt-harness finalize --dir <path> [--strict]`
-Validate the entire execution chain before marking a feature complete:
-- All tasks must be passed or skipped
-- No unapproved state edits (nonce check)
-- `--strict`: every passed task must have a gate result
-
-## Web Dashboard
-
-Static HTML/JS — no build step, no framework.
-
-**Pages:**
-- **Overview** — project cards, feature list with progress bars
-- **Timeline** — chronological feature history with outcomes
-- **Board** — kanban task board for active feature
-- **Metrics** — completion rates, gate pass rates, activity heatmap
-
-Reads `.team/` data via `/api/` when served, falls back to demo data when opened locally.
+Validate execution chain, close issues, sync project board to Done. `--strict`: every passed task must have a gate result.
 
 ## Architecture
 
 ```
 agentic-team/
 ├── bin/
-│   ├── at.mjs              ← CLI entry point
+│   ├── agt.mjs              ← CLI entry point
 │   ├── agt-harness.mjs      ← harness entry point
-│   └── lib/
-│       ├── util.mjs         ← nonce, file lock, atomic write, ANSI
-│       ├── init.mjs         ← agt init (interactive)
-│       ├── run.mjs          ← agt run (autonomous execution)
-│       ├── status.mjs       ← agt status (terminal dashboard)
-│       ├── board.mjs        ← agt board (task board)
-│       ├── metrics.mjs      ← agt metrics (pew + git)
-│       ├── stop.mjs         ← agt stop (pause features)
-│       ├── log.mjs          ← agt log (history viewer)
-│       ├── gate.mjs         ← harness gate (quality checks)
-│       ├── transition.mjs   ← harness transitions (state machine)
-│       ├── finalize.mjs     ← harness finalize (chain validation)
-│       ├── notify.mjs       ← harness notifications
-│       ├── harness-init.mjs ← harness init (create STATE.json)
-│       └── harness-metrics.mjs ← harness metrics (JSON)
-├── dashboard/               ← static web dashboard
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
-├── skills/                  ← agent playbook (AgentSkills format)
-├── roles/                   ← specialist role templates
+│   └── lib/                 ← 27 modules
+│       ├── outer-loop.mjs   ← autonomous prioritize → execute → review cycle
+│       ├── run.mjs          ← inner loop: plan → dispatch → gate → review
+│       ├── review.mjs       ← multi-perspective code review (6 roles)
+│       ├── compound-gate.mjs ← substance check on reviews
+│       ├── doctor.mjs       ← health checks + phase checks
+│       ├── report.mjs       ← execution reports
+│       ├── github.mjs       ← GitHub issues + project board sync
+│       ├── gate.mjs         ← quality gate execution
+│       ├── transition.mjs   ← state machine enforcement
+│       └── ...
+├── dashboard-ui/            ← React + Vite + shadcn/ui dashboard
+├── roles/                   ← review role templates (architect, engineer, security, ...)
 ├── templates/               ← .team/ file templates
-├── test/                    ← harness tests (node --test)
+├── test/                    ← 579+ tests (node --test)
 ├── CHARTER.md               ← methodology reference
 └── PLAYBOOK.md              ← operational recipes
 ```
 
-## State Machine
+## Review System
 
-Task transitions are enforced by the harness:
+Every task gets reviewed by 6 specialist roles in parallel:
+- **Architect** — structure, patterns, scalability
+- **Engineer** — correctness, edge cases, performance
+- **Product** — spec compliance, user impact
+- **Tester** — coverage, test quality
+- **Security** — vulnerabilities, input validation
+- **Simplicity** — dead code, over-engineering (veto power)
 
-```
-pending → in-progress → passed
-                      → failed → in-progress (retry, max 3)
-                               → skipped
-                      → blocked → in-progress (retry)
-                                → skipped
-```
-
-Every transition is:
-1. Validated against allowed transitions
-2. Checked for cycle limits
-3. Checked for oscillation
-4. Written with file lock + nonce
-5. Recorded in transition history
-
-## Quality Gates
-
-Gates are shell commands executed by the harness. The agent can't fake results:
-
-```bash
-# Run tests as a gate
-agt-harness gate --cmd "npm test" --dir .team/features/auth --task setup-db
-
-# Output (JSON):
-# { "ok": true, "verdict": "PASS", "exitCode": 0, ... }
-```
-
-The verdict is written directly to STATE.json with a nonce signature. If the agent manually edits STATE.json, the harness detects the tamper and refuses further operations.
+Reviews go through a compound evaluation gate that checks for thin content, missing code references, fabricated references, and aspirational claims.
 
 ## Testing
 
 ```bash
 npm test
-# Runs 579+ tests covering CLI, harness, review, outer loop, doctor, report, worktrees
+# 579 tests, 114 suites, 0 failures
 ```
-
-## Project Structure (managed by at)
-
-```
-.team/
-├── PRODUCT.md          ← vision, users, goals
-├── PROJECT.md          ← stack, deploy, gate command
-├── AGENTS.md           ← team roles
-├── HISTORY.md          ← shipped features log
-└── features/
-    └── {name}/
-        ├── SPEC.md     ← what + why
-        └── STATE.json  ← harness-managed state
-```
-
-## Self-dogfooding
-
-This repo uses its own `.team/` directory. The v2 product spec lives at `.team/features/v2-product/SPEC.md`.
 
 ## License
 
