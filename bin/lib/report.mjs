@@ -5,6 +5,10 @@ import { existsSync, writeFileSync } from "fs";
 import { basename, join } from "path";
 import { readState } from "./util.mjs";
 
+function escapeCell(text) {
+  return text.replace(/\|/g, "\\|");
+}
+
 export function buildReport(state) {
   const lines = [];
   const feature = state.feature || "unknown";
@@ -19,7 +23,9 @@ export function buildReport(state) {
     const endIso = state.completedAt || state._last_modified;
     const endMs = endIso ? new Date(endIso).getTime() : Date.now();
     const mins = Math.round((endMs - startMs) / 60000);
-    if (mins < 60) {
+    if (!Number.isFinite(mins)) {
+      duration = "N/A";
+    } else if (mins < 60) {
       duration = `${mins}m`;
     } else {
       const hours = Math.floor(mins / 60);
@@ -54,7 +60,7 @@ export function buildReport(state) {
   for (const task of tasks) {
     const taskGates = gates.filter(g => g.taskId === task.id);
     const lastVerdict = taskGates.length > 0 ? taskGates[taskGates.length - 1].verdict : "—";
-    lines.push(`| ${task.id} | ${task.title || "—"} | ${task.status} | ${task.attempts ?? 0} | ${lastVerdict} |`);
+    lines.push(`| ${task.id} | ${escapeCell(task.title || "—")} | ${task.status} | ${task.attempts ?? 0} | ${lastVerdict} |`);
   }
   lines.push("");
 
@@ -154,7 +160,7 @@ export function cmdReport(args = [], deps = {}) {
     return;
   }
 
-  if (featureName !== basename(featureName)) {
+  if (featureName !== basename(featureName) || featureName === "." || featureName === "..") {
     _stderr.write(`report: invalid feature name: ${featureName}\n`);
     _exit(1);
     return;

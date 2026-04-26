@@ -1,10 +1,10 @@
 {
   "taskId": "task-3",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "Verified that the Task Summary table already includes a Title column populated from task.title (with '—' fallback when absent). The implementation in report.mjs lines 52-57 renders a 5-column table header and populates each row's Title cell. Tests at report.test.mjs lines 53-71 cover both cases. All 551 tests pass.",
+  "summary": "Fixed three review findings: (1) escape pipe characters in task.title to prevent markdown table breakage, (2) reject '.' and '..' as feature names in path traversal guard, (3) guard against NaN duration from invalid createdAt ISO strings. Added 5 new tests covering all fixes. All 556 tests pass.",
   "timestamp": "2026-04-26T12:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/report.mjs" },

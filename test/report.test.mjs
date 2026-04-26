@@ -243,6 +243,47 @@ describe("buildReport", () => {
     assert.ok(report.includes("$0.0060"), "Should show per-phase cost for build");
     assert.ok(report.includes("$0.0040"), "Should show per-phase cost for gate");
   });
+
+  it("escapes pipe characters in task.title in the table row", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", title: "Fix | pipe | issue", status: "passed", attempts: 1 },
+      ],
+      gates: [
+        { taskId: "task-1", verdict: "PASS", command: "npm test", exitCode: 0 },
+      ],
+    });
+    const report = buildReport(state);
+    const lines = report.split("\n");
+    const tableRow = lines.find(l => l.includes("task-1") && l.includes("passed"));
+    assert.ok(tableRow, "Should have a table row for task-1");
+    // Pipe in title should be escaped so markdown renderers treat them as literals
+    assert.ok(tableRow.includes("\\|"), "Pipe in title should be escaped with backslash");
+    // Count unescaped pipes (column delimiters) — should be 6 (outer + 4 inner separators)
+    const unescapedPipes = tableRow.split(/(?<!\\)\|/).length - 1;
+    assert.equal(unescapedPipes, 6, `Table row should have 6 unescaped pipe delimiters but got ${unescapedPipes}: ${tableRow}`);
+  });
+
+  it("renders N/A duration for invalid createdAt ISO string", () => {
+    const state = makeState({
+      createdAt: "not-a-date",
+      completedAt: "2026-01-01T11:00:00.000Z",
+    });
+    const report = buildReport(state);
+    assert.ok(!report.includes("NaN"), "Should not contain NaN for invalid createdAt");
+    assert.ok(report.includes("Duration: N/A"), "Should show N/A for invalid createdAt");
+  });
+
+  it("falls back to task.id in What Shipped when title is absent", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", status: "passed", attempts: 1 },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("## What Shipped"), "Should have What Shipped section");
+    assert.ok(report.includes("- task-1"), "Should fall back to task.id when title is absent");
+  });
 });
 
 describe("cmdReport", () => {
@@ -411,5 +452,19 @@ describe("cmdReport", () => {
     try { cmdReport(["../../etc"], deps); } catch {}
     assert.equal(exitCode, 1);
     assert.ok(deps._stderrOutput.join("").includes("invalid feature name"), `Expected invalid feature name: ${deps._stderrOutput.join("")}`);
+  });
+
+  it("exits 1 when feature name is '.'", () => {
+    const deps = makeDeps(true, makeState());
+    try { cmdReport(["."], deps); } catch {}
+    assert.equal(exitCode, 1);
+    assert.ok(deps._stderrOutput.join("").includes("invalid feature name"), `Expected invalid feature name for '.': ${deps._stderrOutput.join("")}`);
+  });
+
+  it("exits 1 when feature name is '..'", () => {
+    const deps = makeDeps(true, makeState());
+    try { cmdReport([".."], deps); } catch {}
+    assert.equal(exitCode, 1);
+    assert.ok(deps._stderrOutput.join("").includes("invalid feature name"), `Expected invalid feature name for '..': ${deps._stderrOutput.join("")}`);
   });
 });
