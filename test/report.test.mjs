@@ -116,7 +116,7 @@ describe("buildReport", () => {
       ],
     });
     const report = buildReport(state);
-    assert.ok(report.includes("Blocked"), "Should include Blocked section");
+    assert.ok(report.includes("## Blocked / Failed Tasks"), "Should include Blocked / Failed Tasks section");
     assert.ok(report.includes("Gate failed repeatedly"), "Should include lastReason");
     assert.ok(report.includes("BLOCKED"), "Should show BLOCKED label");
   });
@@ -160,13 +160,24 @@ describe("buildReport", () => {
     assert.ok(report.includes("fabricated-refs"), "Should include warning layer");
   });
 
-  it("handles null/undefined task.status in blocked/failed section without throwing", () => {
+  it("handles blocked task without lastReason without throwing", () => {
     const state3 = makeState({
       tasks: [
         { id: "task-1", status: "blocked", attempts: 0 },
       ],
     });
-    assert.doesNotThrow(() => buildReport(state3), "Should not throw for blocked task without title");
+    const report = buildReport(state3);
+    assert.ok(!report.includes("Reason:"), "Should not include Reason: line when lastReason is absent");
+  });
+
+  it("handles failed task without lastReason without throwing", () => {
+    const state3 = makeState({
+      tasks: [
+        { id: "task-1", status: "failed", attempts: 1 },
+      ],
+    });
+    const report = buildReport(state3);
+    assert.ok(!report.includes("Reason:"), "Should not include Reason: line when lastReason is absent");
   });
 
   it("marks in-progress features in header", () => {

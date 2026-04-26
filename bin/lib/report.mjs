@@ -58,7 +58,7 @@ export function buildReport(state) {
   }
   lines.push("");
 
-  // Section 3: Cost Breakdown
+  // Section 4: Cost Breakdown
   lines.push("## Cost Breakdown");
   const passGates = gates.filter(g => g.verdict === "PASS").length;
   const failGates = gates.filter(g => g.verdict === "FAIL").length;
@@ -76,18 +76,18 @@ export function buildReport(state) {
   lines.push(`  Per-phase split:          ${perPhase}`);
   lines.push("");
 
-  // Section 4: Blocked / Failed Tasks
+  // Section 5: Blocked / Failed Tasks
   const problem = tasks.filter(t => t.status === "blocked" || t.status === "failed");
   if (problem.length > 0) {
     lines.push("## Blocked / Failed Tasks");
     for (const task of problem) {
-      lines.push(`  [${(task.status || "unknown").toUpperCase()}] ${task.id}: ${task.title || "(no title)"}`);
+      lines.push(`  [${task.status.toUpperCase()}] ${task.id}: ${task.title || "(no title)"}`);
       if (task.lastReason) lines.push(`    Reason: ${task.lastReason}`);
     }
     lines.push("");
   }
 
-  // Section 5: Recommendations
+  // Section 6: Recommendations
   const recs = [];
   const highAttempts = tasks.filter(t => (t.attempts ?? 0) >= 3);
   for (const t of highAttempts) {
