@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { humanizeName, truncate, relativeTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Circle, Clock, XCircle, AlertCircle, Zap } from 'lucide-react';
+import { CheckCircle2, Circle, XCircle, AlertCircle, Zap } from 'lucide-react';
 
 interface TaskBoardProps {
   features: Feature[];
