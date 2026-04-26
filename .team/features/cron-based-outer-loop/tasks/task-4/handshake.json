@@ -1,0 +1,14 @@
+{
+  "taskId": "task-4",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "The failure-revert behavior was already implemented in cron.mjs:118-126: when runSingleFeature throws, the board item is reverted to 'ready' via setProjectItemStatus and a failure comment is posted to the GitHub issue via commentIssue. The unit test at test/cron-tick.test.mjs:193-221 ('reverts to ready and comments on failed dispatch') directly verifies both behaviors. All 547 tests pass (545 pass, 2 skipped).",
+  "timestamp": "2026-04-26T09:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/cron.mjs" },
+    { "type": "code", "path": "test/cron-tick.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
