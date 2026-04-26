@@ -1,0 +1,87 @@
+{
+  "taskId": "task-4",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 13 warning, 9 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T19:30:24.642Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 13,
+    "suggestion": 9
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1429` — Review handshake overwrites gate handshake without preserving `artifactEmitExtras`; `artifacts: [{ type: \"evaluation\", path: \"eval.md\" }]` is hardcoded in `createHandshake` at both line 1429 and line 1507 (multi-review); for any reviewed task the final `handshake.json` drops all artifactEmit descriptors — pass `artifactEmitExtras` into the `artifacts` array at both `createHandshake` call sites"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:322` — `ext-run-*.txt` artifact files written to `artifactsDir` but never registered in any handshake; `runExecuteRunCommands` returns only `{ failed, lastFailure }`; harness and dashboard cannot discover these files — return written paths from `runExecuteRunCommands` and register at the call site (carried from task-3)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:8` — `_extensions` singleton not reset at `_runSingleFeature` start; `resetRunUsage()` at `run.mjs:866` runs but `resetRegistry()` does not; outer-loop feature B inherits feature A's loaded extensions even if their worktree extension directories differ — add `resetRegistry()` at `run.mjs:866` (carried from task-3)"
+    },
+    {
+      "severity": "critical",
+      "text": "The task-3 🔴 (dead traversal guard in `extension-loader.mjs`) is confirmed resolved."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 run.mjs:1331 — Merge of `artifactEmitExtras` into `handshake.json` (the \"included in the handshake\" claim) has no test; add an integration test that asserts the final `handshake.json` contains the extension descriptors after `runGateInline` runs"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 run.mjs:354 — Descriptors for no-content artifacts are returned and land in `handshake.artifacts` pointing to files that don't exist; add a JSDoc note to `runArtifactEmit` documenting this contract so downstream readers know to treat missing files as \"pre-existing path reference\" rather than a bug"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs` — Handshake merge path at `run.mjs:1332-1341` has no integration test; backlog item: assert `handshake.json` contains extension-emitted descriptors after a gate run (all 3 prior reviewers flagged this identically)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/extension-system/tasks/task-4/handshake.json:7` — Summary claims \"10 new tests\"; actual count is 9 (3 in `fireExtension — artifactEmit`, 6 in `runArtifactEmit`); correct for accurate records"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1332` — Handshake merge block (spreading `artifactEmitExtras` into gate handshake.json) is completely untested; add an integration test that asserts the final handshake.json contains extension-emitted descriptors"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:349` — Two artifacts with paths that sanitize to the same filename silently overwrite each other; both descriptors persist in the returned array pointing to the same file — add deduplication or a test that documents the collision behavior"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-runner.mjs:27` — Timeout path (5 s race) is untested; circuit-breaker tests use thrown errors only — add a test with a never-resolving hook to verify timeout returns `null`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `run.mjs:354` — No size cap on `art.content` before `writeFileSync`; an extension returning a multi-GB string exhausts disk or OOMs the process. Cap content to ~10 MB (matching the `executeRun` `maxBuffer` convention) before writing."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `run.mjs:1332-1341` — Handshake merge is `best-effort` (`catch { }`) and has no test; if `handshake.json` is absent or unparseable the descriptors silently drop, making the \"included in the handshake\" requirement unverifiable without running the full pipeline. Add one integration test that asserts the merge actually lands in the written file."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings in any of the four veto categories:"
+    },
+    {
+      "severity": "warning",
+      "text": "The one 🟡 warning (handshake merge untested) is backlog-worthy and aligns with the tester's own Gap 1 finding. It does not block merge."
+    }
+  ]
+}

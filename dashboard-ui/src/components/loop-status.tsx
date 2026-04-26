@@ -41,13 +41,13 @@ function StatusLine({ status, multi }: { status: LoopStatus; multi: boolean }) {
   const elapsedStr = elapsed < 60 ? `${elapsed}s` : `${Math.round(elapsed / 60)}m`;
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <Icon className="size-3.5 text-primary" />
-      {multi && <span className="font-mono text-[10px] text-primary/60">{getProjectCode(status.project || '')}</span>}
-      <span className="font-medium text-primary">{config.label}</span>
-      {status.feature && <span className="text-muted-foreground truncate">{status.feature}</span>}
-      <span className="text-muted-foreground ml-auto font-mono tabular-nums">
-        cycle {status.cycle || '?'} · {elapsedStr} ago
+    <div className="flex items-center gap-1.5 text-[10px] md:text-xs min-w-0">
+      <Icon className="size-3 md:size-3.5 text-primary flex-shrink-0" />
+      {multi && <span className="font-mono text-primary/60 flex-shrink-0">{getProjectCode(status.project || '')}</span>}
+      <span className="font-medium text-primary flex-shrink-0">{config.label}</span>
+      {status.feature && <span className="text-muted-foreground truncate min-w-0">{status.feature}</span>}
+      <span className="text-muted-foreground ml-auto font-mono tabular-nums flex-shrink-0 whitespace-nowrap">
+        {elapsedStr}
       </span>
     </div>
   );

@@ -1,0 +1,83 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 11 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T20:39:48.075Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 11,
+    "suggestion": 11
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:78` — `# SKIP` directive not excluded; `not ok N - test # SKIP reason` produces `findings.critical++` when it should produce 0; extend guard to `!/# (?:TODO|SKIP)\\b/i` and add a test"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — no callers in `bin/`; module is inert in production; confirm integration task is tracked before marking feature shippable"
+    },
+    {
+      "severity": "warning",
+      "text": "The stated requirement is cleanly met. `parseTap` follows the registry pattern perfectly — correct 3-arg signature, bare function reference in PARSERS, uniform return shape `{ findings, summary, meta: { messages } }`. Task-1's architectural work paid off: the extension was two lines plus a function. The one real gap (`# SKIP` not excluded) is a TAP spec compliance issue that will cause false positives in production against `node:test` output, but it's a secondary edge case not in the stated acceptance criteria. It goes to backlog as a 🟡, not a blocker."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/validator-parsers.mjs:78 — `not ok … # SKIP` counted as critical; TAP spec defines SKIP as an intentional skip, not a failure. Change guard to `!/# (?:TODO|SKIP)\\b/i` and add a test"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/validator-parsers.test.mjs:19 — `parseJunitXml(xml)` called with 1 arg after signature became 3-arg in task-1; update all JUnit XML call sites to `(xml, \"\", 0)` to accurately reflect the interface contract"
+    },
+    {
+      "severity": "warning",
+      "text": "The core feature is correct — `parseTap` properly detects `not ok` lines, excludes `# TODO` directives, counts each as one critical finding, and is wired into the registry cleanly. The two 🟡 warnings are real gaps: the `# SKIP` exclusion is a TAP spec correctness hole (false positives for intentionally-skipped tests), and the 1-arg JUnit XML test calls are a contract accuracy issue left over from task-1. Neither blocks merge by themselves, but both should go to backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-2/handshake.json` — Gate output is truncated before the `validator-parsers.test.mjs` block; claimed 553-test pass count has no direct evidence in the provided gate output; save `test-output.txt` as a handshake artifact (same gap flagged but never resolved across task-1 run_1–run_3)"
+    },
+    {
+      "severity": "critical",
+      "text": "The core requirement is met. The 🟡 finding is a process/evidence gap, not a behavioral failure. **No 🔴 blockers.**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:78` — `# SKIP` directive not excluded; `not ok X # SKIP reason` is a TAP-spec skip (not a failure) but produces one critical finding under current logic; add `!/# SKIP\\b/i` guard alongside the existing `# TODO` guard and add a matching test"
+    },
+    {
+      "severity": "critical",
+      "text": "**Verdict: PASS** (warnings to backlog — no 🔴 blockers)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:79` — verbatim TAP lines (attacker-controlled stdout) pushed to `messages[]` without stripping control characters; `not ok 1 - \\x1b[2J...` injects terminal escape sequences into CLI output; strip `/[\\x00-\\x1f\\x7f]/g` before `messages.push(trimmed)` (same fix as JUnit parser line 49 — now affects both parsers)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:78` — `# SKIP` TAP directive not excluded; `not ok 3 - test name # SKIP reason` is a TAP-spec intentional skip but produces one critical finding (false positive); extend the exclusion to `/# (?:TODO|SKIP)\\b/i` and add a corresponding test"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:84` — non-empty non-TAP stdout produces `critical=0` indistinguishable from a clean run; a misconfigured validator silently passes the gate once wired in; add `meta.parseWarning = true` when stdout is non-empty and no TAP structure is detected (carried from JUnit security reviews run_2/run_3)"
+    },
+    {
+      "severity": "critical",
+      "text": "- The ANSI injection and `meta.parseWarning` gaps are carried from JUnit and now affect `parseTap` identically; they remain 🟡 (not 🔴) because the module is still inert in production."
+    }
+  ]
+}

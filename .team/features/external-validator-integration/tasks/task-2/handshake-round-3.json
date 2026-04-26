@@ -1,0 +1,91 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 13 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T20:57:58.479Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 13,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:49` — `parseJunitXml` still pushes attacker-controlled `message`, `classname`, and `file` verbatim to `messages[]` without control-character stripping; `parseTap` (line 81) now sanitizes — inconsistent security posture across parsers sharing the same interface contract; apply the same `/[\\x00-\\x1f\\x7f]/g` strip before `messages.push()` in `parseJunitXml`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — module has no callers in `bin/`; inert in production; confirm integration task is tracked before marking feature shippable"
+    },
+    {
+      "severity": "critical",
+      "text": "**Verdict: PASS** — The double-counting fix (raw line) and control-char stripping are both present and correct. No 🔴 blockers. The 🟡 at line 49 (JUnit parser asymmetry) is the only item requiring backlog tracking before integration."
+    },
+    {
+      "severity": "warning",
+      "text": "**Prior 🟡 resolved in current HEAD:**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs` — control char stripping at `validator-parsers.mjs:81` is not test-locked; removing that `.replace(...)` call leaves all 14 tests passing undetected; add a test with `\"not ok 1 - test\\x1b[2J\"` asserting `meta.messages[0]` contains no C0 bytes"
+    },
+    {
+      "severity": "critical",
+      "text": "The one new 🟡 (untested stripping) must go to backlog. No 🔴 blockers — the implementation is correct for all specified criteria."
+    },
+    {
+      "severity": "warning",
+      "text": "**Prior 🟡 findings resolved by this run:**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-2/handshake.json` — Gate output truncated; no `artifacts/test-output.txt` saved; cannot confirm the claimed 553-test pass without re-running (carried from task-1 through every PM review — process gap must close)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — No callers in `bin/`; module is inert until integration task lands; confirm follow-up is tracked before marking feature shippable"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:49` — JUnit parser still writes `message`/`classname`/`file` from attacker-controlled XML to `messages[]` without control char stripping; TAP parser was fixed in this run but JUnit was not updated; file as backlog item to close the asymmetry"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs` (after line 163) — handshake claims control char stripping as a distinct fix; no test locks it in; removing `validator-parsers.mjs:81` passes all 14 tests without failure; add a case with `\"not ok 1 - test\\x1b[2J\"` input and assert `meta.messages[0]` contains no bytes in `[\\x00-\\x1f]`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs` — no test locks in the control-character stripping behaviour; removing `validator-parsers.mjs:81` silently regresses with all 14 current tests still passing; add a case with `\"not ok 1 - test\\x1b[2J\\x00\"` asserting `meta.messages[0]` contains no bytes below `\\x20`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:87` — non-TAP stdout (empty string, stack trace, JSON) returns `critical: 0` indistinguishable from a clean TAP run; once `getParser(\"tap\")` is wired into the gate, a misconfigured validator silently passes; add `meta.parseWarning = true` when stdout is non-empty but contains no TAP structure (carried from Security run_1 / run_2)"
+    },
+    {
+      "severity": "warning",
+      "text": "**Verdict: PASS** — No critical blockers. Two warnings for the backlog (missing test for control-char contract; silent parse failure). Prior control-char injection 🟡 and double-count 🟡 are both resolved by the current code."
+    },
+    {
+      "severity": "warning",
+      "text": "- Gold-plating: PASS — control char stripping responds to concrete Security 🟡; regression test directly guards the fix"
+    },
+    {
+      "severity": "critical",
+      "text": "**Findings (no 🔴, no 🟡 from simplicity lens):**"
+    }
+  ]
+}

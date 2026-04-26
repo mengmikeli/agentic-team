@@ -1,0 +1,95 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 15 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T18:30:21.873Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 15,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/synthesize.mjs:121 — `findings` array passed by reference in payload; extension calling `payload.findings.push(...)` bypasses per-element validation; pass `[...findings]` (shallow copy) to close this side-channel"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/extension-system.test.mjs:294 — No end-to-end test calls `cmdSynthesize` with a live `verdictAppend` extension active (via `setExtensions`); the integration path at `synthesize.mjs:120-131` is only covered by component-level unit tests; a CLI integration test would close this gap"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/synthesize.mjs:126 — `findings = [...findings, f]` inside inner loop rebuilds the full array on every individual finding (O(n²) allocations); `findings.push(f)` is sufficient since `findings` is `let`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/synthesize.mjs:125 — Severity not validated against allowlist; an extension returning `{ severity: \"crit\", text: \"...\" }` passes the `typeof` guard, enters the merged `findings` array, appears in JSON output, but contributes 0 to all verdict counts — silent data loss; add `[\"critical\",\"warning\",\"suggestion\"].includes(f.severity)` to the guard"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:294` — Five verdictAppend tests exercise `fireExtension` in isolation; none invoke `cmdSynthesize`; the wiring in `synthesize.mjs:118–131` is untested — add at least one test that calls `cmdSynthesize` with a registered verdictAppend extension and verifies the final verdict changes"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs` — Gate output provided does not include extension-system test results; the verdictAppend tests are unconfirmed as passing — require `artifacts/test-output.txt` or full gate output in handshake"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/extension-system.test.mjs:321 — \"merging extension findings affects computeVerdict output\" manually reimplements the cmdSynthesize merge loop; a regression in cmdSynthesize's wiring would not fail this test; add a CLI-level integration test (via `harnessJSON(\"synthesize\", ...)` with `setExtensions`) that exercises the full pipeline and asserts the final verdict"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/synthesize.test.mjs:183 — no verdictAppend scenario in the CLI harness tests; the compound gate receiving enriched findings (\"before compound gate runs\" is the stated feature claim) is never exercised end-to-end; add one test asserting `result.compoundGate` and `result.findings` reflect extension-injected findings"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/synthesize.mjs:121` — `findings` passed as mutable reference to extension payload; an extension calling `payload.findings.push(...)` injects findings before the merge loop runs and bypasses the `typeof f.severity` / `typeof f.text` validation at line 125; fix: pass `Object.freeze([...findings])` as the payload value"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/synthesize.mjs:107` — `--repo-root` CLI argument flows directly to `loadExtensions()` which `import()`s all `.mjs` files found under that path; in CI/CD pipelines where PR authors can influence harness arguments this is an arbitrary code execution vector; document the trust boundary or validate that the value falls within `process.cwd()`"
+    },
+    {
+      "severity": "warning",
+      "text": "🔵 `bin/lib/synthesize.mjs:125` — severity validated only as `typeof === \"string\"`; values like `\"crit\"` silently appear in JSON output while contributing 0 to verdict counts; add `[\"critical\",\"warning\",\"suggestion\"].includes(f.severity)` (echoing engineer reviewer's 🟡 — same fix, lower priority from security lens since it cannot flip a PASS to FAIL)"
+    },
+    {
+      "severity": "warning",
+      "text": "**🟡 Mutable reference bypass (line 121):** Three prior reviewers flagged this as 🔵 (suggestion). Upgrading to warning because it is a real validation bypass path, not a hypothetical. An extension calling `payload.findings.push({ severity: \"critical\", text: 42 })` skips the `typeof` guard entirely — the check at line 125 only applies to items in `r.findings` (the return value), not to items pushed directly onto the shared array. The threat is low in the current trust model (extensions are loaded from developer-owned directories), but the bypass is structurally present. A shallow copy fixes it with one token change."
+    },
+    {
+      "severity": "warning",
+      "text": "**🟡 `--repo-root` code execution (line 107):** Not flagged by any prior reviewer. The value is unvalidated CLI input that reaches `import()` via `loadExtensions`. In local developer use this is a non-issue (you control your own flags). In CI/CD pipelines triggered by PR comments or PR-author-controlled configurations, `--repo-root` could be user-influenced, making this a real RCE vector. Documenting the trust boundary costs nothing."
+    },
+    {
+      "severity": "critical",
+      "text": "**No 🔴 findings.** The extension system's error isolation (three catch layers), circuit breaker, and timeout are all correctly implemented. The `setExtensions` test-only guard is properly enforced. Eval written to `.team/features/extension-system/tasks/task-2/eval.md`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/synthesize.mjs:126 — `findings = [...findings, f]` inside inner loop rebuilds array on every finding; use `findings.push(f)` or collect then concat once"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical issues. All four veto categories clear:"
+    },
+    {
+      "severity": "warning",
+      "text": "The one 🟡 (spread-in-loop at line 126) is flagged for the backlog but doesn't block. The implementation is clean, safe, and correctly scoped to the stated requirement."
+    }
+  ]
+}

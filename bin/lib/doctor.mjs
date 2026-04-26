@@ -2,6 +2,7 @@
 // Verifies Node.js, tools, project structure, and configuration.
 
 import { existsSync, readFileSync, readdirSync } from "fs";
+import { closeFeatureIssues } from "./state-sync.mjs";
 import { resolve, dirname, join } from "path";
 import { execSync, spawnSync } from "child_process";
 import { fileURLToPath } from "url";
@@ -213,6 +214,11 @@ export function cmdDoctor(args = []) {
   const cwd = process.cwd();
 
   // Phase-level checks
+  if (args.includes("--fix")) {
+    runAutoFix(cwd);
+    return;
+  }
+
   if (args.includes("--phase")) {
     const result = runPhaseChecks(cwd, {
       skipTests: args.includes("--skip-tests"),
@@ -458,6 +464,69 @@ export function checkZeroTaskCompletions(cwd = process.cwd()) {
     return { status: "fail", message: `${zeroTask.length} feature(s) completed with 0 tasks: ${zeroTask.join(", ")}` };
   }
   return { status: "pass", message: "No zero-task completions" };
+}
+
+/**
+ * Auto-fix known issues. Called by dogfood mode or `agt doctor --fix`.
+ */
+export function runAutoFix(cwd = process.cwd()) {
+  console.log(`\n${c.bold}Auto-Fix${c.reset}\n`);
+  let fixed = 0;
+
+  // Fix 1: Close orphaned issues for completed/failed features
+  const featDir = join(cwd, ".team", "features");
+  if (existsSync(featDir)) {
+    for (const d of readdirSync(featDir, { withFileTypes: true })) {
+      if (!d.isDirectory()) continue;
+      const sp = join(featDir, d.name, "STATE.json");
+      if (!existsSync(sp)) continue;
+      try {
+        const state = JSON.parse(readFileSync(sp, "utf8"));
+        if (["completed", "failed"].includes(state.status)) {
+          const openTasks = (state.tasks || []).filter(t => 
+            t.issueNumber && !["passed", "blocked"].includes(t.status)
+          );
+          if (openTasks.length > 0) {
+            const closed = closeFeatureIssues(join(featDir, d.name), `auto-fix: feature ${state.status}`);
+            if (closed > 0) {
+              console.log(`  ${c.green}\u2713${c.reset} Closed ${closed} orphaned issues for ${d.name}`);
+              fixed += closed;
+            }
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // Fix 2: Revert fake-done roadmap items
+  const productPath = join(cwd, ".team", "PRODUCT.md");
+  if (existsSync(productPath)) {
+    let product = readFileSync(productPath, "utf8");
+    const re = /^(\d+)\.\s*\*\*(.+?)\*\*\s*[\u2014-]\s*\u2705\s*Done/gm;
+    let match;
+    while ((match = re.exec(product)) !== null) {
+      const num = match[1];
+      const name = match[2];
+      // Check if genuinely done
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 20);
+      for (const d of readdirSync(featDir, { withFileTypes: true })) {
+        if (!d.isDirectory() || !d.name.includes(slug)) continue;
+        const sp = join(featDir, d.name, "STATE.json");
+        if (!existsSync(sp)) break;
+        const state = JSON.parse(readFileSync(sp, "utf8"));
+        const passed = (state.tasks || []).filter(t => t.status === "passed").length;
+        const total = (state.tasks || []).length;
+        if (total > 0 && passed === 0) {
+          // Fake done — but don't edit PRODUCT.md here, just report
+          console.log(`  ${c.yellow}\u26a0${c.reset} Fake-done: #${num} ${name} (0/${total} passed) — revert manually`);
+        }
+        break;
+      }
+    }
+  }
+
+  if (fixed === 0) console.log(`  ${c.dim}Nothing to fix${c.reset}`);
+  return fixed;
 }
 
 export function runPhaseChecks(cwd = process.cwd(), opts = {}) {

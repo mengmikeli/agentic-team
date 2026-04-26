@@ -1,0 +1,43 @@
+{
+  "taskId": "task-12",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 3 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T13:48:39.568Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 3,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/git-worktree-isolation/tasks/task-12/` — No `test-output.txt` artifact; handshake claims 565 passes but cannot be verified from task artifacts alone"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs:601 — Cleanup test uses `git worktree (remove|prune)` (OR). Removing `git worktree remove --force` docs while keeping `prune` still passes; split into two separate assertions to protect both independently."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs:579 — No test for the `### Inspect` subsection commands (`git -C .team/worktrees/<slug> log`, `git -C .team/worktrees/<slug> status`). The task requirement explicitly includes \"inspect/clean up\"; the inspect half has no regression guard."
+    },
+    {
+      "severity": "critical",
+      "text": "No findings at 🔴 or 🟡 for this task. Pre-existing backlog items (`shell: true` in gate, `harness()` `process.cwd()` invariant, audit regex narrowness) were documented in the task-11 security review and are unaffected here."
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (10 critical, 11 warning, 6 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T20:24:43.029Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 10,
+    "warning": 11,
+    "suggestion": 6
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "**Prior 🔴 blockers resolved:**"
+    },
+    {
+      "severity": "critical",
+      "text": "**Simplicity run_2 🔴 (line 77 lambda):** This is a real code-quality issue but not an architectural blocker. The root cause is that `parseJunitXml` declares `(stdout)` while the module's interface contract (line 2) and `parseExitCode` declare `(stdout, stderr, exitCode)`. Fix by standardising `parseJunitXml`'s signature to 3 args and dropping the wrapper."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:29` — `parseJunitXml(stdout)` violates the module's own 3-arg interface contract (line 2); standardise the signature to `(stdout, stderr, exitCode)` and remove the adapter lambda at line 77"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks first `tests=\"N\"` from the raw string; aggregate JUnit reports produce a wrong `summary` count; track for post-v1"
+    },
+    {
+      "severity": "critical",
+      "text": "**Prior 🔴 resolved:** Both blocking findings from run_1 are confirmed fixed via direct execution."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks the first `tests=\"N\"` anywhere in the XML string; multi-`<testsuite>` reports produce a wrong `summary` count (carried from run_1, not addressed in run_2)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:9` — `extractAttrs` silently drops single-quoted attribute values; `<failure message='broke'/>` produces `message=\"\"` and finding text `\"f.java:1 — X: \"` (carried from run_1, not addressed in run_2)"
+    },
+    {
+      "severity": "critical",
+      "text": "The builder also fixed `<error>` handling (`/<(?:failure|error)\\b/` at `validator-parsers.mjs:39`) and removed the dead `try/catch`. Both address prior 🔴 findings from Tester/Simplicity/Engineer. Neither is scope creep — they prevent real gate-pass failures."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-1/handshake.json` — Gate output truncated before validator-parsers block; no `artifacts/test-output.txt` saved; future reviewers cannot confirm 8/8 pass without re-running"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — Module has no callers in `bin/`; confirm integration follow-up is tracked before marking the feature shippable"
+    },
+    {
+      "severity": "critical",
+      "text": "The run_2 fix is correct and verified. The previously blocking 🔴 (`<error>` elements unhandled, gate silently passes runtime crashes) is resolved — `validator-parsers.mjs:39` now matches `/<(?:failure|error)\\b/` and the new test at `validator-parsers.test.mjs:72` asserts the exact expected output. All 8 tests pass."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs:72` — `<error>` test always supplies a `message` attribute; add a case with `<error type=\"NPE\"/>` (no message) to document that a finding is still produced with empty message and the gate does not silently pass"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs` — `file`-present/`line`-absent path at `validator-parsers.mjs:48` is exercised but has no test; add a case with `file=\"X.java\"` and no `line` attribute to lock in the fallback"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:11` — `extractAttrs` silently drops single-quoted XML attribute values; undocumented and untested; add an inline comment noting the constraint (carried from run_1)"
+    },
+    {
+      "severity": "critical",
+      "text": "### Prior 🔴 findings resolved"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:49` — `message`, `classname`, and `file` from attacker-controlled XML are written to findings text without stripping ANSI/control characters; strip `/[\\x00-\\x1f\\x7f]/g` before `messages.push()`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:56` — `meta` has no signal to distinguish a genuine zero-finding run from a structural parse failure (non-XML stdout, misconfigured format); once wired into the gate a misconfigured validator silently passes; add `meta.parseWarning = true` when `findings.critical === 0 && stdout.length > 0 && !stdout.includes('<testcase')`"
+    },
+    {
+      "severity": "critical",
+      "text": "One 🔴 finding blocks merge:"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/validator-parsers.mjs:77` — Unnecessary indirection: `(stdout, stderr, exitCode) => parseJunitXml(stdout)` is a wrapper that only delegates; JS ignores extra args so this is identical to a bare `parseJunitXml` reference. Replace with the direct reference to match the `\"exit-code\"` entry style."
+    },
+    {
+      "severity": "critical",
+      "text": "- **run_1 Simplicity 🔴 (dead try/catch)**: Resolved — removed in `cf56cd5`. ✓"
+    },
+    {
+      "severity": "critical",
+      "text": "- **Unnecessary indirection**: The `\"junit-xml\"` registry entry wraps `parseJunitXml` in a three-arg lambda but only passes `stdout` through. In JavaScript, `parseJunitXml(stdout, stderr, exitCode)` is identical to `parseJunitXml(stdout)` — extra args are silently ignored. The wrapper is a pure delegate with no transformation. The adjacent `\"exit-code\": parseExitCode` entry demonstrates the correct style. 🔴"
+    }
+  ]
+}

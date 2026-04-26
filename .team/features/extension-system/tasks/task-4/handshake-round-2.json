@@ -1,0 +1,95 @@
+{
+  "taskId": "task-4",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 15 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T19:45:36.945Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 15,
+    "suggestion": 11
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "Two 🟡 test-coverage gaps are carried from the Tester review (both are backlog, not merge blockers): the gate handshake merge test re-implements production logic rather than calling through it; and the review handshake `allExtras` inclusion (task-4's central fix) has zero regression coverage."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:362` — No size cap on `art.content` before `writeFileSync`; `executeRun` caps at `maxBuffer: 10MB` (line 309) but `runArtifactEmit` has no equivalent guard — an extension returning a multi-GB string exhausts disk. Add `art.content.slice(0, 10 * 1024 * 1024)` before the write."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:356` — Filename collision: two artifacts whose `art.path` values sanitize to the same `safeName` silently overwrite each other on disk; both descriptors are returned and both land in `handshake.artifacts` pointing to the same (last-written) file. Prepend a loop index to guarantee uniqueness."
+    },
+    {
+      "severity": "critical",
+      "text": "**Remaining items are backlog (2× 🟡, 3× 🔵) — no new 🔴.** Gate output: 589 pass, 0 fail, 2 skip. Feature ships."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/extension-system.test.mjs:853 — Gate handshake merge test re-implements `run.mjs:1342–1350` inline; a regression at the production call site is invisible — replace with a test that calls through `runGateInline` and asserts the written `handshake.json` contains extension descriptors"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/extension-system.test.mjs — No test covers `run.mjs:1439` or `run.mjs:1517` (review and multi-review handshake `allExtras` inclusion); task-4's central claimed fix has zero regression coverage — add a test asserting the review handshake contains both extension and eval artifacts"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:362 — `art.content` written with no size cap; adversarial extension returning multi-GB string can exhaust disk; cap to ~10 MB to match `runExecuteRunCommands` `maxBuffer` convention (carried from Security review)"
+    },
+    {
+      "severity": "warning",
+      "text": "All five sprint blockers (dead-code traversal guard, parseFindings false positive, registry leak, executeRunPaths unregistered, review handshake dropping extras) are confirmed resolved in the current codebase. The three 🟡 findings above go to backlog — none represent a functional defect in the stated requirement."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:853` — Handshake merge test re-implements production merge logic (`run.mjs:1342-1350`) rather than calling it; regressions in the actual code path are invisible — replace with a test that calls `runGateInline` on a no-op gate and asserts the final `handshake.json` contains the extension extras"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs` — No test covers `run.mjs:1439` or `run.mjs:1517` (review/multi-review handshake `allExtras` inclusion); task-4's primary claimed fix has no regression test — add a test that builds a review handshake with a populated `allExtras` and asserts both extension and eval artifacts appear"
+    },
+    {
+      "severity": "warning",
+      "text": "**Overall verdict: PASS** — 45 tests pass, implementation is correct. Two 🟡 backlog items flag test strategy gaps: the gate handshake merge test re-implements rather than exercises the production code path, and the review handshake `allExtras` inclusion (task-4's stated central fix) has zero regression test coverage."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:360 — No size cap on `art.content` before `writeFileSync`; an extension returning a multi-GB string exhausts disk or OOMs the harness process; cap content to ~10 MB (matching the `executeRun` `maxBuffer: 10 * 1024 * 1024` convention) before the write"
+    },
+    {
+      "severity": "warning",
+      "text": "- The 🟡 content-size-cap concern is not new to this task — same concern was noted in previous eval rounds; it's a backlog item that does not block merge"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings. The four hard-veto categories are all clear:"
+    },
+    {
+      "severity": "warning",
+      "text": "Two 🟡 warnings (no merge block):"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:550` — Dynamic `import(\"node:fs\")` re-imports `existsSync` and `readFileSync` that are already at module scope (line 13); shadows without adding value"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:591` — `readFileSync` in dynamic import is redundant with module-level import; only `readdirSync` was new and could have been added to the top-level import"
+    }
+  ]
+}

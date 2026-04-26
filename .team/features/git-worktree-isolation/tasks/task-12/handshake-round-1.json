@@ -1,0 +1,59 @@
+{
+  "taskId": "task-12",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 7 warning, 4 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T13:42:56.054Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 7,
+    "suggestion": 4
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 PLAYBOOK.md:199 — Slug description says \"non-alphanumeric characters stripped\" but `run.mjs:159` uses `/[^a-z0-9\\-\\.]/g` and `worktree.test.mjs:37` explicitly tests that dots are preserved (`slugToBranch(\"v1.0\") === \"v1.0\"`). Update to: \"only alphanumeric, hyphens, and dots retained (all other characters stripped), capped at 72 characters.\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 PLAYBOOK.md:200 — \"uses `-B` so re-running resets the branch to HEAD\" is false; `run.mjs:169–172` shows `existsSync(worktreePath)` causes an early return before `git worktree add -B` is ever invoked on a re-run; fix: \"branch `feature/<slug>` is created on first run with `git worktree add -B`; re-runs reuse the existing worktree and preserve all commits\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `PLAYBOOK.md:201` — \"re-running resets the branch to HEAD\" is factually wrong. `createWorktreeIfNeeded` (`bin/lib/run.mjs:169`) returns early when the directory already exists — `-B` is never invoked on retry. This directly contradicts the crash-recovery behavior (task-5). Fix: \"uses `-B` on initial creation only; re-runs reuse the existing worktree and preserve all commits.\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/git-worktree-isolation/tasks/task-12/handshake.json` — No `test-output.txt` artifact provided. The claimed \"558 tests pass\" cannot be independently verified from artifacts alone."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `PLAYBOOK.md:200` — \"uses `-B` so re-running resets the branch to HEAD\" is false for crash-recovery reuse. `createWorktreeIfNeeded` in `run.mjs:167–168` short-circuits with `return worktreePath` when the directory exists — `git worktree add -B` is never called, and the branch is not reset. Fix to clarify `-B` applies only on initial creation."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs` — Zero tests assert that PLAYBOOK.md contains the `## Git Worktrees` section or its key commands. If the section is accidentally deleted or renamed, no test catches it. Add a minimal doc-contract test reading the file and asserting presence of the section heading and key commands (`git worktree remove --force`, `git worktree prune`)."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings. One warning:"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `PLAYBOOK.md:200` — \"uses `-B` so re-running resets the branch to HEAD\" is factually wrong. The code (`run.mjs:169-172`) exits early and reuses the worktree if the path exists — the `-B` flag is never reached in the crash-recovery re-run case. The phrase should describe the *initial creation* scenario (where the branch already exists from a prior run that was manually pruned), not re-running in general."
+    }
+  ]
+}

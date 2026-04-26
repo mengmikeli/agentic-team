@@ -1,0 +1,99 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 16 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T21:17:04.335Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 16,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:96` — `verdict` is exit-code-only; a linter emitting `::error` lines but exiting 0 receives `verdict: \"PASS\"` while the handshake records `findings.critical > 0` — contradictory signals; decide whether `parsed.findings.critical > 0` forces `verdict = \"FAIL\"` when using a format-specific parser before `--output-format github-actions` is published"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-3/handshake.json:7` — claims \"27 total tests\" and \"3 new tests\"; direct execution gives `tests 25, pass 25, fail 0`; the `getParser` round-trip was an in-place update to an existing test, not a new one; handshake overcounts by 2 total and 1 new test"
+    },
+    {
+      "severity": "warning",
+      "text": "**Key new architectural observation (🟡):** Now that `getParser` is wired in, `verdict` at `gate.mjs:96` is still purely exit-code-based. A linter that emits `::error` lines but exits 0 will get `verdict: \"PASS\"` with `findings.critical > 0` in the handshake — contradictory signals. This design question needs a decision before the feature is published."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:96 — Verdict is exit-code-only; `parsed.findings.critical` writes to handshake.json but doesn't affect PASS/FAIL; a validator exiting 0 while emitting `::error` yields `verdict:\"PASS\"` + `task.status:\"passed\"` despite `critical:1` in handshake — confirmed empirically; fix: `(exitCode === 0 && parsed.findings.critical === 0) ? \"PASS\" : \"FAIL\"`, or document exit-code-is-authoritative as an explicit contract"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/validator-parsers.mjs:116 — Non-greedy `(.*?)` splits at the **first** `::` after the level, not the last; property values containing `::` (e.g. `title=foo::bar,file=src/foo.js,line=5`) cause wrong split: location missing, message replaced with trailing fragment — confirmed empirically: `messages[0]=\"bar,file=src/foo.js,line=5::message\"`; fix by splitting on the last `::` occurrence instead"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/validator-parsers.mjs:49 — `parseJunitXml` pushes `message`/`classname`/`file` verbatim without control-char stripping; `parseTap:81` and `parseGithubActions:119` both sanitize — inconsistent security posture across three parsers sharing one interface (carried from Security task-1 run_1)"
+    },
+    {
+      "severity": "warning",
+      "text": "**Overall Verdict: PASS** — The specified behavior is correctly implemented and tested. Three 🟡 warnings go to backlog; none block merge. The most operationally significant is the gate verdict gap (finding 1): until addressed, `--output-format github-actions` enriches handshake reporting but has no effect on whether tasks pass or fail."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-3/handshake.json` — summary claims \"27 total tests, all passing\" but direct count of `it()` blocks in `test/validator-parsers.test.mjs` yields 25 (6 parseJunitXml + 6 parseTap + 3 getParser + 10 parseGithubActions); 2-count discrepancy in handshake metadata"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-3/` — no `artifacts/test-output.txt` saved; gate output truncated before `validator-parsers.test.mjs` results; cannot confirm from provided evidence that all 25 tests pass — indirect confirmation only via handshake status \"completed\""
+    },
+    {
+      "severity": "warning",
+      "text": "**Verdict: PASS** (two 🟡 to backlog)"
+    },
+    {
+      "severity": "warning",
+      "text": "**Prior round reconciliation** — the Simplicity review confirms all four carried 🟡/🔵 flags from prior rounds are resolved in run_3:"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:96` — gate verdict is `exitCode === 0 ? \"PASS\" : \"FAIL\"` regardless of `parsed.findings.critical`; a tool that exits 0 but emits `::error` commands still produces PASS verdict with critical findings in the handshake; add opt-in flag `--fail-on-findings` or adjust verdict when `parsed.findings.critical > 0` and format is not `exit-code`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/` — no test exercises `cmdGate` with `--output-format github-actions`; `gate.mjs:106–107` is wired but only unit-tested via direct `parseGithubActions` calls; add integration test invoking `cmdGate` with a command echoing a `::error` line and `--output-format github-actions`, asserting `handshake.findings.critical === 1`"
+    },
+    {
+      "severity": "critical",
+      "text": "**Verdict: PASS** — no 🔴 blockers; two 🟡 backlog items."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:111` — `taskId` from `--task` CLI flag used in `path.join` without character validation. A value like `../../tmp/evil` resolves outside `.team` and causes `mkdirSync`+`writeFileSync` to write `test-output.txt`, `gate-stderr.txt`, and `handshake.json` to an attacker-controlled path. An adversarially-prompted agent can overwrite arbitrary files writable by the process. **Fix**: validate `taskId` with `/^[a-zA-Z0-9_-]+$/` immediately after `getFlag(args, \"task\")` at line 19 and reject if it fails."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:60` — `execSync` called without explicit `maxBuffer`. The ~1 MB default is not guaranteed across Node.js versions. The safe degradation path (`ENOBUFS` → FAIL verdict) works, but the cap is invisible to a code reader. **Fix**: add `maxBuffer: 10 * 1024 * 1024` to the options object."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 or 🟡 findings. Three optional suggestions:"
+    },
+    {
+      "severity": "warning",
+      "text": "**Summary:** The implementation is appropriately scoped. `validator-parsers.mjs` is a flat, zero-dependency module — four parsers + a registry lookup. The `gate.mjs` change is minimal (+13 lines) and correctly wires the format-aware parser into the production path. No dead code, no premature abstractions, no unnecessary indirection, no gold-plating. Several prior 🟡 warnings from earlier reviewers (colon-in-value regex, control-char test coverage, `getParser` round-trip, module-not-wired) are all resolved in the current code state."
+    }
+  ]
+}

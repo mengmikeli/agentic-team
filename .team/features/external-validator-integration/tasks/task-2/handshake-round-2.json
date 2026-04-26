@@ -1,0 +1,91 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 14 warning, 9 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T20:47:36.343Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 14,
+    "suggestion": 9
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "- Prior run_1 🟡 blockers resolved: `# SKIP` excluded at line 78; JUnit XML test signatures updated to 3-arg"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:76` — `line.trim()` before `/^not ok\\b/` double-counts indented `not ok` lines from TAP subtests; `node --test-reporter tap` (this project's own infra) produces this format; one failing nested test yields `findings.critical = 2` instead of 1 (confirmed empirically by Engineer run_2); resolve the top-level-only vs all-failures design decision before wiring into the gate"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:79` — verbatim attacker-controlled TAP line pushed to `messages[]` without stripping control characters; strip `/[\\x00-\\x1f\\x7f]/g` before push (carried from Security run_1/run_2)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:76` — `line.trim()` before `/^not ok\\b/` double-counts indented `not ok` lines from nested TAP subtests; Node.js test runner (`--test-reporter tap`) produces exactly this format; one failing subtest yields `findings.critical = 2` instead of 1"
+    },
+    {
+      "severity": "warning",
+      "text": "The stated requirement (\"TAP output with one `not ok` line produces one critical finding\") is correctly implemented and all 13 tests pass. Prior 🟡 findings from earlier iterations — `# SKIP` not excluded and JUnit XML tests using 1-arg signatures — are both resolved in the current code."
+    },
+    {
+      "severity": "warning",
+      "text": "Commit `c23a5bb` applied after the handshake resolved two prior 🟡 issues:"
+    },
+    {
+      "severity": "warning",
+      "text": "These fix the 🟡 findings raised by Tester, Engineer, Architect, and Security reviewers. Neither changes the core acceptance criterion."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-2/handshake.json` — Handshake claims 4 tests; current code has 5 (SKIP test added in `c23a5bb`). Update handshake when a fix commit adds artifacts, so reviewers have accurate evidence."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — No callers in `bin/`; module is inert in production. Confirm integration task is tracked before marking feature shippable. (Carried from task-1 through all PM reviews.)"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical blockers. No 🟡 warnings (the two prior 🟡 findings from run_1 are resolved)."
+    },
+    {
+      "severity": "warning",
+      "text": "- Prior 🟡 SKIP exclusion is **resolved** — line 78 now guards `!/# (?:TODO|SKIP)\\b/i` with a dedicated test"
+    },
+    {
+      "severity": "warning",
+      "text": "- Prior 🟡 JUnit XML test call signatures are **resolved** — all 6 call sites updated to 3-arg"
+    },
+    {
+      "severity": "critical",
+      "text": "- No 🔴 blockers exist; three 🔵 suggestions remain (registry wire-up test, ANSI test coverage, JSDoc accuracy)"
+    },
+    {
+      "severity": "warning",
+      "text": "The `# SKIP` 🟡 is closed — commit `c23a5bb` extended the guard to `!/# (?:TODO|SKIP)\\b/i` (line 78) and added a test at lines 143–151. Verified by direct code read."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:79` — verbatim attacker-controlled TAP lines pushed to `messages[]` without stripping control characters; `not ok 1 - pwn\\x1b[2J` injects ANSI escape sequences into CLI output and log consumers; strip `/[\\x00-\\x1f\\x7f]/g` before `messages.push(trimmed)` (same fix needed at JUnit parser line 49; carried from prior security run)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:84` — non-TAP stdout (stack traces, JSON, empty string) returns `critical: 0` indistinguishable from a clean run; once `getParser(\"tap\")` is wired into the gate, a misconfigured validator silently passes; add `meta.parseWarning = true` when stdout is non-empty and contains no TAP structure (carried from prior security run)"
+    }
+  ]
+}

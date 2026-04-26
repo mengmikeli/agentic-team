@@ -1,0 +1,75 @@
+{
+  "taskId": "task-4",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 11 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T20:02:00.771Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 11,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "The remaining open items from prior review passes (security 🟡 for undocumented `shell:true` trust model, security 🟡 for missing artifact-count cap, tester 🟡 for two test-coverage gaps) are all backlog items — none represent functional defects in the stated requirement."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `synthesize.mjs:127` — `verdictAppend` per-finding guard accepts `typeof f.text === \"string\"` without requiring non-empty; a buggy extension returning `{ severity: \"critical\", text: \"\" }` produces a FAIL verdict with a blank finding entry and no diagnostic text — add `f.text.trim().length > 0` to the guard"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `run.mjs:363-368` — When `writeFileSync` throws, no content file is created but the descriptor is still appended to `extras` and merged into handshake.json; this write-failure case is behaviorally identical to the intentional no-`content` case and is undocumented — document or branch on write success to distinguish \"pre-existing path reference\" from \"write failed silently\""
+    },
+    {
+      "severity": "warning",
+      "text": "**Summary:** Implementation is correct. Core flow traced end-to-end: `runArtifactEmit` writes content files and returns task-dir-relative descriptors; `mergeExtrasIntoHandshake` is called after the gate handshake is written (correct ordering); review handshakes at `run.mjs:1455` and `1533` both include `allExtras` via `buildReviewArtifacts`; scoping of `allExtras` inside the retry loop prevents cross-attempt accumulation; `resetRegistry()` at feature start prevents extension leakage; `parseFindings` false-positive fix confirmed via `startsWith` and passing regression tests. Two 🟡 warnings go to backlog. No critical issues."
+    },
+    {
+      "severity": "warning",
+      "text": "## Prior 🟡 Findings — All Resolved"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-runner.mjs:27` — Timeout path never tested; a never-resolving hook should return null and increment the failure counter — add test with fake/shortened timeout to verify the Promise.race resolution"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:380` — `mergeExtrasIntoHandshake` silently no-ops when the handshake file doesn't exist with non-empty extras; extension artifacts are silently lost with no signal — add a test documenting this contract"
+    },
+    {
+      "severity": "warning",
+      "text": "**Summary:** The core implementation is correct and well-tested at the unit level. All stated sub-requirements are verified directly in code: `runArtifactEmit` writes content with a 10 MB cap, `mergeExtrasIntoHandshake` is called at the gate handshake write site and is tested using the production function, and `buildReviewArtifacts(allExtras)` appears at all three review handshake write paths with disk-readback regression coverage. The two 🟡 items (timeout path unverified, merge silent-discard undocumented) are backlog coverage gaps — neither represents a functional defect in the stated requirement."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:305` — `execSync(cmd, { shell: true })` runs extension-provided commands with full shell expansion and no allowlist; document the extension trust model in the `fireExtension` JSDoc (only install extensions from trusted sources), and consider `shell: false` with explicit arg splitting as defense-in-depth"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:353` — `runArtifactEmit` has no artifact-count cap; a malicious extension returning a very large `artifacts` array causes unbounded disk writes — add a per-call ceiling (e.g., skip after 50 entries) before the loop"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:344` — JSDoc note \"callers can register paths for pre-existing files\" is misleading: the index-prefix renaming at line 361 (`safeName = \\`${idx++}-${base}\\``) makes the registered descriptor path unpredictable for content-less entries; an extension cannot know what prefixed filename will be generated for a file it wrote independently — remove or replace this documented use case with accurate language"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings in any of the four veto categories:"
+    }
+  ]
+}

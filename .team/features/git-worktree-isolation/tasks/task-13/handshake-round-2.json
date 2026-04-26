@@ -1,0 +1,79 @@
+{
+  "taskId": "task-13",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (5 critical, 8 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T14:12:33.841Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 5,
+    "warning": 8,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs:466` — Same-slug race test uses `Promise.resolve().then()` (microtasks = sequential). Both calls always take the reuse path; the \"one errors cleanly\" case is never exercised. The different-slug race correctly uses real child processes (line 427) — same-slug should too. Backlog item."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/git-worktree-isolation` — No SPEC.md exists for this feature. Feature #17 (document-driven development) requires a spec before coding. This was built directly from the PRODUCT.md roadmap line without a brainstorm/spec step. File as backlog: enforce SPEC.md before sprint-init for roadmap-sourced features."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs:663` — Brace-counting boundary detector for `cmdGate` scope misparsed if `gate.mjs` ever contains a brace in a string/comment; replace with regex boundary or document the brittleness"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1185` — Builder handshake written by agent into `worktreePath/.team/...` is never found by validator reading `mainCwd/.team/...`; `existsSync` silently returns false every run — fix agent brief to use absolute path and add a test"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/synthesize-compound.test.mjs:70` — Two security-relevant tests (\"fabricated-refs trips\", \"path traversal blocked\") permanently `it.skip`-ed since multiple rounds ago; add rationale comment or restore and track in backlog"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:21` — `cmdGate` still falls back to `process.cwd()` when `--cwd` is absent; direct invocation without `--cwd` silently breaks worktree isolation. Pre-existing backlog item — grep-audit test verifies containment but does not enforce strict requirement. No new action for this task."
+    },
+    {
+      "severity": "warning",
+      "text": "1. **Path traversal fixed**: `createWorktreeIfNeeded` now uses `safeSlug` (sanitized) for the on-disk path — resolves the 🟡 from task-6's security review. `../evil` → `..evil` stays confined under `.team/worktrees/`; bare `..` throws."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/run.mjs:10` — Remove `generateNonce` — imported but never called anywhere in the file"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/run.mjs:11` — Remove `WRITER_SIG` — imported but never referenced (used in `gate.mjs`, not here)"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/run.mjs:11` — Remove `ALLOWED_TRANSITIONS` — imported but never referenced"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/run.mjs:13` — Remove `closeIssue` — imported but never called; `commentIssue` is the one actually used"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs:663` — Brace-depth scanner to find `cmdGate`/`dispatchToAgent` boundaries is fragile (fooled by braces in strings); the behavioral mock tests at lines 322–364 already cover the same invariant — move to backlog"
+    },
+    {
+      "severity": "critical",
+      "text": "The dead-code veto triggers on four unused imports in `bin/lib/run.mjs`. The fix is trivial (remove four tokens from two import lines), but the rule is clear: any 🔴 = FAIL."
+    }
+  ]
+}

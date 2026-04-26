@@ -1,0 +1,32 @@
+## Parallel Review Findings
+
+🟡 [architect] `.gitignore:1–5` — `.team/worktrees/` is absent from `.gitignore`; worktree directories will appear as untracked in `git status` and are stageable with `git add .`. Add `.team/worktrees/` to `.gitignore`.
+[architect] **Summary:** Architecture is sound. The three-function worktree module is well-bounded with clean dependency injection. The `mainCwd`/`cwd` split correctly separates state management (main repo) from code execution (worktree). The lifecycle invariant (remove on success, preserve on error) is correctly implemented and locked in by source-assertion tests. The one 🟡 finding (`.gitignore` gap) warrants a backlog entry — a `git add .` in the main repo while a feature worktree is live would stage the entire checkout.
+🟡 [engineer] `test/worktree.test.mjs:466-486` — Same-slug race test uses `Promise.resolve().then()` microtasks; both calls serialize on the JS event loop and always take the reuse path. The "error" outcome in the comment never occurs. True OS-level same-slug concurrency is not tested. Add to backlog.
+🟡 [product] `.team/features/git-worktree-isolation` — No SPEC.md exists; PRODUCT.md entry #17 (document-driven development) requires an approved spec before coding. Feature was built directly from the roadmap line. Backlog: enforce spec gate at `agt run` or require `agt brainstorm` before sprint-init for roadmap-sourced features.
+🟡 [product] `.team/features/git-worktree-isolation/tasks/task-13/handshake.json:7` — Handshake claims "567 tests pass" but task-13 has no `test-output.txt` artifact; the only verifiable artifact (task-12) shows 566 pass. The +1 delta is unexplained by removing unused imports. Backlog: require build nodes to emit a fresh test-output.txt artifact rather than relying on a prior task's artifact for their pass claim.
+[product] The two 🟡 warnings are process/artifact gaps, not correctness gaps. Feature is functionally complete and safe to merge.
+🟡 [tester] test/worktree.test.mjs:384 — `Promise.all([ Promise.resolve().then(() => createWorktreeIfNeeded(...)) ])` doesn't create OS-level concurrency because `execFileSync` is synchronous; these tests run sequentially and don't actually stress-test concurrency — extend with real child-process tests (like the different-slug test at line 427)
+🟡 [tester] test/worktree.test.mjs:322 — `dispatchToAgent` cwd injection tests verify `opts.cwd` but never assert `opts.env`; task-3's `env: { ...process.env }` parity fix (run.mjs:298, 330) has no test coverage — a regression would be invisible
+🟡 [security] `bin/lib/gate.mjs:21` — `cmdGate` falls back to `process.cwd()` when `--cwd` is absent; direct CLI invocation without `--cwd` silently bypasses worktree isolation. Pre-existing backlog item; new grep-audit test verifies containment but doesn't enforce `--cwd` as required.
+🟡 [simplicity] `test/worktree.test.mjs:243-257` — `slugToBranch normalization` suite duplicates `slugToBranch` suite at lines 15–40; both tests restate coverage already present. Delete or merge into the existing suite.
+🟡 [simplicity] `test/worktree.test.mjs:94-120` — two back-to-back tests assert the same `-B` flag invariant; test at 105–120 is a strict subset of test at 94–103. Collapse or delete the weaker one.
+🟡 [simplicity] `test/worktree.test.mjs:663-729` — brace-counting function-boundary parser in grep-audit tests is deceivable by braces inside string/template literals; a false-PASS would silently miss a real `cwd: process.cwd()`. Behavioral coverage at lines 322–364 already covers the invariant. Replace parser or delete in favor of behavioral tests.
+🔵 [architect] `bin/lib/run.mjs:38` — `harness()` uses `cwd: process.cwd()` — the one legitimate exception to the worktree-isolation invariant, but it's undocumented. A comment explaining why it's safe (state writes go through absolute `--dir` paths, not CWD-relative) prevents a future engineer from "fixing" it incorrectly.
+🔵 [architect] `test/worktree.test.mjs:384–408` — Describe block named "concurrent" uses `Promise.resolve().then()` which serializes the synchronous `execFileSync` calls. No OS-level race occurs here. Rename or annotate to distinguish from the real concurrency test at lines 427–464.
+🔵 [architect] `test/worktree.test.mjs:539–556` — Source-regex assertion on literal string `"preserving worktree"` is brittle under refactor. Extract to a named constant in run.mjs to stabilize the contract.
+🔵 [engineer] `bin/lib/run.mjs:155` — `slugToBranch` has no type guard; `null.toLowerCase()` throws a TypeError that surfaces as a generic "Cannot create worktree" error. Add `String(slug)` coercion for a clearer failure message.
+🔵 [engineer] `bin/lib/run.mjs:155-160` — Whitespace-only slug `"   "` sanitizes to `"-"`, passes both guards, and would create `.team/worktrees/-`. Consider a third guard: `if (/^-+$/.test(safeSlug)) throw`.
+🔵 [engineer] `bin/lib/run.mjs:180` — Bare `catch {}` swallows permissions errors and git corruption, not just "already gone" cases. The comment is misleading. Consider debug-level logging for unexpected error shapes.
+🔵 [product] `.team/features/git-worktree-isolation/tasks` — Task IDs jump from task-6 to task-11 with no progress.md entries or replan records documenting tasks 7–10. Optional: surface abandoned/restarted task IDs in progress.md to preserve the audit trail.
+🔵 [tester] test/worktree.test.mjs:262 — Source-regex tests (lines 262–269, 539–556) check text patterns not behavior; innocent refactors break them without functional regression
+🔵 [tester] bin/lib/run.mjs:154 — `slugToBranch` has no type guard; non-string input throws generic `TypeError` instead of descriptive "invalid slug" error
+🔵 [tester] test/worktree.test.mjs:1 — No integration test asserts `_runSingleFeature` calls `removeWorktree` on the success path; a regression removing the call would be undetected
+🔵 [security] `bin/lib/run.mjs:166` — `worktreePath` is assembled without a downstream `path.resolve()` prefix assertion. `slugToBranch` invariants are sound but require tracing the regex to verify confinement. An explicit `startsWith` check would make it self-evident.
+🔵 [security] `bin/lib/run.mjs:37` — `harness()` wrapper hardcodes `cwd: process.cwd()` without an explicit parameter. Correct by current design (state management stays in main repo), but the invariant is not covered by the grep-audit tests.
+
+## Compound Gate
+
+**Verdict:** PASS
+**Layers tripped:** 0/5
+**All layers passed**

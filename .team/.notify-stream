@@ -353,3 +353,81 @@
 {"ts":"2026-04-25T11:36:46.224Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in simplicity-reviewer-with-veto — stopping execution"}
 {"ts":"2026-04-25T11:36:47.393Z","event":"feature-complete","msg":"Feature complete: simplicity-reviewer-with-veto — 0/12 done, 3 blocked, 44m 9s, $100.76"}
 {"ts":"2026-04-25T12:08:02.411Z","event":"feature-started","msg":"▶ Feature: git-worktree-isolation (13 tasks planned)"}
+{"ts":"2026-04-25T12:11:09.682Z","event":"task-started","msg":"▶ Task 1/13: `createWorktreeIfNeeded(slug, mainCwd)` returns an absolute path under `.team/worktrees/<slug>` and creates branch `feature/<sanitized-slug>` if the path does not exist."}
+{"ts":"2026-04-25T12:16:34.680Z","event":"task-passed","msg":"✓ Task 1/13: `createWorktreeIfNeeded(slug, mainCwd)` returns an absolute path under `.team/worktrees/<slug>` and creates branch `feature/<sanitized-slug>` if the path does not exist."}
+{"ts":"2026-04-25T12:16:39.841Z","event":"task-started","msg":"▶ Task 2/13: `slugToBranch(slug)` lowercases, replaces whitespace/underscores with `-`, strips characters outside `[a-z0-9.-]`, and truncates to 72 chars."}
+{"ts":"2026-04-25T12:21:08.392Z","event":"task-passed","msg":"✓ Task 2/13: `slugToBranch(slug)` lowercases, replaces whitespace/underscores with `-`, strips characters outside `[a-z0-9.-]`, and truncates to 72 chars."}
+{"ts":"2026-04-25T12:21:13.697Z","event":"task-started","msg":"▶ Task 3/13: `dispatchToAgent` and `runGateInline` both honor the worktree `cwd` parameter (no implicit `process.cwd()` fallback when a worktree is active)."}
+{"ts":"2026-04-25T12:31:02.201Z","event":"task-passed","msg":"✓ Task 3/13: `dispatchToAgent` and `runGateInline` both honor the worktree `cwd` parameter (no implicit `process.cwd()` fallback when a worktree is active)."}
+{"ts":"2026-04-25T12:31:08.163Z","event":"task-started","msg":"▶ Task 4/13: On successful run completion `removeWorktree` is invoked and the directory + branch tracking entry is gone (`git worktree list` no longer shows it)."}
+{"ts":"2026-04-25T12:36:34.268Z","event":"task-passed","msg":"✓ Task 4/13: On successful run completion `removeWorktree` is invoked and the directory + branch tracking entry is gone (`git worktree list` no longer shows it)."}
+{"ts":"2026-04-25T12:36:39.972Z","event":"task-started","msg":"▶ Task 5/13: On thrown error mid-run the worktree remains so a re-invocation reuses it."}
+{"ts":"2026-04-25T12:41:31.311Z","event":"task-passed","msg":"✓ Task 5/13: On thrown error mid-run the worktree remains so a re-invocation reuses it."}
+{"ts":"2026-04-25T12:41:36.767Z","event":"task-started","msg":"▶ Task 6/13: Two concurrent `agt run` invocations on different features produce two independent worktrees and do not race on `.team/worktrees/`."}
+{"ts":"2026-04-25T12:56:17.829Z","event":"task-passed","msg":"✓ Task 6/13: Two concurrent `agt run` invocations on different features produce two independent worktrees and do not race on `.team/worktrees/`."}
+{"ts":"2026-04-25T12:56:26.907Z","event":"progress","msg":"Progress: 6/13 done, 0 blocked."}
+{"ts":"2026-04-25T12:56:31.829Z","event":"task-started","msg":"▶ Task 7/13: Running `agt run` outside a git repo prints a useful error and exits non-zero."}
+{"ts":"2026-04-25T12:57:01.178Z","event":"task-passed","msg":"✓ Task 7/13: Running `agt run` outside a git repo prints a useful error and exits non-zero."}
+{"ts":"2026-04-25T12:57:10.646Z","event":"task-started","msg":"▶ Task 8/13: All unit + integration tests above pass in CI."}
+{"ts":"2026-04-25T13:00:03.011Z","event":"task-passed","msg":"✓ Task 8/13: All unit + integration tests above pass in CI."}
+{"ts":"2026-04-25T13:00:08.893Z","event":"task-started","msg":"▶ Task 9/13: `agt run <feature>` on a clean repo creates the worktree, runs the feature, removes the worktree on success."}
+{"ts":"2026-04-25T13:06:56.513Z","event":"task-passed","msg":"✓ Task 9/13: `agt run <feature>` on a clean repo creates the worktree, runs the feature, removes the worktree on success."}
+{"ts":"2026-04-25T13:07:01.944Z","event":"task-started","msg":"▶ Task 10/13: Crashing mid-run leaves the worktree; re-running the same feature reuses it without error."}
+{"ts":"2026-04-25T13:13:41.678Z","event":"task-passed","msg":"✓ Task 10/13: Crashing mid-run leaves the worktree; re-running the same feature reuses it without error."}
+{"ts":"2026-04-25T13:13:46.869Z","event":"task-started","msg":"▶ Task 11/13: No agent dispatch or gate command in `bin/lib/` references `process.cwd()` directly when a worktree is active (verified by grep audit)."}
+{"ts":"2026-04-25T13:36:47.754Z","event":"task-passed","msg":"✓ Task 11/13: No agent dispatch or gate command in `bin/lib/` references `process.cwd()` directly when a worktree is active (verified by grep audit)."}
+{"ts":"2026-04-25T13:36:53.182Z","event":"task-started","msg":"▶ Task 12/13: Documentation in `PLAYBOOK.md` describes the worktree layout and how to inspect/clean up worktrees manually."}
+{"ts":"2026-04-25T13:53:39.744Z","event":"task-passed","msg":"✓ Task 12/13: Documentation in `PLAYBOOK.md` describes the worktree layout and how to inspect/clean up worktrees manually."}
+{"ts":"2026-04-25T13:53:45.046Z","event":"task-started","msg":"▶ Task 13/13: Roadmap entry #20 in `charter` / product definition moved out of *(Deferred)* and into Completed Features."}
+{"ts":"2026-04-25T14:20:19.461Z","event":"task-passed","msg":"✓ Task 13/13: Roadmap entry #20 in `charter` / product definition moved out of *(Deferred)* and into Completed Features."}
+{"ts":"2026-04-25T14:20:35.143Z","event":"feature-complete","msg":"Feature complete: git-worktree-isolation — 13/13 done, 0 blocked, 132m 33s, $157.30"}
+{"ts":"2026-04-25T14:23:33.916Z","event":"feature-started","msg":"▶ Feature: runbook-system (18 tasks planned)"}
+{"ts":"2026-04-25T14:28:06.699Z","event":"task-started","msg":"▶ Task 1/18: A `.team/runbooks/add-cli-command.yml` runbook exists with a valid schema and at least 4 tasks."}
+{"ts":"2026-04-25T14:50:21.775Z","event":"task-started","msg":"▶ Task 2/18: A `.team/runbooks/add-github-integration.yml` runbook exists with a valid schema and at least 4 tasks."}
+{"ts":"2026-04-25T15:01:56.605Z","event":"task-passed","msg":"✓ Task 2/18: A `.team/runbooks/add-github-integration.yml` runbook exists with a valid schema and at least 4 tasks."}
+{"ts":"2026-04-25T15:02:02.156Z","event":"task-started","msg":"▶ Task 3/18: A `.team/runbooks/add-test-suite.yml` runbook exists with a valid schema and at least 4 tasks."}
+{"ts":"2026-04-25T15:30:13.237Z","event":"task-blocked","msg":"✗ Task 3/18: A `.team/runbooks/add-test-suite.yml` runbook exists with a valid schema and at least 4 tasks. — failed after 3 attempts"}
+{"ts":"2026-04-25T15:30:37.828Z","event":"task-started","msg":"▶ Task 4/18: `matchRunbook(description, runbooksDir)` returns the best-matching runbook or `null` when score is below threshold."}
+{"ts":"2026-04-25T16:03:22.214Z","event":"task-blocked","msg":"✗ Task 4/18: `matchRunbook(description, runbooksDir)` returns the best-matching runbook or `null` when score is below threshold. — failed after 3 attempts"}
+{"ts":"2026-04-25T16:03:40.238Z","event":"task-started","msg":"▶ Task 5/20: Guard runbook tests from approval-gate and buffer overflow"}
+{"ts":"2026-04-25T16:36:22.031Z","event":"task-blocked","msg":"✗ Task 5/20: Guard runbook tests from approval-gate and buffer overflow — failed after 3 attempts"}
+{"ts":"2026-04-25T16:36:44.157Z","event":"task-started","msg":"▶ Task 6/22: Bypass approval-gate when NODE_ENV=test"}
+{"ts":"2026-04-25T17:09:26.996Z","event":"task-blocked","msg":"✗ Task 6/22: Bypass approval-gate when NODE_ENV=test — failed after 3 attempts"}
+{"ts":"2026-04-25T17:09:53.420Z","event":"task-started","msg":"▶ Task 9/24: Guard runbook tests from approval-gate and buffer overflow"}
+{"ts":"2026-04-25T17:42:50.783Z","event":"task-blocked","msg":"✗ Task 9/24: Guard runbook tests from approval-gate and buffer overflow — failed after 3 attempts"}
+{"ts":"2026-04-25T17:43:17.556Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in runbook-system — stopping execution"}
+{"ts":"2026-04-25T17:43:19.678Z","event":"feature-complete","msg":"Feature complete: runbook-system — 1/26 done, 4 blocked, 199m 46s, $23.85"}
+{"ts":"2026-04-25T17:47:10.684Z","event":"feature-started","msg":"▶ Feature: extension-system (24 tasks planned)"}
+{"ts":"2026-04-25T17:50:53.733Z","event":"task-started","msg":"▶ Task 1/24: `promptAppend` return string is appended to the agent brief before `dispatchToAgent()`"}
+{"ts":"2026-04-25T18:19:08.886Z","event":"task-started","msg":"▶ Task 2/24: `verdictAppend` findings are merged into `computeVerdict()` output before compound gate runs"}
+{"ts":"2026-04-25T18:42:03.630Z","event":"task-passed","msg":"✓ Task 2/24: `verdictAppend` findings are merged into `computeVerdict()` output before compound gate runs"}
+{"ts":"2026-04-25T18:42:08.805Z","event":"task-started","msg":"▶ Task 3/24: `executeRun` spawns the returned command in task `cwd`; stdout/stderr are stored as a `cli-output` artifact; non-zero exit with `required: true` causes task FAIL"}
+{"ts":"2026-04-25T19:15:40.136Z","event":"task-started","msg":"▶ Task 4/24: `artifactEmit` returned artifact descriptors are written to the task artifact directory and included in the handshake"}
+{"ts":"2026-04-25T20:02:02.434Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in extension-system — stopping execution"}
+{"ts":"2026-04-25T20:02:04.910Z","event":"feature-complete","msg":"Feature complete: extension-system — 1/24 done, 3 blocked, 134m 54s, $58.60"}
+{"ts":"2026-04-25T20:05:57.687Z","event":"feature-started","msg":"▶ Feature: external-validator-integration (17 tasks planned)"}
+{"ts":"2026-04-25T20:09:52.893Z","event":"task-started","msg":"▶ Task 1/17: `JUnit XML` with one `<failure>` element produces one critical finding with `file:line — classname: message` text."}
+{"ts":"2026-04-25T20:31:00.723Z","event":"task-started","msg":"▶ Task 2/17: `TAP` output with one `not ok` line produces one critical finding."}
+{"ts":"2026-04-25T20:58:02.523Z","event":"task-started","msg":"▶ Task 3/17: `GitHub Actions problem matcher` output (`::error file=src/foo.js,line=5::message`) produces one critical finding."}
+{"ts":"2026-04-25T21:25:59.508Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in external-validator-integration — stopping execution"}
+{"ts":"2026-04-25T21:26:01.843Z","event":"feature-complete","msg":"Feature complete: external-validator-integration — 0/17 done, 3 blocked, 80m 4s, $36.41"}
+{"ts":"2026-04-25T21:28:37.137Z","event":"feature-started","msg":"▶ Feature: self-simplification-pass (15 tasks planned)"}
+{"ts":"2026-04-25T21:32:41.930Z","event":"task-started","msg":"▶ Task 1/15: Self-simplification pass runs automatically after all tasks pass review, before `finalize`, in the feature execution flow (`run.mjs` / `outer-loop.mjs`)."}
+{"ts":"2026-04-25T22:00:04.674Z","event":"task-started","msg":"▶ Task 2/15: Pass uses full `git diff main..HEAD` (or the feature branch base), not a per-task diff."}
+{"ts":"2026-04-25T22:18:42.958Z","event":"task-passed","msg":"✓ Task 2/15: Pass uses full `git diff main..HEAD` (or the feature branch base), not a per-task diff."}
+{"ts":"2026-04-25T22:18:48.285Z","event":"task-started","msg":"▶ Task 3/15: Critical simplicity findings block `finalize`; the harness enters a fix loop (max 2 rounds before escalating to human)."}
+{"ts":"2026-04-25T23:00:25.249Z","event":"task-started","msg":"▶ Task 4/15: Warning findings appear in `simplify-eval.md` and `progress.md` but do not block."}
+{"ts":"2026-04-25T23:29:00.329Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in self-simplification-pass — stopping execution"}
+{"ts":"2026-04-25T23:29:02.657Z","event":"feature-complete","msg":"Feature complete: self-simplification-pass — 1/15 done, 3 blocked, 120m 25s, $56.48"}
+{"ts":"2026-04-25T23:31:29.843Z","event":"feature-started","msg":"▶ Feature: cron-based-outer-loop (13 tasks planned)"}
+{"ts":"2026-04-25T23:40:03.549Z","event":"task-started","msg":"▶ Task 1/13: `agt cron-tick` with a board item in \"Ready\" transitions it to \"In Progress\", runs the feature, and transitions to \"Done\" on success"}
+{"ts":"2026-04-26T00:10:43.484Z","event":"task-started","msg":"▶ Task 2/13: `agt cron-tick` with no \"Ready\" items exits 0 and logs \"no ready items\""}
+{"ts":"2026-04-26T00:16:41.014Z","event":"task-passed","msg":"✓ Task 2/13: `agt cron-tick` with no \"Ready\" items exits 0 and logs \"no ready items\""}
+{"ts":"2026-04-26T00:16:46.417Z","event":"task-started","msg":"▶ Task 3/13: `agt cron-tick` invoked concurrently (two simultaneous processes) — the second process exits immediately without running a feature"}
+{"ts":"2026-04-26T00:26:08.145Z","event":"task-passed","msg":"✓ Task 3/13: `agt cron-tick` invoked concurrently (two simultaneous processes) — the second process exits immediately without running a feature"}
+{"ts":"2026-04-26T00:26:13.852Z","event":"task-started","msg":"▶ Task 4/13: `agt cron-tick` when feature run fails reverts the board item to \"Ready\" and comments on the GitHub issue"}
+{"ts":"2026-04-26T00:57:40.882Z","event":"task-started","msg":"▶ Task 5/13: `agt cron-setup` prints a crontab line that cd's to the project root and invokes `agt cron-tick >> .team/cron.log 2>&1`"}
+{"ts":"2026-04-26T01:32:22.935Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in cron-based-outer-loop — stopping execution"}
+{"ts":"2026-04-26T01:32:46.548Z","event":"feature-complete","msg":"Feature complete: cron-based-outer-loop — 2/13 done, 3 blocked, 121m 17s, $51.03"}
+{"ts":"2026-04-26T01:35:58.009Z","event":"feature-started","msg":"▶ Feature: execution-report (17 tasks planned)"}
+{"ts":"2026-04-26T01:39:01.519Z","event":"task-started","msg":"▶ Task 1/17: `agt report <feature>` prints all required sections to stdout for a completed feature."}

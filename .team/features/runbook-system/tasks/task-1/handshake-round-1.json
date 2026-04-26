@@ -1,0 +1,75 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 11 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T14:36:39.308Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 11,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/runbooks/add-cli-command.yml`:21 — `usageCount`, `lastUsedAt`, and `createdAt` are runtime-mutable state fields embedded in a static template; when the engine is built, in-place mutation creates git noise and breaks worktree isolation — backlog: move usage tracking to a separate runtime store (e.g. `.team/runbooks/.state.json`) keyed by runbook `id`, keep template files immutable"
+    },
+    {
+      "severity": "warning",
+      "text": "- The 🟡 warning does not block merge but must be resolved before the engine is implemented to avoid git-mutation anti-patterns and worktree isolation issues."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbook-add-cli-command.test.mjs:20` — Schema validation does raw-string regex scanning, not YAML parsing. A syntactically broken YAML (bad indentation, illegal unquoted character) still passes all 5 assertions as long as the field names appear as text. Add a YAML parse step to assert parseability before field checks."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbook-add-cli-command.test.mjs:32` — Task counting uses `content.match(/^\\s+- title:/gm)` — a text heuristic that would silently inflate the count if `- title:` appeared in a string value or comment. Acceptable for the current simple schema, but fragile as the schema evolves."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/runbook-system/tasks/task-1/` — No `artifacts/test-output.txt` saved. Handshake lists artifacts but the directory contains only `handshake.json`. Backlog: save test evidence alongside handshakes for auditability."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 Gate output (provided) — Truncated: ends at `agt help <command>` suite without showing `runbook-add-cli-command.test.mjs` or `runbook-dir.test.mjs` results. Tests pass when run independently; investigate gate output capture."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbook-add-cli-command.test.mjs:20` — Schema validation uses raw regex, not a YAML parser. A syntactically broken YAML file would still pass all five assertions. Add a YAML parse step to actually verify the file is parseable."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbook-dir.test.mjs:25` — Two tests inspect `init.mjs` source code as a string to assert behavior. A valid refactor (extracting `mkdirSync` to a helper) would break these tests without breaking functionality. Replace with behavioral/integration assertions."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `.team/runbooks/add-cli-command.yml:24-27` — Gold-plating: `tier: null`, `createdAt`, `usageCount: 0`, `lastUsedAt: null` have zero consumers in the codebase. Exhaustive grep across `bin/**/*.mjs` confirms nothing reads runbook YAML files — only `mkdirSync` calls exist. `usageCount`/`lastUsedAt` model a tracking system that doesn't exist with no stated requirement. Remove these four fields; they belong in a future PR when the engine that reads them is built."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbook-dir.test.mjs:36-40` — Source-order test: asserts `runbooks` `mkdirSync` appears after `features` `mkdirSync` by text index in `init.mjs` source. Tests code layout, not behavior. Any valid refactor of `init.mjs` breaks this."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbook-add-cli-command.test.mjs:47-49` — Validates pattern sub-fields via regex on raw YAML text, not a parsed structure. Could give false positives from YAML comments or wrong blocks as the file evolves."
+    },
+    {
+      "severity": "warning",
+      "text": "**To unblock merge:** delete lines 24–27 from `.team/runbooks/add-cli-command.yml` (`tier`, `createdAt`, `usageCount`, `lastUsedAt`). The two 🟡 items go to backlog."
+    }
+  ]
+}

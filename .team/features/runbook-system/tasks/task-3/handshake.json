@@ -1,0 +1,24 @@
+{
+  "taskId": "task-3",
+  "nodeType": "gate",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Gate command: npm test — exit code 1",
+  "timestamp": "2026-04-25T15:30:13.122Z",
+  "artifacts": [
+    {
+      "type": "test-result",
+      "path": "artifacts/test-output.txt"
+    },
+    {
+      "type": "cli-output",
+      "path": "artifacts/gate-stderr.txt"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 0,
+    "suggestion": 0
+  }
+}

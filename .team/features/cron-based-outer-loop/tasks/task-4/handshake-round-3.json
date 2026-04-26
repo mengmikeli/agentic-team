@@ -1,0 +1,67 @@
+{
+  "taskId": "task-4",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 9 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T00:57:37.083Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 9,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/cron-based-outer-loop/tasks/*/artifacts/` — No `test-output.txt` stored in any task's artifact directory; claimed test counts (553 tests) cannot be independently verified from the artifact trail alone — store test runner output as a task artifact in future runs."
+    },
+    {
+      "severity": "warning",
+      "text": "The prior 🟡 findings from earlier runs (args leakage, Unicode sanitization gap, stale-item stranding) are all confirmed closed in run_3. Eval written to `tasks/task-4/eval.md`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `cron.mjs:86` — `listProjectItems` called bare inside the outer `try` with no inner catch; if the GitHub API throws (network failure, auth expiry), the error propagates as an unhandled rejection with no `console.error` log — the `finally` block still releases the lock, but the failure is invisible in the cron log; add a test where `listProjectItems` throws and assert `console.error` is invoked with a useful message"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/cron-tick.test.mjs:399` — Stale+ready coexistence: dispatch priority not asserted; after stale recovery, item #3 (mutated to `\"ready\"`) appears first in `readyItems` and gets dispatched ahead of item #4 (originally `\"Ready\"`), but the test only asserts `runCalled === true` — a regression that changes dispatch ordering would pass silently; add an assertion on which `issueNumber` was dispatched"
+    },
+    {
+      "severity": "warning",
+      "text": "- Prior 🟡 findings from runs 1–2 (commentIssue guard, Unicode sanitization, args leakage, lock-release spies, console-restore in try/finally) confirmed closed"
+    },
+    {
+      "severity": "warning",
+      "text": "- No critical findings — two new 🟡 backlog items added"
+    },
+    {
+      "severity": "warning",
+      "text": "Two prior 🟡 security findings are **closed** in run_3:"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings. Two 🟡 warnings for the backlog:"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:101` — `staleItem.status = \"ready\"` mutates the input array element to populate the ready pool via a filter 5 lines later; coupling is non-obvious — collect recovered items into an explicit variable and merge with `readyItems`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:20` — `readProjectNumber` duplicates `outer-loop.mjs:117` body-for-body (same regex, same try/catch, same contract); extract to shared utility to avoid split maintenance (carry-forward)"
+    }
+  ]
+}

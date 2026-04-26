@@ -1,0 +1,25 @@
+{
+  "taskId": "task-5",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (4 critical, 9 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T01:31:52.788Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 4,
+    "warning": 9,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  }
+}

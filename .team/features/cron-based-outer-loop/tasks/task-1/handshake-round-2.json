@@ -1,0 +1,107 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (8 critical, 12 warning, 5 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T00:04:11.865Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 8,
+    "warning": 12,
+    "suggestion": 5
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "**Verdict: PASS** (architectural concerns only — upstream 🔴 from Simplicity Fix Pass must be resolved before merge)"
+    },
+    {
+      "severity": "critical",
+      "text": "**Upstream 🔴 (must fix before merge):**"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 test/cron-tick.test.mjs:6 — existsSync imported but never used anywhere in the file; remove from import list"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/github.mjs:275 — setProjectItemStatus calls readTrackingConfig() with no path, defaulting to process.cwd()/.team/PROJECT.md; silently returns false in worktree/different-cwd scenarios — accept fieldId/optionId as explicit params or receive tracking config from caller"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/github.mjs:266-267 — setProjectItemStatus re-fetches full project item list to resolve item ID that cmdCronTick already holds at cron.mjs:98; 2 redundant gh project item-list calls per tick — accept optional itemId parameter"
+    },
+    {
+      "severity": "warning",
+      "text": "The two 🟡 warnings are latent defects in `github.mjs:setProjectItemStatus` — the implicit cwd coupling will silently fail in worktree contexts (which this codebase uses), and the redundant item-list re-fetches will stress GitHub rate limits on busy boards. Neither blocks this merge architecturally, but both should be backlogged before the outer-loop is used in team settings."
+    },
+    {
+      "severity": "critical",
+      "text": "The blocking item is the pre-existing 🔴 unused `existsSync` import in the test file, caught by the Simplicity Fix Pass reviewer. One-character fix; unblock and re-gate."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/cron-tick.test.mjs:6` — `existsSync` imported but never used anywhere in the file; this was the 🔴 that blocked the prior simplicity pass and was not resolved in run_2 — remove it from the import list"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:124` — `_commentIssue` return value silently discarded with no `console.warn`; inconsistent with the three `setProjectItemStatus` calls above which all warn on `false`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:111` — if `runSingleFeature` calls `process.exit` synchronously, neither the `catch` revert nor `lock.release()` in `finally` run; board item stays in \"in-progress\" indefinitely; document as known limitation or add a `process.on('exit', ...)` guard"
+    },
+    {
+      "severity": "critical",
+      "text": "The two stated fixes (return value warnings, doctor message scoping) are correctly implemented and well-tested. The blocker is the `existsSync` dead import at `test/cron-tick.test.mjs:6` — this was exactly the 🔴 that failed the prior pass, and run_2 did not remove it. One-line fix."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/init.mjs:134` — Post-init message reads \"Board setup required (before running `agt run`)\" but the \"Ready\" column is only needed by `agt cron-tick`, not `agt run`. Misleads users on basic harness setup. Change to \"Board setup required (for `agt cron-tick`):\". (Unresolved from prior PM review.)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/doctor.mjs:208-210` — \"Ready column not set up\" warning fires for all board-configured projects regardless of whether they use `agt cron-tick`. Teams on a standard three-column board will see a spurious persistent warning after upgrading. Scope this warning to projects that have opted into cron."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/cron-tick.test.mjs:193` — test 4 (failure revert) uses `setProjectItemStatus: () => true`; the warning at `cron.mjs:122` (\"failed to revert to 'ready'\") is never exercised — add a test where `runSingleFeature` throws AND revert returns `false`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:100` + `bin/lib/run.mjs:470` — Issue title sanitized for control characters only, then embedded verbatim into the LLM agent prompt (`## Task\\n${task.title}`). Agent runs with `--permission-mode bypassPermissions` (full filesystem + shell access, confirmed at `run.mjs:289`). Natural-language prompt injection passes sanitization with no barrier. Fix: add a system-level instruction in `buildTaskBrief` scoping the agent's allowed actions, or document that board write access must be restricted to trusted users."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:124` — Raw `err.message` posted verbatim to the GitHub issue comment. Node.js errors can contain local filesystem paths, env var values, and internal config details — visible to all issue participants (and public if the repo is public). Fix: log the full error locally, post only a sanitized summary (e.g., `\"cron-tick failed — check local logs\"`)."
+    },
+    {
+      "severity": "critical",
+      "text": "**One 🔴 critical finding blocks merge.**"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/cron-tick.test.mjs:6` — `existsSync` imported but never used anywhere in the file; remove it (dead code — blocks merge)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/doctor.mjs:204` — `checkProjectBoard` reads `PROJECT.md` twice: once via `readFileSync` at line 189, then again inside `readTrackingConfig` at line 204; pass the already-read content or inline the field-ID check — backlog item"
+    },
+    {
+      "severity": "warning",
+      "text": "Everything else in the fix commit is clean. The three `if (!xSet) console.warn(...)` blocks are proportionate to the fix, the doctor.mjs message split correctly resolves the prior warning, and all new test imports (`execFileSync`, `fileURLToPath`) are used at their call sites. The 🟡 double-file-read in `checkProjectBoard` is a pre-existing backlog item (already flagged in the prior Simplicity Review pass) — not a new introduction."
+    }
+  ]
+}

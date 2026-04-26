@@ -1,0 +1,75 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (4 critical, 8 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T20:18:55.226Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 4,
+    "warning": 8,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/validator-parsers.mjs:40` — `<error>` elements produce zero criticals; a testcase with only `<error type=\"NullPointerException\"/>` returns `{ critical: 0 }` and passes the gate silently. A suite of runtime-crashed tests appears clean. The body scan must also match `<error` alongside `<failure>`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:57` — `totalMatch` searches the entire XML string; in aggregate JUnit reports (multiple `<testsuite>` elements), it picks the first `tests=\"N\"` value, making the `summary` count wrong. Findings count is unaffected."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:9` — `extractAttrs` silently drops single-quoted attribute values, producing an empty `message` in findings text (`\"f.java:1 — X: \"`). Confirmed by direct execution. Low practical risk but undocumented."
+    },
+    {
+      "severity": "critical",
+      "text": "**Scope rulings on prior 🔴 findings from other reviewers:**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-1/handshake.json` — No `artifacts/test-output.txt` saved; gate output is truncated before the `validator-parsers` describe blocks; save test output as a handshake artifact so future reviewers have direct evidence without re-running"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — No callers in `bin/`; parser is inert in production until an integration task lands; confirm follow-up is tracked before marking the feature shippable end-to-end"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/validator-parsers.mjs:40` — `<error>` elements silently produce 0 criticals; a suite of runtime exceptions passes the gate undetected. Add `<error>` to the failure body scan alongside `<failure>`, and add a test."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:9` — `extractAttrs` only handles double-quoted attributes; single-quoted attrs produce empty strings and garbage finding text `\" — : \"`. Extend the regex or add a test that documents the known limitation."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs` — no test for `file`-present/`line`-absent path (line 49 branch); add a case where `file` is set but `line` is omitted."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:50` — `message`, `classname`, and `file` from attacker-controlled XML are written to findings text without stripping ANSI/control characters; strip `/[\\x00-\\x1f\\x7f]/g` before pushing to `messages`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:53` — Once the parser is wired into a live gate, crafted malformed XML silently reports 0 criticals (false pass); expose parse failures via `meta.parseError = true` so the harness can reject rather than silently pass"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/validator-parsers.mjs:33` — Dead catch block; regex operations on strings cannot throw; remove the try/catch wrapper and leave the loop body bare"
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (6 critical, 7 warning, 3 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T14:55:55.722Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 6,
+    "warning": 7,
+    "suggestion": 3
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `package.json:22` — `test/runbook-add-github-integration.test.mjs` not in `scripts.test`; add it alongside `test/runbook-add-cli-command.test.mjs` so the 5 new tests actually run on every CI invocation"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/runbook-system/tasks/task-2/handshake.json:7` — No `test-output.txt` artifact captured; handshake claim of \"544 tests pass\" is unverifiable — capture artifact as task-1 did"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the `test` script; add it alongside `test/runbook-add-cli-command.test.mjs` so the 5 new tests are actually executed by `npm test`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/runbook-system/tasks/task-2/handshake.json:9-13` — No `test-output` artifact listed; task-2 has no `artifacts/` directory and no captured test evidence; add a `test-result` artifact pointing to `artifacts/test-output.txt` after the gate re-runs"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the `test` script; the gate never executed the delivery tests for this task, so the handshake's \"544 tests pass\" claim does not cover this task's verifications"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/runbook-system/tasks/task-2/handshake.json:13` — No `test-output.txt` artifact captured; unlike task-1, there is zero evidence of test execution for this task"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the `npm test` script; add it to the explicit file list so the 5 new tests are actually executed"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/runbooks/add-github-integration.yml:19` — Task 1 hint \"add to env config\" is ambiguous for AI agent execution; an agent with `bypassPermissions` could create unsecured credential files or hardcode secrets — strengthen to \"add to `.env` (ensure `.env` is in `.gitignore`); never hardcode in source files\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the npm test script; the 5 new tests were never run by the gate; handshake claim of \"544 tests pass\" is the same count from task-1 and does not cover the new test file — add to the test script and capture `artifacts/test-output.txt`"
+    },
+    {
+      "severity": "critical",
+      "text": "The file is static YAML with no current consumers — zero injection surface. The most actionable finding is the credential hint ambiguity (🟡): when the runbook engine ships and dispatches an AI agent with `bypassPermissions` to \"add to env config\", that hint is loose enough to produce hardcoded or unversioned secrets. The unregistered test file (🟡, already caught as a 🔴 by the prior review) means the new tests haven't run. Neither blocks merging the static YAML today, but both must be resolved before the matching engine is implemented."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is not registered in the test script; the test file exists on disk but never executes in `npm test` — dead code — add it to the explicit file list alongside `runbook-add-cli-command.test.mjs`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbook-add-github-integration.test.mjs:1` — Near-exact copy of `runbook-add-cli-command.test.mjs`; only path and id differ across 50 lines — extract a `validateRunbook(path, expectedId)` helper shared by both test files"
+    },
+    {
+      "severity": "critical",
+      "text": "- The 🔴 finding is dead code: a test file written but never wired into the test runner."
+    }
+  ]
+}

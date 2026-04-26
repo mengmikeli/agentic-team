@@ -1,0 +1,87 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 14 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T21:05:57.224Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 14,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:136` — `getParser` is never called; `findings` hardcoded as exit-code-only regardless of format; wire parsers into production by adding `--output-format` flag to `cmdGate` and routing `getParser(format)(stdout, stderr, exitCode)` after the command runs"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:115` — `([^:]*)` stops at first colon in properties string, silently dropping lines where any property value contains `:` (e.g. `title=TypeError: x`); fix by splitting on last `::` delimiter or using non-greedy lookahead *(carried — same issue flagged by Engineer review)*"
+    },
+    {
+      "severity": "warning",
+      "text": "No critical blockers. The parser logic is correct, pure, and well-tested. The two 🟡 warnings go to backlog. The most important architectural gap is the `gate.mjs` integration: until `getParser` is wired in, the feature delivers no observable end-to-end value despite correct parser logic — the `github-actions` format is registered but unreachable from any production code path."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:115` — Regex `[^:]*` for property capture silently drops `::error` lines where any property value contains `:` (e.g., `title=TypeError: x`); fix by splitting input on the last `::` occurrence or using a non-greedy pattern; add a test with a colon-containing `title` value"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:115` — Regex `[^:]*` silently drops lines where any property value contains `:` (e.g., `title=TypeError: x,file=src/foo.js,line=5::msg`); false negative with no diagnostic; fix by pre-splitting on the final `::` delimiter or using non-greedy lookahead (raised by Engineer review — does not affect the stated spec case)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-3/handshake.json` — No `artifacts/test-output.txt` saved and gate output is truncated before `validator-parsers.test.mjs`; reviewer cannot confirm all 8 new tests passed without re-running (same process gap carried from every task-2 PM review)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — Module has no callers in `bin/`; inert in production; confirm integration task is tracked before marking feature shippable (carried from task-2 across all PM reviews)"
+    },
+    {
+      "severity": "warning",
+      "text": "**Verdict: PASS** (two 🟡 to backlog)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:115` — `[^:]*` regex group for properties fails when any property value contains `:` (e.g., `title=TypeError: null`); the entire line silently drops to 0 findings instead of 1; add test `\"::error file=src/foo.js,line=5,title=Type Error: null::msg\"` asserting 1 critical finding and fix regex to parse properties up to the final `::` delimiter (confirmed independently by Engineer and Architect reviews already in the eval)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs` — no test locks in control-char stripping at `validator-parsers.mjs:118`; removing the `.replace(/[\\x00-\\x1f\\x7f]/g, '')` call passes all 8 tests undetected; add a case with `\"::error::message\\x1b[2J\"` asserting no bytes below `\\x20` in the stored message (identical gap to TAP parser, raised 🟡 across all task-2 final reviewers, still unresolved)"
+    },
+    {
+      "severity": "warning",
+      "text": "The core acceptance criterion — `::error file=src/foo.js,line=5::message` → one critical finding — is directly and completely tested. The two 🟡 items are a real regex correctness hole (colon in `title=` property value) and an unguarded security fix, both of which must go to backlog. No merge blockers."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:49` — `parseJunitXml` still pushes attacker-controlled `message`, `classname`, and `file` verbatim to `messages[]` without stripping control chars; `parseTap` (line 81) and `parseGithubActions` (line 118) both sanitize — inconsistent security posture across three parsers sharing the same `meta.messages` interface; strip `/[\\x00-\\x1f\\x7f]/g` before `messages.push()` in `parseJunitXml`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:152` — non-GA stdout returns `critical: 0` indistinguishable from a clean run; a misconfigured `\"github-actions\"` validator silently passes the gate once wired; add `meta.parseWarning = true` when `combined` is non-empty and no `::` workflow command line matched"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs` — control-char stripping at `validator-parsers.mjs:118` is not test-locked; removing `.replace(/[\\x00-\\x1f\\x7f]/g, '')` passes all 23 tests undetected; add a test with `\"::error file=src/foo.js,line=5::evil\\x1b[2J\"` asserting `meta.messages[0]` contains no bytes in `[\\x00-\\x1f]`"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical blockers. The implementation is the most security-hardened of the three parsers — control-char sanitization happens at line 118 before any processing, so no attacker-controlled content can reach `meta.messages`. The three 🟡 warnings go to backlog: JUnit parser asymmetry (a pre-existing architectural inconsistency), silent parse failure (carried across all prior reviews), and the missing test to lock in the stripping behavior."
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "taskId": "task-11",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 9 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T13:23:16.572Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 9,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:59 — `cmdGate` still hard-codes `cwd: process.cwd()` instead of routing through the `--dir` argument it already resolves at line 17; literal grep audit flags this even though `_runSingleFeature` no longer routes through it. Backlog: change to `cwd: dir,` or delete if dead."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:59 — Legacy `cmdGate` still passes `cwd: process.cwd()` to `execSync`; accept explicit `cwd` parameter or remove if dead code. File to backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:38 — `harness()` wrapper uses `cwd: process.cwd()`; thread an explicit cwd through."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/run.mjs:345 — `dispatchToAgentAsync` has no `if (!cwd) throw` guard; `spawn({cwd: undefined})` silently inherits `process.cwd()`. Add the guard and a negative test."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:59 — `execSync(cmd, { cwd: process.cwd() })` is a literal `process.cwd()` in a gate command in `bin/lib/`; would surface in any grep audit. Use `dir` (already accepted via `--dir`) instead."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:373 — `runParallelReviews` forwards `cwd` to `dispatchToAgentAsync` without validation; add an early guard."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs — No automated grep-audit test. AC verification is manual and will rot. Add a test that scans `bin/lib/{run,gate}.mjs` for `process.cwd()` against an allowlist."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs — Missing negative test for `dispatchToAgentAsync(_, _, undefined)` (twin of the existing `dispatchToAgent` case at line 298)."
+    },
+    {
+      "severity": "critical",
+      "text": "The 🔴 was previously raised as 🟡 in `task-3/eval-tester.md:45` and remains unfixed; given the AC explicitly covers \"agent dispatch in `bin/lib/`\", a silent-fallback sibling of `dispatchToAgent` is a critical gap."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:345 — `dispatchToAgentAsync` lacks the `if (!cwd) throw` guard that `dispatchToAgent` has; add for parity to fully close \"no implicit fallback\" on the parallel-review path"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:59 — `cwd: process.cwd()` is still present in the standalone `agt gate` execSync. Outside task-3's stated scope (which only targeted `runGateInline` + `dispatchToAgent`), but the broader feature claim \"no gate command in `bin/lib/` references `process.cwd()` directly\" is, read literally, contradicted here. From a pure simplicity lens there is no over-engineering — flagging only because the audit claim and the grep do not fully agree; correctness verification belongs to architect/tester."
+    }
+  ]
+}

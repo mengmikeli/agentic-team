@@ -1,0 +1,119 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (5 critical, 18 warning, 6 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T18:53:59.444Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 5,
+    "warning": 18,
+    "suggestion": 6
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:547` — executeRun artifact/failure tests are whitebox simulations that inline the run.mjs logic; if the executeRun block in run.mjs were deleted, all these tests would still pass. Add an integration-level test that exercises the actual run.mjs path."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1230` — Artifact slug is first 30 chars of command; two extensions with the same command prefix silently overwrite each other's artifact. Use `ext-run-${index}-${slug}.txt` or include the extension name."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1232` — `ext-run-*.txt` artifacts are written to `artifactsDir` but never registered in any handshake, making them invisible to the harness and dashboard."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:8` — Singleton `_extensions` is loaded once from the first `cwd` seen; subsequent `fireExtension` calls with a different `cwd` silently reuse the first-loaded set with no warning. No enforcement of the documented single-cwd invariant."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/run.mjs:1232` — `writeFileSync` precedes `executeRunFailed = true`; if artifact write throws, the outer `catch {}` swallows it and a required non-zero exit is silently missed; move failure-flag logic before `writeFileSync`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1236` — `lastFailure` overwritten per failing required command; multiple concurrent failures lose all but the last context for the retry brief; accumulate with `+=`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:596` — failure-detection tests reproduce the conditional inline without importing `run.mjs`; a change to the condition or ordering in `run.mjs` won't break them"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/extension-system.test.mjs:596` — Failure-detection tests hand-code the if-condition from `run.mjs:1234` locally; deleting that production line leaves all three tests green — replace with integration tests that exercise the actual `run.mjs` executeRun block"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:547` — Artifact-creation tests bypass `run.mjs:1229–1232` by reimplementing logic in a local temp dir; a regression in production artifact writing is undetectable — add tests exercising the real code path"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1232` — `ext-run-*.txt` written to `artifactsDir` but never registered in any handshake artifact list; harness and dashboard cannot discover it — register as `{ type: \"cli-output\" }`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1236` — Raw command stdout/stderr concatenated unescaped into the agent retry brief; triple-backtick in extension output can escape the fence and inject into LLM context — strip or use a non-guessable delimiter"
+    },
+    {
+      "severity": "critical",
+      "text": "The implementation is correct by code inspection — all three requirements (`cwd` spawn, artifact storage, `required` failure → task FAIL) are present in `run.mjs:1205–1255`. The gate passes with 566 tests, 0 failures. However, the Tester correctly identified that the three failure-detection tests test inline-simulated `if`-condition logic, not the production `run.mjs` code. Deleting `run.mjs:1234` leaves all three passing. The central acceptance criterion is unverifiable by the current test suite. That 🔴 blocks merge."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/extension-system.test.mjs:596` — Failure-detection tests assert on hand-coded conditionals, not on `run.mjs`; deleting `run.mjs:1234` leaves all three passing — replace with an integration test that exercises the actual run loop path"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:547` — Artifact-creation tests bypass `run.mjs:1229–1232` by reimplementing the artifact logic inline in the test; a regression in production artifact writing is undetectable"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1217` — Task spec claims command spawns in task `cwd` but no test verifies the `cwd` option is actually passed to `execSync`; add a test using `pwd` or similar to assert working directory"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1210` — Empty/whitespace command guard (`!r.command.trim()`) is untested; an extension returning `{ command: \"  \" }` should be silently skipped — no case covers this"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1236` — Raw `cmdOut`/`cmdErr` from extension-spawned commands are embedded unescaped in `lastFailure`, which is injected into the agent brief on the next retry inside a fenced code block. If an extension command reads repo-controlled content (e.g., `eslint user-file.js`), triple-backtick sequences in that output escape the fence and inject LLM instructions into the next attempt's prompt. Strip/escape triple-backticks from `lastFailure` before embedding, or wrap with a non-guessable delimiter."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:8` — `_extensions` singleton is never reset between outer-loop feature runs. Feature A's extensions remain active when feature B executes. `resetRegistry()` should be called at the start of `_runSingleFeature` alongside the existing `resetRunUsage()` at line 784."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:547` — 6 tests in `describe(\"executeRun — spawn, artifact, and failure detection\")` inline `run.mjs` artifact/failure logic rather than importing it; if `run.mjs:1230–1234` is deleted, all 6 tests still pass. Backlog: replace with tests that exercise the actual code path."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1230` — Artifact slug uses first 30 chars of command; two extensions with the same command prefix silently overwrite each other's artifact file. Add a counter suffix or include extension name in slug."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1232` — `ext-run-*.txt` artifacts are written to `artifactsDir` but never registered in any `handshake.json`, making them invisible to the harness/dashboard. Backlog: append entries to the builder handshake or write a dedicated extension run handshake."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:8` — Singleton `_extensions` is loaded on first `fireExtension(cwd)` call; a second call with a different `cwd` silently reuses the first-loaded set. The invariant is documented but not enforced. Backlog: assert or warn on cwd mismatch."
+    },
+    {
+      "severity": "critical",
+      "text": "**Verdict: PASS** — no 🔴 blockers. Four veto categories all clear (no dead code, no premature abstraction, no unnecessary indirection, no gold-plating). The three pre-existing 🟡 warnings from the Architect review are confirmed from the simplicity lens; all are backlog items."
+    }
+  ]
+}

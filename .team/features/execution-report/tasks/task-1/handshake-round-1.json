@@ -1,0 +1,75 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 9 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T01:44:26.623Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 9,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/report.mjs:131` — Error messages written to `_stdout.write`, not stderr; inconsistent with the rest of the codebase (`gate.mjs:21`, `transition.mjs:24`, `harness-init.mjs:17`) which uses `console.error`. Breaks Unix pipe idiom — `agt report my-feature | grep task-1` would include error text in pipe output. Fix requires adding a `stderr` injection point to `deps`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/report.mjs:146` — Error message says `\"STATE.json not found\"` even when the file exists but is corrupt JSON. `readState()` in `util.mjs:195–197` silently swallows parse errors and returns `null` in both cases. A user with corrupt STATE.json will look for a missing file instead of diagnosing a parse failure. Update message to `\"STATE.json missing or unreadable\"` or distinguish the two code paths."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/report.mjs:117` — Arg parser picks the first non-flag token as feature name; `agt report --output md my-feature` silently treats `\"md\"` as the feature name. Fix: strip the `--output <value>` pair from args before calling `.find()` for the positional."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/report.mjs:31` — Status label is a binary choice: `\"completed\"` or `\"Run in progress\"`. A feature with `status: \"failed\"` or `\"blocked\"` in STATE.json shows \"Run in progress\" — factually wrong. Fix: add label branches for other terminal states."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/report.mjs:117` — `args.find(a => !a.startsWith(\"-\"))` silently treats `\"md\"` as the feature name when user runs `agt report --output md my-feature`; add a test covering this arg ordering."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/report.mjs:144` — `readState` swallows JSON parse errors; `cmdReport` emits \"STATE.json not found\" even when the file exists but is corrupt — add a test for malformed STATE.json."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/report.test.mjs` — No test covers `tokenUsage.byPhase` with real cost data; the `perPhase` rendering path (`report.mjs:58-60`) is entirely untested."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 Gate output provided to reviewer is truncated — `report.test.mjs` results not visible; builder's claim of \"539 tests pass\" cannot be independently confirmed from supplied evidence."
+    },
+    {
+      "severity": "critical",
+      "text": "**Summary:** The core implementation is solid — all five required sections are generated, error exits work correctly, and `--output md` behaves as specified. The four warnings belong in backlog. No blocking issues from a test-coverage perspective (the Simplicity reviewer has a separate 🔴 FAIL on the `--output md` interface design)."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/report.mjs:136 — `featureName` from CLI args is passed unsanitized to `path.join()`; `--output md` can write `REPORT.md` to an arbitrary directory via path traversal (e.g. `agt report ../../tmp --output md`). Validate `featureName` matches `/^[a-zA-Z0-9_-]+$/` before constructing the path."
+    },
+    {
+      "severity": "critical",
+      "text": "One 🔴 finding blocks merge:"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/report.mjs:118-119` — Gold-plating: `--output` is parsed as a value argument but only `\"md\"` is ever checked. `--output json` or any other value silently falls through to stdout with no error — a misleading multi-value interface for a single-value use case. Speculative extensibility with no stated requirement. Fix: replace with a boolean flag."
+    }
+  ]
+}

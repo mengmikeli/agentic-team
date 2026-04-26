@@ -1,0 +1,87 @@
+{
+  "taskId": "task-1",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 13 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T18:08:05.495Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 13,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "The two prior 🟡 items are resolved: the `cwd` singleton invariant is now documented (`extension-registry.mjs:7`) and the `null`/`undefined` filter inconsistency is fixed."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1163` — `promptAppend` fires only for the build phase; `run.mjs:1083` (brainstorm), `1231` (review), `1419` and `1469` (replan) call `dispatchToAgent()` without the hook; document build-only intent or extend coverage to all dispatch sites"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:15` — `setExtensions()` is a test utility exported from production code; guard with `NODE_ENV === \"test\"` or relocate to prevent production callers from using it"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:1` — Extension return contract `{ append: string }` is undocumented; add JSDoc on `fireExtension` or create `EXTENSIONS.md` with hook name, payload shape, return type, and example"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs` — No test for a hook returning `undefined`; the `result != null` fix in `extension-registry.mjs:30` is correct but unverified — add a case to the \"skips null results\" describe block with a hook that explicitly returns `undefined`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs` — Zero coverage for `loadExtensions`: `safePath` traversal guard (loader:40–45), `isValidExtension` manifest check (loader:8–18), and silent import-error path are all untested; add a `describe(\"loadExtensions\")` block using a temp directory"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-runner.mjs:4` — `TIMEOUT_MS = 5000` is a declared design feature with no test; add a case using fake timers or a long-hanging hook stub to confirm `null` is returned and the failure counter increments"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:198` — \"promptAppend brief integration\" tests inline a copy of the append loop rather than exercising the real `run.mjs:1162–1169` path; a separator or filter change in `run.mjs` won't be caught; label as logic-unit tests or add a separate integration test against the actual code"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-loader.mjs:48` — `import(filePath)` executes all module-level code before `isValidExtension()` validates the manifest at line 50; a supply-chain-compromised `.mjs` in `~/.team/extensions/` runs even if it fails the manifest check — add a comment documenting this as an accepted design constraint inherent to dynamic import, or note it in extension authoring docs"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1165` — No size cap on `r.append`; unbounded string passed as final CLI arg risks ARG_MAX (`E2BIG`) and unbounded token inflation — add a per-extension truncation cap (e.g. 10 000 chars) with a warning log; carry-forward from run_1 security eval"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1163` — Extension output reaches `--permission-mode bypassPermissions` agent with no audit trail; a compromised extension can inject adversarial instructions — add debug-level logging of appended content; carry-forward from run_1 security eval"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:15` — `setExtensions()` exported in production; a loaded extension can call it to replace the registry mid-run, bypassing all loader validation — move behind `process.env.NODE_ENV === \"test\"` guard or explicitly document that extensions are fully trusted in-process; carry-forward from run_1 security eval"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/extension-loader.mjs:8` — `isValidExtension` private function has 1 call site (line 50); inline the 8-condition predicate directly into the `if` at line 50 with a `// validate extension manifest` comment"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:199` — append loop still reproduced inline from `run.mjs`; carried from run_1 backlog"
+    },
+    {
+      "severity": "critical",
+      "text": "The three run_1 🔴 findings (`getExtensions`, `recordFailure`, `safePath`) are all confirmed fixed — each inlining is correct and behavior-preserving, and the `result != null` loose-equality fix is in place."
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "taskId": "task-3",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 18 warning, 9 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T19:05:05.589Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 18,
+    "suggestion": 9
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:317` — Comment \"so a write error can never swallow it\" overstates the protection: `failed` is a local variable; if `writeFileSync` (line 323) throws, `runExecuteRunCommands` propagates the throw to the outer `try/catch` at line 1254, which swallows it and leaves `executeRunFailed=false`. The real fix is wrapping `writeFileSync` in its own `try/catch` inside the loop."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:28` — JSDoc claims `verdictAppend` fires \"before runCompoundGate/computeVerdict\" but `_runSingleFeature` never calls `fireExtension(\"verdictAppend\", ...)` — only `cmdSynthesize` does. An extension declaring `verdictAppend` silently has no effect during `agt run`. Update the JSDoc to scope the claim to `cmdSynthesize`, or wire the hook into the `_runSingleFeature` review block at run.mjs:1312 and 1390."
+    },
+    {
+      "severity": "warning",
+      "text": "**Verdict: PASS.** The core `executeRun` contract (spawn in cwd, cli-output artifact, required-fail) is implemented and the central test gap from run_1 is fixed. The two 🟡 findings go to backlog — neither is a runtime crash, but both set incorrect expectations for extension authors."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:317` — The \"failure flag before writeFileSync\" fix overstates its protection: if `writeFileSync` at line 323 throws (disk error, permissions), the exception propagates through `runExecuteRunCommands` to the outer `try/catch` at `_runSingleFeature:1261` which swallows it, leaving `executeRunFailed=false`. A required-command failure where the artifact write also fails is still silently dropped. Wrap `writeFileSync` in its own try/catch inside the loop."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:28` — JSDoc claims `verdictAppend` fires \"before runCompoundGate/computeVerdict\" but `_runSingleFeature` (run.mjs:1313, 1390) never calls `fireExtension(\"verdictAppend\")` — only `cmdSynthesize` does. A `verdictAppend` extension is silently inert during `agt run`. Update the JSDoc scope or wire the hook into the review paths."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:548` — \"stores stdout/stderr as cli-output artifact\" tests still reimplement `execSync` + `writeFileSync` inline without calling `runExecuteRunCommands`; a regression in `run.mjs:322–324` (slug generation, format) is undetectable."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:294` — No test verifies commands run in the passed `cwd`; the primary task spec claim is entirely untested."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:547` — Artifact-creation tests still bypass `runExecuteRunCommands` by reimplementing exec+write inline; deleting `run.mjs:323–324` would leave these tests green — replace with calls to `runExecuteRunCommands` that also assert the artifact file exists"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:323` — `ext-run-*.txt` written to `artifactsDir` but never registered in any handshake artifact list; harness/dashboard cannot discover them — return artifact paths from `runExecuteRunCommands` and register at the call site"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1259` — Raw command output unescaped in agent retry brief; triple-backtick in extension output escapes the fence and injects into LLM context (carried from Security review)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extension-registry.mjs:8` — Registry not reset between outer-loop features; feature A's extensions persist for feature B — add `resetRegistry()` at top of `_runSingleFeature` alongside `resetRunUsage()`"
+    },
+    {
+      "severity": "critical",
+      "text": "The run_1 🔴 (tests verifying a hand-coded conditional rather than the production function) is **resolved** — `runExecuteRunCommands` is now exported, and the 4 integration tests at lines 597–656 import and call the actual production function. Deleting `run.mjs:318` now causes test failures. The ordering fix (failure flag set before `writeFileSync`) is a genuine correctness improvement. Gate passes at 576 tests."
+    },
+    {
+      "severity": "warning",
+      "text": "Four 🟡 warnings go to backlog: artifact-test bypass, missing artifact registration in handshake, prompt-injection risk from unescaped command output, and registry not reset between outer-loop features. None block merge."
+    },
+    {
+      "severity": "critical",
+      "text": "**Prior 🔴 — RESOLVED**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:548` — Artifact-writing tests (lines 548–595) still reimplement `execSync`+`writeFileSync` locally; they don't call `runExecuteRunCommands`; deleting `run.mjs:324` leaves both tests green — add artifact-existence assertions inside one of the existing `runExecuteRunCommands` call-sites in the test file"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:304` — No test verifies commands actually execute in the provided `cwd`; the feature title's central claim (\"spawns in task cwd\") is verified by code inspection only — add a test calling `runExecuteRunCommands` with a temp dir as `cwd` and asserting `pwd` output"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:323` — `ext-run-*.txt` artifacts are written to `artifactsDir` but never registered in any handshake artifact list; harness and dashboard cannot discover them — return artifact paths from `runExecuteRunCommands` and register at the call site"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:320 — Raw `cmdOut`/`cmdErr` from extension commands embedded unescaped in `lastFailure`; this string flows into a triple-backtick fence at `buildTaskBrief:586`; a ` ``` ` sequence in command output escapes the fence and injects arbitrary LLM instructions into the retry brief — strip triple-backticks from the slices before embedding, or use a non-guessable unique delimiter"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/extension-registry.mjs:8 — Extension registry singleton never reset between outer-loop feature runs; `_runSingleFeature` calls `resetRunUsage()` (run.mjs:831) but not `resetRegistry()`, so feature A's `executeRun` hooks persist and fire for feature B — add `resetRegistry()` at run.mjs:831"
+    },
+    {
+      "severity": "critical",
+      "text": "**Prior 🔴 blockers — both resolved:**"
+    },
+    {
+      "severity": "warning",
+      "text": "**Five 🟡 backlog items confirmed** (all pre-existing from prior review, not new):"
+    }
+  ]
+}

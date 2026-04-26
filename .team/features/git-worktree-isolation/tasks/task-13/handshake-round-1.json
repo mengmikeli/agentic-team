@@ -1,0 +1,67 @@
+{
+  "taskId": "task-13",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 9 warning, 9 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-25T14:00:58.012Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 9,
+    "suggestion": 9
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/git-worktree-isolation` — No SPEC.md exists. Feature #17 (document-driven development) requires an approved spec before coding. This feature was implemented directly from the roadmap line item. Add to backlog: enforce `agt brainstorm` → SPEC.md approval even for roadmap-sourced features."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:21` — `|| process.cwd()` fallback not caught by the grep-audit test (regex matches `cwd: process.cwd()` but not `|| process.cwd()`); add a second assertion to the audit suite"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1185` — Builder handshake written by agent into `worktreePath/.team/...` is never found by harness validator reading from `mainCwd/.team/...`; silently skipped via `existsSync` returning false; agent brief should specify an absolute path or shared artifact location; add integration test covering this path"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs:539` — \"Worktree preserved on error\" tests are regex source assertions; a valid refactor of the catch block could break behavior without failing them; replace with an integration test that injects an actual throw"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:345` — `dispatchToAgentAsync` returns `ok:false` for any non-claude agent; `runParallelReviews` calls this for all roles; codex users get all parallel reviews silently failing; add test + warning log"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:21` — `cmdGate` falls back to `process.cwd()` when `--cwd` is not passed; an agent invoking `agt-harness gate` directly without `--cwd` silently bypasses worktree isolation. The required-cwd contract covers `runGateInline`/`dispatchToAgent`/`dispatchToAgentAsync` but not `cmdGate`. Add to backlog."
+    },
+    {
+      "severity": "critical",
+      "text": "No veto-category (🔴) findings. **Verdict: PASS**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs:549` — Source-assertion greps for literal log string `\"preserving worktree\"` in the catch block. Breaks on any log reword without behavior change. The behavioral invariant (worktree reusable after error) is already covered at line 558; remove this regex test."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs:657` — Two brace-tracking source-scanners (~80 lines) verify no `cwd: process.cwd()` inside `dispatchToAgent`/`dispatchToAgentAsync`. This invariant is already covered behaviorally at lines 322–364 (mock-spawnSync asserts `opts.cwd === worktreePath`). The source scans are redundant, fragile to reformatting, and more complex than the behavioral tests they shadow."
+    },
+    {
+      "severity": "warning",
+      "text": "No dead code, premature abstractions, unnecessary indirection, or gold-plating found in production code. The two 🟡 items are test-only complexity and go to backlog."
+    }
+  ]
+}

@@ -9,7 +9,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 import { join } from "path";
 import { randomBytes, createHmac, timingSafeEqual } from "crypto";
 import { c, readState, writeState, atomicWriteSync, WRITER_SIG } from "./util.mjs";
-import { runPhaseChecks } from "./doctor.mjs";
+import { runPhaseChecks, runAutoFix } from "./doctor.mjs";
+import { closeFeatureIssues } from "./state-sync.mjs";
 
 // Write outer loop status for dashboard visibility
 function writeLoopStatus(teamDir, status) {
@@ -715,6 +716,7 @@ export async function outerLoop(args, deps) {
         continue;
       } else {
         console.log(`  ${c.yellow}⚠ Feature "${featureName}" previously failed (${passed}/${tasks.length} passed). Starting fresh.${c.reset}`);
+        closeFeatureIssues(featureDir, "superseded by retry — previous run failed");
         existingState.status = "active";
         existingState.tasks = [];
         existingState._previous_runs_failed = (existingState._previous_runs_failed || 0) + 1;
@@ -931,6 +933,8 @@ export async function outerLoop(args, deps) {
         console.log(`  ${c.dim}Cycles: ${cycle}${c.reset}`);
         console.log(`${"\u2550".repeat(50)}`);
         // Run automated phase health checks before pausing
+        // Auto-fix known issues before checking
+        runAutoFix(cwd);
         const healthResult = runPhaseChecks(cwd, { skipTests: false, skipGitHub: false });
         if (healthResult.failed > 0) {
           console.log(`${c.red}${c.bold}\u26a0 Phase check found ${healthResult.failed} blocking issue(s). Fix before proceeding.${c.reset}`);
