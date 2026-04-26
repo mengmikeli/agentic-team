@@ -1,15 +1,18 @@
-# Security Review — task-13: Title column + What Shipped section
+# Security Review — task-13: Title column + What Shipped + escapeCell newline fix
 
 **Reviewer role:** Security Specialist
 **Verdict:** PASS
 **Date:** 2026-04-26
-**Reviewed commit:** 88e2ef7
+**Reviewed commit:** a68a5c7 (includes fix at 1fd4581)
+**Prior review:** 88e2ef7 — this review supersedes it, covering the newline fix delta
 
 ---
 
 ## Builder Claim
 
-> "Verified that buildReport renders the Title column in the Task Summary table (report.mjs:58-63, with escapeCell and '—' fallback) and emits the What Shipped section for passed tasks (report.mjs:47-54, with task.id fallback when title is absent). All 568 tests pass with 0 failures."
+From `handshake.json` (task-13):
+
+> "Fixed escapeCell to strip newlines (preventing broken markdown table rows), added test for newline in task title, and fixed duplicate section comment numbering in test file. All 569 tests pass (567 pass, 2 skipped, 0 fail)."
 
 Artifacts claimed: `bin/lib/report.mjs`, `test/report.test.mjs`
 
@@ -17,14 +20,14 @@ Artifacts claimed: `bin/lib/report.mjs`, `test/report.test.mjs`
 
 ## Files Actually Read
 
-| File | Purpose |
-|------|---------|
-| `bin/lib/report.mjs` (194 lines, full) | Production implementation — `buildReport` and `cmdReport` |
-| `test/report.test.mjs` (609 lines, full) | 48 unit + integration tests |
+| File | Lines | Purpose |
+|------|-------|---------|
+| `bin/lib/report.mjs` | 1-194 (full) | Production implementation — `buildReport` and `cmdReport` |
+| `test/report.test.mjs` | 1-627 (full) | 48 unit + integration tests |
 | `bin/lib/util.mjs:190-198` | `readState()` — JSON parse with try/catch |
 | `.team/features/execution-report/tasks/task-13/handshake.json` | Builder claims |
-| `.team/features/execution-report/tasks/task-12/eval-security.md` | Prior security review |
-| `git diff 0f6ed9f..88e2ef7` | Actual code delta for this task |
+| `.team/features/execution-report/tasks/task-13/eval.md` | Prior tester review |
+| `git diff 88e2ef7..a68a5c7 -- bin/lib/report.mjs test/report.test.mjs` | Code delta since prior security review |
 
 ---
 
@@ -33,29 +36,27 @@ Artifacts claimed: `bin/lib/report.mjs`, `test/report.test.mjs`
 ### Artifacts exist?
 Both `bin/lib/report.mjs` and `test/report.test.mjs` exist and contain the claimed functionality.
 
-### Tests match claimed status?
-Ran `node --test test/report.test.mjs` — **48 pass, 0 fail, 0 skipped** (176ms). Confirmed.
-
 ### Code implements what was claimed?
 
 | Claim | Evidence | Verified |
 |-------|----------|----------|
-| Title column in Task Summary | `report.mjs:58` header `\| Task \| Title \| Status \| Attempts \| Gate Verdict \|` | Yes |
-| Title populated from `task.title` | `report.mjs:63` `${escapeCell(task.title \|\| "—")}` | Yes |
-| Fallback to `—` when absent | `report.mjs:63` `\|\| "—"` — test at line 63-72 | Yes |
-| `escapeCell` protects table | `report.mjs:8-10` replaces `\|` with `\\\|` — test at line 286-304 | Yes |
-| What Shipped section | `report.mjs:47-54` filters `status === "passed"` — test at line 74-80 | Yes |
-| What Shipped uses `task.id` fallback | `report.mjs:51` `task.title \|\| task.id` — test at line 316-325 | Yes |
-| What Shipped omitted when no passes | Test at line 82-90 confirms section absent | Yes |
+| `escapeCell` strips newlines | `report.mjs:9` — `/[\r\n]+/g, " "` prepended to pipe escape | Yes |
+| Test for newline in title | `test/report.test.mjs:306-321` — asserts `"Line one Line two"` | Yes |
+| Title column in Task Summary | `report.mjs:58` — 5-column header `\| Task \| Title \| Status \| Attempts \| Gate Verdict \|` | Yes |
+| What Shipped for passed tasks | `report.mjs:47-54` — filters `status === "passed"`, lists titles | Yes |
+| Fallback to `—` in table, `task.id` in What Shipped | `report.mjs:51,63` — `\|\| task.id` and `\|\| "—"` | Yes |
 
 ---
 
-## Actual Code Delta (This Task)
+## Code Delta Since Prior Security Review (88e2ef7 → a68a5c7)
 
-The diff `0f6ed9f..88e2ef7` shows:
+Two changes:
 
-1. **`report.mjs:77`** — Changed per-phase cost from `$${v.costUsd?.toFixed(4) ?? "N/A"}` to `${v.costUsd != null ? \`$${v.costUsd.toFixed(4)}\` : "N/A"}`. This fixes a bug where `$N/A` was rendered instead of `N/A` when `costUsd` was absent.
-2. **`test/report.test.mjs`** — Added ~80 lines of new tests for: total cost formatting, per-phase cost edge cases, gate recommendation edge cases, simultaneous recommendations, and layer deduplication.
+1. **`report.mjs:9`** — `escapeCell` now strips `\r` and `\n` before escaping pipes. This closes the 🟡 finding from the tester review where newline characters in `task.title` could break markdown table rows.
+
+2. **`test/report.test.mjs:306-321`** — New test `"strips newlines from task.title in the table row"` verifies `"Line one\nLine two"` renders as `"Line one Line two"` in a single table row.
+
+Both changes are additive and defensive. No existing behavior was altered.
 
 ---
 
@@ -65,34 +66,56 @@ The diff `0f6ed9f..88e2ef7` shows:
 
 | Check | Status | Evidence |
 |-------|--------|----------|
-| Path traversal guard | PASS | `report.mjs:163` — `basename()` comparison + `.`/`..` rejection. Tests at lines 589-608. |
-| `--output` format validation | PASS | `report.mjs:157-161` — only `"md"` accepted. Tests at lines 571-585. |
-| Missing feature name | PASS | `report.mjs:151-155` — exits 1 with usage. Test at line 453. |
-| Missing feature dir | PASS | `report.mjs:171-175` — exits 1 with "not found". Tests at lines 462, 534. |
-| Missing STATE.json | PASS | `report.mjs:178-182` — exits 1. Test at line 471. |
+| Path traversal guard | PASS | `report.mjs:163` — `basename()` comparison + `.`/`..` rejection. Tests at lines 606-625. |
+| `--output` format validation | PASS | `report.mjs:157-161` — only `"md"` accepted. Tests at lines 588-602. |
+| Missing feature name | PASS | `report.mjs:151-155` — exits 1 with usage. Test at line 470. |
+| Missing feature dir | PASS | `report.mjs:171-175` — exits 1 with "not found". Tests at lines 479, 551. |
+| Missing STATE.json | PASS | `report.mjs:178-182` — exits 1. Test at line 488. |
 | Malformed JSON | PASS | `util.mjs:193-196` — `try/catch` around `JSON.parse`, returns `null`. |
-| NaN duration guard | PASS | `report.mjs:26` — `Number.isFinite(mins)` check. Test at line 306. |
-| Pipe in table cells | PASS | `report.mjs:8-10` — `escapeCell()` prevents table corruption. Test at line 286. |
+| NaN duration guard | PASS | `report.mjs:26` — `Number.isFinite(mins)` check. Test at line 323. |
+| Pipe in table cells | PASS | `report.mjs:9` — `escapeCell()` escapes `\|`. Test at line 286. |
+| Newline in table cells | PASS | `report.mjs:9` — `escapeCell()` strips `\r\n`. Test at line 306. |
 
-### 2. File Write Safety — PASS
+### 2. Markdown Injection Surface — PASS (with note)
 
-`writeFileSync` at line 188 writes only to `join(featureDir, "REPORT.md")`. The feature directory is constructed from a validated feature name (path traversal rejected) and a hardcoded filename. No user-controlled component in the output filename.
+`escapeCell` is applied to `task.title` in table cells (line 63). However, `task.title` is rendered unescaped in two other contexts:
+- **What Shipped** bullets (line 51): `- ${task.title || task.id}`
+- **Blocked/Failed** section (line 90): `${task.title || "(no title)"}`
 
-### 3. Secrets Management — PASS
+In these contexts, a title containing markdown syntax (e.g., `[link](http://evil.com)` or `![img](url)`) would render as live markdown in REPORT.md. However:
+- STATE.json is internally generated by the harness, not user-authored
+- The output is a local file or terminal output, not rendered in a web browser
+- The "attacker" would need write access to STATE.json, at which point they already own the system
 
-No secrets, tokens, API keys, or credentials are handled. `readState` reads `STATE.json` containing operational metadata only.
+**Risk: informational only.** No action required for a local CLI tool.
 
-### 4. Error Path Safety — PASS
+### 3. File Write Safety — PASS
+
+`writeFileSync` at line 188 writes only to `join(featureDir, "REPORT.md")`. The feature directory is constructed from a validated feature name (path traversal rejected at line 163) and a hardcoded filename. No user-controlled component in the output path.
+
+### 4. Secrets Management — PASS
+
+No secrets, tokens, API keys, or credentials are handled. `readState` reads `STATE.json` containing operational metadata (task status, costs, gate verdicts). The `_write_nonce` field in STATE.json is not exposed in the report output.
+
+### 5. Error Path Safety — PASS
 
 All error paths:
 - Write to `stderr` (not `stdout`)
 - Exit with code 1
 - Include descriptive messages
-- Have `return` after `_exit()` to prevent fall-through when `_exit` is mocked
+- Have `return` after `_exit()` to prevent fall-through when `_exit` is mocked in tests
 
-### 5. `toFixed()` Resilience
+### 6. `escapeCell` Completeness — PASS
 
-The change at `report.mjs:77` introduces a `v.costUsd != null` guard before calling `.toFixed(4)`. If `costUsd` were a non-numeric truthy value (e.g., a string), `toFixed()` would throw. However, STATE.json is machine-generated by the harness via `JSON.stringify`, so non-numeric `costUsd` values are not a realistic scenario. The same pattern exists at line 73 for `totalCostUsd.toFixed(4)` where the guard is `totalCostUsd != null`. Both are acceptable given the internal data source.
+The function now handles both attack vectors for markdown table integrity:
+- **Pipe injection**: `|` → `\|` (prevents column injection)
+- **Row injection**: `\r\n` → ` ` (prevents row splitting)
+
+Remaining characters that markdown tables treat specially (e.g., `-`, `:`) do not break table structure — they would only affect rendering within a cell, which is cosmetic, not a security concern.
+
+### 7. `toFixed()` Resilience — PASS (informational)
+
+At `report.mjs:73` and `report.mjs:77`, `costUsd.toFixed(4)` is guarded by `!= null` checks. If `costUsd` were a non-numeric truthy value (e.g., string), `toFixed()` would throw. This is acceptable because STATE.json is machine-generated via `JSON.stringify` by the harness — non-numeric `costUsd` values are not a realistic scenario.
 
 ---
 
@@ -100,29 +123,30 @@ The change at `report.mjs:77` introduces a `v.costUsd != null` guard before call
 
 | Scenario | Location | Behavior |
 |----------|----------|----------|
-| Empty tasks array | `report.mjs:16` `\|\| []` | Empty table, no crash |
+| `task.title` with `\n` | `report.mjs:9` | Newlines stripped to spaces |
+| `task.title` with `\|` | `report.mjs:9` | Pipe escaped to `\|` |
+| `task.title` with `\n` and `\|` | `report.mjs:9` | Both handled — newlines first, then pipes |
 | Missing `task.title` in table | `report.mjs:63` | Falls back to `—` |
 | Missing `task.title` in What Shipped | `report.mjs:51` | Falls back to `task.id` |
-| No passed tasks | `report.mjs:48` | What Shipped section omitted |
+| Feature name with path separators | `report.mjs:163` | Rejected — `basename()` mismatch |
+| Feature name `.` or `..` | `report.mjs:163` | Rejected explicitly |
+| Empty tasks array | `report.mjs:16` `|| []` | Empty table rendered, no crash |
+| Invalid `createdAt` ISO string | `report.mjs:26` | `Number.isFinite` guard → `N/A` |
 | Missing `tokenUsage` | `report.mjs:71` `?.` chain | Shows `N/A` |
-| Missing `byPhase` | `report.mjs:76-78` ternary | Shows `N/A` |
-| Missing phase `costUsd` | `report.mjs:77` null check | Shows `N/A` (not `$N/A`) |
-| Invalid `createdAt` ISO | `report.mjs:26` `Number.isFinite` | Shows `N/A` (not `NaN`) |
-| Zero gates total | `report.mjs:113` `failGates > 0` | No false recommendation |
 
 ---
 
 ## Findings
 
-🔵 bin/lib/report.mjs:51 — `task.title` in "What Shipped" bullets is rendered without markdown escaping. If a task title contained `[text](url)`, it would render as a hyperlink in REPORT.md. Low risk: STATE.json is internally generated by the harness, not user-authored.
+🔵 bin/lib/report.mjs:51 — `task.title` in "What Shipped" bullets is rendered without markdown escaping. A title containing `[text](url)` would render as a link in REPORT.md. Low risk: STATE.json is internally generated, and REPORT.md is a local file, not a web page.
 
-🔵 bin/lib/report.mjs:77 — `v.costUsd.toFixed(4)` will throw `TypeError` if `costUsd` is present but non-numeric (e.g., string `"free"`). The `!= null` guard does not protect against this. Low risk: STATE.json is machine-generated; non-numeric `costUsd` is not a realistic input.
+🔵 bin/lib/report.mjs:77 — `v.costUsd.toFixed(4)` will throw `TypeError` if `costUsd` is present but non-numeric (e.g., string). The `!= null` guard does not protect against this. Low risk: STATE.json is machine-generated; non-numeric `costUsd` is not a realistic input.
 
 ---
 
-## Comparison with Prior Security Review (task-12)
+## Delta from Prior Security Review
 
-The prior security review at `task-12/eval-security.md` identified the same two 🔵 suggestions (markdown escaping in non-table contexts). Both remain informational. No new security concerns introduced by the task-13 delta.
+The prior security review (commit 88e2ef7) identified these same two 🔵 suggestions. No new concerns were introduced. The newline fix at commit 1fd4581 **closed** the 🟡 finding from the tester review (eval.md), converting `escapeCell` from pipe-only to pipe+newline escaping with a dedicated test.
 
 ---
 
@@ -132,11 +156,11 @@ The implementation has solid security posture for a local CLI tool:
 
 - **Path traversal**: Guarded with `basename()` + dot-dir rejection, 3 dedicated tests
 - **Input validation**: All CLI args validated; every error path exits 1 with descriptive stderr message
-- **Table integrity**: `escapeCell()` prevents pipe injection in markdown table
+- **Table integrity**: `escapeCell()` prevents both pipe injection and newline row-splitting, with dedicated tests for each
 - **Data safety**: `JSON.parse` wrapped in try/catch; all optional fields have null-safe defaults
 - **File write**: Output path deterministic, cannot be redirected by user input
 - **No secrets**: No credentials, tokens, or PII in scope
 
-Two informational suggestions carried from the prior review remain open but do not affect the pass/fail determination given the internal data source.
+Two informational suggestions remain open but do not affect the pass/fail determination given the internal data source.
 
 **Overall verdict: PASS**
