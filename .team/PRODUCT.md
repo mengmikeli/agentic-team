@@ -61,4 +61,4 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. *(Deferred)*
 24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat. *(Deferred)*
 25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI. *(Deferred)*
-26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--md` writes REPORT.md.
+26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--md` writes REPORT.md. ✅ Done
