@@ -28,7 +28,10 @@ export function buildReport(state) {
       duration = rem > 0 ? `${hours}h ${rem}m` : `${hours}h`;
     }
   }
-  const statusLabel = isComplete ? "completed" : "Run in progress";
+  const statusLabel = status === "completed" ? "completed"
+    : status === "failed" ? "failed"
+    : status === "blocked" ? "blocked"
+    : "run in progress";
   lines.push(`# Execution Report: ${feature}`);
   lines.push(`Status: ${statusLabel}  |  Duration: ${duration}  |  Tasks: ${tasks.length}`);
   if (state.createdAt) lines.push(`Started: ${state.createdAt}`);
@@ -108,9 +111,9 @@ export function buildReport(state) {
  * agt report <feature>
  *
  * Reads STATE.json for the given feature and prints a structured report to stdout.
- * With --output md, writes REPORT.md to the feature directory instead.
+ * With --md, writes REPORT.md to the feature directory instead.
  *
- * @param {string[]} args - CLI args; positional <feature> + optional --output md
+ * @param {string[]} args - CLI args; positional <feature> + optional --md
  * @param {object}   deps - Injectable dependencies for testing
  */
 export function cmdReport(args = [], deps = {}) {

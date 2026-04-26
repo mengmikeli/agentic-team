@@ -1,15 +1,15 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Replaced the `--output md` value-argument interface with a boolean `--md` flag in `cmdReport`, eliminating the silent fallthrough for unsupported values. Updated help text in `agt.mjs` and all corresponding tests to match the new flag. Also updated the STATE.json error message to 'missing or unreadable' to cover both missing and corrupt file cases.",
+  "summary": "Fixed status label in buildReport to correctly show 'failed'/'blocked' instead of 'Run in progress' for terminal-state features. Updated stale JSDoc and test comments from '--output md' to '--md'. Updated PRODUCT.md spec to match the shipped interface. Added tests for 'failed' task status covering both the header label and the [FAILED] section label. All 541 tests pass.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/report.mjs" },
-    { "type": "code", "path": "bin/agt.mjs" },
-    { "type": "code", "path": "test/report.test.mjs" }
+    { "type": "code", "path": "test/report.test.mjs" },
+    { "type": "code", "path": ".team/PRODUCT.md" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

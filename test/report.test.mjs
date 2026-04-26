@@ -142,7 +142,28 @@ describe("buildReport", () => {
   it("marks in-progress features in header", () => {
     const state = makeState({ status: "executing", completedAt: undefined });
     const report = buildReport(state);
-    assert.ok(report.includes("Run in progress"), "Should mark in-progress with 'Run in progress' label");
+    assert.ok(report.includes("run in progress"), "Should mark in-progress with 'run in progress' label");
+  });
+
+  it("marks failed features in header", () => {
+    const state = makeState({ status: "failed" });
+    const report = buildReport(state);
+    assert.ok(report.includes("failed"), "Should show failed status in header");
+    assert.ok(!report.includes("run in progress"), "Should not show 'run in progress' for a failed feature");
+  });
+
+  it("shows [FAILED] label for failed tasks in blocked/failed section", () => {
+    const state = makeState({
+      feature: "failed-feature",
+      status: "failed",
+      tasks: [
+        { id: "task-1", title: "Bad task", status: "failed", attempts: 2, lastReason: "Unrecoverable error" },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("## Blocked / Failed Tasks"), "Should have Blocked/Failed section");
+    assert.ok(report.includes("[FAILED]"), "Should show [FAILED] label");
+    assert.ok(report.includes("Unrecoverable error"), "Should include lastReason");
   });
 
   it("marks completed features in header", () => {
@@ -237,7 +258,7 @@ describe("cmdReport", () => {
     assert.equal(exitCode, null, "Should not exit with error");
   });
 
-  // ── 5. --output md writes REPORT.md ──────────────────────────
+  // ── 5. --md writes REPORT.md ──────────────────────────
 
   it("writes REPORT.md to feature dir when --md is given", () => {
     const state = makeState();
@@ -249,7 +270,7 @@ describe("cmdReport", () => {
     assert.ok(output.join("").includes("written to"), "Should print confirmation");
   });
 
-  // ── 6. --output md does not print report to stdout ───────────
+  // ── 6. --md does not print report to stdout ───────────
 
   it("does not print full report to stdout when --md is given", () => {
     const state = makeState();
@@ -279,7 +300,7 @@ describe("cmdReport", () => {
 
   // ── 8. agt help report has usage string ──────────────────────
 
-  it("agt help report: outputs usage, --output flag, and example", () => {
+  it("agt help report: outputs usage, --md flag, and example", () => {
     const result = spawnSync("node", [agtPath, "help", "report"], {
       encoding: "utf8",
       timeout: 10000,
