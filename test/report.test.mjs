@@ -3,7 +3,7 @@
 
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync, rmSync } from "fs";
+import { mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from "fs";
 import { spawnSync } from "child_process";
 import { join } from "path";
 import { tmpdir } from "os";
@@ -622,5 +622,55 @@ describe("cmdReport", () => {
     try { cmdReport([".."], deps); } catch {}
     assert.equal(exitCode, 1);
     assert.ok(deps._stderrOutput.join("").includes("invalid feature name"), `Expected invalid feature name for '..': ${deps._stderrOutput.join("")}`);
+  });
+
+  // ── 13. E2E: agt report <feature> against real feature dir ──
+
+  it("agt report <feature>: prints report to stdout from a real STATE.json", () => {
+    const featureDir = join(tmpDir, ".team", "features", "e2e-feature");
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(makeState({
+      feature: "e2e-feature",
+      tokenUsage: { total: { costUsd: 0.123 }, byPhase: { build: { costUsd: 0.1 }, gate: { costUsd: 0.023 } } },
+    })));
+    const result = spawnSync("node", [agtPath, "report", "e2e-feature"], {
+      encoding: "utf8",
+      timeout: 10000,
+      cwd: tmpDir,
+    });
+    assert.equal(result.status, 0, `Expected exit 0; stderr: ${result.stderr}`);
+    assert.ok(result.stdout.includes("# Execution Report: e2e-feature"), "Should have report header");
+    assert.ok(result.stdout.includes("## What Shipped"), "Should have What Shipped section");
+    assert.ok(result.stdout.includes("## Task Summary"), "Should have Task Summary section");
+    assert.ok(result.stdout.includes("## Cost Breakdown"), "Should have Cost Breakdown section");
+    assert.ok(result.stdout.includes("$0.1230"), "Should show total cost");
+    assert.ok(result.stdout.includes("build: $0.1000"), "Should show build phase cost");
+    assert.ok(result.stdout.includes("task-1"), "Should include task-1 in output");
+    assert.ok(result.stdout.includes("Do something"), "Should include task title");
+  });
+
+  // ── 14. E2E: agt report <feature> --output md writes REPORT.md ──
+
+  it("agt report <feature> --output md: writes REPORT.md to feature dir", () => {
+    const featureDir = join(tmpDir, ".team", "features", "e2e-md-feature");
+    mkdirSync(featureDir, { recursive: true });
+    writeFileSync(join(featureDir, "STATE.json"), JSON.stringify(makeState({
+      feature: "e2e-md-feature",
+    })));
+    const result = spawnSync("node", [agtPath, "report", "e2e-md-feature", "--output", "md"], {
+      encoding: "utf8",
+      timeout: 10000,
+      cwd: tmpDir,
+    });
+    assert.equal(result.status, 0, `Expected exit 0; stderr: ${result.stderr}`);
+    assert.ok(result.stdout.includes("written to"), "Should print confirmation to stdout");
+    assert.ok(!result.stdout.includes("## Task Summary"), "Should not print report body to stdout");
+    // Verify REPORT.md was written
+    const reportPath = join(featureDir, "REPORT.md");
+    assert.ok(existsSync(reportPath), "REPORT.md should exist in feature dir");
+    const reportContent = readFileSync(reportPath, "utf8");
+    assert.ok(reportContent.includes("# Execution Report: e2e-md-feature"), "REPORT.md should have report header");
+    assert.ok(reportContent.includes("## Task Summary"), "REPORT.md should have Task Summary");
+    assert.ok(reportContent.includes("task-1"), "REPORT.md should include task-1");
   });
 });

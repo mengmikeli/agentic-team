@@ -1,0 +1,13 @@
+{
+  "taskId": "task-15",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added two end-to-end integration tests that spawn `agt report <feature>` and `agt report <feature> --output md` against a real feature directory with STATE.json. Both tests verify the full CLI pipeline: stdout report output (including header, sections, cost data) and REPORT.md file creation.",
+  "timestamp": "2026-04-26T20:15:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
