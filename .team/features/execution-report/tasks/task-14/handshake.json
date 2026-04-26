@@ -1,0 +1,14 @@
+{
+  "taskId": "task-14",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Verified that the three unit tests (Title column in Task Summary, What Shipped present for passed tasks, What Shipped absent when no tasks passed) all pass alongside the full test suite. All 49 report tests and 567 total project tests pass with 0 failures.",
+  "timestamp": "2026-04-26T20:45:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "test/report.test.mjs" },
+    { "type": "code", "path": "bin/lib/report.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

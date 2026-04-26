@@ -1,0 +1,14 @@
+{
+  "taskId": "task-15",
+  "nodeType": "build",
+  "runId": "run_2",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Fixed review findings: added negative duration guard (Math.max(0, mins)), wrapped writeFileSync in try/catch for --output md mode, added costUsd type check before .toFixed(), sanitized error messages against ANSI injection, and added 10 new tests covering duration formatting, multiple gates, \\r\\n escaping, empty tasks, costUsd=0, _last_modified fallback, (no title) assertion, slash path traversal, and writeFileSync failure. All 61 report tests and 579 total tests pass.",
+  "timestamp": "2026-04-26T00:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

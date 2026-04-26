@@ -1,0 +1,14 @@
+{
+  "taskId": "task-13",
+  "nodeType": "build",
+  "runId": "run_2",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Fixed escapeCell to strip newlines (preventing broken markdown table rows), added test for newline in task title, and fixed duplicate section comment numbering in test file. All 569 tests pass (567 pass, 2 skipped, 0 fail).",
+  "timestamp": "2026-04-26T12:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

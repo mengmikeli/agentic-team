@@ -1,20 +1,15 @@
 {
   "taskId": "task-1",
-  "nodeType": "gate",
+  "nodeType": "build",
   "runId": "run_1",
   "status": "completed",
-  "verdict": "PASS",
-  "summary": "Gate command: npm test — exit code 0",
-  "timestamp": "2026-04-26T01:56:25.897Z",
+  "verdict": null,
+  "summary": "Verified `agt report <feature>` prints all 6 required sections (Header, What Shipped, Task Summary, Cost Breakdown, Blocked/Failed, Recommendations) to stdout. Implementation in bin/lib/report.mjs with CLI wiring in bin/agt.mjs. Full test suite passes: 547 pass, 0 fail, 2 skipped.",
+  "timestamp": "2026-04-26T18:30:00.000Z",
   "artifacts": [
-    {
-      "type": "test-result",
-      "path": "artifacts/test-output.txt"
-    }
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "bin/agt.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
   ],
-  "findings": {
-    "critical": 0,
-    "warning": 0,
-    "suggestion": 0
-  }
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
 }

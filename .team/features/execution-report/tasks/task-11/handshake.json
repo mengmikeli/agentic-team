@@ -1,0 +1,13 @@
+{
+  "taskId": "task-11",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Added integration test verifying `agt report no-such-feature` exits 1 with 'not found' in output. The behavior was already implemented in cmdReport (line 171-175 of report.mjs); this task added the spawnSync-based integration test to confirm end-to-end behavior.",
+  "timestamp": "2026-04-26T12:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

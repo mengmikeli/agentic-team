@@ -55,10 +55,10 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 19. **Max review rounds + escalation** — Cap at 3 review rounds. After round 3, produce summary and escalate to human. Prevents infinite review loops. ✅ Done
 
 ### Phase 5 — Advanced
-20. **Git worktree isolation** — ✅ Done. Each feature runs in its own git worktree + branch. Parallel features never interfere. Feature-slug as namespace for all artifacts. `cwd` injected into agent dispatches and gate commands; worktree created before task dispatch and cleaned up on completion.
-21. **Runbook system** — ✅ Done. Pattern-matched task recipes (regex + keyword scoring). Reusable decompositions eliminate repeated planning. Runbook replay for known sequences.
-22. **Extension system** — ✅ Done. Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs.
-23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. ✅ Done
-24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat. ✅ Done
-25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI. ✅ Done
-26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--output md` writes REPORT.md.
+20. **Git worktree isolation** — Each feature runs in its own git worktree + branch. Parallel features never interfere. Feature-slug as namespace for all artifacts. `cwd` injected into agent dispatches and gate commands; worktree created before task dispatch and cleaned up on completion. *(Deferred)*
+21. **Runbook system** — Pattern-matched task recipes (regex + keyword scoring). Reusable decompositions eliminate repeated planning. Runbook replay for known sequences.
+22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs. *(Deferred)*
+23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. *(Deferred)*
+24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat. *(Deferred)*
+25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI. *(Deferred)*
+26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--md` writes REPORT.md. ✅ Done

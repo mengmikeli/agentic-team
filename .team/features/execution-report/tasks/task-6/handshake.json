@@ -1,0 +1,14 @@
+{
+  "taskId": "task-6",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Fixed per-phase cost formatting bug where missing costUsd produced `$N/A` instead of `N/A`. Strengthened test coverage for byPhase rendering: verifies phase name format, Per-phase split label, N/A fallback when byPhase is absent, and N/A for individual phases with missing costUsd. All 44 report tests and 562 total tests pass.",
+  "timestamp": "2026-04-26T05:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}

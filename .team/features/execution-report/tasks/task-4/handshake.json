@@ -1,0 +1,14 @@
+{
+  "taskId": "task-4",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "The What Shipped section was already fully implemented in report.mjs:47-54. It filters tasks with status 'passed', lists their titles (falling back to task.id), and omits the section entirely when no tasks passed. Three existing tests in report.test.mjs cover all branches. All 558 tests pass.",
+  "timestamp": "2026-04-26T12:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
