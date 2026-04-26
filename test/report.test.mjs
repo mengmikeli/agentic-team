@@ -247,7 +247,7 @@ describe("buildReport", () => {
     assert.ok(report.includes("Total cost (USD):         N/A"), "Should show N/A when costUsd is absent");
   });
 
-  it("renders tokenUsage.byPhase in Cost Breakdown", () => {
+  it("renders tokenUsage.byPhase in Cost Breakdown with phase names and label", () => {
     const state = makeState({
       tokenUsage: {
         total: { costUsd: 0.01 },
@@ -256,8 +256,31 @@ describe("buildReport", () => {
     });
     const report = buildReport(state);
     assert.ok(report.includes("$0.0100"), "Should show total cost as $X.XXXX");
-    assert.ok(report.includes("$0.0060"), "Should show per-phase cost for build");
-    assert.ok(report.includes("$0.0040"), "Should show per-phase cost for gate");
+    assert.ok(report.includes("Per-phase split:"), "Should include Per-phase split label");
+    assert.ok(report.includes("build: $0.0060"), "Should show phase name with cost for build");
+    assert.ok(report.includes("gate: $0.0040"), "Should show phase name with cost for gate");
+  });
+
+  it("shows N/A for per-phase split when byPhase is absent", () => {
+    const state = makeState({
+      tokenUsage: { total: { costUsd: 0.005 } },
+    });
+    const report = buildReport(state);
+    const perPhaseLine = report.split("\n").find(l => l.includes("Per-phase split:"));
+    assert.ok(perPhaseLine, "Should have Per-phase split line");
+    assert.ok(perPhaseLine.includes("N/A"), "Per-phase split should show N/A when byPhase is absent");
+  });
+
+  it("shows N/A for a phase whose costUsd is missing", () => {
+    const state = makeState({
+      tokenUsage: {
+        total: { costUsd: 0.01 },
+        byPhase: { build: { costUsd: 0.006 }, review: {} },
+      },
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("build: $0.0060"), "Should show cost for build phase");
+    assert.ok(report.includes("review: N/A"), "Should show N/A for phase with missing costUsd");
   });
 
   it("escapes pipe characters in task.title in the table row", () => {

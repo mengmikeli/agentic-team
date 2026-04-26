@@ -74,7 +74,7 @@ export function buildReport(state) {
     : `N/A (see \`agt metrics\`)`;
   const byPhase = state.tokenUsage?.byPhase;
   const perPhase = byPhase
-    ? Object.entries(byPhase).map(([k, v]) => `${k}: $${v.costUsd?.toFixed(4) ?? "N/A"}`).join(", ")
+    ? Object.entries(byPhase).map(([k, v]) => `${k}: ${v.costUsd != null ? `$${v.costUsd.toFixed(4)}` : "N/A"}`).join(", ")
     : `N/A (see \`agt metrics\`)`;
   lines.push(`  Total cost (USD):         ${totalCost}`);
   lines.push(`  Dispatches (transitions): ${state.transitionCount ?? 0}`);
