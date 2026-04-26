@@ -529,7 +529,19 @@ describe("cmdReport", () => {
     assert.ok(out.includes("Gate failed repeatedly"), "Should include lastReason");
   });
 
-  // ── 8. agt help report has usage string ──────────────────────
+  // ── 8. agt report no-such-feature (integration) ─────────────
+
+  it("agt report no-such-feature: exits 1 with 'not found' in output", () => {
+    const result = spawnSync("node", [agtPath, "report", "no-such-feature"], {
+      encoding: "utf8",
+      timeout: 10000,
+    });
+    assert.equal(result.status, 1, `Expected exit code 1; stdout: ${result.stdout}; stderr: ${result.stderr}`);
+    const combined = (result.stdout || "") + (result.stderr || "");
+    assert.ok(combined.includes("not found"), `Expected 'not found' in output: ${combined}`);
+  });
+
+  // ── 9. agt help report has usage string ──────────────────────
 
   it("agt help report: outputs usage, --output flag, and example", () => {
     const result = spawnSync("node", [agtPath, "help", "report"], {
