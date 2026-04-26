@@ -1,10 +1,10 @@
 {
   "taskId": "task-1",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "The `agt report <feature>` command was already fully implemented in bin/lib/report.mjs with buildReport() and cmdReport() functions, dispatched from bin/agt.mjs. The command prints all required sections (header, task summary table, cost breakdown, blocked/failed tasks, recommendations) to stdout, with an optional --output md flag to write REPORT.md. All 539 tests pass (2 skipped).",
+  "summary": "Replaced the `--output md` value-argument interface with a boolean `--md` flag in `cmdReport`, eliminating the silent fallthrough for unsupported values. Updated help text in `agt.mjs` and all corresponding tests to match the new flag. Also updated the STATE.json error message to 'missing or unreadable' to cover both missing and corrupt file cases.",
   "timestamp": "2026-04-26T00:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/report.mjs" },

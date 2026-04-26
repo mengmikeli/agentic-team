@@ -114,9 +114,8 @@ export function buildReport(state) {
  * @param {object}   deps - Injectable dependencies for testing
  */
 export function cmdReport(args = [], deps = {}) {
+  const outputMd = args.includes("--md");
   const featureName = args.find(a => !a.startsWith("-"));
-  const outputMdIdx = args.indexOf("--output");
-  const outputMd = outputMdIdx !== -1 && args[outputMdIdx + 1] === "md";
 
   const {
     readState: _readState = readState,
@@ -143,7 +142,7 @@ export function cmdReport(args = [], deps = {}) {
 
   const state = _readState(featureDir);
   if (!state) {
-    _stdout.write(`report: STATE.json not found in ${featureDir}\n`);
+    _stdout.write(`report: STATE.json missing or unreadable in ${featureDir}\n`);
     _exit(1);
     return;
   }
