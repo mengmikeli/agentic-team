@@ -62,3 +62,11 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat. *(Deferred)*
 25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI. *(Deferred)*
 26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--md` writes REPORT.md. ✅ Done
+
+### Phase 6 — Lifecycle Integrity
+31. **Finalize merge guard** — Finalize step must merge feature branch into main before marking complete. If merge fails, mark as 'merge-blocked'. Doctor check: completed features must not have unmerged branches. (#542)
+32. **Doctor auto-heal** — `agt doctor --fix` auto-fixes known issues: stale worktrees, orphaned gitlinks, missing STATE.json fields, harness path mismatches. (#293)
+33. **Outcome review file editing guard** — Reviewer agents must not edit source files. Gate rejects reviews that modify non-artifact files. (#296)
+34. **Worktree cleanup on completion** — Auto-remove worktree and branch after feature is merged. Clean up gitlinks from .team/worktrees/. (#297)
+35. **Feature slug consistency** — Enforce kebab-case slug matching between feature dir name, STATE.json, GitHub issue title, and branch name. Doctor warns on mismatches. (#298)
+36. **Review cost per-model tracking** — Track which model was used for each review dispatch. Per-model cost ratio in `agt report`. Enables data-driven model selection (e.g. use cheaper model for simplicity pass). (#301)

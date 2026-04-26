@@ -384,6 +384,22 @@ export function checkOrphanedIssues(cwd = process.cwd()) {
     if (orphaned.length > 0) {
       return { status: "warn", message: `${orphaned.length} orphaned issue(s) for completed features: ${orphaned.join(", ")}` };
     }
+
+    // Check for backlog issues not tracked in PRODUCT.md
+    const productPath = join(cwd, ".team", "PRODUCT.md");
+    if (existsSync(productPath)) {
+      const productContent = readFileSync(productPath, "utf8");
+      const backlogIssues = issues.filter(i => {
+        // Issues with P0/P1/P2 prefix that aren't referenced in PRODUCT.md
+        const isBacklog = /\bP[0-2]:/.test(i.title);
+        const isTracked = productContent.includes(`#${i.number}`);
+        return isBacklog && !isTracked;
+      });
+      if (backlogIssues.length > 0) {
+        return { status: "warn", message: `${issues.length} open issue(s), ${backlogIssues.length} backlog issue(s) not in PRODUCT.md: ${backlogIssues.map(i => `#${i.number}`).join(", ")}` };
+      }
+    }
+
     return { status: "pass", message: `${issues.length} open issue(s), none orphaned` };
   } catch {
     return { status: "warn", message: "Could not check GitHub issues" };
