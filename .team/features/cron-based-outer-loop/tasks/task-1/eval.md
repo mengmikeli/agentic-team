@@ -1,3 +1,117 @@
+# Simplicity Review (run_3): cron-based-outer-loop / task-1
+
+**Reviewer role:** Simplicity Advocate
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-1/handshake.json`
+- `test/cron-tick.test.mjs` (full, 407 lines)
+- `bin/lib/cron.mjs` (full, 153 lines)
+- `bin/lib/github.mjs` (lines 41–65, 238–294)
+- `bin/lib/util.mjs` (lines 98–147)
+- `bin/agt.mjs` (cron wiring via grep)
+
+---
+
+## Four Veto Categories
+
+### 1. Dead Code — PASS
+
+Prior 🔴 resolved: `test/cron-tick.test.mjs:6` now reads `import { mkdirSync, writeFileSync, rmSync } from "fs"`. `existsSync` is absent. Confirmed by direct read.
+
+All production imports in `bin/lib/cron.mjs` are used: `existsSync`/`readFileSync` in `readProjectNumber` (lines 23, 25), `join` throughout, all six named imports from `github.mjs` and `util.mjs` exercised in `cmdCronTick` and `cmdCronSetup`.
+
+### 2. Premature Abstraction — PASS
+
+`readProjectNumber` (cron.mjs:20–31) is a private, non-exported helper called at one site (line 70). Prior simplicity review categorized this as acceptable for testability isolation — the deps injection pattern is consistent throughout the codebase. No new abstractions introduced by run_3.
+
+### 3. Unnecessary Indirection — PASS
+
+No wrapper-only functions or re-exports found.
+
+### 4. Gold-Plating — PASS
+
+`cmdCronSetup`'s `--interval` flag covers the only variance that exists. No speculative config or unused feature flags.
+
+---
+
+## Findings
+
+🟡 `test/cron-tick.test.mjs:34` — `writeProjectMd` helper and its calls at lines 71, 99, 131, 168, 193 write `PROJECT.md` to disk, but all I/O deps (`readTrackingConfig`, `readProjectNumber`, `listProjectItems`, `lockFile`) are injected in every unit test that calls it — the file is never read; adds cognitive load and misleads readers about what setup the tests actually require; remove the `writeProjectMd` calls from unit tests that fully inject deps (the CLI integration tests at lines 371+ correctly call the file directly)
+
+---
+
+## Edge Cases Checked
+
+- Missing PROJECT.md → `readTrackingConfig` returns null → exits 1 ✅ (test 5, CLI integration test)
+- Tracking present, `"ready"` absent → pre-flight exits 1 at cron.mjs:64 ✅ (test 7)
+- `setProjectItemStatus` returns false → warns and continues ✅ (test 3b)
+- Failure path reverts to ready; pre-flight guarantees the "ready" option ID exists before any dispatch ✅
+- Lock held → exits 0, no dispatch ✅ (test 2)
+
+---
+
+## Summary
+
+run_3's sole change — removing the unused `existsSync` import — is confirmed. No new dead code, abstractions, indirection, or gold-plating were introduced. One new 🟡 discovery: `writeProjectMd` writes files to disk in unit tests that fully inject their I/O dependencies, making the file writes inert. Not a blocker, but it creates a misleading picture of what these tests actually depend on.
+
+---
+
+# PM Review (run_3): cron-based-outer-loop / task-1
+
+**Reviewer role:** Product Manager
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-1/handshake.json`
+- `test/cron-tick.test.mjs` (lines 1–10 — import block)
+
+---
+
+## Per-Criterion Results
+
+### 1. Blocker resolved: `existsSync` dead import — PASS
+
+Prior 🔴 finding: `test/cron-tick.test.mjs:6` imported `existsSync` but never called it. This was the sole blocking finding from run_2.
+
+Verified: line 6 now reads `import { mkdirSync, writeFileSync, rmSync } from "fs";`. `existsSync` is absent. Fix confirmed by direct source read.
+
+### 2. Core lifecycle requirement unchanged — PASS (inherited)
+
+No changes to `bin/lib/cron.mjs`. The Ready→In Progress→Done lifecycle verified in prior reviews is unaffected. Fix was confined to a single import line in the test file.
+
+### 3. Artifact claim matches reality — PASS
+
+Builder claimed one artifact: `test/cron-tick.test.mjs`. Change confirmed at the import line. No other files modified.
+
+### 4. Gate output — PASS (partial evidence)
+
+Gate output in the review prompt shows the test suite executing. Output is truncated before totals. Handshake claims 544 tests, 0 failures. No contradicting evidence.
+
+---
+
+## Findings
+
+No findings.
+
+---
+
+## Summary
+
+run_3 had one purpose: remove the unused `existsSync` import that was blocking merge. Verified: import is gone. Core feature behavior unchanged. Prior backlog items (doctor.mjs warning scope, init.mjs messaging, github.mjs cwd coupling, revert-also-fails test gap) carry forward to the backlog but do not block this merge.
+
+---
+
 # PM Review (run_2): cron-based-outer-loop / task-1
 
 **Reviewer role:** Product Manager
@@ -817,6 +931,65 @@ No critical vulnerabilities. No shell injection, secrets exposure, or auth bypas
 
 ---
 
+# Security Review (run_3): cron-based-outer-loop / task-1
+
+**Reviewer role:** Security specialist
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict:** PASS
+
+---
+
+## Scope
+
+run_3 claims a single change: remove the unused `existsSync` import from `test/cron-tick.test.mjs:6`. No production code was modified.
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-1/handshake.json`
+- `test/cron-tick.test.mjs` (lines 1–15 — import block)
+- `bin/lib/cron.mjs` (full, to confirm no production changes)
+
+---
+
+## Verification
+
+**Fix confirmed:** `test/cron-tick.test.mjs:6` now reads:
+```js
+import { mkdirSync, writeFileSync, rmSync } from "fs";
+```
+`existsSync` is absent. The prior 🔴 blocking finding is resolved.
+
+**Production code unchanged:** `bin/lib/cron.mjs` is identical to the run_2 reviewed version. `existsSync` remains in production at `cron.mjs:5,23` where it is actively used by `readProjectNumber`.
+
+**No new security surface:** A test-file import removal cannot introduce injection, secrets exposure, or auth bypass vectors.
+
+---
+
+## Prior Findings Carry Forward
+
+All findings from the run_2 Security Review remain open and unmodified by this commit:
+
+🟡 `bin/lib/cron.mjs:100` + `bin/lib/run.mjs:470` — Issue title sanitized for control chars only; natural-language prompt injection passes through to agent running with `--permission-mode bypassPermissions`. Backlog item.
+
+🟡 `bin/lib/cron.mjs:124` — Raw `err.message` posted verbatim to GitHub issue comment; can expose local paths and internal state to issue participants. Backlog item.
+
+🔵 `bin/lib/cron.mjs:147` — `process.env.PATH` embedded in printed crontab line; low risk (stdout only), but divergence between setup-time and runtime PATH is undocumented.
+
+---
+
+## Findings
+
+No new findings.
+
+---
+
+## Summary
+
+run_3 is a one-line test cleanup. The 🔴 blocking finding from the prior simplicity pass (`existsSync` dead import) is resolved. No security surface was touched. The two 🟡 architectural warnings (prompt injection, raw error leakage) carry forward as backlog items per the run_2 review.
+
+---
+
 # Architect Review (Gate): cron-based-outer-loop / task-1
 
 **Reviewer role:** Software Architect
@@ -890,3 +1063,210 @@ The Simplicity Fix Pass review found `test/cron-tick.test.mjs:6` — `existsSync
 ## Summary
 
 No architectural regressions. The board lifecycle (Ready→In Progress→Done with revert-on-failure) is correctly implemented and covered by tests. The two 🟡 warnings target pre-existing design issues in `github.mjs:setProjectItemStatus` made more load-bearing by this feature: implicit cwd coupling will silently fail in worktree contexts, and redundant API calls will approach rate limits on busy boards. Both are backlog items. The upstream 🔴 (unused `existsSync` import in `test/cron-tick.test.mjs:6`) must be fixed before merge.
+
+---
+
+# Architect Review (run_3 Fix Pass): cron-based-outer-loop / task-1
+
+**Reviewer role:** Software Architect
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-1/handshake.json`
+- `test/cron-tick.test.mjs` (lines 1–14 — import block, confirmed by exhaustive grep)
+- `bin/lib/cron.mjs` (full, 154 lines)
+- `bin/lib/github.mjs` (lines 257–294 — `setProjectItemStatus`)
+- `bin/lib/doctor.mjs` (lines 182–217 — `checkProjectBoard`)
+
+---
+
+## Per-Criterion Results
+
+### 1. Handshake claim: dead import removed — PASS
+
+Builder claimed removal of unused `existsSync` import from `test/cron-tick.test.mjs`. **Verified directly:**
+
+- `test/cron-tick.test.mjs:6` now reads: `import { mkdirSync, writeFileSync, rmSync } from "fs";`
+- Exhaustive grep for `existsSync` in the file: **zero matches**.
+
+The single 🔴 finding that blocked the prior gate is resolved.
+
+### 2. No regression in architecture — PASS
+
+run_3 changed exactly one line (the import statement). All other code paths — cron lifecycle, lock acquisition, dependency injection pattern, pre-flight guards — are byte-for-byte identical to the state verified in the prior Architect (Gate) review. No new architectural surface was introduced.
+
+### 3. Prior backlog items — UNCHANGED (still 🟡)
+
+The following architectural concerns from prior reviews persist unchanged in the codebase. They are not regressions of run_3; they were already categorized as backlog items:
+
+- `github.mjs:266-267` — `setProjectItemStatus` re-fetches full project item list; 2 redundant `gh project item-list` calls per tick
+- `github.mjs:275` — `readTrackingConfig()` called without path, implicitly bound to `process.cwd()`; silent failure under worktree/cwd mismatch
+- `cron.mjs:20-31` — `readProjectNumber` re-reads same `PROJECT.md` that `readTrackingConfig` already parsed
+- `cron.mjs:143` — `process.argv[1]` used for agt path; resolves to wrapper under npx/symlink
+- `doctor.mjs:189,204` — `checkProjectBoard` reads `PROJECT.md` twice (once via `readFileSync`, once via `readTrackingConfig`)
+
+None of these changed. None are newly introduced.
+
+---
+
+## Findings
+
+No new findings.
+
+---
+
+## Summary
+
+The run_3 fix is a single-line import cleanup that resolves the only blocking finding from the prior gate. No new code was added, no architectural surface changed. The pre-existing 🟡 backlog items (redundant item-list fetches, implicit cwd coupling in `setProjectItemStatus`) remain open but are not regressions of this pass. Feature is ready to merge.
+
+---
+
+# Engineer Review (run_3): cron-based-outer-loop / task-1
+
+**Reviewer role:** Software Engineer
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Scope
+
+run_3 claims a single change: remove the unused `existsSync` import from `test/cron-tick.test.mjs:6`. No production code modified.
+
+## Files Actually Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-1/handshake.json`
+- `test/cron-tick.test.mjs` (lines 1–20 — import block; lines 155–230 — tests 3, 3b, 4)
+- `bin/lib/cron.mjs` (full, 154 lines)
+- `bin/lib/github.mjs` (lines 255–295 — `setProjectItemStatus`)
+
+---
+
+## Per-Criterion Results
+
+### 1. The stated fix — PASS
+
+`test/cron-tick.test.mjs:6` now reads:
+```js
+import { mkdirSync, writeFileSync, rmSync } from "fs";
+```
+`existsSync` is absent. The three remaining imports (`mkdirSync`, `writeFileSync`, `rmSync`) are all used: `mkdirSync` in `createTmpDir`, `writeFileSync` in `writeProjectMd`, `rmSync` in the `afterEach` cleanup. No new dead imports.
+
+`existsSync` remains in production at `cron.mjs:5,23` where it is actively called inside `readProjectNumber`. No over-removal.
+
+### 2. No regression in correctness — PASS
+
+`bin/lib/cron.mjs` is byte-for-byte identical to the run_2 reviewed state. The full lifecycle path (in-progress at line 105, done at line 113, revert at line 120, finally-release at line 127) is intact. Tests 3, 3b, and 4 still cover the ordering assertion, false-return warning, and failure revert respectively. No behavioral change.
+
+### 3. Pre-existing backlog items (carry forward)
+
+These were flagged in prior reviews; run_3 did not introduce or resolve them:
+
+- `cron.mjs:111` — if `runSingleFeature` calls `process.exit()` synchronously, the `catch` and `finally` blocks do not execute; board item stays in "in-progress" indefinitely. No process-exit guard exists.
+- `cron.mjs:124` — `_commentIssue` return value silently discarded; inconsistent with the warn-on-false pattern applied to all three `setProjectItemStatus` calls above it.
+- `github.mjs:275` — `readTrackingConfig()` called without a path inside `setProjectItemStatus`; implicitly bound to `process.cwd()` at call time; silent false return if cwd differs from project root (e.g., worktree dispatch).
+- `github.mjs:266` — `setProjectItemStatus` re-fetches the full project item list on every call despite caller already holding `item.id`.
+
+---
+
+## Findings
+
+No new findings.
+
+---
+
+## Summary
+
+run_3 is a single-line test-file cleanup. The prior 🔴 blocking finding is confirmed resolved. No production code was touched; all correctness properties verified in prior reviews are intact. The four pre-existing 🟡 backlog items carry forward — none introduced by this commit.
+
+---
+
+# Tester Review (run_3): cron-based-outer-loop / task-1
+
+**Reviewer role:** Test Strategist
+**Date:** 2026-04-26
+**Handshake run:** run_3
+**Verdict: PASS**
+
+---
+
+## Files Read
+
+- `.team/features/cron-based-outer-loop/tasks/task-1/handshake.json` — full
+- `bin/lib/cron.mjs` — full (154 lines)
+- `test/cron-tick.test.mjs` — full (407 lines)
+- `bin/lib/util.mjs` — partial (lockFile, lines 98–165)
+- `bin/lib/run.mjs` — partial (lines 620–633, 775–804)
+- `bin/lib/github.mjs` — grep only (confirmed `listProjectItems` is synchronous)
+- Prior eval.md sections — all prior Tester, Engineer, Architect, Security, PM, Simplicity reviews
+
+---
+
+## run_3 Scope
+
+Builder claimed one change: removed unused `existsSync` import from `test/cron-tick.test.mjs:6`. Confirmed: line 6 now reads `import { mkdirSync, writeFileSync, rmSync } from "fs"`. All three remaining imports are exercised. No tests were added or removed.
+
+---
+
+## Per-Criterion Results
+
+### 1. Ready → In Progress → Done lifecycle — PASS
+
+Test at `test/cron-tick.test.mjs:129–162` records transitions and asserts `inProgressIdx < doneIdx` for issue #7. Implementation at `cron.mjs:105–117` is byte-for-byte identical to prior reviewed state. Order enforcement confirmed by reading both the test and the production code.
+
+### 2. Failure reverts to Ready + comments — PASS
+
+Test at `cron-tick.test.mjs:193–221` verifies both the revert transition and the `commentIssue` call with the error message. Implementation at `cron.mjs:118–126` unchanged.
+
+### 3. Lock prevents concurrent runs — PASS
+
+Test at `cron-tick.test.mjs:97–125` stubs `acquired: false` and asserts exit 0 + "already running". `lockFile` uses `flag: "wx"` (atomic exclusive create) at `util.mjs:134`. Unchanged.
+
+### 4. Config validation exits 1 — PASS
+
+Tests at lines 225, 247, 277 cover null tracking config, null project number, missing `ready` key. All assert `exitCode === 1`. Unchanged.
+
+### 5. Board API soft-failure warnings — PASS
+
+Test 3b (line 166) stubs `setProjectItemStatus: () => false` and asserts both `in-progress` and `done` warnings. Unchanged.
+
+### 6. Prior Tester backlog items — UNCHANGED (carry forward)
+
+From the Tester Re-Review (still unresolved):
+- 🟡 `cron-tick.test.mjs:193` — revert-also-fails path untested (`runSingleFeature` throws AND revert returns false)
+- 🔵 `cron.mjs:100` — title sanitization has no unit test (control chars, 200-char truncation)
+- 🔵 `cron.mjs:111` — CLI args forwarded verbatim to `runSingleFeature`; forwarding boundary untested
+
+---
+
+## New Findings
+
+Two gaps surfaced from reading the full implementation that prior reviews did not flag from the test-coverage angle:
+
+**`_commentIssue` can throw inside the catch block** — `cron.mjs:124` calls `_commentIssue` inside `catch (err)` without its own try-catch. If `_commentIssue` throws (e.g., `gh` CLI crashes hard), that exception escapes the catch block, the original `runSingleFeature` error is discarded, and the caller sees the commentIssue exception instead. The `finally` still releases the lock, but the observable failure is wrong. No test covers this path. Prior reviews flagged the *return value* being discarded — this is the *throw* scenario, a distinct failure mode.
+
+**Issue number not forwarded to `runSingleFeature`** — `cron.mjs:111` calls `_runSingleFeature(args, title)`. The full signature is `(args, description, providedLabel='', explicitSlug='')`. The issue number is captured for board transitions (`item.issueNumber`) but never passed to the feature runner. The resulting feature directory slug is derived from the title only; there is no explicit link between the spawned feature run and the originating GitHub issue. No test verifies this association.
+
+---
+
+## Findings
+
+🟡 `bin/lib/cron.mjs:124` — `_commentIssue` inside `catch(err)` is not try-caught; if it throws, the original runSingleFeature error is discarded and the commentIssue exception propagates to the caller instead; add a try-catch around the commentIssue call
+
+🟡 `bin/lib/cron.mjs:111` — `runSingleFeature(args, title)` passes no issue number; feature slug is title-derived only with no explicit traceability back to the dispatching GitHub issue; consider passing issueNumber as `explicitSlug` and add a test assertion for the association
+
+🔵 `test/cron-tick.test.mjs:308` — `cmdCronSetup` tests don't cover non-numeric `--interval` input (e.g. `"foo"`); `parseInt("foo") === NaN`, `!NaN === true` defaults to 30 via `cron.mjs:141` but the path is untested
+
+🔵 `test/cron-tick.test.mjs:193` — failure test asserts both `in-progress` and `ready` exist in `statusTransitions` but not their relative order; mirror the `inProgressIdx < doneIdx` assertion pattern from the success test at line 161
+
+---
+
+## Summary
+
+The run_3 fix is a single-line import cleanup. The prior 🔴 blocking finding (`existsSync` dead import) is confirmed resolved. Core lifecycle, lock contention, board soft-failures, and config validation are covered and unchanged. The two new 🟡 findings are additive to the backlog: `_commentIssue` throwing inside the catch block has a distinct failure mode from the already-flagged return-value gap, and the issue number is not traceable through to the feature run. Neither blocks merge.
