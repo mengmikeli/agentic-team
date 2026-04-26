@@ -1,13 +1,12 @@
 {
   "taskId": "task-3",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_3",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed three review findings: (1) escape pipe characters in task.title to prevent markdown table breakage, (2) reject '.' and '..' as feature names in path traversal guard, (3) guard against NaN duration from invalid createdAt ISO strings. Added 5 new tests covering all fixes. All 556 tests pass.",
+  "summary": "Added two missing tests for Recommendations section: (1) 'X task(s) need attention' recommendation when some tasks are blocked/failed but not all, and (2) 'No gate passes recorded' recommendation when all gates have FAIL verdicts. Both tests exercise previously untested branches in buildReport (lines 110-111 and 113-114). All 560 tests pass.",
   "timestamp": "2026-04-26T12:00:00.000Z",
   "artifacts": [
-    { "type": "code", "path": "bin/lib/report.mjs" },
     { "type": "code", "path": "test/report.test.mjs" }
   ],
   "findings": { "critical": 0, "warning": 0, "suggestion": 0 }

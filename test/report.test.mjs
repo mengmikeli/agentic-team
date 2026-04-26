@@ -284,6 +284,34 @@ describe("buildReport", () => {
     assert.ok(report.includes("## What Shipped"), "Should have What Shipped section");
     assert.ok(report.includes("- task-1"), "Should fall back to task.id when title is absent");
   });
+
+  it("recommends attention when some (not all) tasks are blocked or failed", () => {
+    const state = makeState({
+      status: "executing",
+      tasks: [
+        { id: "task-1", title: "Blocked task", status: "blocked", attempts: 2 },
+        { id: "task-2", title: "Good task", status: "passed", attempts: 1 },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("## Recommendations"), "Should have Recommendations section");
+    assert.ok(report.includes("1 task(s) need attention"), "Should recommend attention for partial problem set");
+  });
+
+  it("recommends reviewing quality gate when all gates are FAIL", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", title: "Failing task", status: "blocked", attempts: 2 },
+      ],
+      gates: [
+        { taskId: "task-1", verdict: "FAIL", command: "npm test", exitCode: 1 },
+        { taskId: "task-1", verdict: "FAIL", command: "npm test", exitCode: 1 },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("## Recommendations"), "Should have Recommendations section");
+    assert.ok(report.includes("No gate passes recorded"), "Should recommend reviewing quality gate command");
+  });
 });
 
 describe("cmdReport", () => {

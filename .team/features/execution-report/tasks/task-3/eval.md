@@ -324,3 +324,425 @@ Adds one string interpolation per task row: O(n) where n = tasks. No new iterati
 ## Summary
 
 The Title column implementation is correct, minimal, and well-tested. The `||` fallback handles all falsy values. Both primary paths have explicit test assertions specific enough to catch regressions. The one yellow — unescaped pipe characters in free-text titles breaking markdown table rendering — is a genuine gap introduced by this change and should be backlogged. It does not block merge because task titles are authored by the planning system from SPEC.md, not from untrusted external input.
+
+---
+
+# Architect Evaluation — execution-report / task-3, run_2 (post-fix)
+
+**Reviewer role:** Architect
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Reviewed commit:** a6ea790 (HEAD of feature/execution-report)
+
+---
+
+## Context
+
+This review covers the fix commit `4c76ec3` and its squash into `a6ea790`, which addressed all 🟡 and 🔵 findings from the prior round (run_1) of Security, Architect, and Engineer reviews. The builder's handshake claims three fixes: pipe escaping in table cells, `.`/`..` path traversal rejection, and NaN duration guard.
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (full, 193 lines) — production code post-fix
+- `test/report.test.mjs` (full, 470 lines) — test suite post-fix
+- `bin/agt.mjs:19,75,188-194,248` — CLI wiring (import, dispatch, help text)
+- `bin/lib/util.mjs:190-198` — `readState` dependency
+- `.team/features/execution-report/tasks/task-3/handshake.json` — builder claims (run_2)
+- `git diff 62d246c..a6ea790 -- bin/lib/report.mjs test/report.test.mjs` — fix delta
+
+---
+
+## Tests Independently Run
+
+```
+$ node --test test/report.test.mjs
+tests 38  |  suites 2  |  pass 38  |  fail 0  |  duration_ms 121
+```
+
+Up from 33 in run_1. The 5 new tests cover the 3 fixes plus the What Shipped fallback.
+
+---
+
+## Builder Claim Verification
+
+| Claim | Verified | Evidence |
+|-------|----------|----------|
+| Escape pipe chars in `task.title` | Yes | `escapeCell()` at report.mjs:8-10, applied at line 63 |
+| Reject `.` and `..` as feature names | Yes | report.mjs:163 adds `\|\| featureName === "." \|\| featureName === ".."` |
+| Guard against NaN duration | Yes | report.mjs:26 `if (!Number.isFinite(mins))` → `duration = "N/A"` |
+| 5 new tests | Yes | test:247 (pipe), test:267 (NaN), test:277 (What Shipped fallback), test:457 (`.`), test:463 (`..`) |
+| All 556 tests pass | Not independently verified for full suite | Gate output in prompt shows all suites passing; report suite confirmed at 38/38 |
+
+---
+
+## Architectural Assessment
+
+### 1. Module Boundaries — PASS
+
+The functional-core / imperative-shell split remains intact:
+
+- `buildReport(state) → string` — pure, no side effects. The `escapeCell` helper is a private module-scope function, correctly not exported.
+- `cmdReport(args, deps)` — I/O shell with 7 injectable dependencies. No changes to the DI surface in this fix round.
+
+The fix commits did not blur the boundary. All three fixes land in the correct layer: `escapeCell` and `Number.isFinite` are pure-function concerns in `buildReport`; the `.`/`..` check is an input validation concern in `cmdReport`.
+
+### 2. Fix Placement — PASS
+
+Each fix is placed at the architecturally correct point:
+
+| Fix | Layer | Rationale |
+|-----|-------|-----------|
+| `escapeCell` | Output formatting (line 63) | Escapes at the rendering boundary, not at data ingestion. The `task.title` value stays clean in memory; only the markdown output is escaped. This is the correct pattern — escape at the last moment before the output format boundary. |
+| `.`/`..` reject | Input validation (line 163) | Added to the existing guard-clause chain, maintaining the fail-fast pattern. No separate validation layer created. |
+| `Number.isFinite` | Computation guard (line 26) | Inserted into the existing duration `if/else` chain. Falls back to the pre-initialized `"N/A"` default rather than introducing a new code path. |
+
+### 3. `escapeCell` Design — PASS
+
+The function escapes only `|` characters. This is the minimum viable escaping for markdown table cells. It does NOT attempt general markdown escaping (e.g., `*`, `_`, `` ` ``), which would be over-engineering — those characters don't break table structure, they only affect inline formatting within the cell, which is acceptable.
+
+The function is applied only to `task.title` (line 63), not to `task.id`, `task.status`, or `lastVerdict`. This is correct: those fields are system-generated (slugs, enums, strings) and cannot contain `|`. Applying `escapeCell` to them would be defensive cargo-culting.
+
+### 4. Coupling — PASS
+
+No new module dependencies introduced. The fixes use only:
+- `String.prototype.replace` (built-in)
+- `Number.isFinite` (built-in)
+- Strict equality comparison (language primitive)
+
+The `readState` dependency chain remains unchanged: `cmdReport` → `readState(featureDir)` → `JSON.parse(readFileSync(...))`.
+
+### 5. Pattern Consistency — PASS
+
+The fixes follow established patterns in the codebase:
+
+- `escapeCell` mirrors how other CLI modules handle output formatting (escape at render time)
+- The `.`/`..` guard mirrors the existing `basename()` check — it's an additive condition on the same `if` statement, not a refactored abstraction
+- The `Number.isFinite` guard follows the same `if/else if` chain pattern used for the duration formatting below it
+
+### 6. Scalability — PASS
+
+All fixes are O(1) per invocation:
+- `escapeCell`: one `replace()` per title string
+- `.`/`..`: two equality checks
+- `Number.isFinite`: one predicate check
+
+No new iterations, data structures, or async operations.
+
+### 7. Test Architecture — PASS
+
+The 5 new tests follow the established patterns:
+
+- `buildReport` tests: use `makeState()` with targeted overrides, assert on output string content
+- `cmdReport` tests: use `makeDeps()` with injected I/O, assert on `exitCode` and `stderrOutput`
+- The pipe test at line 247-265 is notably thorough: it uses a negative lookbehind regex (`/(?<!\\)\|/`) to count unescaped pipe delimiters, verifying that escaped pipes don't break the column count. This is structurally robust — it would catch regressions even if the escaping function changes internally.
+
+---
+
+## Prior Findings — Resolution Status
+
+| Prior Finding | Severity | Status | Evidence |
+|---------------|----------|--------|----------|
+| `.`/`..` bypasses path guard | 🟡 | **Fixed** | report.mjs:163, tests at line 457+463 |
+| NaN duration from invalid `createdAt` | 🟡 | **Fixed** | report.mjs:26, test at line 267 |
+| Pipe in title breaks table | 🟡/🔵 | **Fixed** | `escapeCell` at report.mjs:8-10+63, test at line 247 |
+| What Shipped fallback to `task.id` untested | 🔵 | **Fixed** | test at line 277 |
+| `writeFileSync` no try/catch | 🔵 | **Not addressed** | Acceptable — low priority, non-security |
+
+---
+
+## Remaining Gaps
+
+Two test gaps from the prior tester review (task-8) remain unaddressed:
+
+1. **"No gate passes recorded" recommendation** (report.mjs:113-114) — requires `failGates > 0 && passGates === 0`. No test fixture exercises this path. The code logic is straightforward (`if` with two integer comparisons), so correctness is evident by inspection.
+
+2. **"X task(s) need attention" recommendation** (report.mjs:110-111) — requires `problem.length > 0 && problem.length < tasks.length`. The blocked-task test (line 109) creates a state with one blocked + one passed task, which does trigger this branch, but the test assertion checks the Blocked section, not the Recommendations section.
+
+Neither gap is an architectural concern. Both are test completeness items.
+
+---
+
+## Findings
+
+No findings.
+
+All prior 🟡 findings have been resolved. The fixes are architecturally well-placed, follow established patterns, and introduce no new coupling or complexity. The `escapeCell` function is correctly scoped (private, single-purpose, applied only to free-text fields). The path validation and NaN guard are minimal additions to existing guard-clause chains.
+
+---
+
+## Summary
+
+The run_2 fixes are clean and well-targeted. Each fix addresses a specific finding from run_1 without over-correction or architectural drift. The module boundaries (pure core / DI shell) are maintained. No new dependencies, no new abstractions, no new coupling. The 5 new tests are proportional and follow established patterns. The test suite grew from 33 to 38, covering all prior 🟡 findings. The implementation is merge-ready.
+
+---
+
+# Engineer Evaluation — execution-report / task-3, run_2 (post-fix)
+
+**Reviewer:** Engineer
+**Verdict:** PASS
+**Date:** 2026-04-26
+**Reviewed commit:** a6ea790 (HEAD of feature/execution-report)
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (194 lines — full file)
+- `test/report.test.mjs` (471 lines — full file)
+- `.team/features/execution-report/tasks/task-3/handshake.json` — builder claims (run_2)
+- `git diff main...HEAD -- bin/lib/report.mjs` — full branch diff (+61/-35)
+- `git diff main...HEAD -- test/report.test.mjs` — full branch diff (+141 lines)
+
+---
+
+## Tests Independently Run
+
+```
+$ node --test test/report.test.mjs
+tests 38  |  suites 2  |  pass 38  |  fail 0  |  duration_ms 142
+```
+
+All 38 tests pass (24 `buildReport` unit + 14 `cmdReport` integration).
+
+---
+
+## Handshake Verification (run_2)
+
+The task-3 handshake (run_2) claims three fixes from prior review findings plus 5 new tests.
+
+| Claim | Verified | Evidence |
+|-------|----------|----------|
+| Escape pipe chars in `task.title` (report.mjs:8-10, 63) | Yes | `escapeCell` replaces `\|` with `\\|`; test:247-265 counts 6 unescaped delimiter pipes. Confirmed via execution: row renders correctly with escaped pipes. |
+| Reject `.` and `..` as feature names (report.mjs:163) | Yes | Guard `featureName === "." \|\| featureName === ".."` added to existing `basename()` check. Tests at lines 457-469 assert exit 1 with "invalid feature name". Confirmed via execution: both `.` and `..` produce exit code 1. |
+| Guard against NaN from invalid `createdAt` (report.mjs:26) | Yes | `Number.isFinite(mins)` check before duration formatting. Test at lines 267-275 asserts no "NaN" in output and "Duration: N/A" present. Confirmed via execution: `createdAt: "not-a-date"` produces `Duration: N/A`. |
+| 5 new tests added | Yes | Test count: 33 → 38. New tests: pipe escaping (247), NaN duration (267), What Shipped fallback (277), `.` guard (457), `..` guard (464). |
+| All tests pass | Yes | 38/38 pass, ran independently (see above). |
+| Artifacts `bin/lib/report.mjs` exists | Yes | 194 lines |
+| Artifacts `test/report.test.mjs` exists | Yes | 471 lines |
+
+---
+
+## Per-Criterion Results
+
+### 1. Implementation Correctness — PASS
+
+**Title column (the primary task):**
+
+The table header at line 58 has 5 columns: `| Task | Title | Status | Attempts | Gate Verdict |`. The separator at line 59 has 5 dash groups. The row template at line 63 interpolates `escapeCell(task.title || "—")` in the second position.
+
+Edge cases traced through code and verified via execution:
+
+| Input | Expression | Output | Correct? |
+|-------|-----------|--------|----------|
+| `task.title = "Do X"` | `escapeCell("Do X")` | `"Do X"` | Yes |
+| `task.title = undefined` | `escapeCell("—")` | `"—"` | Yes |
+| `task.title = null` | `escapeCell("—")` | `"—"` | Yes |
+| `task.title = ""` | `escapeCell("—")` | `"—"` (falsy → fallback) | Yes |
+| `task.title = "Fix \| pipe"` | `escapeCell("Fix \| pipe")` | `"Fix \\\| pipe"` | Yes — verified 6 unescaped delimiters |
+
+**Three fix patches (from prior review):**
+
+1. `escapeCell` (lines 8-10): Correctly applies `text.replace(/\|/g, "\\|")` to the title before table interpolation. Only applied in the table context (line 63), not in What Shipped (line 51, bullet list — no escaping needed) or Blocked/Failed (line 90, plain text). This is correct: escape at the output format boundary, not at data ingestion.
+
+2. `.`/`..` guard (line 163): The condition `featureName === "." || featureName === ".."` is appended to the existing `basename()` check with `||`. This closes the gap where `basename(".")` returns `"."` (matching `featureName`, so the prior check passed). Confirmed both cases exit with code 1 via execution.
+
+3. NaN duration guard (line 26): `Number.isFinite(mins)` correctly catches `NaN` (from invalid date strings) and `Infinity`. Falls back to the pre-initialized `"N/A"` value. Placed before the `mins < 60` branch so it's checked first.
+
+### 2. Code Quality — PASS
+
+- `escapeCell` is a 1-line helper at module scope — minimal and appropriately scoped. Not exported (private to the module). Only called from the table row builder.
+- The `.`/`..` guard is co-located with the existing `basename()` guard on the same line (163), maintaining the fail-fast guard-clause chain.
+- `Number.isFinite` guard reads naturally as the first branch in the duration conditional.
+- Section comment numbering (1-6) is consistent throughout.
+- No dead code, no leftover debug statements, no unnecessary changes.
+
+### 3. Test Quality — PASS
+
+The 5 new tests are well-targeted:
+
+- **Pipe escaping** (test:247-265): Creates a title with embedded `|` chars, finds the table row, asserts `\\|` is present, and counts unescaped pipes with a negative lookbehind regex `(?<!\\)\|`. The pipe count assertion (exactly 6) catches both over-escaping and under-escaping. This is structurally robust.
+- **NaN duration** (test:267-275): Sets `createdAt: "not-a-date"`, asserts no `"NaN"` substring and `"Duration: N/A"` present. Covers the exact bug from run_1.
+- **What Shipped fallback** (test:277-286): Creates a passed task without `title`, asserts `"- task-1"` appears. This was a previously untested code path (line 51) flagged in run_1.
+- **`.` and `..` guards** (test:457-469): Each test asserts exit code 1 and `"invalid feature name"` in stderr. Direct coverage of the guard clause.
+
+### 4. Error Handling — PASS
+
+- `escapeCell` receives a string (guaranteed by `task.title || "—"` fallback). No throw path.
+- `.`/`..` guard exits cleanly with a descriptive error message to stderr.
+- `Number.isFinite` guard silently falls back to `"N/A"` — appropriate for a display-only value.
+- No new I/O or async paths introduced.
+
+### 5. Performance — PASS
+
+- `escapeCell` runs one regex replace per task row — O(n) where n = tasks. Negligible.
+- The `.`/`..` check is two string comparisons in a guard clause — O(1).
+- `Number.isFinite` is a single builtin check — O(1).
+- No new iterations, allocations, or I/O.
+
+---
+
+## Prior Findings — Resolution Status
+
+| Prior Finding (run_1) | Severity | Status | Evidence |
+|------------------------|----------|--------|----------|
+| Pipe in title breaks table | 🟡 | **Fixed** | `escapeCell` at report.mjs:8-10+63, test at line 247 |
+| What Shipped fallback to `task.id` untested | 🔵 | **Fixed** | Test at line 277 |
+| Missing `test-output.txt` artifact | 🔵 | **Not addressed** | `task-3/artifacts/` dir still absent. Non-blocking. |
+
+---
+
+## Findings
+
+🔵 bin/lib/report.mjs:9 — `escapeCell` escapes `|` but not newline characters (`\n`, `\r`). A title with a newline would break the table row. Risk is minimal since STATE.json is machine-generated by the harness. Consider `text.replace(/[|\n\r]/g, m => m === '|' ? '\\|' : ' ')` if titles ever accept freeform input.
+
+🔵 bin/lib/report.mjs:63 — If `task.title` were a non-string truthy value (e.g., number `5`), `escapeCell(5)` would call `.replace()` on a non-string and throw. Not realistic from harness-generated STATE.json since `0 || "—"` catches falsy numbers and truthy numbers as titles are not a plausible scenario, but `String(task.title || "—")` would be marginally more defensive.
+
+---
+
+## Edge Cases Verified
+
+| Edge Case | Tested? | Behavior | Method |
+|-----------|---------|----------|--------|
+| Title present | Yes (test:53-61) | Renders in table cell | Test assertion |
+| Title undefined | Yes (test:63-71) | Shows `—` | Test assertion |
+| Title null | No explicit test | `null \|\| "—"` → correct via JS semantics | Code trace |
+| Title empty string | No explicit test | `"" \|\| "—"` → correct (falsy) | Code trace |
+| Title with `\|` char | Yes (test:247-265) | Escaped to `\\\|`, 6 delimiter pipes | Test assertion + execution |
+| What Shipped with title | Yes (test:74-79) | Bullet uses title | Test assertion |
+| What Shipped without title | Yes (test:277-286) | Falls back to `task.id` | Test assertion |
+| `.` as feature name | Yes (test:457-462) | Rejected, exit 1 | Test assertion + execution |
+| `..` as feature name | Yes (test:464-469) | Rejected, exit 1 | Test assertion + execution |
+| `../../etc` path traversal | Yes (test:450-455) | Rejected, exit 1 | Test assertion |
+| Invalid `createdAt` → NaN | Yes (test:267-275) | `Duration: N/A` | Test assertion + execution |
+| No tasks array | Implicit | `state.tasks \|\| []` at line 16 | Code trace |
+
+---
+
+## Summary
+
+**Verdict: PASS**
+
+All three prior-round findings have been fixed with correct, minimal patches:
+
+1. Pipe escaping via `escapeCell` — prevents markdown table breakage from titles containing `|`. Applied at the output boundary only, not over-applied to system-generated fields.
+2. `.`/`..` rejection — closes the `basename()` bypass in the path traversal guard.
+3. `Number.isFinite` guard — prevents `NaN` rendering from invalid ISO date strings.
+
+Each fix has a corresponding targeted test. Test count grew from 33 to 38, all passing. The Title column implementation (the primary task) is correct across all falsy-value edge cases, verified both by code trace and execution. Code quality is high: minimal changes, consistent patterns, no dead code.
+
+Two blue suggestions (newline escaping, non-string title defense) are forward-looking hardening — neither represents a current defect. No critical or warning issues. Merge is unblocked.
+
+---
+
+# Security Review — task-3 / run_2 (post-fix, final)
+
+**Reviewer role:** Security Specialist
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Reviewed commit:** a6ea790 (HEAD of feature/execution-report)
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (full, 193 lines) — production code at HEAD
+- `test/report.test.mjs` (full, 470 lines) — test suite at HEAD
+- `bin/agt.mjs:19,75,188-194,248` — CLI wiring (import, dispatch, help text)
+- `bin/lib/util.mjs:190-198` — `readState` function (data source)
+- `.team/features/execution-report/tasks/task-3/handshake.json` — builder claims
+- `.team/features/execution-report/tasks/task-3/eval.md` — prior round-1 security review + round-2 architect/engineer reviews
+- `.team/features/execution-report/tasks/task-7/handshake.json` — task-7 builder claims
+- `.team/features/execution-report/tasks/task-7/eval.md` — task-7 reviews
+- `git diff main...HEAD -- bin/lib/report.mjs` — full branch diff
+
+---
+
+## Tests Independently Run
+
+```
+$ node --test test/report.test.mjs
+tests 38  |  suites 2  |  pass 38  |  fail 0  |  duration_ms 120
+```
+
+---
+
+## Prior Security Findings — Resolution Verification
+
+| Round-1 Finding | Severity | Status | Verification Method |
+|-----------------|----------|--------|---------------------|
+| `.`/`..` bypasses path traversal guard | 🟡 | **FIXED** | report.mjs:163 adds explicit `featureName === "." \|\| featureName === ".."`. Tests at report.test.mjs:457 and :463 both pass with exit 1. |
+| Pipe chars in `task.title` break markdown table | 🔵 | **FIXED** | `escapeCell()` at report.mjs:8-10, applied at line 63. Test at report.test.mjs:247-265 verifies escaped output and correct 6-delimiter column count. |
+| NaN duration from invalid `createdAt` | 🟡 | **FIXED** | report.mjs:26 adds `Number.isFinite(mins)` guard. Test at report.test.mjs:267-275 confirms `Duration: N/A` for `"not-a-date"` input. |
+| `writeFileSync` without try/catch | 🔵 | **Not addressed** | Acceptable — stack trace exposes only deterministic file paths, no secrets. CLI-only context. |
+
+All 🟡 findings resolved. No blocking issues remain.
+
+---
+
+## Per-Criterion Security Assessment
+
+### 1. Input Validation — Path Traversal — PASS
+
+Three layers of defense at report.mjs:163:
+- `featureName !== basename(featureName)` — rejects multi-component paths (`../../etc`, `foo/bar`)
+- `featureName === "."` — rejects current-directory alias
+- `featureName === ".."` — rejects parent-directory escape
+
+After validation, the feature directory is constructed as `join(cwd, ".team", "features", featureName)` (line 169). An attacker cannot escape the `.team/features/` subtree.
+
+Edge cases verified:
+
+| Input | Result | Evidence |
+|-------|--------|----------|
+| `../../etc` | Blocked | Test report.test.mjs:450 — exit 1 |
+| `..` | Blocked | Test report.test.mjs:463 — exit 1 |
+| `.` | Blocked | Test report.test.mjs:457 — exit 1 |
+| `my-feature` | Allowed | Test report.test.mjs:353 — produces report |
+| `.hidden` | Allowed | `basename(".hidden") === ".hidden"`, not `.`/`..` — valid |
+
+### 2. Input Validation — `--output` Flag — PASS
+
+- Unsupported format: report.mjs:157-161 rejects anything other than `"md"`. Test at report.test.mjs:432.
+- Missing value: `args[outputIdx + 1]` returns `undefined` when `--output` is the last arg. `undefined !== "md"` → rejected. Test at report.test.mjs:441.
+- No command injection: `outputVal` is only compared via strict equality, never passed to `exec`, `spawn`, or file path construction.
+
+### 3. Output Injection — Markdown Table — PASS
+
+`escapeCell` at report.mjs:8-10 replaces `|` with `\|` in `task.title` before table interpolation. Applied at line 63 — the only free-text field in the table. System-generated fields (`task.id`, `task.status`, `lastVerdict`) are not escaped because they cannot contain `|` by construction.
+
+Escape is applied at the render boundary, which is the correct pattern.
+
+### 4. Data Source Trust — PASS
+
+Sole data source: `STATE.json` read via `readState` (util.mjs:190-198). This is a local, harness-internal file (`_written_by: "at-harness"`). Malformed JSON returns `null` via try/catch → clean exit at report.mjs:178-181. No network I/O, no external APIs, no database queries.
+
+### 5. Error Message Information Disclosure — PASS
+
+Error messages echo user-typed CLI input (feature name, output format) and resolved paths. In a CLI context, this is standard practice — the user already knows their input and cwd. No credentials, tokens, or internal state exposed. The `outputVal` reflection at line 158 goes to stderr, not HTML — no XSS vector.
+
+### 6. Secrets Management — PASS (N/A)
+
+No credentials, tokens, API keys, or secrets handled. `tokenUsage.total.costUsd` is a numeric cost estimate, not a billing credential.
+
+### 7. File Write Safety — PASS
+
+`writeFileSync` at line 188 writes to `join(featureDir, "REPORT.md")`. `featureDir` is validated by path traversal guard (line 163) and existence check (line 171). Write target is always within `.team/features/<name>/REPORT.md`. No symlink concerns for this local dev tooling context.
+
+### 8. Denial of Service — PASS
+
+`buildReport` iterates `tasks` and `gates` linearly — O(n) with small constants for expected scale. `escapeCell` regex `/\|/g` is a literal character match with no backtracking. No unbounded recursion or infinite loops.
+
+---
+
+## Findings
+
+No findings.
+
+All prior 🟡 security findings from round 1 have been properly resolved. The path traversal guard is complete (covering `../../`, `.`, and `..`). Pipe character injection into markdown tables is prevented by `escapeCell`. NaN duration from invalid dates falls back to `"N/A"`. No new attack surfaces were introduced by the Title column change — it reads `task.title` from trusted, harness-generated STATE.json and renders it with appropriate escaping.
+
+---
+
+## Overall Verdict: PASS
+
+The implementation is secure for its threat model: a local CLI tool that reads harness-internal state files and outputs markdown to stdout or local files. Input validation is complete across all CLI arguments. Output escaping is applied at the correct boundary. No secrets are handled. All 38 tests pass independently. No critical or warning-level security issues remain.
