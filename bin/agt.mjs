@@ -405,7 +405,7 @@ switch (command) {
             }
           } catch {}
         }
-      }; activity check caused false pauses during brainstorm
+      } // activity check removed — caused false pauses during brainstorm
       try {
         return fs.readdirSync(featDir, { withFileTypes: true })
           .filter(d => d.isDirectory())
