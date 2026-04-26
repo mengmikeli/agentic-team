@@ -1,0 +1,14 @@
+{
+  "taskId": "task-10",
+  "nodeType": "build",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": null,
+  "summary": "Verified that `agt report` already exits 1 with a usage message when no feature name is given. The guard is at bin/lib/report.mjs:151-155, and the test at test/report.test.mjs:453-458 covers this case. All 178 tests pass with 0 failures.",
+  "timestamp": "2026-04-26T12:00:00.000Z",
+  "artifacts": [
+    { "type": "code", "path": "bin/lib/report.mjs" },
+    { "type": "code", "path": "test/report.test.mjs" }
+  ],
+  "findings": { "critical": 0, "warning": 0, "suggestion": 0 }
+}
