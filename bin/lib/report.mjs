@@ -9,6 +9,12 @@ function escapeCell(text) {
   return text.replace(/[\r\n]+/g, " ").replace(/\|/g, "\\|");
 }
 
+// Strip ANSI escape sequences from user-supplied strings before writing to stderr
+function stripAnsi(str) {
+  // eslint-disable-next-line no-control-regex
+  return str.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
+}
+
 export function buildReport(state) {
   const lines = [];
   const feature = state.feature || "unknown";
@@ -22,7 +28,7 @@ export function buildReport(state) {
     const startMs = new Date(state.createdAt).getTime();
     const endIso = state.completedAt || state._last_modified;
     const endMs = endIso ? new Date(endIso).getTime() : Date.now();
-    const mins = Math.round((endMs - startMs) / 60000);
+    const mins = Math.max(0, Math.round((endMs - startMs) / 60000));
     if (!Number.isFinite(mins)) {
       duration = "N/A";
     } else if (mins < 60) {
@@ -69,12 +75,15 @@ export function buildReport(state) {
   const passGates = gates.filter(g => g.verdict === "PASS").length;
   const failGates = gates.filter(g => g.verdict === "FAIL").length;
   const totalCostUsd = state.tokenUsage?.total?.costUsd;
-  const totalCost = totalCostUsd != null
+  const totalCost = (typeof totalCostUsd === "number" && Number.isFinite(totalCostUsd))
     ? `$${totalCostUsd.toFixed(4)}`
     : `N/A (see \`agt metrics\`)`;
   const byPhase = state.tokenUsage?.byPhase;
   const perPhase = byPhase
-    ? Object.entries(byPhase).map(([k, v]) => `${k}: ${v.costUsd != null ? `$${v.costUsd.toFixed(4)}` : "N/A"}`).join(", ")
+    ? Object.entries(byPhase).map(([k, v]) => {
+        const c = v.costUsd;
+        return `${k}: ${(typeof c === "number" && Number.isFinite(c)) ? `$${c.toFixed(4)}` : "N/A"}`;
+      }).join(", ")
     : `N/A (see \`agt metrics\`)`;
   lines.push(`  Total cost (USD):         ${totalCost}`);
   lines.push(`  Dispatches (transitions): ${state.transitionCount ?? 0}`);
@@ -155,13 +164,13 @@ export function cmdReport(args = [], deps = {}) {
   }
 
   if (outputIdx !== -1 && outputVal !== "md") {
-    _stderr.write(`report: unsupported output format: ${outputVal ?? "(none)"}\n`);
+    _stderr.write(`report: unsupported output format: ${stripAnsi(outputVal ?? "(none)")}\n`);
     _exit(1);
     return;
   }
 
   if (featureName !== basename(featureName) || featureName === "." || featureName === "..") {
-    _stderr.write(`report: invalid feature name: ${featureName}\n`);
+    _stderr.write(`report: invalid feature name: ${stripAnsi(featureName)}\n`);
     _exit(1);
     return;
   }
@@ -185,7 +194,13 @@ export function cmdReport(args = [], deps = {}) {
 
   if (outputMd) {
     const outPath = join(featureDir, "REPORT.md");
-    _writeFileSync(outPath, report + "\n");
+    try {
+      _writeFileSync(outPath, report + "\n");
+    } catch (err) {
+      _stderr.write(`report: failed to write ${outPath}: ${err.message}\n`);
+      _exit(1);
+      return;
+    }
     _stdout.write(`report: written to ${outPath}\n`);
   } else {
     _stdout.write(report + "\n");

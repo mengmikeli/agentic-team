@@ -428,6 +428,108 @@ describe("buildReport", () => {
     const count = (recLine.match(/fabricated-refs/g) || []).length;
     assert.equal(count, 1, "fabricated-refs should be deduplicated to one occurrence");
   });
+
+  it("clamps negative duration to 0m when endMs < startMs (clock skew)", () => {
+    const state = makeState({
+      createdAt: "2026-01-01T12:00:00.000Z",
+      completedAt: "2026-01-01T10:00:00.000Z", // 2 hours before start
+    });
+    const report = buildReport(state);
+    const durationMatch = report.match(/Duration:\s+(-?\d+)/);
+    assert.ok(durationMatch, "Should have Duration in header");
+    const durationNum = parseInt(durationMatch[1], 10);
+    assert.ok(durationNum >= 0, `Duration should not be negative, got ${durationNum}`);
+    assert.ok(report.includes("Duration: 0m"), "Should clamp negative duration to 0m");
+  });
+
+  it("explicitly asserts duration formatting: Xm, Xh, Xh Ym", () => {
+    // 30 minutes
+    const state30m = makeState({
+      createdAt: "2026-01-01T10:00:00.000Z",
+      completedAt: "2026-01-01T10:30:00.000Z",
+    });
+    assert.ok(buildReport(state30m).includes("Duration: 30m"), "30 min should render as 30m");
+
+    // Exactly 2 hours
+    const state2h = makeState({
+      createdAt: "2026-01-01T10:00:00.000Z",
+      completedAt: "2026-01-01T12:00:00.000Z",
+    });
+    assert.ok(buildReport(state2h).includes("Duration: 2h"), "120 min should render as 2h");
+
+    // 1 hour 30 minutes
+    const state1h30 = makeState({
+      createdAt: "2026-01-01T10:00:00.000Z",
+      completedAt: "2026-01-01T11:30:00.000Z",
+    });
+    assert.ok(buildReport(state1h30).includes("Duration: 1h 30m"), "90 min should render as 1h 30m");
+  });
+
+  it("last gate verdict wins when multiple gates exist for same task", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", title: "Multi-gate task", status: "passed", attempts: 2 },
+      ],
+      gates: [
+        { taskId: "task-1", verdict: "FAIL", command: "npm test", exitCode: 1 },
+        { taskId: "task-1", verdict: "PASS", command: "npm test", exitCode: 0 },
+      ],
+    });
+    const report = buildReport(state);
+    const tableRow = report.split("\n").find(l => l.includes("task-1") && l.includes("passed"));
+    assert.ok(tableRow, "Should have a table row for task-1");
+    // The last gate verdict (PASS) should win
+    assert.ok(tableRow.endsWith("PASS |"), `Last verdict should be PASS in row: ${tableRow}`);
+  });
+
+  it("strips \\r\\n sequences in escapeCell", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", title: "Line one\r\nLine two", status: "passed", attempts: 1 },
+      ],
+      gates: [{ taskId: "task-1", verdict: "PASS", command: "npm test", exitCode: 0 }],
+    });
+    const report = buildReport(state);
+    const tableRow = report.split("\n").find(l => l.includes("task-1") && l.includes("passed"));
+    assert.ok(tableRow.includes("Line one Line two"), "\\r\\n should be replaced with space");
+    assert.ok(!tableRow.includes("\r"), "Should not contain \\r");
+  });
+
+  it("handles empty tasks array without error", () => {
+    const state = makeState({ tasks: [] });
+    const report = buildReport(state);
+    assert.ok(report.includes("## Task Summary"), "Should still have Task Summary section");
+    assert.ok(report.includes("Tasks: 0"), "Should show 0 tasks in header");
+    assert.ok(!report.includes("## What Shipped"), "Should not have What Shipped for empty tasks");
+  });
+
+  it("renders $0.0000 when costUsd is 0", () => {
+    const state = makeState({
+      tokenUsage: { total: { costUsd: 0 } },
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("$0.0000"), "Should render $0.0000 for zero cost");
+  });
+
+  it("uses _last_modified as end time when completedAt is absent", () => {
+    const state = makeState({
+      completedAt: undefined,
+      _last_modified: "2026-01-01T10:45:00.000Z",
+      createdAt: "2026-01-01T10:00:00.000Z",
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("Duration: 45m"), "Should use _last_modified to compute 45m duration");
+  });
+
+  it("shows (no title) fallback in Blocked/Failed section", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", status: "blocked", attempts: 1 },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("(no title)"), "Blocked section should show (no title) for missing title");
+  });
 });
 
 describe("cmdReport", () => {
@@ -583,7 +685,7 @@ describe("cmdReport", () => {
     assert.ok(!output.join("").includes("## Task Summary"), "Should not print report to stdout");
   });
 
-  // ── 10. --output with unsupported format ────────────────────
+  // ── 11. --output with unsupported format ────────────────────
 
   it("exits 1 when --output value is not md", () => {
     const deps = makeDeps(true, makeState());
@@ -592,7 +694,7 @@ describe("cmdReport", () => {
     assert.ok(deps._stderrOutput.join("").includes("unsupported output format"), `Expected unsupported format error: ${deps._stderrOutput.join("")}`);
   });
 
-  // ── 11. --output without value ──────────────────────────────
+  // ── 12. --output without value ──────────────────────────────
 
   it("exits 1 when --output has no value", () => {
     const deps = makeDeps(true, makeState());
@@ -601,7 +703,7 @@ describe("cmdReport", () => {
     assert.ok(deps._stderrOutput.join("").includes("unsupported output format"), `Expected unsupported format error: ${deps._stderrOutput.join("")}`);
   });
 
-  // ── 12. Path traversal rejected ─────────────────────────────
+  // ── 13. Path traversal rejected ─────────────────────────────
 
   it("exits 1 when feature name contains path traversal", () => {
     const deps = makeDeps(true, makeState());
@@ -624,7 +726,7 @@ describe("cmdReport", () => {
     assert.ok(deps._stderrOutput.join("").includes("invalid feature name"), `Expected invalid feature name for '..': ${deps._stderrOutput.join("")}`);
   });
 
-  // ── 13. E2E: agt report <feature> against real feature dir ──
+  // ── 14. E2E: agt report <feature> against real feature dir ──
 
   it("agt report <feature>: prints report to stdout from a real STATE.json", () => {
     const featureDir = join(tmpDir, ".team", "features", "e2e-feature");
@@ -649,7 +751,7 @@ describe("cmdReport", () => {
     assert.ok(result.stdout.includes("Do something"), "Should include task title");
   });
 
-  // ── 14. E2E: agt report <feature> --output md writes REPORT.md ──
+  // ── 15. E2E: agt report <feature> --output md writes REPORT.md ──
 
   it("agt report <feature> --output md: writes REPORT.md to feature dir", () => {
     const featureDir = join(tmpDir, ".team", "features", "e2e-md-feature");
@@ -672,5 +774,26 @@ describe("cmdReport", () => {
     assert.ok(reportContent.includes("# Execution Report: e2e-md-feature"), "REPORT.md should have report header");
     assert.ok(reportContent.includes("## Task Summary"), "REPORT.md should have Task Summary");
     assert.ok(reportContent.includes("task-1"), "REPORT.md should include task-1");
+  });
+
+  // ── 16. Slash in feature name rejected ────────────────────
+
+  it("exits 1 when feature name contains a slash (path traversal variant)", () => {
+    const deps = makeDeps(true, makeState());
+    try { cmdReport(["foo/bar"], deps); } catch {}
+    assert.equal(exitCode, 1);
+    assert.ok(deps._stderrOutput.join("").includes("invalid feature name"), `Expected invalid feature name for 'foo/bar': ${deps._stderrOutput.join("")}`);
+  });
+
+  // ── 17. writeFileSync failure handled ─────────────────────
+
+  it("exits 1 and prints error when writeFileSync throws", () => {
+    const state = makeState();
+    const deps = makeDeps(true, state);
+    deps.writeFileSync = () => { throw new Error("EACCES: permission denied"); };
+    try { cmdReport(["test-feature", "--output", "md"], deps); } catch {}
+    assert.equal(exitCode, 1);
+    assert.ok(deps._stderrOutput.join("").includes("failed to write"), `Expected write failure message: ${deps._stderrOutput.join("")}`);
+    assert.ok(deps._stderrOutput.join("").includes("EACCES"), "Should include original error message");
   });
 });
