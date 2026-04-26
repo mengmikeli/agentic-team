@@ -1,30 +1,18 @@
-# Product Manager Review — execution-report / Title Column
+# Tester Review — task-11: `agt report no-such-feature` exits 1 with "not found"
 
-**Reviewer role:** Product Manager
+**Reviewer role:** Tester
 **Verdict: PASS**
 **Date:** 2026-04-26
 
 ---
 
-## Acceptance Criterion Under Review
+## Handshake Claims vs Evidence
 
-> Task Summary table includes a Title column populated from `task.title` (or `—` when absent).
-
-(SPEC.md line 28, AC #3)
-
----
-
-## Files Actually Read
-
-- `bin/lib/report.mjs` (194 lines, full) — production implementation
-- `test/report.test.mjs` (471 lines, full) — test suite
-- `.team/features/execution-report/SPEC.md` (90 lines, full) — feature spec
-- `.team/features/execution-report/tasks/task-*/handshake.json` — all 7 handshakes
-- `.team/features/execution-report/tasks/task-1/handshake-round-1.json` — review round 1 findings
-- `.team/features/execution-report/tasks/task-1/handshake-round-2.json` — review round 2 findings
-- `.team/features/execution-report/tasks/task-3/artifacts/test-output.txt` — gate output (full suite)
-- `git diff main...HEAD -- bin/lib/report.mjs` — full branch diff
-- `git diff main...HEAD -- test/report.test.mjs` — full branch diff
+| Claim | Evidence | Result |
+|-------|----------|--------|
+| Added integration test verifying `agt report no-such-feature` exits 1 with 'not found' | Test at `test/report.test.mjs:534-542` uses `spawnSync` to invoke the real CLI | PASS |
+| Behavior already implemented in cmdReport (lines 171-175) | `report.mjs:171-175` checks `_existsSync(featureDir)` and writes "not found" to stderr | PASS |
+| Artifact: `test/report.test.mjs` | File exists, test present in `cmdReport` describe block | PASS |
 
 ---
 
@@ -32,82 +20,90 @@
 
 ```
 $ node --test test/report.test.mjs
-tests 38  |  pass 38  |  fail 0  |  duration_ms 127
+tests 48  |  pass 48  |  fail 0  |  duration_ms 174
+
+$ node --test --test-name-pattern="no-such-feature" test/report.test.mjs
+tests 1  |  pass 1  |  fail 0  |  duration_ms 113
 ```
 
-Gate artifact confirms full suite: 558 tests, 556 pass, 0 fail, 2 skipped.
+Manual CLI verification:
+```
+$ node bin/agt.mjs report no-such-feature
+(exit code: 1)
+stderr: "report: feature directory not found: .../.team/features/no-such-feature"
+stdout: (empty)
+```
 
 ---
 
-## Requirements Traceability
+## Files Actually Read
 
-### Primary AC: Title Column in Task Summary
-
-| Requirement | Code Location | Verified | Evidence |
-|---|---|---|---|
-| Table header has "Title" column | `report.mjs:58` | Yes | `\| Task \| Title \| Status \| Attempts \| Gate Verdict \|` — 5 columns |
-| Title populated from `task.title` | `report.mjs:63` | Yes | `${escapeCell(task.title \|\| "—")}` interpolated in row |
-| Falls back to `—` when title absent | `report.mjs:63` | Yes | `task.title \|\| "—"` — JS `\|\|` treats `undefined`, `null`, `""` as falsy |
-| Column ordering matches spec | `report.mjs:58` | Yes | Task, Title, Status, Attempts, Gate Verdict — matches SPEC.md:11 |
-| Test: title present | `report.test.mjs:53-61` | Yes | Asserts 5-column header string and title "Do something" appears |
-| Test: title absent | `report.test.mjs:63-71` | Yes | Asserts `\| task-1 \| — \|` substring in output |
-
-**Verdict: PASS** — the acceptance criterion is fully met.
-
-### Related ACs Also Verified
-
-| AC (SPEC.md) | Status | Evidence |
-|---|---|---|
-| What Shipped lists passed-task titles (line 29) | PASS | `report.mjs:47-54`, test:74-80, test:82-90, test:277-286 |
-| What Shipped absent when no tasks passed (line 29) | PASS | `report.mjs:48` guard, test:82-90 |
-| Gate Verdict shows last verdict or `—` (line 11) | PASS | `report.mjs:62`, test:92-98 |
-| All existing tests pass (line 37) | PASS | 38/38 report tests, 556/558 full suite (2 skipped) |
+- `bin/lib/report.mjs` (full, 194 lines) — production implementation
+- `test/report.test.mjs` (full, 609 lines) — test suite
+- `bin/agt.mjs` (lines 180-210, plus grep for "report") — CLI wiring
+- `.team/features/execution-report/tasks/task-11/handshake.json` — builder's claims
+- Git diff for commit `e2539c8` — the actual code change
 
 ---
 
-## Scope Assessment
+## Test Coverage Analysis
 
-The implementation is within scope. The Title column change itself is 3 lines of production code:
+### "Not found" error path coverage
 
-1. `report.mjs:58` — header gains `| Title |`
-2. `report.mjs:59` — separator gains `|-------|`
-3. `report.mjs:63` — row gains `${escapeCell(task.title || "—")}`
+| Test | Level | Lines Exercised |
+|------|-------|-----------------|
+| `exits 1 when feature directory does not exist` (line 462) | Unit (mocked deps) | report.mjs:171-174 |
+| `agt report no-such-feature: exits 1 with 'not found' in output` (line 534) | Integration (spawnSync) | Full CLI: bin/agt.mjs:75 → cmdReport → existsSync → stderr + exit(1) |
 
-Additional changes on the branch (pipe escaping, path traversal guard, NaN duration guard, stderr for errors, `--output` format validation, additional status labels) were driven by review findings during the sprint, not scope creep. Each addresses a real defect or gap identified by prior reviewers. No speculative features were added.
+Both unit and integration levels are covered for this error path.
+
+### Adjacent error paths also covered
+
+| Error Path | Test Location | Lines |
+|------------|---------------|-------|
+| No feature name → exit 1 + "Usage:" | test:453-458 | report.mjs:151-154 |
+| STATE.json missing → exit 1 | test:471-476 | report.mjs:178-181 |
+| Path traversal → exit 1 + "invalid feature name" | test:589-607 | report.mjs:163-167 |
+| Unsupported `--output` format → exit 1 | test:571-585 | report.mjs:157-161 |
+| `--output` without value → exit 1 | test:580-585 | report.mjs:157-161 |
+
+### Edge cases checked during review
+
+| Edge Case | Outcome |
+|-----------|---------|
+| Empty string feature name (`""`) | Manually tested: falls through to "Usage:" guard (line 151) since empty string is falsy — correct |
+| Feature name with spaces | Not tested, but `basename()` handles it correctly and `existsSync` returns false for nonexistent dirs — low risk |
+| Feature dir exists but STATE.json absent | Covered by unit test at line 471 |
+| Feature name is `"."` or `".."` | Covered by path traversal tests at lines 596-607 |
+| Feature name containing `/` | Caught by `basename()` check at line 163 |
 
 ---
 
-## User Value Assessment
+## Code Path Trace
 
-**Does this change meaningfully improve the user's experience?**
+The "not found" path through `cmdReport` is:
 
-Yes. Before this change, the Task Summary table showed only task IDs (e.g., `task-1`, `task-2`), forcing users to cross-reference STATE.json to understand what each task was about. The Title column surfaces human-readable descriptions directly in the report, making it scannable without context switching. The `—` fallback ensures the table renders cleanly even for older STATE.json files that predate the `title` field.
+1. `cmdReport(["no-such-feature"])` called from `bin/agt.mjs:75`
+2. `featureName` extracted as `"no-such-feature"` (line 139)
+3. Guards pass: featureName is truthy (line 151), no `--output` (line 157), basename matches (line 163)
+4. `featureDir` constructed as `<cwd>/.team/features/no-such-feature` (line 169)
+5. `_existsSync(featureDir)` returns `false` (line 171)
+6. stderr: `"report: feature directory not found: <featureDir>"` (line 172)
+7. `_exit(1)` (line 173)
+8. `return` (line 174) — prevents fallthrough
 
----
-
-## Edge Cases Verified
-
-| Input | Expression | Output | Correct? |
-|---|---|---|---|
-| `task.title = "Do X"` | `"Do X" \|\| "—"` | `"Do X"` | Yes |
-| `task.title = undefined` | `undefined \|\| "—"` | `"—"` | Yes |
-| `task.title = null` | `null \|\| "—"` | `"—"` | Yes |
-| `task.title = ""` | `"" \|\| "—"` | `"—"` | Yes (empty title treated as absent) |
-| `task.title = "foo \| bar"` | `escapeCell(...)` | `foo \\| bar` | Yes (pipe escaped, table intact) |
-| No tasks array | `state.tasks \|\| []` | Empty table body | Yes |
+This path is deterministic and has no side effects beyond stderr output and exit code.
 
 ---
 
 ## Findings
 
-No findings.
-
-The implementation precisely matches the acceptance criterion. The Title column is present in the correct position, populated from `task.title`, falls back to `—` when absent, and is covered by targeted tests that assert both cases. The `escapeCell` hardening for pipe characters prevents a real table-breaking edge case without over-engineering.
+🔵 test/report.test.mjs:540 — The integration test checks `combined` (stdout + stderr) for "not found", but the message is written only to stderr. Asserting `result.stderr.includes("not found")` directly would be more precise and would catch regressions where the message accidentally moves to stdout. Not a correctness issue.
 
 ---
 
 ## Summary
 
-The acceptance criterion "Task Summary table includes a Title column populated from `task.title` (or `—` when absent)" is fully met. The implementation is minimal (3 lines of production code), correctly positioned in the table, uses an appropriate fallback, and has direct test coverage for both the present and absent title cases. The broader feature branch is well-scoped with no scope creep — all additional changes trace to prior reviewer findings. User value is clear: task titles in the report eliminate the need to cross-reference STATE.json.
+The task is narrow and well-executed. One `spawnSync`-based integration test was added (commit `e2539c8`) for a behavior that was already implemented in `cmdReport` at `report.mjs:171-175`. The implementation logic is correct and straightforward — checks `existsSync`, writes a clear error message to stderr, exits 1. The test exercises the full CLI path end-to-end. The unit-level test at line 462 provides additional coverage with mocked deps. All 48 report tests pass with no regressions.
 
 **Overall verdict: PASS**
