@@ -3,7 +3,7 @@
 CLI + harness + dashboard for autonomous AI agent teams. The human defines direction, agents execute, a harness enforces quality, and a dashboard shows everything.
 
 ```
-npm install -g @mengmikeli/agentic-team
+npx @mengmikeli/agentic-team
 ```
 
 ## Prerequisites
@@ -74,7 +74,7 @@ Kanban-style task board. Shows tasks grouped by status: pending → in-progress 
 Token usage from [pew](https://github.com/mengmikeli/pew) data, git log stats, feature metrics. Includes a contribution-graph style heatmap.
 
 ### `agt run [description]`
-Autonomous execution loop *(phase 2 — currently prints the execution plan)*.
+Autonomous execution loop *(autonomous feature execution (brainstorm, build, review, ship))*.
 
 ### `agt stop [feature]`
 Pause active features. Run `agt run` to resume.
@@ -142,7 +142,7 @@ agentic-team/
 │   └── lib/
 │       ├── util.mjs         ← nonce, file lock, atomic write, ANSI
 │       ├── init.mjs         ← agt init (interactive)
-│       ├── run.mjs          ← agt run (phase 2 stub)
+│       ├── run.mjs          ← agt run (autonomous execution)
 │       ├── status.mjs       ← agt status (terminal dashboard)
 │       ├── board.mjs        ← agt board (task board)
 │       ├── metrics.mjs      ← agt metrics (pew + git)

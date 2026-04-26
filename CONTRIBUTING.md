@@ -12,8 +12,8 @@ npm install
 
 ## Project Structure
 
-- `bin/at.mjs` — CLI entry point (`agt`)
-- `bin/at-harness.mjs` — harness entry point (`agt-harness`)
+- `bin/agt.mjs` — CLI entry point (`agt`)
+- `bin/agt-harness.mjs` — harness entry point (`agt-harness`)
 - `bin/lib/` — command implementations
 - `dashboard/` — static web dashboard (no build step)
 - `skills/` — agent playbook (AgentSkills format)

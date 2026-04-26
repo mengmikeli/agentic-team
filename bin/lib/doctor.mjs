@@ -448,6 +448,7 @@ export function checkZeroTaskCompletions(cwd = process.cwd()) {
   if (!existsSync(featDir)) return { status: "pass", message: "No features to check" };
   
   const zeroTask = [];
+  const zeroPassed = [];
   for (const d of readdirSync(featDir, { withFileTypes: true })) {
     if (!d.isDirectory()) continue;
     const sp = join(featDir, d.name, "STATE.json");
@@ -457,11 +458,18 @@ export function checkZeroTaskCompletions(cwd = process.cwd()) {
       if (state.status === "completed" && (state.tasks || []).length === 0) {
         zeroTask.push(d.name);
       }
+      if (state.status === "completed" && (state.tasks || []).length > 0) {
+        const passed = (state.tasks || []).filter(t => t.status === "passed").length;
+        if (passed === 0) zeroPassed.push(d.name);
+      }
     } catch {}
   }
   
   if (zeroTask.length > 0) {
     return { status: "fail", message: `${zeroTask.length} feature(s) completed with 0 tasks: ${zeroTask.join(", ")}` };
+  }
+  if (zeroPassed.length > 0) {
+    return { status: "warn", message: `${zeroPassed.length} feature(s) completed with 0 passed tasks: ${zeroPassed.join(", ")}` };
   }
   return { status: "pass", message: "No zero-task completions" };
 }
