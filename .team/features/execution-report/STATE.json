@@ -1,12 +1,12 @@
 {
   "version": "2.0",
   "feature": "execution-report",
-  "status": "executing",
+  "status": "paused",
   "tasks": [
     {
       "id": "task-1",
       "title": "`agt report <feature>` prints all required sections to stdout for a completed feature.",
-      "status": "in-progress",
+      "status": "pending",
       "attempts": 0,
       "issueNumber": 474,
       "lastTransition": "2026-04-26T01:38:59.152Z",
@@ -170,5 +170,7 @@
   "_last_modified": "2026-04-26T01:56:25.897Z",
   "_write_nonce": "3212bbcebca81c3e",
   "_runStartedAt": "2026-04-26T01:35:57.964Z",
-  "roadmapLabel": "P5/#26"
+  "roadmapLabel": "P5/#26",
+  "_stale_reason": "no agt run process detected",
+  "_reconciled_at": "2026-04-26T02:02:36.608Z"
 }

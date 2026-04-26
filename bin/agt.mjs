@@ -392,7 +392,20 @@ switch (command) {
     function readFeatures(projectPath) {
       const featDir = join(projectPath, ".team", "features");
       if (!fs.existsSync(featDir)) return [];
-      const agtRunning = isAgtRunning(projectPath); // scoped to this project; activity check caused false pauses during brainstorm
+      const agtRunning = isAgtRunning(projectPath); // scoped to this project
+      
+      // Clear stale loop status if no agt process is running
+      if (!agtRunning) {
+        const loopStatusPath = join(projectPath, ".team", ".loop-status.json");
+        if (fs.existsSync(loopStatusPath)) {
+          try {
+            const ls = JSON.parse(fs.readFileSync(loopStatusPath, "utf8"));
+            if (ls.phase && ls.phase !== "idle" && ls.phase !== "checkpoint" && ls.phase !== "blocked") {
+              fs.writeFileSync(loopStatusPath, JSON.stringify({ phase: "idle", updatedAt: new Date().toISOString() }, null, 2) + "\n");
+            }
+          } catch {}
+        }
+      }; activity check caused false pauses during brainstorm
       try {
         return fs.readdirSync(featDir, { withFileTypes: true })
           .filter(d => d.isDirectory())
