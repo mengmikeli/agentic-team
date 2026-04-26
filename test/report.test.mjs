@@ -351,6 +351,66 @@ describe("buildReport", () => {
     assert.ok(report.includes("## Recommendations"), "Should have Recommendations section");
     assert.ok(report.includes("No gate passes recorded"), "Should recommend reviewing quality gate command");
   });
+
+  it("does NOT recommend gate review when no gates ran at all", () => {
+    const state = makeState({
+      tasks: [
+        { id: "task-1", title: "Pending task", status: "blocked", attempts: 1 },
+      ],
+      gates: [],
+    });
+    const report = buildReport(state);
+    assert.ok(!report.includes("No gate passes recorded"), "Should not fire zero-pass recommendation when no gates ran");
+  });
+
+  it("fires multiple recommendations simultaneously", () => {
+    const state = makeState({
+      status: "executing",
+      tasks: [
+        { id: "task-1", status: "blocked", attempts: 4, gateWarningHistory: [{ iteration: 1, layers: ["fabricated-refs"] }] },
+        { id: "task-2", status: "failed", attempts: 3 },
+      ],
+      gates: [
+        { taskId: "task-1", verdict: "FAIL", command: "npm test", exitCode: 1 },
+        { taskId: "task-2", verdict: "FAIL", command: "npm test", exitCode: 1 },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("## Recommendations"), "Should have Recommendations section");
+    // ≥3 attempts
+    assert.ok(report.includes("Consider simplifying task task-1 (4 attempts)"), "Should fire for task-1 high attempts");
+    assert.ok(report.includes("Consider simplifying task task-2 (3 attempts)"), "Should fire for task-2 high attempts");
+    // gate warnings
+    assert.ok(report.includes("gate warnings"), "Should fire gate warning recommendation");
+    assert.ok(report.includes("fabricated-refs"), "Should include warning layer");
+    // all-blocked/failed (stalled)
+    assert.ok(report.includes("stalled"), "Should fire stalled recommendation for all-blocked/failed");
+    // zero-pass gates
+    assert.ok(report.includes("No gate passes recorded"), "Should fire zero-pass recommendation");
+  });
+
+  it("deduplicates gate warning layers across multiple history entries", () => {
+    const state = makeState({
+      tasks: [
+        {
+          id: "task-1", title: "Warn task", status: "passed", attempts: 1,
+          gateWarningHistory: [
+            { iteration: 1, layers: ["fabricated-refs", "missing-tests"] },
+            { iteration: 2, layers: ["fabricated-refs", "stale-imports"] },
+          ],
+        },
+      ],
+    });
+    const report = buildReport(state);
+    assert.ok(report.includes("## Recommendations"), "Should have Recommendations section");
+    assert.ok(report.includes("fabricated-refs"), "Should include fabricated-refs");
+    assert.ok(report.includes("missing-tests"), "Should include missing-tests");
+    assert.ok(report.includes("stale-imports"), "Should include stale-imports");
+    // fabricated-refs should appear only once in the recommendation
+    const recLine = report.split("\n").find(l => l.includes("gate warnings"));
+    const count = (recLine.match(/fabricated-refs/g) || []).length;
+    assert.equal(count, 1, "fabricated-refs should be deduplicated to one occurrence");
+  });
 });
 
 describe("cmdReport", () => {
