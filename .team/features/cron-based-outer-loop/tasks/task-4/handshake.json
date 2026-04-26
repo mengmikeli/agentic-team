@@ -1,11 +1,11 @@
 {
   "taskId": "task-4",
   "nodeType": "build",
-  "runId": "run_1",
+  "runId": "run_2",
   "status": "completed",
   "verdict": null,
-  "summary": "The failure-revert behavior was already implemented in cron.mjs:118-126: when runSingleFeature throws, the board item is reverted to 'ready' via setProjectItemStatus and a failure comment is posted to the GitHub issue via commentIssue. The unit test at test/cron-tick.test.mjs:193-221 ('reverts to ready and comments on failed dispatch') directly verifies both behaviors. All 547 tests pass (545 pass, 2 skipped).",
-  "timestamp": "2026-04-26T09:00:00.000Z",
+  "summary": "Fixed two issues in the failure-path of cmdCronTick: (1) wrapped _commentIssue in a try-catch so a throwing comment call cannot swallow the original run error, and (2) added a return-value check so a false/falsy result from _commentIssue emits a console.warn. Added four new unit tests covering title sanitization (newlines, control chars, >200-char truncation) and the two new _commentIssue failure cases (returns false, throws). All 549 tests pass.",
+  "timestamp": "2026-04-26T10:00:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/cron.mjs" },
     { "type": "code", "path": "test/cron-tick.test.mjs" }

@@ -220,6 +220,111 @@ describe("cmdCronTick", () => {
       "Should comment failure message on issue");
   });
 
+  // ── 4b. Failed dispatch — commentIssue returns false ─────────
+  it("warns when commentIssue returns false on dispatch failure", async () => {
+    writeProjectMd(teamDir);
+    const warns = [];
+    const origWarn = console.warn;
+    console.warn = (...a) => { warns.push(a.join(" ")); };
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 11, title: "Failing feature", status: "Ready", id: "item-11" },
+      ],
+      runSingleFeature: async () => { throw new Error("feature failed"); },
+      setProjectItemStatus: () => true,
+      commentIssue: () => false,
+      lockFile: () => ({ acquired: true, release: () => {} }),
+    };
+
+    await cmdCronTick([], deps);
+    console.warn = origWarn;
+
+    assert.ok(warns.some(w => w.includes("failed to comment")), `Expected 'failed to comment' warning in: ${warns.join(", ")}`);
+  });
+
+  // ── 4c. Failed dispatch — commentIssue throws ─────────────────
+  it("swallows commentIssue throw and preserves original error log", async () => {
+    writeProjectMd(teamDir);
+    const errors = [];
+    const warns = [];
+    const origError = console.error;
+    const origWarn = console.warn;
+    console.error = (...a) => { errors.push(a.join(" ")); };
+    console.warn = (...a) => { warns.push(a.join(" ")); };
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 12, title: "Throwing feature", status: "Ready", id: "item-12" },
+      ],
+      runSingleFeature: async () => { throw new Error("run exploded"); },
+      setProjectItemStatus: () => true,
+      commentIssue: () => { throw new Error("GH auth error"); },
+      lockFile: () => ({ acquired: true, release: () => {} }),
+    };
+
+    await cmdCronTick([], deps);
+    console.error = origError;
+    console.warn = origWarn;
+
+    // Original error must appear in console.error
+    assert.ok(errors.some(e => e.includes("run exploded")), `Expected 'run exploded' in errors: ${errors.join(", ")}`);
+    // commentIssue error must be warned, not thrown
+    assert.ok(warns.some(w => w.includes("GH auth error")), `Expected 'GH auth error' in warns: ${warns.join(", ")}`);
+  });
+
+  // ── 4d. Title sanitization ────────────────────────────────────
+  it("strips newlines and control chars from issue title", async () => {
+    writeProjectMd(teamDir);
+    let dispatchedTitle = null;
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 13, title: "Inject\r\nmalicious\x01prompt\x1f", status: "Ready", id: "item-13" },
+      ],
+      runSingleFeature: async (args, title) => { dispatchedTitle = title; },
+      setProjectItemStatus: () => true,
+      commentIssue: () => true,
+      lockFile: () => ({ acquired: true, release: () => {} }),
+    };
+
+    await cmdCronTick([], deps);
+
+    assert.ok(dispatchedTitle !== null, "runSingleFeature should have been called");
+    assert.ok(!dispatchedTitle.includes("\r"), "Title must not contain \\r");
+    assert.ok(!dispatchedTitle.includes("\n"), "Title must not contain \\n");
+    assert.ok(!/[\x00-\x1f\x7f]/.test(dispatchedTitle), "Title must not contain control chars");
+  });
+
+  it("truncates issue title to 200 characters", async () => {
+    writeProjectMd(teamDir);
+    const longTitle = "A".repeat(300);
+    let dispatchedTitle = null;
+
+    const deps = {
+      readTrackingConfig: () => TRACKING_CONFIG,
+      readProjectNumber: () => 42,
+      listProjectItems: () => [
+        { issueNumber: 14, title: longTitle, status: "Ready", id: "item-14" },
+      ],
+      runSingleFeature: async (args, title) => { dispatchedTitle = title; },
+      setProjectItemStatus: () => true,
+      commentIssue: () => true,
+      lockFile: () => ({ acquired: true, release: () => {} }),
+    };
+
+    await cmdCronTick([], deps);
+
+    assert.ok(dispatchedTitle !== null, "runSingleFeature should have been called");
+    assert.ok(dispatchedTitle.length <= 200, `Title length ${dispatchedTitle.length} exceeds 200`);
+  });
+
   // ── 5. Not configured ─────────────────────────────────────────
 
   it("exits 1 when tracking config is not available", async () => {

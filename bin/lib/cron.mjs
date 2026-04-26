@@ -116,12 +116,20 @@ export async function cmdCronTick(args = [], deps = {}) {
       }
       console.log(`cron-tick: completed issue #${issueNumber}`);
     } catch (err) {
-      // Revert to ready and comment on failure
+      // Revert to ready and comment on failure.
+      // Wrap each side-effect so that neither can swallow the original error.
       const revertSet = _setProjectItemStatus(issueNumber, projectNumber, "ready");
       if (!revertSet) {
         console.warn(`cron-tick: warning — failed to revert issue #${issueNumber} to 'ready' on project board`);
       }
-      _commentIssue(issueNumber, `cron-tick failed: ${err.message || String(err)}`);
+      try {
+        const commented = _commentIssue(issueNumber, `cron-tick failed: ${err.message || String(err)}`);
+        if (!commented) {
+          console.warn(`cron-tick: warning — failed to comment on issue #${issueNumber}`);
+        }
+      } catch (commentErr) {
+        console.warn(`cron-tick: warning — error commenting on issue #${issueNumber}: ${commentErr.message || commentErr}`);
+      }
       console.error(`cron-tick: failed for issue #${issueNumber}: ${err.message || err}`);
     }
   } finally {
