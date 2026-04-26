@@ -1,11 +1,11 @@
 {
   "taskId": "task-7",
   "nodeType": "build",
-  "runId": "run_2",
+  "runId": "run_1",
   "status": "completed",
   "verdict": null,
-  "summary": "Fixed dead code in Blocked/Failed section: removed unreachable `|| \"unknown\"` fallback since tasks are pre-filtered to blocked/failed status. Added regression tests for blocked and failed tasks without lastReason. Fixed section comment numbering and improved test assertion specificity.",
-  "timestamp": "2026-04-26T12:00:00.000Z",
+  "summary": "Blocked / Failed section is fully implemented in bin/lib/report.mjs (lines 85-94). It filters tasks by blocked/failed status, shows [STATUS] label with task ID, title, and lastReason for each problem task. Section is omitted when all tasks pass. 7 dedicated tests cover this behavior and all 562 project tests pass.",
+  "timestamp": "2026-04-26T05:30:00.000Z",
   "artifacts": [
     { "type": "code", "path": "bin/lib/report.mjs" },
     { "type": "code", "path": "test/report.test.mjs" }
