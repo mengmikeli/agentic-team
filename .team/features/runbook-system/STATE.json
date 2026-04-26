@@ -1,7 +1,7 @@
 {
   "version": "2.0",
   "feature": "runbook-system",
-  "status": "paused",
+  "status": "executing",
   "tasks": [
     {
       "id": "task-1",
@@ -11,14 +11,16 @@
       "issueNumber": 543,
       "lastTransition": "2026-04-26T16:03:26.019Z",
       "ticks": 1,
-      "reviewRounds": 2
+      "reviewRounds": 3
     },
     {
       "id": "task-2",
       "title": "`loadRunbooks(dir)` reads all `.yml` files from a directory, validates schema (id, name, patterns, minScore, tasks, flow), returns array.",
-      "status": "pending",
+      "status": "in-progress",
       "attempts": 0,
-      "issueNumber": 544
+      "issueNumber": 544,
+      "lastTransition": "2026-04-26T16:44:01.703Z",
+      "ticks": 1
     },
     {
       "id": "task-3",
@@ -349,7 +351,7 @@
       "taskId": "task-1"
     }
   ],
-  "transitionCount": 15,
+  "transitionCount": 16,
   "transitionHistory": [
     {
       "taskId": "task-1",
@@ -455,12 +457,19 @@
       "status": "in-progress",
       "reason": null,
       "timestamp": "2026-04-26T16:03:26.019Z"
+    },
+    {
+      "taskId": "task-2",
+      "from": "pending",
+      "status": "in-progress",
+      "reason": null,
+      "timestamp": "2026-04-26T16:44:01.703Z"
     }
   ],
   "createdAt": "2026-04-25T14:23:33.866Z",
   "_written_by": "at-harness",
-  "_last_modified": "2026-04-26T16:35:01.750Z",
-  "_write_nonce": "4896417a96dcf191",
+  "_last_modified": "2026-04-26T16:44:04.246Z",
+  "_write_nonce": "c45d528e384a6904",
   "_runStartedAt": "2026-04-26T15:58:39.742Z",
   "roadmapLabel": "P5/#21",
   "tokenUsage": {

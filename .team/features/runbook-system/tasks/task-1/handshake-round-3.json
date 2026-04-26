@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (1 critical, 12 warning, 8 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T14:50:18.070Z",
+  "summary": "Parallel review: FAIL (1 critical, 19 warning, 17 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T16:44:00.024Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -14,8 +14,8 @@
   ],
   "findings": {
     "critical": 1,
-    "warning": 12,
-    "suggestion": 8
+    "warning": 19,
+    "suggestion": 17
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,55 +25,83 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-cli-command.test.mjs:21-50` — Schema validation uses raw text regex on YAML content, not a YAML parser; syntactically invalid YAML (bad indentation, duplicate keys, tab chars) passes all assertions while being unparseable at engine runtime — backlog: replace with `yaml.parse()` + structural assertions before the matching engine is built"
+      "text": "🟡 `bin/lib/run.mjs:437` — `planTasks()` discards runbook `flow` field; flow selection at line 1004 runs independently via `selectFlow()`, ignoring any runbook-specified flow. Wire or remove."
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/runbooks/add-cli-command.yml:23` — `flow: build-verify` references a runtime constant in `bin/lib/flows.mjs` with no test asserting the named flow exists in the registry; a flow rename silently invalidates all runbooks with no build-time signal — backlog: add a cross-validation test importing the flows registry before the engine dispatches on it"
+      "text": "🟡 `bin/lib/run.mjs:441` — `hint` field propagated through 3 functions and 2 modules to task objects but `buildTaskBrief()` never reads it. Dead-end data path."
     },
     {
       "severity": "warning",
-      "text": "**Architectural assessment:** Builder correctly scoped this to the data layer only — YAML schema + directory scaffolding, no premature engine. The two 🟡 warnings are real debt but pre-engine and non-blocking. They must be resolved before the matching engine reads runbook files."
+      "text": "🟡 `bin/lib/runbooks.mjs:105` — `isSafeRegex` heuristic catches nested quantifiers but not overlapping alternations (`(a|a)+`) or polynomial-time patterns. Must upgrade before untrusted sources."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-cli-command.test.mjs:44` — Pattern field validation is per-field-globally, not per-pattern; a runbook where one pattern omits `weight` passes as long as any other pattern has it — iterate patterns in a loop and assert all three sub-fields present on each entry"
+      "text": "🟡 `SPEC.md` — Schema diverged: SPEC says `pattern`/`keywords`/`threshold`, implementation ships `patterns`/`minScore`. Implementation is better but SPEC is misleading."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-dir.test.mjs:34` — Asserts source-code ordering of `mkdirSync` calls by string index; tests source layout, not runtime behavior; a valid refactor of `init.mjs` silently breaks the test without breaking functionality — replace with filesystem assertion after `agt init` invocation"
+      "text": "🟡 `bin/lib/run.mjs:420` — Default `runbooksDir` uses `process.cwd()` while caller stores `mainCwd` at line 817. Could diverge in daemon mode."
     },
     {
       "severity": "warning",
-      "text": "Evidence is solid. The runbook file exists, schema is clean (no gold-plated fields after run_2 fix), all 4 tasks have substantive `title` + `hint`, and `artifacts/test-output.txt` confirms 544 pass / 0 fail with the runbook suite explicitly visible at lines 633–647. Both `🟡` findings are test fragility issues — not correctness defects — and neither blocks merge. Eval appended to `.team/features/runbook-system/tasks/task-1/eval.md`."
+      "text": "🟡 `bin/lib/runbooks.mjs:213` — `scoreRunbook` crashes on null/undefined description (`description.toLowerCase()` throws TypeError). Guard needed."
     },
     {
       "severity": "warning",
-      "text": "🟡 Gate output (provided in review brief) — Truncated; stops before the `add-cli-command.yml runbook` suite. The `artifacts/test-output.txt` artifact is complete and shows all 5 runbook tests passing (lines 633–639), resolving the missing-evidence concern from prior runs. Reviewers must read the artifact to confirm — the inline gate output alone is insufficient."
+      "text": "🟡 `bin/lib/run.mjs:500` — `buildTaskBrief` never reads `task.hint`. Runbook hints flow through the entire pipeline and are silently discarded. Highest-impact improvement to wire in."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-cli-command.test.mjs:20` — Schema validated via raw-string regex, not YAML parsing; a structurally broken YAML (bad indentation, duplicate keys) passes all 5 assertions as long as field name strings appear in the text; add `YAML.parse()` step before field checks"
+      "text": "🟡 `bin/lib/runbooks.mjs:188` — `flow` field loaded but never consumed downstream. Dead data path."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-dir.test.mjs:34` — Asserts source-code ordering of `mkdirSync` calls by `src.indexOf()` on the `init.mjs` source string; tests implementation layout, not runtime behavior; a valid refactor (extracting to a helper, reordering) breaks this test without breaking functionality; replace with filesystem integration assertion"
+      "text": "🟡 `test/runbooks.test.mjs` — No integration test for `planTasks()` → runbook code path. Highest-risk untested seam."
     },
     {
       "severity": "warning",
-      "text": "The acceptance criterion is met. The file exists at `.team/runbooks/add-cli-command.yml`, contains all required schema fields (`id`, `name`, `patterns`, `minScore`, `tasks`, `flow`), and has exactly 4 tasks with substantive hints. `flow: build-verify` is verified as a live constant in the flow registry. The full test suite (546 tests, 544 pass, 2 skipped, 0 fail) is confirmed in `artifacts/test-output.txt`, with the runbook suite specifically passing at lines 633–647. The two 🟡 warnings are pre-existing backlog items from prior review rounds — neither blocks merge."
+      "text": "🟡 `SPEC.md:34-53` — Schema diverged from spec without update. Implementation uses `patterns`/`minScore` instead of spec's `pattern`/`keywords`/`threshold`. Update the spec."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-cli-command.test.mjs:20` — schema validated via raw-string regex, not YAML parsing; a structurally broken YAML (bad indentation, duplicate keys) passes all 5 assertions as long as field names appear as text — add `YAML.parse()` roundtrip before assertions; must resolve before runbook engine ships"
+      "text": "🟡 `SPEC.md:23` (AC #5) — Behavioral deviation. Spec says \"regex narrows candidates before keyword scoring.\" Implementation uses additive scoring — both contribute to one total score. Not a two-phase filter."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-dir.test.mjs:34` — asserts `runbooks` `mkdirSync` appears after `features` `mkdirSync` by text index in `init.mjs` source; tests source code layout, not runtime behavior; a valid refactor breaks the test without breaking functionality — replace with filesystem assertion after `agt init`"
+      "text": "🟡 `bin/lib/run.mjs:441` — **`hint` is a dead-end data path.** All 3 built-in runbooks include per-task hints (e.g., \"Define flags, positional args, and --help output\") that flow through the pipeline but `buildTaskBrief` never shows them to the agent. This is the single highest-impact fix to make."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:188` — `flow` field loaded from YAML but never consumed by flow selection. Dead data."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs` — No integration test for `planTasks()` → runbook code path. Highest-risk untested seam."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/runbooks.mjs:213 — `scoreRunbook` crashes on null/undefined description (`description.toLowerCase()` TypeError); reachable from `planTasks()`. Add `if (!description) return 0;` guard."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs — No integration test for `planTasks()` → runbook matching path. This is the highest-risk untested seam — the SPEC Testing Strategy explicitly calls for it."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs — No test for `--runbook nonexistent` CLI fallthrough (SPEC AC #8). Unit test covers `selectRunbook` return value but not the console warning or actual brainstorm fallthrough."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:437 — Runbook `flow` field loaded and stored but never consumed downstream. Dead data propagated through 3 functions."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs`:110 — `isSafeRegex` heuristic misses alternation-based ReDoS patterns like `(a|a)+$`. Verified: bypasses the guard and causes 4.3s backtracking on 25 chars. Fix: detect alternation in quantified groups, add regex timeout, or use `safe-regex2`."
     },
     {
       "severity": "critical",
-      "text": "Both are carry-forwards from run_2 (pre-existing, not introduced in run_3). No 🔴 findings. Merge is unblocked."
+      "text": "🔴 `bin/lib/runbooks.mjs:188` — Gold-plating: `flow` field stored but never consumed by any production code; not in SPEC.md; none of the 3 built-in runbooks use it. Delete `flow: doc.flow || null` and the test at `test/runbooks.test.mjs:96-106`."
     }
   ]
 }

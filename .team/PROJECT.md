@@ -16,14 +16,14 @@ v2.1.0
 None
 
 ## Tracking
-- GitHub Project: [mengmikeli/projects/1](https://github.com/users/mengmikeli/projects/1)
+- GitHub Project: [mengmikeli/projects/2](https://github.com/users/mengmikeli/projects/2)
 - Issues: [mengmikeli/agentic-team/issues](https://github.com/mengmikeli/agentic-team/issues)
-- Status Field ID: PVTSSF_lAHOAEUwvc4BUkmdzhBr2dQ
-- Todo Option ID: 0837af90
-- In Progress Option ID: 9b7ddf3b
-- Done Option ID: a15d7c7c
-- Pending Approval Option ID: c5d5b81c
-- Ready Option ID: 21e8fbcf
+- Status Field ID: PVTSSF_lAHOAEUwvc4BVxx3zhRLGQI
+- Todo Option ID: f75ad846
+- In Progress Option ID: 47fc9ee4
+- Done Option ID: 98236657
+- # Pending Approval and Ready columns not yet created on project #2
+- 
 
 ## Skills (11)
 
