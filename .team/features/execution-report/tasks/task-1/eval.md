@@ -887,3 +887,171 @@ Single synchronous JSON parse. Gate filtering at line 55 is O(T*G) per task — 
 ## Overall Verdict: PASS
 
 The implementation correctly satisfies the spec. `buildReport` is a clean pure function producing all 6 required sections. `cmdReport` uses idiomatic DI with proper error routing to stderr. All 29 tests pass independently. The task-7 fix cleanly removed unreachable dead code and added proper regression tests. One 🟡 warning (path traversal via unsanitized feature name) should enter the backlog. Three 🔵 suggestions are optional quality improvements for edge-case cosmetics. No critical issues block merge.
+
+---
+
+# Security Review — execution-report / task-1
+
+**Reviewer role:** Security
+**Verdict: PASS**
+**Date:** 2026-04-26
+**Reviewed commit:** 8d7a3cc
+
+---
+
+## Files Actually Read
+
+- `bin/lib/report.mjs` (full, 173 lines) — production code
+- `test/report.test.mjs` (full, 377 lines) — test suite
+- `bin/agt.mjs` (lines 1–80 — import at line 19, dispatch at line 75)
+- `bin/lib/util.mjs` (lines 190–198 — `readState` implementation)
+- `.team/features/execution-report/tasks/task-1/handshake.json` (full)
+- `.team/features/execution-report/tasks/task-7/handshake.json` (full)
+- `.team/features/execution-report/tasks/task-7/eval.md` (full — architect + tester reviews)
+- `.team/features/execution-report/tasks/task-1/eval.md` (full — engineer + architect reviews)
+- Git diff: `f6325bf..4dde995` (--output md implementation)
+- Git diff: `4dde995..8d7a3cc` (latest changes)
+- Git log: 10 most recent commits
+
+---
+
+## Tests Independently Run
+
+```
+node --test test/report.test.mjs
+ℹ tests 29  |  pass 29  |  fail 0  |  duration_ms 119
+```
+
+---
+
+## Threat Model
+
+This is a local CLI tool (`agt report`) run by a developer in their own terminal. Attack surface:
+
+| Surface | Entry point | Threat |
+|---|---|---|
+| CLI arguments | `featureName`, `--output md` | Path traversal, unexpected file writes |
+| STATE.json content | `readState()` → `JSON.parse()` | Injection via rendered fields (titles, lastReason) |
+| File output | `writeFileSync(REPORT.md)` | Write to unintended location |
+
+**Primary adversary**: Automated pipeline or script that invokes `agt report` with externally-sourced feature names (CI, orchestrators, programmatic callers).
+
+**Secondary adversary**: Compromised upstream tool that writes malicious content to STATE.json (e.g., ANSI escape codes in `lastReason`).
+
+**Out of scope**: Direct interactive user (they control their own terminal — "user attacks themselves" is not a meaningful threat).
+
+---
+
+## Per-Criterion Results
+
+### 1. Input Validation — is all user input sanitized?
+
+**PASS (with 🟡 caveat)**
+
+`featureName` from CLI args flows unsanitized into `path.join()` at line 149:
+
+```js
+const featureDir = join(_cwd(), ".team", "features", featureName);
+```
+
+`path.join("/project", ".team", "features", "../../..")` normalizes to `/project`. With `--output md`, `writeFileSync(join(featureDir, "REPORT.md"), ...)` would write to `/project/REPORT.md` — outside the `.team/features/` subtree.
+
+However, the exploit requires:
+1. A caller passing attacker-controlled input as the feature name
+2. The `--output md` flag to trigger the write path
+3. The target directory must exist (checked by `existsSync` at line 151)
+
+For direct interactive CLI use, exploitability is negligible. For programmatic invocation (CI scripts reading feature names from config or environment), the risk is medium. The prior engineer review correctly identified this as 🟡.
+
+Other inputs are validated:
+- Missing feature name → exit 1 with usage (line 143) ✓
+- `--output` with unknown value → silent fallback to stdout (safe default) ✓
+- `--output` as last arg → `args[outputIdx + 1]` is `undefined`, `outputMd` is false (safe) ✓
+
+### 2. Secrets Management — are credentials handled safely?
+
+**PASS**
+
+No credentials, tokens, API keys, or secrets are read, stored, or transmitted. The tool reads STATE.json (project metadata) and writes plaintext markdown. No environment variables are accessed for auth purposes. No network calls are made.
+
+### 3. Authentication & Authorization — are access controls correct?
+
+**N/A**
+
+This is a local CLI tool with no auth model. File access uses the invoking user's OS permissions. No privilege escalation vectors exist.
+
+### 4. Output Safety — is output safe from injection?
+
+**PASS**
+
+`buildReport` interpolates STATE.json fields directly into template strings:
+- `${feature}` (line 34)
+- `${task.title || task.id}` (line 45)
+- `${task.lastReason}` (line 85)
+- `${task.id}` (lines 57, 84, 94, 100)
+
+Output destinations:
+- **Stdout** (terminal): ANSI escape sequences in STATE.json fields would render in the terminal. This is a theoretical terminal UI spoofing vector, but requires the attacker to already have write access to STATE.json — at which point they have far more powerful attack paths. 🔵 level.
+- **REPORT.md** (file): Markdown with user-controlled content. No HTML rendering context, no script execution. Safe.
+
+No SQL, no shell execution, no HTML rendering. The output is consumed by humans reading text — no injection vector with meaningful impact.
+
+### 5. Error Handling — do errors leak sensitive information?
+
+**PASS**
+
+Error messages include the constructed `featureDir` path:
+```
+report: feature directory not found: /Users/dev/project/.team/features/bad-name
+```
+
+For a local CLI tool, this is expected and helpful. The path is derived from `cwd()` + user input — no server-side secrets, no database connection strings, no internal infrastructure details are leaked.
+
+### 6. File Write Safety — is `writeFileSync` used safely?
+
+**PASS (with 🟡 caveat from criterion 1)**
+
+`writeFileSync` at line 168:
+- Writes to a deterministic path (`featureDir/REPORT.md`) — no TOCTOU race
+- Uses default permissions (0o666 before umask) — appropriate for a project file
+- Content is the report string + newline — no binary data, no user-supplied filename
+- The `existsSync(featureDir)` check at line 151 prevents writes to nonexistent directories
+
+The only concern is the path traversal from criterion 1, which could redirect the write target.
+
+### 7. Dependency Surface
+
+**PASS**
+
+Only Node.js built-ins are imported: `fs` (`existsSync`, `writeFileSync`), `path` (`join`). Plus one internal module (`readState` from `util.mjs`). No third-party dependencies. No network calls. No child process spawning in the report command itself.
+
+---
+
+## Edge Cases Checked
+
+| Edge case | Method | Result |
+|---|---|---|
+| `featureName` with `../` traversal | Manual code trace of `path.join` | Escapes `.team/features/` — flagged as 🟡 |
+| `--output` as last arg (no value) | Code trace: `args[outputIdx + 1]` → `undefined` | Falls back to stdout safely ✓ |
+| `--output xyz` (unknown format) | Code trace: `"xyz" === "md"` → false | Falls back to stdout safely ✓ |
+| `STATE.json` with corrupt JSON | Code trace: `readState` catches, returns null | `cmdReport` exits 1 ✓ |
+| `writeFileSync` to read-only dir | Node throws `EACCES` | Unhandled — process crashes with stack trace. Acceptable for CLI tool. |
+| Feature name with shell metacharacters | Code trace: name only used in `path.join` + `existsSync` | No shell execution — safe ✓ |
+| `lastReason` with newlines | Code trace: interpolated directly | Breaks markdown formatting but no security impact ✓ |
+| Empty `tasks` array | Code trace: all sections use `.filter()` | Renders empty table, no errors ✓ |
+
+---
+
+## Findings
+
+🟡 bin/lib/report.mjs:149 — `featureName` from CLI args is joined into `featureDir` without sanitization. `path.join(cwd, ".team", "features", "../../..")` escapes the `.team/features/` subtree. With `--output md`, this allows writing `REPORT.md` to an attacker-controlled path. Low risk for interactive CLI use; medium risk if invoked programmatically with external input. Fix: reject names matching `/[\/\\]|\.\./` or validate against `/^[a-zA-Z0-9_.-]+$/`.
+
+🔵 bin/lib/report.mjs:84–85 — STATE.json fields (`lastReason`, `title`) are interpolated into terminal output without stripping ANSI escape codes. A malicious STATE.json could spoof terminal output. Negligible risk since STATE.json write access implies full local compromise.
+
+🔵 bin/lib/report.mjs:130 — `--output` accepts only `md`; unknown values silently fall back to stdout with no warning. Consider emitting a stderr warning for unrecognized output formats to prevent user confusion (not a security issue).
+
+---
+
+## Overall Verdict: PASS
+
+The implementation has a clean security posture appropriate for a local CLI tool. No credentials are handled. No network calls are made. No shell commands are executed with user input. File I/O uses only Node.js built-ins with no third-party dependencies. The single 🟡 finding (path traversal via unsanitized feature name) is a defense-in-depth concern that should enter the backlog — it's low risk for interactive use but becomes relevant if `agt report` is ever called from scripts with external input. Two 🔵 suggestions are optional hardening measures with no realistic threat in the current usage pattern. No critical issues. All 29 tests pass independently.
