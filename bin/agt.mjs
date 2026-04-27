@@ -557,18 +557,16 @@ switch (command) {
           total += r.total_tokens || 0;
         }
 
-        // Daily aggregation (local timezone)
-        const pad = (n) => String(n).padStart(2, '0');
-        const localDateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        // Daily aggregation (UTC)
         const dailyMap = new Map();
         for (let i = days - 1; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(d.getDate() - i);
-          const key = localDateKey(d);
+          const key = d.toISOString().slice(0, 10);
           dailyMap.set(key, { date: key, total: 0, input: 0, output: 0, cached: 0 });
         }
         for (const r of recent) {
-          const key = localDateKey(new Date(r.hour_start));
+          const key = new Date(r.hour_start).toISOString().slice(0, 10);
           if (dailyMap.has(key)) {
             const d = dailyMap.get(key);
             d.total += r.total_tokens || 0;
