@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (6 critical, 7 warning, 3 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T14:55:55.722Z",
+  "summary": "Parallel review: FAIL (1 critical, 20 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T16:55:44.458Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,9 +13,9 @@
     }
   ],
   "findings": {
-    "critical": 6,
-    "warning": 7,
-    "suggestion": 3
+    "critical": 1,
+    "warning": 20,
+    "suggestion": 13
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,55 +25,87 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 `package.json:22` — `test/runbook-add-github-integration.test.mjs` not in `scripts.test`; add it alongside `test/runbook-add-cli-command.test.mjs` so the 5 new tests actually run on every CI invocation"
+      "text": "🟡 `bin/lib/runbooks.mjs:12-78` — Hand-rolled YAML parser handles only flat schema; track replacement or document supported subset if schema complexity grows"
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/features/runbook-system/tasks/task-2/handshake.json:7` — No `test-output.txt` artifact captured; handshake claim of \"544 tests pass\" is unverifiable — capture artifact as task-1 did"
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the `test` script; add it alongside `test/runbook-add-cli-command.test.mjs` so the 5 new tests are actually executed by `npm test`"
+      "text": "🟡 `tasks/task-2/handshake.json:7` — Handshake claims \"614/614\" tests; recorded artifact shows 551 tests / 549 pass; claims must match evidence"
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/features/runbook-system/tasks/task-2/handshake.json:9-13` — No `test-output` artifact listed; task-2 has no `artifacts/` directory and no captured test evidence; add a `test-result` artifact pointing to `artifacts/test-output.txt` after the gate re-runs"
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the `test` script; the gate never executed the delivery tests for this task, so the handshake's \"544 tests pass\" claim does not cover this task's verifications"
+      "text": "🟡 `SPEC.md:36-53` — Spec schema (`pattern`/`keywords`/`threshold`) diverges from shipped schema (`patterns`/`minScore`); update SPEC to prevent confusion"
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/features/runbook-system/tasks/task-2/handshake.json:13` — No `test-output.txt` artifact captured; unlike task-1, there is zero evidence of test execution for this task"
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the `npm test` script; add it to the explicit file list so the 5 new tests are actually executed"
+      "text": "🟡 `bin/lib/runbooks.mjs:213` — `scoreRunbook` crashes on null/undefined description (`description.toLowerCase()` throws TypeError). Unreachable from current call site but the function is exported. Add `if (!description) return 0;` guard."
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/runbooks/add-github-integration.yml:19` — Task 1 hint \"add to env config\" is ambiguous for AI agent execution; an agent with `bypassPermissions` could create unsecured credential files or hardcode secrets — strengthen to \"add to `.env` (ensure `.env` is in `.gitignore`); never hardcode in source files\""
+      "text": "🟡 `bin/lib/run.mjs:437` — Runbook `flow` field is loaded and stored but never consumed downstream. Dead data. Either wire it or remove from schema."
     },
     {
       "severity": "warning",
-      "text": "🟡 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is absent from the npm test script; the 5 new tests were never run by the gate; handshake claim of \"544 tests pass\" is the same count from task-1 and does not cover the new test file — add to the test script and capture `artifacts/test-output.txt`"
-    },
-    {
-      "severity": "critical",
-      "text": "The file is static YAML with no current consumers — zero injection surface. The most actionable finding is the credential hint ambiguity (🟡): when the runbook engine ships and dispatches an AI agent with `bypassPermissions` to \"add to env config\", that hint is loose enough to produce hardcoded or unversioned secrets. The unregistered test file (🟡, already caught as a 🔴 by the prior review) means the new tests haven't run. Neither blocks merging the static YAML today, but both must be resolved before the matching engine is implemented."
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `package.json:22` — `test/runbook-add-github-integration.test.mjs` is not registered in the test script; the test file exists on disk but never executes in `npm test` — dead code — add it to the explicit file list alongside `runbook-add-cli-command.test.mjs`"
+      "text": "🟡 `bin/lib/runbooks.mjs:234` — Tie-break uses `rb.id` but SPEC says \"alphabetically by filename\". Diverges when id !== filename."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/runbook-add-github-integration.test.mjs:1` — Near-exact copy of `runbook-add-cli-command.test.mjs`; only path and id differ across 50 lines — extract a `validateRunbook(path, expectedId)` helper shared by both test files"
+      "text": "🟡 `tasks/task-2/handshake.json:7` — Handshake claims \"614/614 tests\" but artifact shows 551 tests (549 pass, 2 skip); fix handshake accuracy to match artifact evidence"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:441` — `hint` field is dead-end data: propagated through 3 functions but never shown to the executing agent; wire into `buildTaskBrief`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:188` — `flow` field loaded but never consumed by `planTasks` or flow selection; wire or remove from schema"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `SPEC.md:34-53` — Spec diverged from implementation (`pattern`/`keywords`/`threshold` vs `patterns`/`minScore`) without update; spec is misleading for runbook authors"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs` — No integration test for `planTasks()` → runbook code path; highest-risk untested seam in the feature"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/`:missing — No test file for `add-test-suite.yml` runbook; SPEC AC #3 unverified by automation"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs` — No integration test for `planTasks()` runbook path at `run.mjs:418-452`; highest-risk untested seam"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:213` — `scoreRunbook` crashes on null/undefined description; guard with `String(description ?? \"\")`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs` — `--runbook nonexistent` fallthrough untested (SPEC AC #8)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — `isSafeRegex` heuristic bypassed by overlapping alternation patterns. **Confirmed:** `(a|a)+$` hangs for 4351ms on 25-char input while the guard doesn't detect it. Must upgrade to library-based check (e.g., `safe-regex2`) before loading runbooks from untrusted sources."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:213` — `scoreRunbook` crashes on null/undefined `description` with unhelpful TypeError. Add `if (!description) return 0;` at function entry."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:84` — `stripInlineComment` silently corrupts regex patterns containing literal ` #`. **Confirmed:** `value: foo #bar` loads as `\"foo\"`. Quoted values are safe, but no documentation warns authors to quote patterns with `#`."
     },
     {
       "severity": "critical",
-      "text": "- The 🔴 finding is dead code: a test file written but never wired into the test runner."
+      "text": "**Verdict: PASS** — No 🔴 critical findings. No veto categories triggered."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:188` — `flow` field loaded but never consumed downstream — wire or remove"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:207` — Double ReDoS guard (`isSafeRegex` at load-time line 158 AND score-time line 207); runtime check unreachable in current code — remove duplicate or document defensive intent"
     }
   ]
 }

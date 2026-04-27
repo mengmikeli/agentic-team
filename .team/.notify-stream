@@ -434,3 +434,64 @@
 {"ts":"2026-04-26T15:58:39.809Z","event":"feature-started","msg":"▶ Feature: runbook-system (19 tasks planned)"}
 {"ts":"2026-04-26T16:03:28.217Z","event":"task-started","msg":"▶ Task 1/19: `bin/lib/runbooks.mjs` exists and exports `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks`."}
 {"ts":"2026-04-26T16:44:04.243Z","event":"task-started","msg":"▶ Task 2/19: `loadRunbooks(dir)` reads all `.yml` files from a directory, validates schema (id, name, patterns, minScore, tasks, flow), returns array."}
+{"ts":"2026-04-26T17:22:52.718Z","event":"task-passed","msg":"✓ Task 2/19: `loadRunbooks(dir)` reads all `.yml` files from a directory, validates schema (id, name, patterns, minScore, tasks, flow), returns array."}
+{"ts":"2026-04-26T17:22:57.840Z","event":"task-started","msg":"▶ Task 3/19: `scoreRunbook(description, runbook)` returns a numeric score: regex patterns add their weight on match, keyword patterns add `occurrences × weight`."}
+{"ts":"2026-04-26T17:33:26.036Z","event":"task-passed","msg":"✓ Task 3/19: `scoreRunbook(description, runbook)` returns a numeric score: regex patterns add their weight on match, keyword patterns add `occurrences × weight`."}
+{"ts":"2026-04-26T17:33:31.149Z","event":"task-started","msg":"▶ Task 4/19: `matchRunbook(description, runbooks)` returns `{ runbook, score }` for the best match above threshold, or `null`."}
+{"ts":"2026-04-26T18:00:37.131Z","event":"task-passed","msg":"✓ Task 4/19: `matchRunbook(description, runbooks)` returns `{ runbook, score }` for the best match above threshold, or `null`."}
+{"ts":"2026-04-26T18:00:42.321Z","event":"task-started","msg":"▶ Task 5/19: `resolveRunbookTasks(runbook, allRunbooks)` expands `include:` entries one level deep and returns flat task array."}
+{"ts":"2026-04-26T18:18:49.384Z","event":"task-passed","msg":"✓ Task 5/19: `resolveRunbookTasks(runbook, allRunbooks)` expands `include:` entries one level deep and returns flat task array."}
+{"ts":"2026-04-26T18:18:54.344Z","event":"task-started","msg":"▶ Task 6/19: `planTasks()` in `run.mjs` loads runbooks, matches, and uses matched tasks when found."}
+{"ts":"2026-04-26T18:29:03.397Z","event":"task-passed","msg":"✓ Task 6/19: `planTasks()` in `run.mjs` loads runbooks, matches, and uses matched tasks when found."}
+{"ts":"2026-04-26T18:29:08.990Z","event":"task-started","msg":"▶ Task 7/19: `agt run --runbook add-cli-command` forces that runbook regardless of description."}
+{"ts":"2026-04-26T18:41:00.356Z","event":"task-passed","msg":"✓ Task 7/19: `agt run --runbook add-cli-command` forces that runbook regardless of description."}
+{"ts":"2026-04-26T18:41:05.216Z","event":"task-started","msg":"▶ Task 8/19: `agt run --runbook nonexistent` logs a warning and falls through to brainstorm."}
+{"ts":"2026-04-26T18:50:56.574Z","event":"task-passed","msg":"✓ Task 8/19: `agt run --runbook nonexistent` logs a warning and falls through to brainstorm."}
+{"ts":"2026-04-26T18:51:01.846Z","event":"task-started","msg":"▶ Task 9/19: Console output names the matched runbook and score before task execution."}
+{"ts":"2026-04-26T19:00:50.419Z","event":"task-passed","msg":"✓ Task 9/19: Console output names the matched runbook and score before task execution."}
+{"ts":"2026-04-26T19:00:53.467Z","event":"progress","msg":"Progress: 8/19 done, 1 blocked."}
+{"ts":"2026-04-26T19:00:55.331Z","event":"task-started","msg":"▶ Task 10/19: 3 built-in runbooks exist in `.team/runbooks/` with valid schema and ≥4 tasks each."}
+{"ts":"2026-04-26T19:11:18.710Z","event":"task-passed","msg":"✓ Task 10/19: 3 built-in runbooks exist in `.team/runbooks/` with valid schema and ≥4 tasks each."}
+{"ts":"2026-04-26T19:11:23.898Z","event":"task-started","msg":"▶ Task 11/19: Unit tests cover: scoring (regex hit, keyword hit, combined, below threshold), matching (best-of-many, tie-break, no-match), `--runbook` override, unknown runbook fallthrough, `include:` resolution."}
+{"ts":"2026-04-26T19:42:37.525Z","event":"task-started","msg":"▶ Task 12/19: Full test suite (`npm test`) passes with no regressions."}
+{"ts":"2026-04-26T19:51:29.847Z","event":"task-passed","msg":"✓ Task 12/19: Full test suite (`npm test`) passes with no regressions."}
+{"ts":"2026-04-26T19:51:34.851Z","event":"task-started","msg":"▶ Task 13/19: `bin/lib/runbooks.mjs` exists with `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks` exports."}
+{"ts":"2026-04-26T20:01:49.393Z","event":"task-passed","msg":"✓ Task 13/19: `bin/lib/runbooks.mjs` exists with `loadRunbooks`, `scoreRunbook`, `matchRunbook`, `resolveRunbookTasks` exports."}
+{"ts":"2026-04-26T20:01:54.341Z","event":"task-started","msg":"▶ Task 14/19: `planTasks()` in `run.mjs` integrates runbook matching before brainstorm fallback."}
+{"ts":"2026-04-26T20:12:51.253Z","event":"task-passed","msg":"✓ Task 14/19: `planTasks()` in `run.mjs` integrates runbook matching before brainstorm fallback."}
+{"ts":"2026-04-26T20:12:56.451Z","event":"task-started","msg":"▶ Task 15/19: `agt run --runbook <name>` flag is parsed and wired through."}
+{"ts":"2026-04-26T20:45:45.598Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in runbook-system — stopping execution"}
+{"ts":"2026-04-26T20:45:46.823Z","event":"feature-complete","msg":"Feature complete: runbook-system — 12/19 done, 3 blocked, 287m 7s, $643.06"}
+{"ts":"2026-04-26T20:50:52.066Z","event":"feature-started","msg":"▶ Feature: extension-system (25 tasks planned)"}
+{"ts":"2026-04-26T20:56:07.095Z","event":"task-started","msg":"▶ Task 1/25: `promptAppend` return value is appended to the agent brief before `dispatchToAgent()` — for brainstorm, build, and review phases"}
+{"ts":"2026-04-26T21:25:52.428Z","event":"task-passed","msg":"✓ Task 1/25: `promptAppend` return value is appended to the agent brief before `dispatchToAgent()` — for brainstorm, build, and review phases"}
+{"ts":"2026-04-26T21:26:00.561Z","event":"task-started","msg":"▶ Task 2/25: `verdictAppend` findings are merged into `computeVerdict()` output before the compound gate runs"}
+{"ts":"2026-04-26T21:40:12.790Z","event":"task-passed","msg":"✓ Task 2/25: `verdictAppend` findings are merged into `computeVerdict()` output before the compound gate runs"}
+{"ts":"2026-04-26T21:40:20.854Z","event":"task-started","msg":"▶ Task 3/25: `executeRun` spawns the returned command in the task's `cwd`; stdout/stderr stored as `{taskDir}/artifacts/ext-{name}-run.txt`; non-zero exit with `required: true` causes task FAIL"}
+{"ts":"2026-04-26T22:06:55.872Z","event":"task-passed","msg":"✓ Task 3/25: `executeRun` spawns the returned command in the task's `cwd`; stdout/stderr stored as `{taskDir}/artifacts/ext-{name}-run.txt`; non-zero exit with `required: true` causes task FAIL"}
+{"ts":"2026-04-26T22:07:03.488Z","event":"task-started","msg":"▶ Task 4/25: `artifactEmit` returned descriptors are written to the task artifact directory and listed in the handshake"}
+{"ts":"2026-04-26T22:32:50.976Z","event":"task-passed","msg":"✓ Task 4/25: `artifactEmit` returned descriptors are written to the task artifact directory and listed in the handshake"}
+{"ts":"2026-04-26T22:32:59.004Z","event":"task-started","msg":"▶ Task 5/25: Hook calls exceeding timeout are skipped; pipeline proceeds; `[ext warn]` is logged to stderr"}
+{"ts":"2026-04-26T22:43:59.298Z","event":"task-passed","msg":"✓ Task 5/25: Hook calls exceeding timeout are skipped; pipeline proceeds; `[ext warn]` is logged to stderr"}
+{"ts":"2026-04-26T22:44:04.949Z","event":"task-started","msg":"▶ Task 6/25: An extension with 3 consecutive failures is circuit-broken; subsequent calls are skipped without invoking the function"}
+{"ts":"2026-04-26T23:02:53.355Z","event":"task-passed","msg":"✓ Task 6/25: An extension with 3 consecutive failures is circuit-broken; subsequent calls are skipped without invoking the function"}
+{"ts":"2026-04-26T23:02:58.777Z","event":"task-started","msg":"▶ Task 7/25: Missing `.team/extensions/` directory produces no error and no behavior change"}
+{"ts":"2026-04-26T23:12:30.105Z","event":"task-passed","msg":"✓ Task 7/25: Missing `.team/extensions/` directory produces no error and no behavior change"}
+{"ts":"2026-04-26T23:12:35.897Z","event":"task-started","msg":"▶ Task 8/25: An extension with a syntax error or missing named export loads partially (only valid hooks registered); other extensions unaffected"}
+{"ts":"2026-04-26T23:22:26.649Z","event":"task-passed","msg":"✓ Task 8/25: An extension with a syntax error or missing named export loads partially (only valid hooks registered); other extensions unaffected"}
+{"ts":"2026-04-26T23:22:32.268Z","event":"task-started","msg":"▶ Task 9/25: All hook contexts include: `phase`, `taskId`, `featureName`, `cwd`"}
+{"ts":"2026-04-26T23:34:11.068Z","event":"task-passed","msg":"✓ Task 9/25: All hook contexts include: `phase`, `taskId`, `featureName`, `cwd`"}
+{"ts":"2026-04-26T23:34:16.827Z","event":"task-started","msg":"▶ Task 10/25: `promptAppend` context additionally includes: `brief` (current string), `role` (reviewer role, if review phase)"}
+{"ts":"2026-04-26T23:48:16.152Z","event":"task-passed","msg":"✓ Task 10/25: `promptAppend` context additionally includes: `brief` (current string), `role` (reviewer role, if review phase)"}
+{"ts":"2026-04-26T23:48:21.751Z","event":"task-started","msg":"▶ Task 11/25: `verdictAppend` context additionally includes: `verdict` (string), `findings` (current array)"}
+{"ts":"2026-04-27T00:00:32.780Z","event":"task-passed","msg":"✓ Task 11/25: `verdictAppend` context additionally includes: `verdict` (string), `findings` (current array)"}
+{"ts":"2026-04-27T00:00:38.351Z","event":"task-started","msg":"▶ Task 12/25: `executeRun` context additionally includes: `taskTitle`"}
+{"ts":"2026-04-27T00:08:17.806Z","event":"task-passed","msg":"✓ Task 12/25: `executeRun` context additionally includes: `taskTitle`"}
+{"ts":"2026-04-27T00:08:21.033Z","event":"progress","msg":"Progress: 12/25 done, 0 blocked."}
+{"ts":"2026-04-27T00:08:23.410Z","event":"task-started","msg":"▶ Task 13/25: `artifactEmit` context additionally includes: `taskDir`, `verdict`"}
+{"ts":"2026-04-27T00:20:02.674Z","event":"task-passed","msg":"✓ Task 13/25: `artifactEmit` context additionally includes: `taskDir`, `verdict`"}
+{"ts":"2026-04-27T00:20:08.434Z","event":"task-started","msg":"▶ Task 14/25: Registry is built once per `_runSingleFeature()` call, not re-scanned per hook invocation"}
+{"ts":"2026-04-27T00:29:29.018Z","event":"task-passed","msg":"✓ Task 14/25: Registry is built once per `_runSingleFeature()` call, not re-scanned per hook invocation"}
+{"ts":"2026-04-27T00:29:34.685Z","event":"task-started","msg":"▶ Task 15/25: `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, `mergePromptAppend`, `mergeVerdictAppend`, `runExecuteRun`, `runArtifactEmit`"}
+{"ts":"2026-04-27T00:52:30.632Z","event":"task-passed","msg":"✓ Task 15/25: `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, `mergePromptAppend`, `mergeVerdictAppend`, `runExecuteRun`, `runArtifactEmit`"}
+{"ts":"2026-04-27T00:52:36.099Z","event":"task-started","msg":"▶ Task 16/25: `run.mjs` calls `loadExtensions()` at `_runSingleFeature` entry and threads the registry through to dispatch helpers"}

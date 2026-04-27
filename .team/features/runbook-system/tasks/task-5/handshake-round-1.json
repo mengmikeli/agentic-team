@@ -1,0 +1,67 @@
+{
+  "taskId": "task-5",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 9 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T18:08:34.115Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 9,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/runbooks/*.yml` — No built-in runbooks use `include:`, so users lack a working example to copy from. Backlog as docs task."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:262` — `resolveRunbookTasks` trusts referenced tasks have valid `title`. Safe in current call paths (always through `loadRunbooks`), but fragile if the function becomes a public API."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:267` — Nested includes are silently dropped. A `console.warn` for skipped nested includes would aid runbook authors debugging unexpected behavior."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:271` — No test for self-referential include (`include: \"self-id\"`); add one to protect the `!t.include` guard against regression"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:271` — No test for multiple `include:` entries in a single runbook; add one to verify ordering is preserved when interspersed with normal tasks"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — `isSafeRegex()` heuristic can miss some ReDoS patterns (e.g., `(\\d+\\.)+\\d+`); consider documenting the limitation or using `safe-regex2`. Low severity — runbooks are developer-authored local files."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings. Two 🟡 warnings for backlog. Two 🔵 suggestions."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/runbooks.mjs:194 — `flow` field plumbed end-to-end but 0/3 shipped runbooks set it; add flow to at least one built-in or document as optional"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 .team/runbooks/ — No built-in runbook uses `include:`; feature is tested but 0 real-world exercisers; consider a shared-setup runbook or authoring guide"
+    },
+    {
+      "severity": "warning",
+      "text": "- The 🟡 warnings are about **unexercised-in-production features** (`flow` and `include:`), not unnecessary code. Both are spec'd requirements — they're complete but their only consumers are test fixtures, not shipped YAML files."
+    }
+  ]
+}

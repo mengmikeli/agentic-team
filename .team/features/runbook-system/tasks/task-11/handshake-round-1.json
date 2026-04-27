@@ -1,0 +1,63 @@
+{
+  "taskId": "task-11",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 8 warning, 9 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T19:24:30.736Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 8,
+    "suggestion": 9
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "critical",
+      "text": "| 🔴 Critical | 0 |"
+    },
+    {
+      "severity": "warning",
+      "text": "| 🟡 Warning | 4 |"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — `isSafeRegex` heuristic only catches `(a+)+`-style ReDoS; more exotic patterns slip through. Consider a timeout wrapper as fallback."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:247` — `matchRunbook` tie-break is a dense one-liner. Extract a named comparator for readability."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:460` — Spec-parsed tasks lack `hint: null`, unlike runbook tasks. Asymmetric shape."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:978` — Contract test counts pre-resolution `rb.tasks.length`, which includes `include` entries as tasks."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs:984 — Contract test counts raw `rb.tasks.length` not resolved count; a runbook with 3 tasks + 1 `include` pointing to an empty target would pass >=4 despite only 3 resolved tasks. Add a resolved-count assertion or document as intentional."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — Pre-existing: `isSafeRegex` misses alternation-based ReDoS like `(a|a)+$` (confirmed 3.7s with 25 chars); consider `safe-regex2` or `re2` (carried from task-10-sec, not new to this task)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs:399 — Duplicate test: \"warns on nested includes\" is identical logic to \"does not recurse into nested includes\" (line 338). Neither captures `console.warn`. Backlog item."
+    }
+  ]
+}

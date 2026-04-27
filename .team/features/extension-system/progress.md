@@ -1,100 +1,135 @@
 # Progress: extension-system
 
-**Started:** 2026-04-25T17:47:10.686Z
+**Started:** 2026-04-26T20:50:52.068Z
 **Tier:** polished
-**Tasks:** 24
+**Tasks:** 25
 
 ## Plan
-1. `promptAppend` return string is appended to the agent brief before `dispatchToAgent()`
-2. `verdictAppend` findings are merged into `computeVerdict()` output before compound gate runs
-3. `executeRun` spawns the returned command in task `cwd`; stdout/stderr are stored as a `cli-output` artifact; non-zero exit with `required: true` causes task FAIL
-4. `artifactEmit` returned artifact descriptors are written to the task artifact directory and included in the handshake
-5. Hook calls exceeding the timeout are skipped; pipeline proceeds normally; a `[ext warn]` line is logged
-6. An extension with 3 consecutive failures is circuit-broken; subsequent invocations are skipped without calling the function
+1. `promptAppend` return value is appended to the agent brief before `dispatchToAgent()` — for brainstorm, build, and review phases
+2. `verdictAppend` findings are merged into `computeVerdict()` output before the compound gate runs
+3. `executeRun` spawns the returned command in the task's `cwd`; stdout/stderr stored as `{taskDir}/artifacts/ext-{name}-run.txt`; non-zero exit with `required: true` causes task FAIL
+4. `artifactEmit` returned descriptors are written to the task artifact directory and listed in the handshake
+5. Hook calls exceeding timeout are skipped; pipeline proceeds; `[ext warn]` is logged to stderr
+6. An extension with 3 consecutive failures is circuit-broken; subsequent calls are skipped without invoking the function
 7. Missing `.team/extensions/` directory produces no error and no behavior change
-8. An extension with a syntax error or missing named export is skipped at load time with a warning; other extensions still load
+8. An extension with a syntax error or missing named export loads partially (only valid hooks registered); other extensions unaffected
 9. All hook contexts include: `phase`, `taskId`, `featureName`, `cwd`
-10. `promptAppend` context additionally includes: `brief` (current brief string), `role` (reviewer role if review phase)
-11. `verdictAppend` context additionally includes: `verdict`, `findings` (current findings array)
-12. `executeRun` context additionally includes: `taskTitle`, `phase`
+10. `promptAppend` context additionally includes: `brief` (current string), `role` (reviewer role, if review phase)
+11. `verdictAppend` context additionally includes: `verdict` (string), `findings` (current array)
+12. `executeRun` context additionally includes: `taskTitle`
 13. `artifactEmit` context additionally includes: `taskDir`, `verdict`
-14. Extensions directory is loaded once per `_runSingleFeature` call (not re-read per hook invocation)
-15. `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, and the four merge/run helpers
-16. `run.mjs` loads extensions at `_runSingleFeature` entry and passes registry through to dispatch helpers
+14. Registry is built once per `_runSingleFeature()` call, not re-scanned per hook invocation
+15. `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, `mergePromptAppend`, `mergeVerdictAppend`, `runExecuteRun`, `runArtifactEmit`
+16. `run.mjs` calls `loadExtensions()` at `_runSingleFeature` entry and threads the registry through to dispatch helpers
 17. `flows.mjs` calls `mergePromptAppend` before returning any brief string
-18. `synthesize.mjs` calls `mergeVerdictAppend` before returning verdict
-19. All four hook types have at least one passing unit test
-20. Timeout enforcement has a passing unit test using a stalling mock hook
-21. Circuit breaker has a passing unit test (disable after 3 consecutive failures)
-22. A working example extension exists at `examples/extensions/log-phases.mjs` demonstrating all four hooks
-23. `agt doctor` reports loaded extension count (0 if none)
-24. `test/extensions.test.mjs` passes with `node --test`
+18. `run.mjs:buildTaskBrief` calls `mergePromptAppend` before returning
+19. `synthesize.mjs` calls `mergeVerdictAppend` before returning verdict
+20. All four hook types have at least one passing unit test
+21. Timeout enforcement has a passing unit test
+22. Circuit breaker has a passing unit test (disable after 3 consecutive failures)
+23. `test/extension-system.test.mjs` passes with `node --test`
+24. Existing test suite (`npm test`) still passes with no regressions
+25. A working example extension exists at `examples/extensions/log-phases.mjs` demonstrating all four hooks
 
 ## Execution Log
 
-### 2026-04-25 18:01:46
-**Task 1: `promptAppend` return string is appended to the agent brief before `dispatchToAgent()`**
+### 2026-04-26 21:13:13
+**Task 1: `promptAppend` return value is appended to the agent brief before `dispatchToAgent()` — for brainstorm, build, and review phases**
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
-### 2026-04-25 18:08:05
-**Task 1: `promptAppend` return string is appended to the agent brief before `dispatchToAgent()`**
-- Verdict: 🟡 Review FAIL (attempt 2)
-- Will retry with review feedback
-
-### 2026-04-25 18:19:06
-**Task 1: `promptAppend` return string is appended to the agent brief before `dispatchToAgent()`**
-- 🔴 Review-round escalation: blocked after 3 review FAIL round(s)
-
-### 2026-04-25 18:30:21
-**Task 2: `verdictAppend` findings are merged into `computeVerdict()` output before compound gate runs**
-- Verdict: 🟡 Review FAIL (attempt 1)
-- Will retry with review feedback
-
-### 2026-04-25 18:42:03
-**Task 2: `verdictAppend` findings are merged into `computeVerdict()` output before compound gate runs**
+### 2026-04-26 21:25:52
+**Task 1: `promptAppend` return value is appended to the agent brief before `dispatchToAgent()` — for brainstorm, build, and review phases**
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
-### 2026-04-25 18:53:59
-**Task 3: `executeRun` spawns the returned command in task `cwd`; stdout/stderr are stored as a `cli-output` artifact; non-zero exit with `required: true` causes task FAIL**
+### 2026-04-26 21:40:12
+**Task 2: `verdictAppend` findings are merged into `computeVerdict()` output before the compound gate runs**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-26 21:54:19
+**Task 3: `executeRun` spawns the returned command in the task's `cwd`; stdout/stderr stored as `{taskDir}/artifacts/ext-{name}-run.txt`; non-zero exit with `required: true` causes task FAIL**
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
-### 2026-04-25 19:05:05
-**Task 3: `executeRun` spawns the returned command in task `cwd`; stdout/stderr are stored as a `cli-output` artifact; non-zero exit with `required: true` causes task FAIL**
-- Verdict: 🟡 Review FAIL (attempt 2)
-- Will retry with review feedback
+### 2026-04-26 22:06:55
+**Task 3: `executeRun` spawns the returned command in the task's `cwd`; stdout/stderr stored as `{taskDir}/artifacts/ext-{name}-run.txt`; non-zero exit with `required: true` causes task FAIL**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
 
-### 2026-04-25 19:15:37
-**Task 3: `executeRun` spawns the returned command in task `cwd`; stdout/stderr are stored as a `cli-output` artifact; non-zero exit with `required: true` causes task FAIL**
-- 🔴 Review-round escalation: blocked after 3 review FAIL round(s)
-
-### 2026-04-25 19:30:24
-**Task 4: `artifactEmit` returned artifact descriptors are written to the task artifact directory and included in the handshake**
+### 2026-04-26 22:20:42
+**Task 4: `artifactEmit` returned descriptors are written to the task artifact directory and listed in the handshake**
 - Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
-### 2026-04-25 19:45:36
-**Task 4: `artifactEmit` returned artifact descriptors are written to the task artifact directory and included in the handshake**
-- Verdict: 🟡 Review FAIL (attempt 2)
+### 2026-04-26 22:32:50
+**Task 4: `artifactEmit` returned descriptors are written to the task artifact directory and listed in the handshake**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
+
+### 2026-04-26 22:43:59
+**Task 5: Hook calls exceeding timeout are skipped; pipeline proceeds; `[ext warn]` is logged to stderr**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-26 22:53:10
+**Task 6: An extension with 3 consecutive failures is circuit-broken; subsequent calls are skipped without invoking the function**
+- Verdict: 🟡 Review FAIL (attempt 1)
 - Will retry with review feedback
 
-### 2026-04-25 20:02:02
-**Task 4: `artifactEmit` returned artifact descriptors are written to the task artifact directory and included in the handshake**
-- 🔴 Review-round escalation: blocked after 3 review FAIL round(s)
+### 2026-04-26 23:02:53
+**Task 6: An extension with 3 consecutive failures is circuit-broken; subsequent calls are skipped without invoking the function**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
 
-### 2026-04-25 20:02:04
-**Run Summary**
-- Tasks: 1/24 done, 3 blocked
-- Duration: 134m 54s
-- Dispatches: 77
-- Tokens: 72.3M (in: 332.2K, cached: 71.0M, out: 1.0M)
-- Cost: $58.60
-- By phase: brainstorm $0.66, build $5.55, review $52.38
+### 2026-04-26 23:12:30
+**Task 7: Missing `.team/extensions/` directory produces no error and no behavior change**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
 
-### 2026-04-25 20:02:33
-**Outcome Review**
-The extension system adds capability-routed hooks that make the pipeline customizable without modifying core code, advancing success metric #1 (autonomous execution) by enabling external integrations — though the execution run was costly ($58.60, 72.3M tokens) with only 1/24 tasks completing autonomously, suggesting the quality bar for hook integration tasks may need refinement.
-Roadmap status: already current
+### 2026-04-26 23:22:26
+**Task 8: An extension with a syntax error or missing named export loads partially (only valid hooks registered); other extensions unaffected**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-26 23:34:11
+**Task 9: All hook contexts include: `phase`, `taskId`, `featureName`, `cwd`**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-26 23:48:16
+**Task 10: `promptAppend` context additionally includes: `brief` (current string), `role` (reviewer role, if review phase)**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-27 00:00:32
+**Task 11: `verdictAppend` context additionally includes: `verdict` (string), `findings` (current array)**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-27 00:08:17
+**Task 12: `executeRun` context additionally includes: `taskTitle`**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-27 00:20:02
+**Task 13: `artifactEmit` context additionally includes: `taskDir`, `verdict`**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-27 00:29:29
+**Task 14: Registry is built once per `_runSingleFeature()` call, not re-scanned per hook invocation**
+- Verdict: ✅ PASS (attempt 1)
+- Gate: `npm test` — exit 0
+
+### 2026-04-27 00:37:39
+**Task 15: `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, `mergePromptAppend`, `mergeVerdictAppend`, `runExecuteRun`, `runArtifactEmit`**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+
+### 2026-04-27 00:52:30
+**Task 15: `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, `mergePromptAppend`, `mergeVerdictAppend`, `runExecuteRun`, `runArtifactEmit`**
+- Verdict: ✅ PASS (attempt 2)
+- Gate: `npm test` — exit 0
 

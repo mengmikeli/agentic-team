@@ -1,25 +1,34 @@
 ## Parallel Review Findings
 
-🟡 [architect] `bin/lib/run.mjs:972` — Runbook YAML files are never read at runtime; `selectFlow()` drives flow selection dynamically, making the `flow` field and `patterns`/`minScore` in all `.team/runbooks/*.yml` files inert. Track a follow-up to wire runbook lookup into the flow selection path before advertising runbook-driven behavior.
-🟡 [architect] `test/runbook-add-github-integration.test.mjs:22` — YAML structure validated via regex on raw text, not a parsed AST. A structurally malformed YAML containing the right keywords passes all assertions. Add a YAML parse step before field assertions to catch syntax errors at the boundary.
-🟡 [engineer] `test/runbook-add-github-integration.test.mjs:44-49` — Per-pattern field validation is document-global: `assert.match(content, /weight:\s*\d+/)` passes if *any* pattern in the file has `weight`; a pattern entry that omits the field is undetected — validate per-pattern block when a YAML parser is introduced
-🟡 [product] `.team/features/runbook-system/tasks/task-2/handshake.json:7` — Builder claims "All 544 tests pass" but `artifacts/` directory is absent for task-2; the claim is unverified by artifact — capture `test-output.txt` before finalizing handshake
-🟡 [product] `.team/runbooks/add-github-integration.yml:19` — Task 1 hint "add to env config" is ambiguous for AI agent execution with `bypassPermissions`; agent could create unsecured credential files — strengthen to "add to `.env` (ensure `.env` is in `.gitignore`); never hardcode in source files"
-🟡 [tester] `test/runbook-add-github-integration.test.mjs:44` — pattern sub-field checks (`type`, `value`, `weight`) use three independent global `assert.match()` calls; a runbook where different pattern entries each supply only one field would pass — add per-entry validation or parse YAML to iterate patterns
-🟡 [tester] `.team/features/runbook-system/tasks/task-2/handshake.json:9` — no `test-output.txt` artifact listed; the only complete test artifact (`task-1/artifacts/test-output.txt`) predates this test file's registration (committed at `fad8e81`, before `8d25645`); no builder-captured proof of passing tests — capture and attach test output in handshake
-🟡 [security] `.team/runbooks/add-github-integration.yml:5` — The `regex`-type pattern `"add.*github.*integrat|github.*integrat|connect.*github|integrat.*github"` will be passed to `new RegExp()` by the Phase 5 matching engine with no validation or timeout. A malicious or malformed runbook could cause ReDoS. Before Phase 5 ships, the engine must either (a) pre-validate patterns with a safe-regex linter, or (b) run evaluation in a `Worker` with an `AbortSignal` timeout.
-🟡 [security] `.team/runbooks/add-github-integration.yml:19` — Task 1 hint "add to env config" gives no guidance against committing credentials. An agent following this hint could write secrets to committed files. Strengthen to: "add to `.env` (verify `.env` is in `.gitignore`); never hardcode credentials in source files".
-🔵 [architect] `test/runbook-add-github-integration.test.mjs:22` — The `flow` field validated only for presence, not value. A typo (`build-verfiy`) passes silently. Cross-validate against `Object.keys(FLOWS)`.
-🔵 [architect] `.team/runbooks/add-github-integration.yml:3` — Pattern weights and `minScore: 2.5` are untested for scoring correctness. The most specific keyword (`"github integration"`, weight 1.5) alone cannot meet threshold. Acceptable for v1 but worth documenting.
-🔵 [engineer] `test/runbook-add-github-integration.test.mjs:32` — Task count via `^\s+- title:` would miscount if any `hint:` value ever contained the literal string `- title:` with leading whitespace — low risk with current content, but a YAML parser is more structurally sound
-🔵 [engineer] `.team/features/runbook-system/tasks/task-2/handshake.json:9-12` — `artifacts` list omits `test-output.txt`; task-1 captured it but task-2 did not — future reviewers must re-run to get direct evidence
-🔵 [product] `test/runbook-add-github-integration.test.mjs:44` — Pattern field validation is global (checks entire YAML text), not per-pattern; a block missing `weight` passes if any other block supplies it — consider per-block validation
-🔵 [product] `test/runbook-add-github-integration.test.mjs:1` — Near-exact copy of `runbook-add-cli-command.test.mjs`; only path and id differ — extract shared `validateRunbook(path, expectedId)` helper
-🔵 [tester] `test/runbook-add-github-integration.test.mjs:27` — `flow` field value not validated; `flow: typo` passes silently — assert membership in the known flow name set (`light-review`, `build-verify`, `full-stack`)
-🔵 [tester] `test/runbook-add-github-integration.test.mjs:20` — no YAML parse step; a structurally malformed file passes all 5 regex tests — add `yaml.parse(content)` to catch syntax errors at the boundary
-🔵 [tester] `test/runbook-add-github-integration.test.mjs:30` — task `hint` field present in all 5 tasks but untested; if required by runtime schema, its omission goes undetected
-🔵 [security] `.team/runbooks/add-github-integration.yml:20` — `hint` fields will eventually be rendered to agents or UI. Ensure any rendering layer HTML-escapes hint content to prevent XSS if hints ever originate from untrusted sources (e.g., community-contributed runbooks).
-🔵 [simplicity] `.team/runbooks/add-github-integration.yml:8` — `"github integration"` keyword (weight 1.5) is semantically covered by the regex `github.*integrat` on line 5; if a runbook reader is ever wired up, this pattern can never contribute a unique score — replace with a more distinct signal or remove it
+🟡 [architect] `bin/lib/runbooks.mjs:12-78` — Custom YAML parser handles only flat runbook schema. Track replacement with `js-yaml` if schema evolves to need multi-line strings, flow collections, or deeper nesting.
+🟡 [architect] `SPEC.md:88-94` — Scoring Algorithm pseudocode references stale field names (`pattern`/`keywords`/`threshold` vs shipped `patterns`/`minScore`). Reconcile to avoid confusing future contributors.
+🟡 [engineer] `bin/lib/runbooks.mjs:208` — `scoreRunbook` guards against falsy `description` but not non-string types; a truthy non-string (e.g. `42`) would throw `TypeError` at `.toLowerCase()`. Public export — add type guard.
+🟡 [engineer] `test/runbooks.test.mjs:393` — ReDoS guard, YAML comment, and per-element validation test blocks use inline `rmSync` cleanup instead of `beforeEach`/`afterEach`; temp dirs leak on assertion failure.
+🟡 [product] `bin/lib/runbooks.mjs:247` — Tie-break filename vs id divergence undocumented; benign but needs a comment
+🟡 [product] `.team/runbooks/*.yml` — Scoring thresholds need validation with real usage data (single regex match can trigger)
+🟡 [product] SPEC.md — No user-facing guidance for creating/debugging custom runbooks; file as follow-up UX task
+🟡 [tester] `test/runbooks.test.mjs` — No subprocess test for `--runbook <name>` CLI flag wiring. Unit tests cover `selectRunbook()` but not the CLI→function path at `run.mjs:825→1000`.
+🟡 [tester] `test/runbooks.test.mjs` — No test for console output format (`[runbook] matched: {name} (score {n})`). SPEC requires this; could silently regress.
+🟡 [tester] `test/runbooks.test.mjs` — No subprocess test for `--runbook <unknown>` warning + fallthrough behavior.
+🟡 [tester] `test/runbooks.test.mjs:83-88` — Only tests missing `id` field. Missing per-field validation tests for `name`, `patterns`, `minScore`, `tasks` individually.
+🟡 [tester] `test/runbook-dir.test.mjs` — No test verifying the 3 built-in runbooks have valid schema and ≥4 tasks each (SPEC acceptance criterion 10).
+🟡 [security] `bin/lib/runbooks.mjs:105-111` — `isSafeRegex` heuristic misses alternation-based ReDoS patterns like `(a|a)+$`. Backlog: adopt a proper safe-regex library before enabling user-contributed runbooks.
+🟡 [security] `bin/lib/runbooks.mjs:218` — No timeout on regex execution. If a ReDoS pattern bypasses the heuristic, the process hangs. Backlog: consider `RE2` or execution timeout for untrusted patterns.
+🟡 [security] `bin/lib/run.mjs:1005` — `FLOWS[runbookFlow]` uses bracket notation on a plain object. A crafted YAML `flow: "constructor"` would resolve to `Object` via prototype chain, causing a crash. Add `Object.hasOwn(FLOWS, runbookFlow)` guard.
+🟡 [security] `bin/lib/runbooks.mjs:51-62` — Custom YAML parser sets arbitrary keys from file content on plain objects. Prototype pollution possible with `__proto__` keys. Low risk given controlled authorship.
+🔵 [architect] `bin/lib/runbooks.mjs:209` — Double `isSafeRegex` guard (load-time + score-time) is documented as defensive-in-depth. Score-time check is unreachable in production path. Acceptable.
+🔵 [architect] `bin/lib/runbooks.mjs:201,231` — `scoreRunbook`/`matchRunbook` exported but only consumed by tests (not `run.mjs`). Common test-export pattern. Minor public API surface concern.
+🔵 [architect] `bin/lib/runbooks.mjs:259-278` — `include` resolution has zero consumers among built-in runbooks. Spec-mandated, minimal cost (20 lines), no action needed.
+🔵 [engineer] `bin/lib/runbooks.mjs:110` — `isSafeRegex` catches `(a+)+` but not all ReDoS vectors (e.g. `(a|a)*$`). Acceptable for trusted local YAML; consider hardening if community-contributed runbooks are supported.
+🔵 [engineer] `bin/lib/runbooks.mjs:24` — Custom YAML parser can silently misproduce output for malformed input without warning (catch at line 197 handles only exceptions, not silent misparsing).
+🔵 [product] `bin/lib/runbooks.mjs:221` — Keyword substring matching could cause false positives with short keywords
+🔵 [product] `bin/lib/runbooks.mjs:12` — Custom YAML parser limitations should be documented in runbook files
+🔵 [tester] `test/runbooks.test.mjs` — Consider testing `scoreRunbook` with empty `patterns` array (public export, bypasses `loadRunbooks` validation).
+🔵 [tester] `test/runbooks.test.mjs` — No test for task with both `title` and `include` fields — documents which takes precedence.
+🔵 [tester] `test/runbooks.test.mjs:392-418` — ReDoS load-time test uses inline cleanup instead of `beforeEach`/`afterEach` pattern.
+🔵 [security] `bin/lib/runbooks.mjs:120-122` — `readdirSync` errors silently return `[]`. Add `console.warn` for debuggability.
+🔵 [security] `bin/lib/runbooks.mjs:211` — No validation that `weight` is positive/finite. Negative weights could distort scoring.
+🔵 [security] `bin/lib/runbooks.mjs:427` — CLI `--runbook` value interpolated into console output. No risk in terminal; note for future structured logging.
 
 ## Compound Gate
 

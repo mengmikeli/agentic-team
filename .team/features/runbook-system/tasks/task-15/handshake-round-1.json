@@ -1,0 +1,55 @@
+{
+  "taskId": "task-15",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 6 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T20:21:35.331Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 6,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:12` — Custom YAML parser handles only the current flat schema; silent failures on future schema evolution (multiline strings, nested maps). Add a migration-path comment for future maintainers."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:221` — Keyword substring matching (\"api\" matches \"capital\") is documented in code but not in user-facing runbook authoring docs. Will cause confusion for custom runbook authors."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:438` — Forced-runbook log says `forced: {name}` but doesn't indicate it was triggered by `--runbook`. Consider `(via --runbook)` for clarity."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:221` — Keyword substring matching (\"api\" matches \"capital\") is documented in code but not in user-facing docs. Users authoring custom runbooks will hit surprising false positives. Backlog item for documentation."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:446` — `resolveRunbookTasks` can return `[]` if a matched runbook's tasks are all `include:` references to nonexistent IDs. This would produce an empty tasks array downstream. Add a guard: if resolved is empty, warn and fall through."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — `isSafeRegex()` heuristic bypassed by alternation-based ReDoS patterns like `(a|a)+`. Low practical impact (short inputs, repo-controlled YAML). **Backlog item.**"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical or 🟡 warning findings."
+    }
+  ]
+}

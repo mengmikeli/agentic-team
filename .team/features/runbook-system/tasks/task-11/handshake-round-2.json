@@ -1,0 +1,59 @@
+{
+  "taskId": "task-11",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 7 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T19:35:37.314Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 7,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:12-78` — Custom YAML parser is a long-term maintenance risk if the runbook schema grows beyond flat key/list-of-objects. Document the supported subset so contributors know when to switch to a real parser."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:247` — `matchRunbook` tie-break is a dense compound conditional. Extract a named comparator for auditability."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:815-825` — Console interception pattern used in 4 places. `node:test`'s `mock.method(console, 'warn')` would auto-restore and be more idiomatic."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — `isSafeRegex` heuristic misses alternation-based ReDoS (e.g. `(a|a)+$`). Acceptable for v1 with trusted YAML; track for hardening."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:962` — No test verifies built-in runbook patterns match realistic descriptions (e.g., \"add a new CLI command\" triggers `add-cli-command`). Structure is tested, but shipped pattern scoring is not. Carried forward from task-10-tester — recommend filing as future work."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs:960 — No smoke test for built-in patterns against realistic descriptions (e.g., `matchRunbook(\"add a new CLI command\", builtIns)` should return `add-cli-command`). Carried forward from task-10-tester; a pattern regression would go undetected."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — Pre-existing: `isSafeRegex` misses alternation-based ReDoS patterns like `(a|a)+$`. Independently reproduced: 28-char input takes 2703ms. Requires repo write access to `.team/runbooks/` to exploit. Backlog item carried from prior reviews."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/runbooks.test.mjs:6` — `mkdirSync` imported but never used. Remove from import."
+    }
+  ]
+}

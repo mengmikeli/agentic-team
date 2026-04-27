@@ -1,0 +1,75 @@
+{
+  "taskId": "task-15",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 11 warning, 15 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T20:31:39.747Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 11,
+    "suggestion": 15
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/runbooks.mjs:113 — `isSafeRegex` alternation check rejects all `(a|b)+` patterns including safe ones. Deliberate safety-first trade-off, but document the restriction for runbook authors."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:113` — `isSafeRegex` alternation check rejects all grouped-alternation+quantifier patterns including safe ones like `(get|set)+`; overly conservative but errs safely for repo-local YAML"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:83-90` — `stripInlineComment` returns quoted values unchanged, so `\"hello\" # comment` produces a literal string with the hash included; only matters for exotic YAML patterns not used in built-in runbooks"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:228` — Keyword substring matching (intentional) means `api` matches inside `capital`; mitigated by high `minScore` thresholds (4) on built-in runbooks"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:22 — AC says `matchRunbook(description, runbooksDir)` but function takes `runbooks` (a pre-loaded array). Reword AC to match Technical Approach."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:23 — AC wording \"regex match correctly narrows candidate set before keyword scoring\" implies two-phase filtering, but implementation uses single-phase additive scoring per the SPEC's own Technical Approach. Reword to \"Regex and keyword patterns contribute additively to the runbook score.\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cli-commands.test.mjs:266 — No CLI-level integration test for `agt run --runbook nonexistent-id --dry-run`; only unit-level coverage exists. Add a CLI test that verifies the warning output."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs — No test for `--runbook` without a value (`agt run --runbook`). Silently falls through to auto-matching — not harmful but confusing. Add a test asserting the fallthrough behavior."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/runbooks.mjs:27 — Custom YAML parser key regex `[a-zA-Z_]\\w*` matches `__proto__`; a crafted YAML could theoretically pollute the result object's prototype. Risk is low (YAML files are project-owned, `castValue` returns only primitives). Add to backlog: use `Object.create(null)` for parsed objects."
+    },
+    {
+      "severity": "critical",
+      "text": "**0 critical (🔴) | 2 warnings (🟡) | 3 suggestions (🔵)**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:267` — `include` mechanism has 1 consumer across all shipped runbooks. Explicitly spec'd, but track: if no additional include users appear, consider removing."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:113` — `isSafeRegex` heuristic over-broadly rejects all `(group|alternation)+` patterns, including benign ones like `(foo|bar)+`."
+    }
+  ]
+}

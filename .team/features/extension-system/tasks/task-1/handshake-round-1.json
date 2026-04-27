@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (3 critical, 13 warning, 8 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T18:01:46.520Z",
+  "summary": "Parallel review: FAIL (1 critical, 18 warning, 15 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T21:13:13.889Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,9 +13,9 @@
     }
   ],
   "findings": {
-    "critical": 3,
-    "warning": 13,
-    "suggestion": 8
+    "critical": 1,
+    "warning": 18,
+    "suggestion": 15
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,67 +25,79 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-registry.mjs:9-13` — Singleton ignores `cwd` after first load; future multi-cwd usage (e.g. parallel feature runs) will silently serve stale extensions — key cache on `cwd` or add an assertion comment documenting the single-cwd invariant"
+      "text": "🟡 bin/lib/extensions.mjs:88 — `setTimeout` handle never cleared when hook resolves before timeout; store handle and `clearTimeout` in `finally`"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-runner.mjs:38` — `return result` passes through `undefined` when a hook returns nothing; `fireExtension`'s `!== null` filter lets it enter the results array; downstream `r &&` in run.mjs guards it by accident — change filter to `result != null` (loose equality) in `extension-registry.mjs:33` to treat both `null` and `undefined` as \"no output\""
+      "text": "🟡 bin/lib/run.mjs:1182 — No size cap on extension return values; risk of `E2BIG` and token inflation; add per-extension truncation"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-registry.mjs:9` — `cwd` parameter is only honoured on first call; subsequent calls (e.g., second feature in outer-loop mode) silently reuse cached extensions regardless of `cwd` — add a comment documenting the single-cwd invariant, or call `resetRegistry()` at the start of `_runSingleFeature` (analogous to `resetRunUsage()` at `run.mjs:784`)"
+      "text": "🟡 bin/lib/extensions.mjs:44 — `import()` executes module-level code before hook validation; document as accepted v1 constraint"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1163` — `promptAppend` fires only for the build phase; review (`run.mjs:1231`) and replan (`run.mjs:1419,1469`) call `dispatchToAgent()` without hook invocation — clarify intended scope or extend to all dispatch sites"
+      "text": "🟡 bin/lib/extensions.mjs:88 — `setTimeout` timer in `Promise.race` is never cleared when the hook resolves first; add `clearTimeout` in a `.finally()` block to prevent dangling timers"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-registry.mjs:1` — Extension return contract `{ append: string }` is completely undocumented; extension authors cannot implement the hook without reading source code — add JSDoc or EXTENSIONS.md"
+      "text": "🟡 `bin/lib/run.mjs:1436` — Replan dispatches bypass `mergePromptAppend`; scoped out by task title but inconsistent with spec language \"called before each agent dispatch\""
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs` — No tests for `extension-loader.mjs`; `safePath` traversal guard and manifest validation are completely untested; add a `describe(\"loadExtensions\")` block covering valid manifest, invalid manifest, traversal attempt, and import error"
+      "text": "🟡 `bin/lib/extensions.mjs:114` — No size cap on extension return values; unbounded string risks token inflation and `E2BIG`"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-runner.mjs:4` — 5-second timeout is a named design feature but never tested; add a test with a hook that resolves after >5s to confirm it returns `null` and records a failure"
+      "text": "🟡 `test/extension-system.test.mjs:242` — Integration tests reproduce append logic inline rather than exercising the actual `run.mjs` code path"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs:198` — \"Brief append integration\" tests reproduce the append loop inline rather than invoking `run.mjs`; a regression in `run.mjs:1164–1168` (separator, filter condition) won't be caught by these tests"
+      "text": "🟡 `tasks/task-1/artifacts/test-output.txt:232` — Stale artifact from prior 3-file architecture; doesn't match current test file"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1231` — `promptAppend` fires only for the build phase; review and replan dispatches at lines 1231, 1419, 1469 skip extensions entirely; this boundary is undocumented and untested — clarify intent with a comment and a test asserting the boundary"
+      "text": "🟡 test/extension-system.test.mjs:19 — No test for project-level extension precedence over global; `loadExtensions` uses a `seen` Set (extensions.mjs:22-39) to shadow global extensions by name — add a test with same-named extensions in both dirs"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1165` — No size cap on `r.append`; a large string will exceed the OS ARG_MAX limit when passed as a CLI argument to `claude`, or inflate token costs with no bound. Add a per-extension cap (e.g. 10 000 chars) and warn when truncated."
+      "text": "🟡 test/extension-system.test.mjs:1 — No integration test for `mergePromptAppend` wiring in run.mjs; the 4 call sites (run.mjs:372, 1099, 1179, 1244) are verified only by reading code — if someone deletes `if (buildAppend) brief += \"\\n\" + buildAppend;`, no test fails"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1163` — Extension-appended content is inserted into a brief dispatched with `--permission-mode bypassPermissions` without sanitization. Although extension code already runs in-process (arbitrary exec by design), a malicious or compromised extension can inject adversarial instructions that the AI agent acts on with elevated implicit authority — distinct from the extension acting directly. Document the trust model or add audit logging for appended content."
+      "text": "🟡 bin/lib/run.mjs:368 — Shared mutable `registry` object passed to concurrent `runParallelReviews` calls; circuit-breaking one extension in one parallel review affects all others; untested concurrent mutation"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-registry.mjs:22` — `setExtensions()` is exported from the production module. A loaded extension running in the same process can call it to replace the entire registry, bypassing all loader validation. Guard behind `process.env.NODE_ENV === 'test'` or explicitly document that extensions are fully trusted and this is intentional."
+      "text": "🟡 bin/lib/extensions.mjs:87 — `setTimeout` handle never cleared when hook resolves before timeout; flagged as 🔵 in 4 prior review rounds, never fixed — promoting to 🟡 for persistent non-resolution"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:114` — No size cap on extension output; unbounded string risks `E2BIG` crash at `run.mjs:290` and token inflation; add per-extension truncation cap (e.g. 10,000 chars)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1179` — Extension output reaches `--permission-mode bypassPermissions` agent with no audit trail; add debug-level logging of appended strings before dispatch"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:44` — `import()` executes module-level code before hook validation; supply-chain risk accepted per SPEC.md:109; document with inline comment"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:88` — `setTimeout` handle never cleared on early resolution; accumulates live timers; add `clearTimeout` in `.finally()`"
     },
     {
       "severity": "critical",
-      "text": "🔴 `bin/lib/extension-registry.mjs:9` — `getExtensions` private function used at 1 call site; inline the 3-line lazy-init check directly into `fireExtension`"
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `bin/lib/extension-runner.mjs:18` — `recordFailure` private function used at 1 call site; inline `_failures.set(name, (_failures.get(name) ?? 0) + 1)` into the `catch` block"
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `bin/lib/extension-loader.mjs:22` — `safePath` private function used at 1 call site; inline the traversal check at line 49 with a `// prevent directory traversal` comment"
+      "text": "🔴 `bin/lib/extensions.mjs:10` — `VALID_HOOKS` lists `\"verdictAppend\"`, `\"executeRun\"`, `\"artifactEmit\"` — none are ever invoked in the codebase. Extensions exporting only these hooks will load silently but never be called. **Gold-plating.** Fix: reduce to `[\"promptAppend\"]`."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs:199` — append loop duplicated inline instead of exercising the real `run.mjs` path; change to filter or separator in `run.mjs` won't be caught"
+      "text": "🟡 `bin/lib/extensions.mjs:85-90` — `setTimeout` in `Promise.race` loser branch is never cleared; dangling timers accumulate across long runs."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:75` — `callHook` exported as public API with 1 production caller. Borderline premature export."
     }
   ]
 }

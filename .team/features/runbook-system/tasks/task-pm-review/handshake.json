@@ -1,0 +1,20 @@
+{
+  "taskId": "task-pm-review",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "completed",
+  "verdict": "PASS",
+  "summary": "PM review: PASS (0 critical, 3 warning, 2 suggestion). All 12 acceptance criteria verified with direct evidence. Full test suite passes (628/0/2).",
+  "timestamp": "2026-04-27T07:00:00.000Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 0,
+    "warning": 3,
+    "suggestion": 2
+  }
+}

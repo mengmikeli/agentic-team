@@ -1,0 +1,59 @@
+{
+  "taskId": "task-15",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 7 warning, 14 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T20:45:43.850Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 7,
+    "suggestion": 14
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/util.mjs:37` — `getFlag` returns the next arg even if it's another flag (e.g., `--runbook --dry-run` returns `\"--dry-run\"` as the runbook value). Pre-existing issue, not introduced by this PR, but exposed by it. Consider adding a `startsWith(\"-\")` guard."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:244` — Keyword substring matching (`\"api\"` inside `\"capital\"`) is documented as intentional with clear rationale. Monitor for false positives; word-boundary matching is a natural evolution if needed."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/runbooks/add-github-integration.yml:1` — Doesn't use `include: shared-setup` unlike `add-cli-command.yml`. Inconsistent composability pattern. File as future work."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/util.mjs:36 — `getFlag` consumes next flag as value when `--runbook` is followed by another flag (e.g., `--runbook --dry-run`). Pre-existing shared pattern, not a regression — add to backlog for project-wide `getFlag` improvement to reject values starting with `--`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs — No test for YAML files with BOM (byte order mark). `readFileSync(\"utf8\")` includes BOM in the first key, causing `id` validation to fail silently. Low risk since runbook files are author-controlled."
+    },
+    {
+      "severity": "warning",
+      "text": "Previous 🟡 (prototype pollution) has been **resolved**. No critical or warning findings. Evaluation written to `.team/features/runbook-system/tasks/task-sec-final/eval.md`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/runbooks.mjs:18 — Custom YAML parser (72 lines) is the largest single-function complexity; if the runbook schema stays flat, consider JSON format to eliminate the parser entirely"
+    },
+    {
+      "severity": "critical",
+      "text": "**No 🔴 critical findings.** All four veto categories checked:"
+    }
+  ]
+}

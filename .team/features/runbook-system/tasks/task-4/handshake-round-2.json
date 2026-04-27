@@ -1,0 +1,107 @@
+{
+  "taskId": "task-4",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (3 critical, 17 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T17:51:02.039Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 3,
+    "warning": 17,
+    "suggestion": 11
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:420` — `planTasks()` defaults `runbooksDir` to `process.cwd()` instead of receiving project root from caller; latent coupling to execution order. Pass `mainCwd` explicitly."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:418` — `planTasks()` has no direct unit test. Task shape mapping and `runbookFlow` return are verified only by code reading."
+    },
+    {
+      "severity": "critical",
+      "text": "### Prior 🔴 Resolution"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:418` — `planTasks()` has no direct unit test; task shape mapping and fallthrough paths verified only by code reading"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:831` — No CLI E2E test for `--runbook <name>` flag"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:22 — AC says `matchRunbook(description, runbooksDir)` but function takes `runbooks` (array). Parameter name mismatch with Technical Approach."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:23 — AC wording \"narrows candidate set\" implies two-phase filtering; actual algorithm is single-phase additive scoring. Misleading AC."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 tasks/task-4-p1-r1/handshake.json — Gate handshake still shows FAIL from earlier broken iteration. Code passes 45/45 tests now. Stale audit trail."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 commit b435764 — Commit message claims `matchRunbook` implementation but diff has zero source changes."
+    },
+    {
+      "severity": "critical",
+      "text": "- Prior 🔴 (`selectRunbook` premature abstraction) fully addressed — inlined into `planTasks()`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:216` — No test for `score === minScore` boundary; add a test where score exactly equals minScore to verify the `>=` threshold"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:519` — Integration tests simulate the pipeline manually but never call `planTasks()` directly; actual wiring at `run.mjs:418-451` only exercised through CLI `--dry-run` with non-matching descriptions"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:576` — `--runbook` flag tested by manual `runbooks.find()`, not through CLI; no integration test passes `--runbook add-cli-command` and asserts output"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:519` — AC requires console output with matched runbook name and score; no test asserts the `[runbook] matched:` log line"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs`:110 — `isSafeRegex` heuristic misses alternation-based ReDoS patterns like `(a|a)+$` (verified: 14ms on 20 chars, exponential growth). Low exploitability — requires repo write access to plant malicious YAML, at which point the attacker can already execute arbitrary code via package.json/bin scripts."
+    },
+    {
+      "severity": "critical",
+      "text": "- **Premature abstraction**: Prior `selectRunbook` 🔴 verified fixed (inlined into `planTasks`). All remaining abstractions have ≥2 call sites or are 60+ line extractions"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `runbooks.mjs:12-78` — Custom YAML parser is correct but becomes a liability if schema grows"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `runbooks.mjs:247` — 120-char tie-breaking expression is hard to scan; extract a `tiebreakKey` variable"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `runbooks.mjs:194` — `flow` field exercised only by test fixtures, not by any shipped runbook"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `runbooks.mjs:258-276` — `include` resolution tested but unused by any shipped runbook"
+    }
+  ]
+}

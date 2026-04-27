@@ -1,0 +1,51 @@
+{
+  "taskId": "task-11",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 5 warning, 8 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T19:42:34.131Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 5,
+    "suggestion": 8
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — `isSafeRegex` heuristic only catches nested-quantifier ReDoS; more exotic patterns like `(a|a)+b` slip through. Consider a timeout guard or safe-regex library as runbook count scales."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:960` — No smoke test verifies built-in runbook patterns match realistic descriptions (e.g., `matchRunbook(\"add a new CLI command\", builtIns)` returns `add-cli-command`). A shipped regex typo would go undetected. Carried forward from tester review."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/runbooks.test.mjs:960` — No test verifies built-in runbook patterns match realistic descriptions (e.g., `matchRunbook(\"add a new CLI command\", builtInRunbooks)` → `add-cli-command`). A pattern regression would go undetected. Backlog item."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/runbooks.test.mjs:960 — No test verifies built-in runbook patterns match realistic descriptions (carried forward). Add smoke tests like `matchRunbook(\"add a new CLI command\", builtInRunbooks)` to catch pattern regressions in shipped YAML."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:110` — Pre-existing: `isSafeRegex` misses alternation-based ReDoS patterns (`(a|a)+$`). Independently reproduced at 3637ms for 25-char input. Requires repo write access to exploit. Consider `safe-regex2` or regex execution timeout. Backlog item carried from task-7-sec/task-10-sec."
+    },
+    {
+      "severity": "critical",
+      "text": "The previously flagged 🔴 (unused `mkdirSync` import) was fixed in commit `6e47623`. All four veto categories now pass:"
+    }
+  ]
+}

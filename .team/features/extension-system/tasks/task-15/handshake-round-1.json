@@ -1,0 +1,75 @@
+{
+  "taskId": "task-15",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 11 warning, 15 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T00:37:39.468Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 11,
+    "suggestion": 15
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:156` — Per-extension truncation at 4096 chars; N extensions could add 4096*N to a prompt. Add a total cap for scalability."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:108` — `callHook` doesn't validate `hookName` against `VALID_HOOKS`; typos silently return `[]`. Add a guard."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:146` — Double `validateContext` call (in `mergePromptAppend` and again inside `callHook`). Harmless but redundant."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `examples/extensions/log-phases.mjs` — Missing. SPEC \"Done When\" requires a working example extension demonstrating all four hooks. File as backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/doctor.mjs` — No extension reporting. SPEC \"Done When\" requires `agt doctor` to report loaded extension count. File as backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `handshake.json:7` — Handshake claims \"664 tests pass\" but actual count is 85; inflated test counts erode trust in handshake data"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:233` — `spawnSync` timeout hardcoded to 30s but `opts.timeoutMs` only controls the hook function's Promise.race, not the subprocess; these should be aligned"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/doctor.mjs:232` — SPEC requires `agt doctor` reports loaded extension count; not implemented"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 (missing file) — SPEC requires example extension at `examples/extensions/log-phases.mjs`; file does not exist"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:246` — `runExecuteRun` writes stdout+stderr without size cap; `MAX_ARTIFACT_BYTES` is only enforced in `runArtifactEmit`. A fast-output command could fill disk during the 30s timeout. Add `stdout.slice(0, MAX_ARTIFACT_BYTES)` before write."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:304` — Size check uses `desc.content.length` (char count) instead of `Buffer.byteLength()`. Multi-byte UTF-8 content can exceed the intended 10 MB limit on disk."
+    },
+    {
+      "severity": "critical",
+      "text": "**No 🔴 critical or 🟡 warning findings.** All four veto categories (dead code, premature abstraction, unnecessary indirection, gold-plating) pass cleanly. The code is 321 lines, every abstraction has ≥2 call sites, every feature traces to a SPEC requirement, and the module is trivially deletable."
+    }
+  ]
+}

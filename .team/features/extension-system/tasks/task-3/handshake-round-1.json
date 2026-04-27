@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (5 critical, 18 warning, 6 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T18:53:59.444Z",
+  "summary": "Parallel review: FAIL (1 critical, 24 warning, 15 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T21:54:19.323Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,9 +13,9 @@
     }
   ],
   "findings": {
-    "critical": 5,
-    "warning": 18,
-    "suggestion": 6
+    "critical": 1,
+    "warning": 24,
+    "suggestion": 15
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,95 +25,103 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs:547` — executeRun artifact/failure tests are whitebox simulations that inline the run.mjs logic; if the executeRun block in run.mjs were deleted, all these tests would still pass. Add an integration-level test that exercises the actual run.mjs path."
+      "text": "🟡 extensions.mjs:162 — Index-based extension-to-result matching is unsound: `callHook` filters null/undefined returns before pushing to `results`, but `runExecuteRun` reconstructs the extension list via `.filter()` and matches by position. If extension A returns null and B returns a command, B's output is attributed to A's name. Fix: return `{ ext, result }` pairs from `callHook` or iterate extensions directly in `runExecuteRun`."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1230` — Artifact slug is first 30 chars of command; two extensions with the same command prefix silently overwrite each other's artifact. Use `ext-run-${index}-${slug}.txt` or include the extension name."
+      "text": "🟡 extensions.mjs:177 — `execSync` with 30s timeout blocks the event loop per command; acceptable for v1 single-extension use but won't scale for outer-loop runs with multiple extensions."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1232` — `ext-run-*.txt` artifacts are written to `artifactsDir` but never registered in any handshake, making them invisible to the harness and dashboard."
+      "text": "🟡 run.mjs:1219 — `ext-{name}-run.txt` artifacts written to disk but not registered in handshake; carried unresolved from 3 prior review rounds. Harness and dashboard cannot discover these files."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-registry.mjs:8` — Singleton `_extensions` is loaded once from the first `cwd` seen; subsequent `fireExtension` calls with a different `cwd` silently reuse the first-loaded set with no warning. No enforcement of the documented single-cwd invariant."
+      "text": "🟡 extensions.mjs:166 — `Array.isArray(result)` support lets extensions return multiple commands, but SPEC.md:114 explicitly declares this out of scope. Update spec or remove array unwrapping."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:162-163` — Extension-to-result index mapping bug. `callHook` filters out failed/null results, but `runExecuteRun` uses positional indexing against the unfiltered extension list. When any hook throws, subsequent results get attributed to the wrong extension name."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:177` — `execSync` cannot capture stderr when the command exits 0. Only stdout is returned on success; stderr is silently discarded. Spec requires unconditional capture. Fix: use `spawnSync`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:688` — False positive test. The \"captures stderr\" test asserts `content.includes(\"err-msg\")` but matches against the echoed command string (`$ echo err-msg >&2; exit 0`), not actual captured stderr. This masks the bug above."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:166,202` — Array command support silently overwrites the same artifact file. Code accepts `Array.isArray(result)` but spec says multi-command is out of scope. Each command clobbers the previous artifact."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `extensions.mjs:162` — Index-mapping bug: when multiple extensions have `executeRun` and one hook fails/returns null, subsequent results get attributed to the wrong extension (wrong artifact filename, wrong error message)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `extensions.mjs:199` — Artifact written to disk but never registered in handshake as `cli-output` type per spec. Flagged in all 3 prior rounds, unresolved."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `run.mjs:1225` — Raw extension output embedded in retry prompt without escaping triple-backtick sequences (prompt injection vector)"
     },
     {
       "severity": "critical",
-      "text": "🔴 `bin/lib/run.mjs:1232` — `writeFileSync` precedes `executeRunFailed = true`; if artifact write throws, the outer `catch {}` swallows it and a required non-zero exit is silently missed; move failure-flag logic before `writeFileSync`"
+      "text": "The core user value is delivered: extensions can run commands, output is captured, and `required: true` correctly blocks the task. All 593 tests pass. The prior round-3 🔴 blocker (dead-code traversal guard) is resolved by the refactoring into a single `extensions.mjs`. Three warnings go to backlog — none block merge for v1 where single-extension usage dominates."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1236` — `lastFailure` overwritten per failing required command; multiple concurrent failures lose all but the last context for the retry brief; accumulate with `+=`"
+      "text": "🟡 extensions.mjs:162 — Result-to-extension index mapping is wrong when an extension returns null/undefined; `callHook` filters these from results but `extWithHook` still includes them, causing artifacts and failure messages to attribute to the wrong extension — fix by returning `{ext, result}` pairs from `callHook` or tracking indices explicitly"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs:596` — failure-detection tests reproduce the conditional inline without importing `run.mjs`; a change to the condition or ordering in `run.mjs` won't break them"
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `test/extension-system.test.mjs:596` — Failure-detection tests hand-code the if-condition from `run.mjs:1234` locally; deleting that production line leaves all three tests green — replace with integration tests that exercise the actual `run.mjs` executeRun block"
+      "text": "🟡 extensions.mjs:166 — Array command return path is handled but untested; multiple commands from the same extension overwrite the same artifact file, silently losing output — add test and index artifact filenames"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs:547` — Artifact-creation tests bypass `run.mjs:1229–1232` by reimplementing logic in a local temp dir; a regression in production artifact writing is undetectable — add tests exercising the real code path"
+      "text": "🟡 test/extension-system.test.mjs:561 — All `runExecuteRun` tests use exactly 1 extension; no multi-extension test exists to expose the index-mapping bug — add a 2+ extension test"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1232` — `ext-run-*.txt` written to `artifactsDir` but never registered in any handshake artifact list; harness and dashboard cannot discover it — register as `{ type: \"cli-output\" }`"
+      "text": "🟡 run.mjs:1223 — The executeRunFailed -> retry path has no integration test; a call-site regression is undetectable — add integration test"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1236` — Raw command stdout/stderr concatenated unescaped into the agent retry brief; triple-backtick in extension output can escape the fence and inject into LLM context — strip or use a non-guessable delimiter"
-    },
-    {
-      "severity": "critical",
-      "text": "The implementation is correct by code inspection — all three requirements (`cwd` spawn, artifact storage, `required` failure → task FAIL) are present in `run.mjs:1205–1255`. The gate passes with 566 tests, 0 failures. However, the Tester correctly identified that the three failure-detection tests test inline-simulated `if`-condition logic, not the production `run.mjs` code. Deleting `run.mjs:1234` leaves all three passing. The central acceptance criterion is unverifiable by the current test suite. That 🔴 blocks merge."
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 `test/extension-system.test.mjs:596` — Failure-detection tests assert on hand-coded conditionals, not on `run.mjs`; deleting `run.mjs:1234` leaves all three passing — replace with an integration test that exercises the actual run loop path"
+      "text": "🟡 extensions.mjs:199 — `ext-run-*.txt` artifacts written to disk but never registered in handshake; spec says \"stored as a cli-output artifact\" implying discoverability (carried from prior reviews, still unresolved)"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs:547` — Artifact-creation tests bypass `run.mjs:1229–1232` by reimplementing the artifact logic inline in the test; a regression in production artifact writing is undetectable"
+      "text": "🟡 `bin/lib/extensions.mjs:162` — Extension-result index misalignment: `callHook` filters out null/failed results but `runExecuteRun` matches results to extensions by index, causing wrong extension attribution when some hooks return null or fail"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1217` — Task spec claims command spawns in task `cwd` but no test verifies the `cwd` option is actually passed to `execSync`; add a test using `pwd` or similar to assert working directory"
+      "text": "🟡 `bin/lib/extensions.mjs:177` — No `maxBuffer` on `execSync` (default ~1MB); `runGateInline` uses 50MB but this was omitted here; large command output causes silent `ENOBUFS` failure"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1210` — Empty/whitespace command guard (`!r.command.trim()`) is untested; an extension returning `{ command: \"  \" }` should be silently skipped — no case covers this"
+      "text": "🟡 `bin/lib/extensions.mjs:202` — Artifact filename collision: array of commands from one extension all write to the same filename, each overwriting the previous"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1236` — Raw `cmdOut`/`cmdErr` from extension-spawned commands are embedded unescaped in `lastFailure`, which is injected into the agent brief on the next retry inside a fenced code block. If an extension command reads repo-controlled content (e.g., `eslint user-file.js`), triple-backtick sequences in that output escape the fence and inject LLM instructions into the next attempt's prompt. Strip/escape triple-backticks from `lastFailure` before embedding, or wrap with a non-guessable delimiter."
+      "text": "🟡 `bin/lib/extensions.mjs:203` — No sanitization of `desc.command` echoed into artifact file (control characters, length)"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/extension-registry.mjs:8` — `_extensions` singleton is never reset between outer-loop feature runs. Feature A's extensions remain active when feature B executes. `resetRegistry()` should be called at the start of `_runSingleFeature` alongside the existing `resetRunUsage()` at line 784."
+      "text": "🟡 `bin/lib/extensions.mjs:202` — Artifact files written to disk but NOT registered in `handshake.json` (carried from prior parallel review, still unresolved)"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/extension-system.test.mjs:547` — 6 tests in `describe(\"executeRun — spawn, artifact, and failure detection\")` inline `run.mjs` artifact/failure logic rather than importing it; if `run.mjs:1230–1234` is deleted, all 6 tests still pass. Backlog: replace with tests that exercise the actual code path."
+      "text": "🟡 `bin/lib/extensions.mjs:159-164` — Index-based extension attribution bug: `callHook` filters out null/error results, but `runExecuteRun` matches results to extensions by positional index. If any extension's hook throws or returns null, artifact filenames and error messages attribute commands to the wrong extension. Fix: return `{ext, result}` tuples from `callHook`."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1230` — Artifact slug uses first 30 chars of command; two extensions with the same command prefix silently overwrite each other's artifact file. Add a counter suffix or include extension name in slug."
+      "text": "🟡 `bin/lib/extensions.mjs:162` — `registry.extensions.filter(...)` computed inside the loop on every iteration; the filter is invariant since `callHook` already completed. Hoist before the loop."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1232` — `ext-run-*.txt` artifacts are written to `artifactsDir` but never registered in any `handshake.json`, making them invisible to the harness/dashboard. Backlog: append entries to the builder handshake or write a dedicated extension run handshake."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/extension-registry.mjs:8` — Singleton `_extensions` is loaded on first `fireExtension(cwd)` call; a second call with a different `cwd` silently reuses the first-loaded set. The invariant is documented but not enforced. Backlog: assert or warn on cwd mismatch."
-    },
-    {
-      "severity": "critical",
-      "text": "**Verdict: PASS** — no 🔴 blockers. Four veto categories all clear (no dead code, no premature abstraction, no unnecessary indirection, no gold-plating). The three pre-existing 🟡 warnings from the Architect review are confirmed from the simplicity lens; all are backlog items."
+      "text": "🟡 `bin/lib/run.mjs:371` — `if (registry)` dead guard in `runParallelReviews`; `loadExtensions()` always returns a truthy object. Carried from prior review, unresolved."
     }
   ]
 }

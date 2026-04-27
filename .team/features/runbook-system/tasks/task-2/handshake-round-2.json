@@ -1,0 +1,75 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 10 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T17:10:20.523Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 10,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:188` — `flow` field loaded and stored but never consumed downstream. Wire to flow selection or remove from schema."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:207-209` — Double ReDoS guard (`isSafeRegex` at load-time line 158 AND score-time line 209); runtime check is unreachable for `loadRunbooks`-sourced data. Document as defensive-in-depth or remove duplicate."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:88-94 — Scoring Algorithm pseudocode still uses old field names (`runbook.pattern`, `runbook.keywords`, `runbook.threshold`) instead of shipped names (`patterns`, `minScore`). Update to match implementation."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/runbooks.mjs:105-111 — ReDoS heuristic misses alternation-based patterns like `(a|a)+$`. Backlog for future hardening."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:418` — `planTasks()` has no direct unit tests. The task shape mapping, `runbookFlow` return, and fallthrough paths are verified only by code reading, not assertions."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:218` — Keyword matching uses `indexOf`, so keyword `\"api\"` matches inside `\"capital\"`. Not documented as intentional; no test asserts or guards against this."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:116` — Duplicate runbook IDs across YAML files are silently accepted. `include:` and `selectRunbook(forcedId)` resolve to the first match by `Array.find`. Untested edge case."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/agt.mjs:93` — No CLI integration test for `--runbook <name>`. Flag parsing and wiring verified by code reading only."
+    },
+    {
+      "severity": "critical",
+      "text": "**0 critical (🔴), 2 warnings (🟡), 2 suggestions (🔵)**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:209` — Double `isSafeRegex` guard: load-time filtering (line 158) already removes unsafe patterns, so the score-time check can never fire in the production path. Defensible since `scoreRunbook` is a public export, but document the defensive intent."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/runbooks.mjs:259-278` — `include` resolution has 0 consumers among built-in runbooks. Spec-mandated and only 20 lines, but carrying cost for zero current value."
+    },
+    {
+      "severity": "critical",
+      "text": "All four veto categories (dead code, premature abstraction, unnecessary indirection, gold-plating) are **clear**. No 🔴 findings. Merge unblocked."
+    }
+  ]
+}

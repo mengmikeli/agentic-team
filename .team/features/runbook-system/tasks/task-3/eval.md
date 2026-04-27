@@ -1,30 +1,27 @@
 ## Parallel Review Findings
 
-[simplicity veto] No 🔴 findings. The task-3 deliverable is clean against all four veto categories.
-🟡 [architect] `package.json:22` — Test script enumerates files explicitly; every new runbook test requires a manual edit or it is silently skipped. `test:full` uses `test/*.test.mjs` glob but isn't the default. Risk compounds as more runbooks are added.
-🟡 [engineer] `test/runbook-add-test-suite.test.mjs:44-49` — Pattern validation checks file-wide presence only (one `assert.match` per field); a runbook with one valid pattern and additional malformed patterns would still pass. Add per-pattern validation or note as known limitation.
-🟡 [engineer] `.team/features/runbook-system/tasks/task-3/handshake.json:9-13` — No `test-output` artifact is listed. The stored `test-output.txt` (task-1's artifact) predates this test being added — its command line omits `runbook-add-test-suite.test.mjs`. No captured evidence that these specific tests ran and passed in an artifact.
-🟡 [product] `.team/features/runbook-system/tasks/task-3/handshake.json:9` — No `artifacts/test-output.txt` saved; third consecutive task missing this evidence despite task-1 resolving it in run_3 — capture and attach test output in handshake artifacts
-🟡 [product] Gate output (provided) — Truncated before the `add-test-suite.yml runbook` suite appears; task-3's 5 test assertions are not directly verifiable from the capture alone — systemic truncation issue should be investigated
-🟡 [tester] `test/runbook-add-test-suite.test.mjs:44` — pattern sub-field checks (`type`, `value`, `weight`) use independent global `assert.match()` calls; a partially-formed pattern entry passes undetected — add per-entry validation when a YAML parser is introduced (backlog, same gap as task-2)
-🟡 [tester] `.team/features/runbook-system/tasks/task-3/handshake.json:9` — no `test-output.txt` artifact; gate output is truncated before the `add-test-suite.yml runbook` describe block; no direct captured evidence of passing tests — third consecutive task with this gap
-[tester] **Summary:** The criterion is met — `add-test-suite.yml` exists, has all 6 required schema fields, and contains 5 tasks (≥4). The test file is registered in the same commit (no separate fix commit needed, unlike task-2). Both 🟡 findings are systemic backlog items carried from task-2: per-pattern field validation and missing test output artifact (now three consecutive tasks without one). No critical issues. **PASS** with two warnings to backlog.
-🟡 [simplicity] test/runbook-add-test-suite.test.mjs:1 — Third structurally-identical copy of a 50-line runbook test; differs from `runbook-add-github-integration.test.mjs` only in 3 string literals; adding a fourth runbook will require a fourth copy; extract a shared `assertRunbookSchema(path, expectedId)` helper (backlog item)
-🟡 [simplicity] .team/features/runbook-system/tasks/task-3/handshake.json:14 — No `artifacts/test-output.txt` captured; handshake asserts `critical: 0, warning: 0, suggestion: 0` but provides no self-contained evidence; gate output confirms registration but results are truncated
-🔵 [architect] `test/runbook-add-test-suite.test.mjs:32` — Task count uses `/^\s+- title:/gm` on raw YAML. Matches any `- title:` key at any nesting depth regardless of context; a YAML parser would be more correct.
-🔵 [architect] `bin/lib/run.mjs:799-800` — `runbooks/` is lazily created but never read at runtime. Runbooks are static data with no pattern-matching consumer. Acceptable v1 scaffolding, but the gap between "runbooks exist" and "runbooks guide task generation" should be in the backlog.
-🔵 [architect] `.team/runbooks/add-test-suite.yml:15-16` — `unit tests` keyword (weight 1.0) is below `minScore: 2.5`; a standalone "unit tests" request won't match this runbook. Likely intentional but should be documented.
-🔵 [engineer] `.team/runbooks/add-test-suite.yml:5` — `creat.*test.*framework` truncates "create" without explanation; consider `creat(e|ing)?.*test.*framework` for clarity.
-🔵 [engineer] `.team/runbooks/add-test-suite.yml:15-16` — `unit tests` keyword has weight 1.0, below the 2.5 minScore; a standalone "unit tests" request won't trigger this runbook. Intentional or oversight — worth documenting.
-🔵 [product] `test/runbook-add-test-suite.test.mjs:20` — Schema validated via raw-string regex, not YAML parsing; pre-existing backlog item from tasks 1 and 2
-🔵 [product] `test/runbook-add-test-suite.test.mjs:44` — Pattern field validation is document-global, not per-pattern; pre-existing backlog item from tasks 1 and 2
-🔵 [tester] `test/runbook-add-test-suite.test.mjs:27` — `flow` field value not validated against known values; `flow: bogus-value` passes silently — assert membership in the known set from `bin/lib/flows.mjs`
-🔵 [tester] `test/runbook-add-test-suite.test.mjs:20` — no YAML parse step; structurally malformed YAML passes all 5 regex assertions — add `yaml.parse(content)` to catch syntax errors
-🔵 [tester] `test/runbook-add-test-suite.test.mjs:30` — task `hint` field present in all 5 tasks but untested; omission goes undetected if `hint` becomes required by the runtime schema
-🔵 [security] `.team/runbooks/add-test-suite.yml`:4–12 — When a pattern-matching engine is built, wrap regex execution with a timeout or use the `re2` package; even O(n) patterns become a concern at scale with user-supplied descriptions
-🔵 [security] `test/runbook-add-test-suite.test.mjs`:20–28 — Schema validation uses raw-text regex, not YAML parsing; add a `js-yaml` or `yaml` parse step to catch YAML structural issues (anchors, type coercion) before a future consumer sees them
-[security] Both findings are 🔵 suggestions scoped to the future pattern-matching engine phase. Nothing blocks merge.
-🔵 [simplicity] test/runbook-add-test-suite.test.mjs:21 — `readFileSync(runbookPath, "utf8")` called 4 separate times across `it()` blocks; a module-level `const content = ...` would eliminate 3 redundant reads
+🟡 [architect] `bin/lib/run.mjs:420` — `planTasks()` defaults `runbooksDir` to `process.cwd()` instead of accepting `mainCwd` from the caller. Latent coupling to execution order — currently safe because it's called before worktree chdir, but fragile. Pass `mainCwd` explicitly.
+🟡 [architect] `bin/lib/run.mjs:418` — `planTasks()` has no direct unit test. Task shape mapping and `runbookFlow` return are verified only by code reading (carried forward from prior review).
+🟡 [product] SPEC.md:23 — AC wording "regex match correctly narrows candidate set before keyword scoring" implies two-phase filtering, but the actual algorithm is additive scoring. Reword for clarity.
+🟡 [product] bin/lib/runbooks.mjs:221 — Keyword substring matching ("api" matches inside "capital") is intentional but undocumented for end users. Needs runbook-authoring guidance.
+🟡 [product] tasks/task-4*/handshake.json — All four task-4 handshakes show FAIL verdict, but code now passes 49/49. Stale audit trail.
+🟡 [product] commit 6feae86 — Commit message claims `scoreRunbook` implementation, but diff contains zero source code changes. `scoreRunbook` was implemented in earlier commits alongside `loadRunbooks`.
+🟡 [tester] `bin/lib/runbooks.mjs:210` — `scoreRunbook` is a public export but crashes on `scoreRunbook("desc", {})` (undefined patterns). Add a null guard or document the contract with a test.
+🟡 [tester] `test/runbooks.test.mjs:122` — No test for negative weights. `weight: -3` produces negative scores, which interact with `minScore` in untested ways. Document whether negative weights are accepted or rejected.
+🟡 [tester] `test/runbooks.test.mjs:122` — `NaN` weight via programmatic API poisons scoring. If a NaN-weighted runbook becomes `best` first in `matchRunbook`, no valid runbook can replace it (`score > NaN` is always false). YAML loading prevents this, but the public API is unprotected.
+🔵 [architect] `bin/lib/runbooks.mjs:261` — `score: Infinity` for forced selections is a magic value. Consider `{ runbook, score, forced: true }` for clarity.
+🔵 [architect] `bin/lib/runbooks.mjs:12-78` — Custom YAML parser is well-scoped for v1. Document as a migration candidate if schema grows beyond flat scalars/lists.
+🔵 [architect] `bin/lib/runbooks.mjs:196` — `_filename` leaks through the public API for tie-breaking. Consider using `id` instead or documenting the field.
+🔵 [engineer] `bin/lib/runbooks.mjs:210` — `scoreRunbook` doesn't guard against malformed `runbook` objects (missing `patterns`). Unreachable via normal pipeline but it's a public export. Add `if (!runbook?.patterns) return 0;`.
+🔵 [engineer] `bin/lib/runbooks.mjs:279` — `resolveRunbookTasks` silently drops nested `include` entries (one-level-deep rule) without a diagnostic warning, unlike missing references which do warn at line 275.
+🔵 [engineer] `bin/lib/runbooks.mjs:218` — `new RegExp()` allocated per call per pattern. Fine for CLI; cache if ever used in a hot path.
+🔵 [product] bin/lib/runbooks.mjs:211 — No validation that `weight` is positive. Negative weights would subtract from score.
+🔵 [product] SPEC.md:74 — SPEC doesn't specify edge-case behavior (null description, invalid regex) that the implementation handles gracefully.
+🔵 [tester] `test/runbooks.test.mjs:122` — No test for empty patterns array (`{ patterns: [] }`). Code returns 0 correctly but contract is undocumented.
+🔵 [tester] `bin/lib/runbooks.mjs:231` — Non-overlapping keyword counting (`idx += kw.length`) is untested. Keyword `"aa"` in `"aaa"` counts 1, not 2.
+🔵 [tester] `bin/lib/runbooks.mjs:105-111` — `isSafeRegex` heuristic misses patterns like `([\w]+)+` where quantifier is inside a character class before group close.
+🔵 [simplicity] bin/lib/runbooks.mjs:247 — Tie-break expression is dense; extract to a named variable for readability
+🔵 [simplicity] bin/lib/runbooks.mjs:280 — Spread pattern `...(t.hint ? { hint: t.hint } : {})` could be simplified to `hint: t.hint || undefined`
 
 ## Compound Gate
 

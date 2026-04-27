@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "completed",
   "verdict": "PASS",
-  "summary": "Parallel review: PASS (0 critical, 10 warning, 9 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T18:42:03.524Z",
+  "summary": "Parallel review: PASS (0 critical, 20 warning, 15 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-26T21:40:12.690Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -14,8 +14,8 @@
   ],
   "findings": {
     "critical": 0,
-    "warning": 10,
-    "suggestion": 9
+    "warning": 20,
+    "suggestion": 15
   },
   "compoundGate": {
     "tripped": 0,
