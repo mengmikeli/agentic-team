@@ -48,7 +48,7 @@ export const api = {
   },
 
   async getTokens(days: number = 7): Promise<TokenData> {
-    const data = await apiFetch<TokenData>(`/api/tokens?days=${days}`);
+    const data = await apiFetch<TokenData>(`/api/tokens?days=${days}&tz=${new Date().getTimezoneOffset() * -1}`);
     return data || { available: false, summary: { input: 0, cached: 0, output: 0, reasoning: 0, total: 0 }, daily: [], models: [], sources: [], error: true };
   },
 

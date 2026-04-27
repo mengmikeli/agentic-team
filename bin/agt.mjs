@@ -532,7 +532,7 @@ switch (command) {
       return result;
     }
 
-    function loadTokenData(fs, join, home, days = 7) {
+    function loadTokenData(fs, join, home, days = 7, tzOffset = 0) {
       const pewDir = join(home, ".config", "pew");
       const queuePath = join(pewDir, "queue.jsonl");
       if (!fs.existsSync(queuePath)) return { available: false };
@@ -557,16 +557,18 @@ switch (command) {
           total += r.total_tokens || 0;
         }
 
-        // Daily aggregation (UTC)
+        // Daily aggregation — shift to client timezone if tzOffset provided
+        // tzOffset passed as parameter (minutes from UTC, e.g. 480 for UTC+8)
+        const shiftDate = (d) => new Date(d.getTime() + tzOffset * 60000);
         const dailyMap = new Map();
         for (let i = days - 1; i >= 0; i--) {
-          const d = new Date(now);
+          const d = shiftDate(new Date(now));
           d.setDate(d.getDate() - i);
           const key = d.toISOString().slice(0, 10);
           dailyMap.set(key, { date: key, total: 0, input: 0, output: 0, cached: 0 });
         }
         for (const r of recent) {
-          const key = new Date(r.hour_start).toISOString().slice(0, 10);
+          const key = shiftDate(new Date(r.hour_start)).toISOString().slice(0, 10);
           if (dailyMap.has(key)) {
             const d = dailyMap.get(key);
             d.total += r.total_tokens || 0;
@@ -752,7 +754,8 @@ switch (command) {
           if (pathname === "/api/tokens") {
             const daysParam = parseInt(url.searchParams.get("days") || "7", 10);
             const validDays = [1, 7, 28].includes(daysParam) ? daysParam : 7;
-            return jsonRes(res, loadTokenData(fs, join, home, validDays));
+            const tzOffset = parseInt(url.searchParams.get("tz") || "0", 10);
+            return jsonRes(res, loadTokenData(fs, join, home, validDays, tzOffset));
           }
           if (pathname === "/api/tokens/sync" && req.method === "POST") {
             try {

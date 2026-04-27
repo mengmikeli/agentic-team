@@ -133,3 +133,8 @@
 - Verdict: ✅ PASS (attempt 2)
 - Gate: `npm test` — exit 0
 
+### 2026-04-27 01:01:27
+**Task 16: `run.mjs` calls `loadExtensions()` at `_runSingleFeature` entry and threads the registry through to dispatch helpers**
+- Verdict: 🟡 Review FAIL (attempt 1)
+- Will retry with review feedback
+

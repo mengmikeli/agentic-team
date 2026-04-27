@@ -1,0 +1,75 @@
+{
+  "taskId": "task-16",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 11 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T01:01:27.457Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 11,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/extensions.mjs:124 — (Pre-existing, from task-15) `Promise.race` timeout pattern leaves hook promises without `.catch()` handler — can produce unhandled rejection if timed-out hook later rejects. Backlog item."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `handshake.json`:2 — `nodeType: \"build\"` but task-16 commits modified zero code files; integration was done in prior tasks. Should be `\"review\"`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `handshake.json`:9 — Artifacts list claims 3 files that were not modified by this task."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `tasks/task-16/` — No `artifacts/test-output.txt`; \"670 tests pass\" claim not self-contained."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `tasks/task-16/` — No `spec.md`; acceptance criteria inferred from title only."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs` — No integration test verifies `_runSingleFeature` actually calls `loadExtensions()` and passes registry to the 9 dispatch sites. The project already uses \"source assertion\" patterns (regex on source code) in `test/worktree.test.mjs:223` for similar wiring. Add equivalent assertions."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:368` — `runParallelReviews` has zero test coverage in the entire suite. It was modified to accept `registry` and call `mergePromptAppend(registry, ...)`. If either were removed, no test would detect it."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/extensions.mjs:236 — `runExecuteRun` passes extension-returned shell commands to `sh -c` without on-screen attribution of which extension supplied the command. Add console logging like `[ext] ${ext.name}: running \"${desc.command}\"` before spawning."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/extensions.mjs:58-61 — Global extension directory `~/.agentic-team/extensions/` auto-loads without per-project opt-out. Consider a config option to disable global extension loading for untrusted projects."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:368 — `runParallelReviews` now takes 8 positional parameters; consider an options object for the trailing params to reduce cognitive load at the call site"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/extensions.mjs:216 — Timeout+circuit-breaker pattern is duplicated between `callHook` and `runExecuteRun`; if a third hook type needs direct iteration, extract the timeout wrapper"
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings. Evaluation written to `tasks/task-16/eval-simplicity.md`."
+    }
+  ]
+}
