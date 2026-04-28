@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (2 critical, 10 warning, 10 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T21:47:32.526Z",
+  "summary": "Parallel review: FAIL (6 critical, 15 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T12:37:56.136Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,9 +13,9 @@
     }
   ],
   "findings": {
-    "critical": 2,
-    "warning": 10,
-    "suggestion": 10
+    "critical": 6,
+    "warning": 15,
+    "suggestion": 11
   },
   "compoundGate": {
     "tripped": 0,
@@ -24,52 +24,88 @@
   },
   "findingsList": [
     {
-      "severity": "critical",
-      "text": "No 🔴 or 🟡 architectural findings. The prior PM review already filed the one 🟡 (`completed > 0` guard fires on partial success)."
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify-pass.mjs:86 — SPEC requires a fix-then-re-verify loop (max 2 rounds) for critical findings; implementation runs once and blocks finalize without attempting fixes. Acceptance criterion unmet. Add fix loop to backlog."
     },
     {
       "severity": "warning",
-      "text": "🟡 test/simplify-pass.test.mjs:155 — `makeExecFn` helper defined but never called by any test; dead test code"
+      "text": "🟡 bin/agt.mjs — `--no-simplify` flag works via `args.includes()` but is not registered in CLI help. Undiscoverable."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/simplify-pass.mjs:179 — `git checkout HEAD -- .` does not remove untracked files; if the agent creates new files without committing them and the gate fails, those files persist in the worktree after the \"revert\" (the role spec says commit-or-nothing, making this unlikely in practice, but the revert is semantically incomplete)"
-    },
-    {
-      "severity": "warning",
-      "text": "The core logic path is correct: merge-base detection → changed-file filtering → agent dispatch → SHA comparison → gate re-run → revert on failure. All 11 edge cases I checked are handled. The two 🟡 findings go to backlog; neither affects production correctness given the agent's instructed commit-or-nothing behavior."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1503` — Guard `completed > 0` allows the simplify pass to run on partial success (some tasks blocked); spec says \"after **all** tasks pass review\" — either tighten to `completed > 0 && blocked === 0` or update spec to document partial-success behavior explicitly"
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:155` — Dead and broken `makeExecFn` helper (always returns `postSha` for all `rev-parse HEAD` calls, never used by any test); remove it to avoid misleading future contributors"
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/simplify-pass.mjs:165` — No exception guard around `runGateFn` call; if gate throws, revert code at lines 171–185 is never reached and agent changes remain unreversed on the feature branch before the push; add try/catch around the gate call or add a test covering the throw path"
-    },
-    {
-      "severity": "warning",
-      "text": "The two 🟡 items are worth backlogging: the dead `makeExecFn` test helper is a maintenance smell, and the unguarded `runGateFn` call is a genuine regression risk (though low probability given `runGateInline`'s internal error handling)."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/simplify-pass.mjs:62` — File paths from `git diff --name-only` are embedded into the agent prompt without sanitization; strip non-printable characters and newlines from each filename before embedding (e.g. `f.replace(/[\\x00-\\x1f\\x7f]/g, \"\").trim()`) to prevent adversarial filenames from injecting LLM instructions."
+      "text": "🟡 test/simplify-pass.test.mjs — No test for `--no-simplify` skip path or max-rounds-escalation. SPEC acceptance criterion #9 explicitly requires both."
     },
     {
       "severity": "critical",
-      "text": "No 🔴 critical findings. One 🟡 warning, two 🔵 suggestions."
+      "text": "🔴 `tasks/*/artifacts/test-output.txt` — Test output artifacts reference phantom code (`isCodeFile`, `getChangedFiles`, `runSimplifyFixLoop`, `parseSimplifyFindings`, `test/active-task-utils.test.mjs`) that doesn't exist anywhere in the codebase. Artifacts show 611 tests with ~70 simplify-pass tests; actual code produces 14. Reviews evaluated a different implementation than what's being shipped."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/run.mjs:1511` — Missing fix loop (SPEC AC-3, AC-9). SPEC requires max-2-round fix-then-re-verify loop for critical findings. Implementation immediately blocks finalize with no retry. The fix loop was reviewed and tested *in the phantom artifacts* but never implemented in actual code."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/run.mjs:1578 — `phaseOrder` omits `\"simplify\"` — add it so simplify-pass token usage appears in the per-phase cost breakdown and progress log (both arrays at lines 1578 and 1604 need updating)"
+      "text": "🟡 `bin/lib/simplify-pass.mjs:98` — `loadSimplicityRole()` called outside try/catch; crashes instead of failing open if role file missing"
     },
     {
       "severity": "warning",
-      "text": "**The 🟡** is a completeness gap introduced by this PR: `setUsageContext(\"simplify\", null)` was added (line 1506) but neither `phaseOrder` array (lines 1578, 1604) was updated to include `\"simplify\"`, so any token cost from the simplify pass is silently excluded from both the console report and `progress.md`. Goes to backlog."
+      "text": "🟡 `bin/lib/simplify-pass.mjs:39` — `getFeatureDiff` silently returns `\"\"` on any git error via empty `catch {}`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:1507` — Guard checks `completed > 0` but not `blocked === 0`; SPEC says \"after all tasks pass review\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify-pass.mjs:125,141` — Empty `catch {}` blocks swallow write errors silently"
+    },
+    {
+      "severity": "critical",
+      "text": "- **2 critical (🔴):** Missing fix-then-re-verify loop (the feature's core value prop), and STATE.json falsely marked `\"completed\"` with 1/15 tasks passed"
+    },
+    {
+      "severity": "warning",
+      "text": "- **4 warnings (🟡):** `--no-simplify` not in CLI help, missing token/cost tracking, wrong trigger condition (`completed > 0` vs \"all tasks pass\"), `phaseOrder` omits `\"simplify\"`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `SPEC.md:10` — Spec requires \"fix-then-re-verify loop (max 2 rounds)\" for critical findings; implementation blocks finalize outright with no fix loop. Spec is stale — update to match actual behavior or implement the loop."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/simplify-pass.test.mjs` — No `--no-simplify` test. Flag logic in `run.mjs:1507,1517-1519` is never exercised. A regression would go undetected."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/simplify-pass.test.mjs` — No integration test for simplify-before-finalize ordering. Claim rests on code reading, not behavioral evidence."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify-pass.mjs:30` — Only `main` tried for merge-base. Repos with `master`/other default branch silently skip the pass."
+    },
+    {
+      "severity": "critical",
+      "text": "🔵 `test/simplify-pass.test.mjs` — No test for mixed severity findings (multiple 🔴+🟡+🔵 in one dispatch)."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify-pass.mjs:106` — Fail-open on dispatch failure has no persistent audit trail; write a skip record to `simplify-eval.md`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify-pass.mjs:125` — Empty `catch {}` silently discards errors writing `simplify-eval.md`; log before swallowing"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify-pass.mjs:141` — Empty `catch {}` silently discards errors writing STATE.json; log before swallowing"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/simplify-pass.mjs:19` — `loadSimplicityRole()` has 1 call site (line 98), not exported or tested; inline the 2-line body"
+    },
+    {
+      "severity": "critical",
+      "text": "The single 🔴 is `loadSimplicityRole()`: a private function called exactly once, wrapping 2 lines of self-evident code (`readFileSync` + `trim`). Per the premature abstraction veto rule, this blocks merge. The fix is trivial — inline the body at line 98 and delete the function."
     }
   ]
 }

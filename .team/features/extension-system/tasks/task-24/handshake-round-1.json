@@ -1,0 +1,67 @@
+{
+  "taskId": "task-24",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 8 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T03:16:12.864Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 8,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:212` — `runExecuteRun` duplicates the timeout + circuit-breaker pattern instead of using `callHook`; extract a shared `invokeWithProtection` helper in v2 to prevent logic drift"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:129` — Shallow spread `{ ...ctx }` in `callHook` shares nested mutable objects (e.g., `findings` array) by reference; a buggy extension could mutate the caller's data; consider `structuredClone` or documenting context as read-only"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `tasks/task-24/handshake.json:3` — nodeType \"build\" with empty artifacts would fail the project's own `validateHandshake()`; should be nodeType \"gate\" for a verification task"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `examples/extensions/log-phases.mjs:22` — Shell metacharacter injection via `${ctx.taskTitle}` interpolation into `sh -c` command; user-authored titles could execute arbitrary commands"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/extension-system/tasks/task-24/handshake.json:9` — No test-output.txt artifact was saved; `\"artifacts\": []` means there is no persistent evidence trail. Future verification tasks should capture output as an artifact."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/oscillation-ticks.test.mjs:302` — Intermittently flaky test (\"halts feature with exit code 1 after 3 reps of K=2 pattern\") not flagged by the builder. Not caused by extension-system changes (the `transition` code path was not modified), but observed during review. File as backlog item."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `.team/features/extension-system/tasks/task-24/handshake.json:6` — Handshake claims 0 failures but actual result is 2 failures; update summary to reflect actual test results"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/e2e.test.mjs:260` — \"finalize\" test fails with `spawnSync node ENOENT` on feature branch but passes on main; investigate whether async changes to `buildReviewBrief` caused regression"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/extension-system/tasks/task-24/artifacts/` — No test-output.txt saved; save actual `npm test` output so claims are verifiable"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `examples/extensions/log-phases.mjs:22` — Shell metacharacter injection via `ctx.taskTitle` interpolation into command string; use array-form spawn or shell-escape the value"
+    }
+  ]
+}

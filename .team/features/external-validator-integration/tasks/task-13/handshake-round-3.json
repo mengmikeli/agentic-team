@@ -1,0 +1,67 @@
+{
+  "taskId": "task-13",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 9 warning, 16 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T09:52:43.920Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 9,
+    "suggestion": 16
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:16 — `gate.mjs` serves dual roles (CLI entry point + shared library). Extract helpers to `gate-helpers.mjs` if a third consumer appears."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs — Missing dedicated test for TAP subtest skipping. The fix exists at validator-parsers.mjs:120, but no test verifies `parseTap(\"    not ok 1 - inner\")` returns `[]`. If L120 is removed, no test catches the regression."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 STATE.json:1 — All 17 tasks show \"blocked\" yet code is fully implemented with 132 passing tests; project tracking doesn't reflect actual delivery state. File as tracking-layer bug."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:85 — SPEC requires auto-scanning known output file locations (junit.xml, test-results.xml, etc.) in the artifact directory. Implementation only parses stdout+stderr; file-based output requires explicit validators.json config. Gap for users whose test runners write to files without stdout."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:857 — SPEC AC #10 calls for integration with a real Jest JUnit reporter. Test uses `printf` to emit JUnit XML directly — validates the pipeline but not the end-to-end reporter path."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:1089 — Flaky integration test (\"truncated XML does not crash gate\") fails with ENOENT due to workspace cleanup race. Unit-level equivalent at L720 passes. Fix the test workspace lifecycle."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/validator-parsers.mjs:120 — TAP subtest skipping (indented line guard) is claimed by the builder but has zero test coverage. Add a test with `# Subtest:` + indented `not ok` lines to verify only top-level failures produce findings."
+    },
+    {
+      "severity": "warning",
+      "text": "All 3 previous 🟡 findings were fixed:"
+    },
+    {
+      "severity": "warning",
+      "text": "Test count grew from 168 → 176. 175/176 pass (1 flake). The implementation is solid — both 🟡 findings are coverage-depth gaps, not correctness issues."
+    },
+    {
+      "severity": "critical",
+      "text": "Zero 🔴 findings across all four veto categories:"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "taskId": "task-10",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 10 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T08:01:33.690Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 10,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:266 — `internalError` catch block falls back to exit-code verdict, which can produce false PASS when structured-output processing throws. Safer default would be FAIL on internal error."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:199-211 + bin/lib/run.mjs:87-98 — Config-loading + outputFile-reading duplicated ~10 lines between `cmdGate` and `runGateInline`. Extract a `buildConfigOverride()` helper."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:118 + bin/lib/run.mjs:56 — Path-traversal sanitization regex duplicated identically. Extract to shared `isUnsafeTaskId()`."
+    },
+    {
+      "severity": "critical",
+      "text": "- Confirmed prior review's two 🔴 dead-code findings (`isGenericJson`, dead `verdict` variable) are both fixed"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:757 — `harnessJSON` helper duplicated at line 1382; extract to module scope"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:56 — `config?.text || combinedOutput` uses `||` instead of `??`. Empty output file (`\"\"`) silently falls back to stdout parsing instead of producing 0 findings. No test covers this. Same pattern at run.mjs:99."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:75` — `extractAttr` interpolates `name` directly into `new RegExp()` without escaping. Currently safe (hardcoded callers only) but violates defense-in-depth. Escape regex metacharacters or annotate as `@internal`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:207` + `bin/lib/run.mjs:94` — `validators.json` `outputFile` is not sanitized for `..` path traversal. Same trust boundary as package.json scripts, but inconsistent with the `taskId` sanitization at gate.mjs:118."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:266-268` — `internalError` catch fallback uses `exitCode === 0 ? \"PASS\" : \"FAIL\"`, which could produce a false PASS if internal processing throws after format detection. No test covers this catch path."
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `test/parsers.test.mjs:757,1382` — `harnessJSON` helper duplicated verbatim (24 lines) across two describe blocks. Hoist to module scope."
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `test/parsers.test.mjs:782,1407` — `setupGateFeature`/`setupFeature` near-identical setup helpers. Merge into one."
+    }
+  ]
+}

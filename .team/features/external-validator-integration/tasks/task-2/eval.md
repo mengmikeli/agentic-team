@@ -1,33 +1,34 @@
 ## Parallel Review Findings
 
-[architect] **Verdict: PASS** — The double-counting fix (raw line) and control-char stripping are both present and correct. No 🔴 blockers. The 🟡 at line 49 (JUnit parser asymmetry) is the only item requiring backlog tracking before integration.
-[engineer] The one new 🟡 (untested stripping) must go to backlog. No 🔴 blockers — the implementation is correct for all specified criteria.
-[simplicity veto] **Findings (no 🔴, no 🟡 from simplicity lens):**
-🟡 [architect] `bin/lib/validator-parsers.mjs:49` — `parseJunitXml` still pushes attacker-controlled `message`, `classname`, and `file` verbatim to `messages[]` without control-character stripping; `parseTap` (line 81) now sanitizes — inconsistent security posture across parsers sharing the same interface contract; apply the same `/[\x00-\x1f\x7f]/g` strip before `messages.push()` in `parseJunitXml`
-🟡 [architect] `bin/lib/validator-parsers.mjs:1` — module has no callers in `bin/`; inert in production; confirm integration task is tracked before marking feature shippable
-[engineer] **Prior 🟡 resolved in current HEAD:**
-🟡 [engineer] `test/validator-parsers.test.mjs` — control char stripping at `validator-parsers.mjs:81` is not test-locked; removing that `.replace(...)` call leaves all 14 tests passing undetected; add a test with `"not ok 1 - test\x1b[2J"` asserting `meta.messages[0]` contains no C0 bytes
-[product] **Prior 🟡 findings resolved by this run:**
-🟡 [product] `.team/features/external-validator-integration/tasks/task-2/handshake.json` — Gate output truncated; no `artifacts/test-output.txt` saved; cannot confirm the claimed 553-test pass without re-running (carried from task-1 through every PM review — process gap must close)
-🟡 [product] `bin/lib/validator-parsers.mjs:1` — No callers in `bin/`; module is inert until integration task lands; confirm follow-up is tracked before marking feature shippable
-🟡 [product] `bin/lib/validator-parsers.mjs:49` — JUnit parser still writes `message`/`classname`/`file` from attacker-controlled XML to `messages[]` without control char stripping; TAP parser was fixed in this run but JUnit was not updated; file as backlog item to close the asymmetry
-🟡 [tester] `test/validator-parsers.test.mjs` (after line 163) — handshake claims control char stripping as a distinct fix; no test locks it in; removing `validator-parsers.mjs:81` passes all 14 tests without failure; add a case with `"not ok 1 - test\x1b[2J"` input and assert `meta.messages[0]` contains no bytes in `[\x00-\x1f]`
-🟡 [security] `test/validator-parsers.test.mjs` — no test locks in the control-character stripping behaviour; removing `validator-parsers.mjs:81` silently regresses with all 14 current tests still passing; add a case with `"not ok 1 - test\x1b[2J\x00"` asserting `meta.messages[0]` contains no bytes below `\x20`
-🟡 [security] `bin/lib/validator-parsers.mjs:87` — non-TAP stdout (empty string, stack trace, JSON) returns `critical: 0` indistinguishable from a clean TAP run; once `getParser("tap")` is wired into the gate, a misconfigured validator silently passes; add `meta.parseWarning = true` when stdout is non-empty but contains no TAP structure (carried from Security run_1 / run_2)
-[security] **Verdict: PASS** — No critical blockers. Two warnings for the backlog (missing test for control-char contract; silent parse failure). Prior control-char injection 🟡 and double-count 🟡 are both resolved by the current code.
-[simplicity] - Gold-plating: PASS — control char stripping responds to concrete Security 🟡; regression test directly guards the fix
-🔵 [architect] `test/validator-parsers.test.mjs` — no test locks in control-char stripping (line 81); removing it passes all 14 tests silently; add a case with `not ok 1 - test\x1b[2J` input asserting `meta.messages[0]` contains no control bytes
-🔵 [architect] `test/validator-parsers.test.mjs:167` — `getParser("tap")` test only asserts `typeof`; add `parser(tapInput, "", 1)` asserting `findings.critical === 1` to verify registry wire-up end-to-end
-🔵 [architect] `bin/lib/validator-parsers.mjs:115` — `PARSERS[format]` has no `Object.hasOwn` guard; `format = "__proto__"` returns `Object.prototype` (truthy), bypasses exit-code fallback, and throws `TypeError`; use `Object.hasOwn(PARSERS, format) ? PARSERS[format] : PARSERS["exit-code"]`
-🔵 [architect] `bin/lib/validator-parsers.mjs:109` — `PARSERS` exported as a plain mutable object; a consumer can silently overwrite or delete parser entries; `Object.freeze(PARSERS)` or remove the export
-🔵 [engineer] `test/validator-parsers.test.mjs:167` — `getParser("tap")` never called with real input; add `getParser("tap")(tapInput, "", 1)` asserting `findings.critical === 1` to cover registry wire-up end-to-end
-🔵 [engineer] `bin/lib/validator-parsers.mjs:114` — `PARSERS[format]` lacks `Object.hasOwn` guard; `"__proto__"` as format returns `Object.prototype` (truthy), bypasses fallback, throws `TypeError`
-🔵 [engineer] `bin/lib/validator-parsers.mjs:70` — JSDoc `@param` documents only `stdout`; missing `@param {string} stderr` and `@param {number} exitCode`
-🔵 [product] `bin/lib/validator-parsers.mjs:84` — `meta.parseWarning` absent; non-TAP stdout silently returns `critical: 0`, indistinguishable from a clean run; add `meta.parseWarning` before wiring into the gate
-🔵 [tester] `test/validator-parsers.test.mjs:167` — `getParser("tap")` test only asserts `typeof`; add `parser(tapInput, "", 1)` with a `not ok` line asserting `findings.critical === 1` to verify registry wire-up end-to-end (carried from all prior reviews; behavior verified correct via direct probe, just not tested)
-🔵 [security] `bin/lib/validator-parsers.mjs:116` — `PARSERS[format]` has no `Object.hasOwn` guard; `format = "__proto__"` returns `Object.prototype` (truthy), bypasses the exit-code fallback, and throws `TypeError` at invocation; use `Object.hasOwn(PARSERS, format) ? PARSERS[format] : PARSERS["exit-code"]` (carried from Security run_2)
-🔵 [simplicity] `bin/lib/validator-parsers.mjs:67` — JSDoc says "excluding TODO directives" but SKIP is also excluded; update to "excluding TODO and SKIP directives"
-🔵 [simplicity] `test/validator-parsers.test.mjs:166` — `getParser("tap")` never retrieved in the `getParser` describe block; add `getParser("tap")(tap, "", 1)` asserting `findings.critical === 1` to confirm registry wire-up end-to-end
+🟡 [architect] `bin/lib/parsers.mjs:121` — `not ok # TODO` and `not ok # SKIP` emit critical findings; per TAP spec these are not real failures. Will produce false-positive gate FAILs in projects using TODO/SKIP annotations. Skip the finding or downgrade severity.
+🟡 [architect] `bin/lib/parsers.mjs:116` — `line.trim()` matches indented subtest `not ok` lines as top-level failures, producing duplicate findings in TAP 14 subtest output. Match raw line without `.trim()`.
+🟡 [architect] `bin/lib/gate.mjs:222` — `isTAP()` placed as private function in gate.mjs, compounding the detection-placement debt flagged for `isJUnitXml()` in the prior review. Co-locate with parsers before adding the 3rd parser (GHA).
+🟡 [architect] `bin/lib/gate.mjs:109` — No integration test for gate→isTAP→parseTAP→finalVerdict pipeline. Two untested wiring paths now exist (JUnit + TAP). This is the layer where the prior critical verdict bug lived.
+🟡 [engineer] `bin/lib/parsers.mjs:121` — `not ok ... # TODO` and `# SKIP` lines produce critical findings; TAP spec treats these as non-failures; strips directive text but still creates finding; causes false FAIL verdicts in projects with TODO tests
+🟡 [engineer] `bin/lib/parsers.mjs:116` — `line.trim()` matches indented subtest `not ok` lines, risking double-counted failures; should match raw line with `^not ok` anchor
+🟡 [engineer] `bin/lib/parsers.mjs:129` — Unterminated YAML diagnostic block (`---` without `...`) silently consumes all remaining lines, dropping subsequent `not ok` entries
+🟡 [tester] `bin/lib/parsers.mjs:116` — `line.trim()` before regex match means indented TAP 14 subtest `not ok` lines are matched as top-level failures, causing double-counting; guard against leading whitespace on original line
+🟡 [tester] `test/parsers.test.mjs:297` — `# TODO` and `# SKIP` directives produce critical findings (test asserts `findings.length === 2`); per TAP spec these are expected/skipped failures, not real errors; would cause false FAIL verdicts in projects with TODO tests
+🟡 [tester] `bin/lib/parsers.mjs:129` — unclosed YAML diagnostic block (`---` without `...`) silently eats all remaining lines, dropping subsequent `not ok` entries; add a line-count guard
+🟡 [tester] `bin/lib/gate.mjs:109` — no integration test exercises `isTAP() → parseTAP() → FAIL verdict` through the full gate pipeline
+🟡 [tester] `bin/lib/gate.mjs:222` — `isTAP()` is not exported or unit-tested; plan-based detection could false-positive on non-TAP output
+🟡 [tester] `tasks/task-2/artifacts/test-output.txt` — stale artifact from prior code state (shows 6 tests with different names/behavior vs. current 11 tests)
+🟡 [security] bin/lib/parsers.mjs:121 — `not ok ... # TODO` and `# SKIP` lines produce critical findings despite TAP spec defining these as expected/skipped; causes false FAIL verdicts; fix by skipping lines matching `/#\s*(TODO|SKIP)/i` before creating findings
+🟡 [security] bin/lib/parsers.mjs:117 — `line.trim()` matches indented subtest `not ok` lines as top-level failures; inflates critical counts; fix by checking `line` without trim or skipping lines with leading whitespace
+🟡 [security] bin/lib/parsers.mjs:129 — Missing YAML `...` terminator swallows all subsequent `not ok` lines; verified: 2 failures → only 1 finding; fix by breaking on `ok`/`not ok` patterns inside the diagnostic loop
+🟡 [security] bin/lib/gate.mjs:105 — stdout+stderr concatenated before TAP/JUnit detection; stderr containing `TAP version` triggers false-positive parsing; fix by checking stdout first
+🟡 [simplicity] `bin/lib/parsers.mjs:116` — `line.trim()` strips indentation before regex match, causing indented subtest `not ok` lines (TAP v14) to produce duplicate findings alongside parent failures; match against the raw line to only capture top-level results
+🟡 [simplicity] `tasks/task-3/artifacts/test-output.txt:3` — Artifact is stale; shows tests for `parseGithubActions`/`getParser`/`validator-parsers.test.mjs` that don't exist in current codebase
+🔵 [architect] `bin/lib/parsers.mjs:129` — Unterminated YAML diagnostic block (`---` without `...`) consumes all remaining lines silently.
+🔵 [architect] `bin/lib/gate.mjs:113` — Comment says "JUnit XML" but code handles both JUnit and TAP. Stale.
+🔵 [architect] `bin/lib/gate.mjs:107` — JUnit-over-TAP detection priority is implicit; should be documented.
+🔵 [tester] `bin/lib/parsers.mjs:105` — TAP `Bail out!` directive not handled; could be a critical finding in real-world TAP
+🔵 [tester] `bin/lib/gate.mjs:107` — JUnit/TAP detection priority is implicit and undocumented; add a comment or test
+🔵 [security] bin/lib/parsers.mjs:73 — `extractAttr` interpolates into regex without escaping; safe with current hardcoded callers but fragile
+🔵 [security] bin/lib/parsers.mjs:132 — TAP YAML `file:` value unsanitized in finding text; no execution path so no injection risk
+🔵 [security] bin/lib/gate.mjs:209 — `isJUnitXml()` / `isTAP()` detection functions lack dedicated unit tests
+🔵 [simplicity] `bin/lib/parsers.mjs:115` — `notOkRe` compiled inside loop on every iteration; could be hoisted to module scope
+🔵 [simplicity] `bin/lib/gate.mjs:113` — Comment says "JUnit XML" but code now handles TAP too; stale comment
 
 ## Compound Gate
 

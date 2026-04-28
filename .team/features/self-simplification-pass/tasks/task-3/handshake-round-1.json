@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (1 critical, 14 warning, 9 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T22:35:16.205Z",
+  "summary": "Parallel review: FAIL (1 critical, 19 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T13:51:03.357Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -14,8 +14,8 @@
   ],
   "findings": {
     "critical": 1,
-    "warning": 14,
-    "suggestion": 9
+    "warning": 19,
+    "suggestion": 11
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,63 +25,83 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/run.mjs:1507 — Fix-loop behavior validated only by source-text regex (test:473–500); no behavioral test exercises the loop with a mocked `runSimplifyPass` returning persistent criticals; escalation trigger and finalize-block are untested end-to-end — extract loop body to a unit-testable helper or add behavioral integration tests"
+      "text": "🟡 `run.mjs:1608` — `_runSingleFeature` returns `\"done\"` when `simplifyBlocked=true` but `blocked===0`. The outer loop's >50% tasks-passed heuristic marks the roadmap item as done, bypassing the simplify block entirely."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/run.mjs:1595 — `phaseOrder` hardcodes `[\"brainstorm\", \"build\", \"review\"]`; `\"simplify\"` absent despite `setUsageContext(\"simplify\", null)` at line 1506 — simplify-pass dispatch cost invisible in per-phase console breakdown and progress log (carried through 5+ reviews without fix)"
+      "text": "🟡 `run.mjs:1507` — Feature state stays `\"executing\"` indefinitely when finalize is blocked — no terminal state transition occurs. Dashboard and crash recovery see a stale status."
     },
     {
       "severity": "warning",
-      "text": "The primary concern is that the new fix-loop behavior (task-3's core contribution) is verified only by source-text assertions rather than behavioral tests. The `runSimplifyPass` unit in `simplify-pass.mjs` has excellent injectable-dependency coverage, but the loop logic that calls it 1–3 times and sets `escalated` has no equivalent. This is a test coverage gap, not a logic bug — but it means loop-level regressions would go undetected. Filed to backlog as 🟡."
+      "text": "🟡 `test/simplify-pass.test.mjs:360` — `--no-simplify` test replicates the conditional in test code rather than exercising the actual run.mjs code path. No integration test verifies `harness(\"finalize\")` is NOT called when `simplifyBlocked=true`."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/simplify-pass.mjs:147` — dispatch-fail return missing `findings` field; handshake claims \"return findings in all post-dispatch result objects\" but this path (`!result.ok`) returns without it; add `findings: { critical: 0, warning: 0, suggestion: 0 }` and assert it in `test/simplify-pass.test.mjs:311`"
+      "text": "🟡 `simplify-pass.mjs:194` — `writeFileSync` for the eval artifact silently swallows errors. A FAIL verdict with no evidence file is an audit gap."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:466` — 500-char source-inspection window to find the `completed > 0 && blocked === 0` guard is marginally safe (~460 chars currently used); inserting any log between guard and call would silently break the test — increase window to 600 or anchor on the guard string directly"
+      "text": "🟡 bin/lib/run.mjs:1562 — When `simplifyBlocked=true`, console still prints \"Feature complete\" and function returns `\"done\"` instead of `\"blocked\"`. Outer loop reads STATE.json so behavior is correct today, but console output misleads operators and return value is a latent contract issue."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/run.mjs:1584 — Escalated case absent from completion report summary; the summary block shows `filesChanged > 0` or `reverted` but has no branch for `escalated` — operator sees only the inline log, not the final box. Add `else if (simplifyResult.escalated)` entry."
+      "text": "🟡 bin/lib/run.mjs:1613 — `_runSingleFeature` returns `\"done\"` when `simplifyBlocked === true` and task-level `blocked === 0`. Outer loop misinterprets this as successful completion, but finalize was never called. Should return `\"simplify-blocked\"` or incorporate simplify state into the blocked check."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/run.mjs:1508 — Fix loop re-dispatches agent on already-reverted code: when a round returns `reverted: true` with `findings.critical > 0`, the next iteration sees the same unchanged code, produces the same criticals, gate fails again, and reverts again. All 2 fix rounds are consumed with no possibility of progress. Bounded, but add early-exit when `reverted && critical > 0`."
+      "text": "🟡 bin/lib/run.mjs:1562 — \"Feature complete\" header and notification fire unconditionally, even when simplification blocked finalize. User sees contradictory messages: \"blocking finalize\" then \"Feature complete.\""
     },
     {
       "severity": "warning",
-      "text": "All three core requirements are met with direct evidence: critical findings block finalize (`run.mjs:1543–1547`), the fix loop runs up to `MAX_SIMPLIFY_FIX_ROUNDS=2` additional rounds (`run.mjs:1507–1517`), and escalation fires with console + progress.md output when rounds are exhausted. `parseSimplifyFindings` is fully unit-tested. No red findings. Two 🟡 items filed to backlog; neither blocks merge."
+      "text": "- 🟡 `bin/lib/run.mjs:1526` — No integration test for `simplifyBlocked → finalize blocked`. The sole gate mechanism has zero test coverage at the integration level."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:473` — All five fix-loop tests are source-text assertions; missing behavioral coverage: loop re-dispatches on criticals, stops when cleared, sets `escalated: true` after rounds exhausted, finalize skipped at runtime — source assertions pass even with a logically broken loop; same gap pattern flagged 🟡 across prior review cycles for the guard-condition assertion"
+      "text": "- 🟡 `bin/lib/run.mjs:1613` — Returns `\"done\"` when `simplifyBlocked=true` and `blocked=0`. Should return `\"blocked\"` or `\"simplify-blocked\"` so callers know finalize was skipped."
     },
     {
       "severity": "warning",
-      "text": "The implementation is correct by direct code inspection. `parseSimplifyFindings` has complete behavioral coverage (7 tests). The findings return-value tests are behavioral across four paths. The critical gap is that all five tests covering the fix loop — the core new feature of this task — are source-text assertions that verify code structure but cannot catch runtime behavioral regressions. The logic is sound; the regression protection is weak. One new 🟡 filed to backlog. One 🔵 suggestion. Escalated-in-summary gap corroborates the PM finding already in the eval. No blockers."
+      "text": "- 🟡 `test/simplify-pass.test.mjs:360` — `--no-simplify` test mocks the conditional inline instead of testing the real code path."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/simplify-pass.mjs:82 — File paths from `git diff --name-only` embedded in agent prompt without sanitization; the fix loop (run.mjs:1507–1518) re-dispatches up to 3 times with the same unsanitized brief, each with `--permission-mode bypassPermissions`; strip control characters before embedding e.g. `f.replace(/[\\x00-\\x1f\\x7f]/g, \"\").trim()` — risk amplified by the new fix loop; carried from prior security passes"
+      "text": "- 🟡 `bin/lib/simplify-pass.mjs:176` — Re-verify dispatch returning `ok=false` (vs throwing) has no test. Silent break, distinct from the throw case."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/simplify-pass.mjs:47 — `getChangedFiles` is a public export accepting caller-supplied `base` without SHA format validation before shell interpolation; add `/^[0-9a-f]{7,40}$/i` guard to harden the exported API surface (carried from task-2 reviews)"
+      "text": "- 🟡 `test/simplify-pass.test.mjs:335` — Role-file-missing test can't exercise the catch branch. Needs `_rolePath` injection."
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `bin/lib/simplify-pass.mjs:166` — Diff-empty-after-fixes path untested."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify-pass.mjs:55` — Diff truncation at 12K chars creates a review blindspot; code beyond the cap is never seen by the reviewer agent. Log full diff size in eval output so operators can assess coverage."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify-pass.mjs:132` — Fail-open on dispatch error returns `PASS` indistinguishable from a genuine clean review in STATE.json. Consider recording `verdict: \"SKIP\"` or `bypassed: true` for auditability."
     },
     {
       "severity": "critical",
-      "text": "No 🔴 critical findings across all four veto categories. Two 🟡 warnings:"
+      "text": "🔴 `simplify-pass.mjs:16` — **Gold-plating: auto-fix loop.** The fix-then-re-verify loop (`MAX_FIX_ROUNDS=2`, lines 82-91 + 144-185) implements ~50 lines of speculative functionality that SPEC.md:96-97 **explicitly declares Out of Scope**: *\"Auto-fix loop — the primary cost driver ($298 in review costs). Can be added later as an enhancement.\"* Also compounds with `buildFixBrief()` having only 1 call site (premature abstraction). **Fix:** Remove the loop; return FAIL immediately on criticals."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1510` — `simplifyResult.findings.critical` without optional chaining; safe by loop invariant but fragile if invariant weakens — use `simplifyResult.findings?.critical ?? 0`"
+      "text": "🟡 `run.mjs:1519` — `--no-simplify` flag declared Out of Scope per SPEC.md:98"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1506` + `1595` — `setUsageContext(\"simplify\", null)` records simplify-phase token usage but `phaseOrder` excludes `\"simplify\"`, so those costs are silently dropped from the completion report"
+      "text": "🟡 `simplify-pass.mjs:82` — `buildFixBrief()` has 1 call site (premature abstraction)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `run.mjs:1507` — Silent skip when `completed===0` has no progress.md entry (inconsistent with `--no-simplify` path)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/simplify-pass.test.mjs:360` — `--no-simplify` test duplicates logic inline, doesn't exercise run.mjs wiring"
     }
   ]
 }

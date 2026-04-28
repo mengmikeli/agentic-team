@@ -1,0 +1,91 @@
+{
+  "taskId": "task-5",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 15 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T06:08:14.010Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 15,
+    "suggestion": 12
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:86 — `runGateInline` duplicates ~55 lines of parsing/verdict/artifact logic from `cmdGate` in gate.mjs. Extract a shared helper to eliminate drift between the two gate paths."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:215 — `VALID_SEVERITIES` Set allocated per call; move to module scope as constant."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:264 — `isGenericJson` + `parseGenericJson` double-parse the same JSON string; combine detect+parse for the JSON path."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:159` — `cmdGate` handshake uses `newWarnings.length` (backlog) for warning count instead of parsed validator warnings; `runGateInline` correctly counts parsed warnings — inconsistency between the two paths"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:288` — `detectAndParse` double-parses JSON (once in `isGenericJson`, again in `parseGenericJson`); wasteful on large payloads"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:24 — `.team/validators.json` config override (SPEC acceptance criterion #8) is not implemented in any code path; must be tracked as remaining work before feature ships"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/worktree.test.mjs:170` — `runGateInline` has parser integration code but zero tests exercising it with structured output; only exit-code tests exist"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:667` — No gate integration test passes `--task`, so artifact writing (`validator-findings.json`, handshake) is entirely untested"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:847` — No test for warning-only findings (zero criticals) confirming PASS verdict"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:847` — No gate integration test for malformed input fallback (SPEC requirement)"
+    },
+    {
+      "severity": "critical",
+      "text": "**No 🔴 critical findings** — none of the four veto categories (dead code, premature abstraction, unnecessary indirection, gold-plating) are triggered."
+    },
+    {
+      "severity": "warning",
+      "text": "**4 warnings (🟡 — backlog):**"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `bin/lib/gate.mjs:110` — ~30 lines of parsing+verdict+artifact logic duplicated with `run.mjs:86`; extract a shared helper"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `parsers.mjs:241` — `isJUnitXml`, `isTAP`, `isProblemMatcher`, `isGenericJson` are exported but have zero external consumers; remove `export`"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `parsers.mjs:264` — `isGenericJson` parses JSON fully, then `parseGenericJson` parses it again (double parse)"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `gate.mjs:27` — Path-traversal sanitization regex duplicated identically at `run.mjs:56`; extract a `sanitizeTaskId()` function"
+    }
+  ]
+}

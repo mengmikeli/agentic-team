@@ -28,6 +28,8 @@ switch (command) {
     if (args.includes("--daemon")) {
       daemonStart(args, process.cwd());
     } else {
+      if (args.includes("--caveman")) process.env.AGT_CAVEMAN = "1";
+      if (args.includes("--light")) process.env.AGT_LIGHT = "1";
       await cmdRun(args);
     }
     break;

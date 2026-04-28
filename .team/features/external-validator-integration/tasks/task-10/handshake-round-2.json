@@ -1,0 +1,63 @@
+{
+  "taskId": "task-10",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 8 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T08:16:21.981Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 8,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:100 — `writeGateArtifacts()` called without try/catch in `runGateInline`; if disk I/O fails, the function throws. `cmdGate` (gate.mjs:286) has an `internalError` catch for the same path. Add try/catch for parity."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:792,1392` — `setupGateFeature` and `setupFeature` are near-identical helpers; merge to reduce maintenance surface."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:286 — `internalError` catch block (L286-298) defaults to FAIL on internal throws, but no test forces this path. Add a test that mocks an internal throw to verify the `internalError` JSON field and FAIL verdict."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs:217-279 — All 8 `runGateInline` tests pass `null` for taskId, so the artifact-writing branch (run.mjs:92-112) is never exercised. Disk-level verification of handshake.json/validator-findings.json exists for `cmdGate` but not for `runGateInline`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:1387-1484 — All `validators.json` config integration tests go through `cmdGate`. No end-to-end integration test proves config loading works through `runGateInline` specifically."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:69 — `buildConfigOverride` only checks `outputFile` for `..` but not for `/` or `\\`. While `path.join` incidentally prevents escape (unlike `path.resolve`), add path-separator checks to match `isUnsafeTaskId` rigor, or document why `join` is safe."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:286 — `internalError` catch block emits `ok: true` alongside `verdict: \"FAIL\"`. Consider `ok: false` for internal failures to avoid misleading automated consumers."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 **bin/lib/run.mjs:22** — Unused import `loadValidatorConfig`. After task-10 extracted `buildConfigOverride` (which internally calls `loadValidatorConfig`), the direct import in run.mjs became dead. It appears only on the import line and is never called. Remove it."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 **test/parsers.test.mjs:792 + 1392** — `setupGateFeature` and `setupFeature` are near-identical STATE.json scaffold helpers (only nonce prefix differs). Consider extracting to module scope."
+    }
+  ]
+}

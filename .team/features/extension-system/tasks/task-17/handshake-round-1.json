@@ -1,0 +1,63 @@
+{
+  "taskId": "task-17",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 8 warning, 6 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T01:46:36.270Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 8,
+    "suggestion": 6
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `handshake.json:7` — Handshake claims \"685 tests pass\" but artifact shows 681 pass / 683 total / 2 skipped. Minor count inflation."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:124` — Pre-existing: `Promise.race` timeout leaves the losing promise dangling, risking unhandled rejection warnings. Not introduced by task-16; should remain on backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1245 — Behavioral change: `contextBrief` now appended after extension prompt-append (previously before). Extension hooks see `ctx.brief` without context information. Consider passing `contextBrief` into `buildReviewBrief` so extensions see the full brief, or document the ordering as intentional."
+    },
+    {
+      "severity": "warning",
+      "text": "The implementation is clean and correct. Both `buildBrainstormBrief` and `buildReviewBrief` are now async, call `mergePromptAppend` internally when a registry is provided, and all three call sites in `run.mjs` (brainstorm, single-review, parallel-review) were updated to pass `{ registry, taskId }` while removing duplicate `mergePromptAppend` calls. The `if (registry)` guard, `taskId ?? null` coalescing, and `await` operator precedence are all correct. Tests (42 + 23 + 104 = 169 relevant tests) all pass. The one 🟡 is a minor behavioral shift in context-brief ordering that's low-risk since no production extensions exist yet."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/extension-system/tasks/task-17/artifacts/test-output.txt`:0 — Missing test-output.txt artifact; builder claimed tests pass but did not capture gate output. Future tasks should ensure `runGateInline` writes the artifact file."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/e2e.test.mjs:1 — Listed as artifact in handshake but contains no extension-related test additions; consider adding a smoke test that exercises the `buildBrainstormBrief`/`buildReviewBrief` → extension append path via `_runSingleFeature` (would catch wiring regressions that source assertions cannot)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:237` — `runExecuteRun` passes extension-provided `desc.command` to `sh -c` and `desc.cwd` without path validation. While by design (extensions are trusted local code), projects accepting external contributions should document that `.team/extensions/*.mjs` files execute arbitrary code when `agt run` is invoked."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1245 — `contextBrief` is now excluded from the `brief` field extensions receive during single-review; verify this behavioral change is intentional"
+    },
+    {
+      "severity": "critical",
+      "text": "No critical (🔴) findings. This task is a clean simplification that consolidates 3 duplicate `mergePromptAppend` call sites in `run.mjs` into the brief-builder functions in `flows.mjs`. The diff is net-negative in complexity — fewer lines, less duplication, better collocation. All 694 tests pass. Eval written to `task-17/eval.md`."
+    }
+  ]
+}

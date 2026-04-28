@@ -57,10 +57,10 @@ Existing approaches (ad-hoc prompting, rigid pipelines) either require too much 
 ### Phase 5 — Advanced
 20. **Git worktree isolation** — Each feature runs in its own git worktree + branch. Parallel features never interfere. Feature-slug as namespace for all artifacts. `cwd` injected into agent dispatches and gate commands; worktree created before task dispatch and cleaned up on completion. *(Deferred)* ✅ Done
 21. **Runbook system** — Pattern-matched task recipes (regex + keyword scoring). Reusable decompositions eliminate repeated planning. Runbook replay for known sequences. ✅ Done
-22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs. *(Deferred)*
-23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. *(Deferred)*
-24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat. *(Deferred)*
-25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI. *(Deferred)*
+22. **Extension system** — Capability-routed hooks (promptAppend, verdictAppend, executeRun, artifactEmit). Sandboxed with timeouts + circuit breakers. Dynamic loading from user dirs. ✅ Done
+23. **External validator integration** — Pre-commit hooks, test suites, CI pipelines as additional gate evidence sources. Not just exit codes. ✅ Done
+24. **Self-simplification pass** — Before creating PR, automated review of every changed file for deletability, inlining, simplification. Counter AI bloat. ✅ Done
+25. **Cron-based outer loop** — Optional mode: OpenClaw cron reads GitHub Project board, auto-dispatches Ready items. Keeps pipeline flowing without CLI. ✅ Done
 26. **Execution report** — Post-run structured report: what shipped, what passed/failed, time spent, token usage, recommendations. `agt report <feature>` prints to stdout; `--md` writes REPORT.md. ✅ Done
 
 ### Phase 6 — Lifecycle Integrity

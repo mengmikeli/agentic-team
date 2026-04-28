@@ -1,0 +1,83 @@
+{
+  "taskId": "task-9",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 13 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T07:33:23.941Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 13,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:104` — `writeGateArtifacts` called without `runId` in `runGateInline`; `cmdGate` passes it. Data model inconsistency — gate handshakes from inline path omit `runId`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:20` — `parseJUnit` ignores `<error>` elements (only extracts `<failure>`). JUnit `<error>` elements represent unexpected exceptions which may be more severe than assertion failures."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:55` — stdout+stderr concatenated before format detection. Structured markers in stderr could trigger false format detection."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:302 — `detectAndParse` warns \"falling back to exit-code verdict\" for truncated XML but still returns parsed findings from complete `<testcase>` blocks; contradicts SPEC AC#7 and the warning text"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:104 — `writeGateArtifacts` called without `runId` in `runGateInline`; silently defaults to `\"run_1\"` instead of incrementing"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:126 — STATE.json gate record from `runGateInline` omits `parsedFindings`, `warnings`, `newWarnings` fields that `cmdGate` includes"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:905 — Flaky test fails intermittently with empty stdout from harness subprocess; passes in isolation"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/external-validator-integration/tasks/task-9/artifacts/`:1 — Artifacts directory is empty; no `test-output.txt` captured. Breaks the evidence chain for future auditors. File as backlog: builder agents should always write test output to artifacts."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 test/parsers.test.mjs:981 — Integration test \"malformed output with non-zero exit produces FAIL\" fails with `SyntaxError: Unexpected end of JSON input`. Fix the test or the underlying `cmdGate` output path."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:34 — `parseJUnit` ignores `<error>` elements (only matches `<failure>`). JUnit `<error>` = unexpected exceptions that should also be critical findings."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:104 — `writeGateArtifacts` called without `runId` in `runGateInline`; always defaults to `\"run_1\"`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:750-1091 — No direct integration tests for `runGateInline` parser path (the primary production path)."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:207` — `validators.json` `outputFile` has no path traversal guard. A builder agent could set `\"outputFile\": \"../../../../.env\"` to read arbitrary files into artifacts. Add the same `..`/separator check used for taskId."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:94` — Same `outputFile` path traversal issue in the inline gate runner."
+    }
+  ]
+}

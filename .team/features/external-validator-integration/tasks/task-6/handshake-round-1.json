@@ -1,0 +1,55 @@
+{
+  "taskId": "task-6",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 5 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T06:40:24.979Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 5,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:27` — `parseJUnit` ignores `<error>` elements (only parses `<failure>`). JUnit XML spec defines `<error>` for unexpected exceptions. This creates a false-PASS risk for Java-style test output. Add `<error>` handling."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:31` — Exit-code fallback sets `findings.critical: 1` when no structured output is detected but exit != 0, without writing `validator-findings.json`. Claims findings without evidence artifact. Consider using 0 for critical count in this path."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:40` — `writeGateArtifacts` does not validate `taskId` internally; add a path-traversal guard at the point of use for defense-in-depth, in case future callers omit the check"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/parsers.mjs:273 — `isGenericJson` is dead code: exported function with zero consumers (production or test). `detectAndParse` inlines JSON detection at L298-304. Delete the function."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/gate.mjs:160 — `const verdict = exitCode === 0 ? \"PASS\" : \"FAIL\"` is dead: declared but never read. All downstream code uses `finalVerdict` from `processGateOutput`. Delete the line."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:250-268 — `isJUnitXml`, `isTAP`, `isProblemMatcher` are exported but only used internally by `detectAndParse`. Remove `export` keyword."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:86-89 — Path-traversal regex duplicated identically at run.mjs:56-57. Extract shared helper."
+    }
+  ]
+}

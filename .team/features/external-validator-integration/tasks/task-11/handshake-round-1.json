@@ -1,0 +1,59 @@
+{
+  "taskId": "task-11",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 6 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T08:38:36.440Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 6,
+    "suggestion": 11
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:311` — Stale comment references deleted `isGenericJson` function. Update to remove the stale reference."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `tasks/task-11/artifacts/` — Missing `test-output.txt` artifact; artifacts directory never created despite \"completed\" handshake status"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:39 — `detectAndParse` signature drift: spec says `(stdout, artifactDir, config)` returning `{ findings, formatDetected }`, actual is `(text)` returning `Array<Finding>`. Design evolved intentionally (config lifted to `gate.mjs` helpers), but spec wasn't updated. Downstream tasks may build against a stale contract."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 STATE.json:1 — Feature `status: \"completed\"` but all 17 tasks are `status: \"blocked\"`. Data integrity concern for reporting."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — `parseWithFormat` not exposed in public API; consumers needing forced format must import from internal `parsers.mjs`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:71` — `outputFile` path check blocks `..` but not absolute paths. `path.join(cwd, \"/etc/passwd\")` resolves to `/etc/passwd`, bypassing the cwd prefix. Add `path.isAbsolute()` guard. Risk is low since `validators.json` is under version control, but defense-in-depth should cover this."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/validator-parsers.mjs:1` — **Unnecessary indirection.** This 8-line re-export wrapper has zero production consumers. `gate.mjs:14` imports directly from `parsers.mjs`, bypassing this module entirely. It's also incomplete — `parseWithFormat` (used in production) isn't re-exported. Fix: consolidate into one file, delete the wrapper, or make production code actually use it."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/parsers.test.mjs:4` — **Dead imports.** `isUnsafeTaskId` and `buildConfigOverride` are imported but never called in any test case. This was flagged in the task-10 review and remains unfixed."
+    }
+  ]
+}

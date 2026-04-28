@@ -1,0 +1,71 @@
+{
+  "taskId": "task-11",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 10 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T08:51:35.667Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 10,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/validator-parsers.mjs:311 — Stale comment referencing deleted `isGenericJson` function; update to describe actual optimization"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/validator-parsers.mjs:119` — `parseTAP` regex requires `-` separator; TAP lines like `not ok 1 bare description` (no dash) silently fail to match. Add a fallback capture group to avoid false negatives"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:39 — `detectAndParse` signature drift: spec says `(stdout, artifactDir, config)` → `{ findings, formatDetected }`, but implementation is `(text)` → `Array<Finding>`. Spec should be updated before downstream tasks (task-8, task-12) build against stale API contract."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 STATE.json:2 — Data integrity: `feature.status` is `\"completed\"` but all 17 tasks are `\"blocked\"`. Contradictory state will confuse dashboards."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:69` — `buildConfigOverride` path-traversal guard for `outputFile` is untested; add a test with `../../etc/passwd`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:286` — `internalError` catch block (FAIL safety net) has no test forcing that path"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs` — `runGateInline` tests never exercise artifact-writing (always pass `null` for taskId)"
+    },
+    {
+      "severity": "warning",
+      "text": "### Previously flagged 🟡 issues — both FIXED:"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/validator-parsers.mjs:337-339` — Three alias re-exports (`parseJunit`, `parseTap`, `parseGhaMatcher`) rename functions that should be defined with their spec-mandated names from the start. The module exports 9 names for 6 functions, and two test files import different name variants for the same functions. **Fix:** rename function definitions to match spec, delete 3 alias lines (~15 lines changed)."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/validator-parsers.test.mjs:1-169` — Duplicate test file. All 20 tests overlap with the 124 tests in `test/parsers.test.mjs`. Only unique value is the export-existence check. Merge it and delete."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:1` — Stale header comment references deleted `parsers.mjs`."
+    }
+  ]
+}

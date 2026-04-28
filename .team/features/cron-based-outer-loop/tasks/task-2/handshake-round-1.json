@@ -1,0 +1,95 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 16 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T16:44:56.591Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 16,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:70` — Inconsistent exit strategy: config errors use `process.exit(1)` while happy-empty and lock-contention paths use `return`/`process.exit(0)`. Mixing forces test monkey-patching for some paths. Consider unifying."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:53` — `process.cwd()` hardcoded rather than injected through `deps`. Could cause issues if invoked from a different working directory."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:115` — `setProjectItemStatus` return value unchecked on pre-dispatch, post-success, and post-failure transitions. Board could show stale state. Acceptable for v1 since the lock is the primary concurrency guard."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cron-tick.test.mjs:88 — Test name says \"exits 0\" but `exitCode` is never explicitly asserted; add `assert.equal(exitCode, null)` to make the exit-0 contract machine-verifiable"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cron-tick.test.mjs:82 — No spy on `lockFile.release()` in the no-ready-items test; a refactor moving `return` outside `try/finally` would silently leak the lock with no test catching it"
+    },
+    {
+      "severity": "warning",
+      "text": "Both 🟡 findings are test-quality gaps (not production bugs) — they should go to backlog but don't block merge."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `handshake.json:7` — Claims \"580 tests pass\" but actual count is 546 (544 pass, 2 skipped)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/cron-tick.test.mjs:66` — \"exits 0\" test name but no explicit exit code assertion (carried forward from prior reviews)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/cron-tick.test.mjs:82` — No spy on `lockFile.release()` in no-ready-items path; lock leak wouldn't be caught by tests (carried forward)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cron-tick.test.mjs:85 — Test name claims \"exits 0\" but `exitCode` is never explicitly asserted; add `assert.equal(exitCode, null)` to machine-verify the exit-0 contract"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cron-tick.test.mjs:82 — No spy on `lockFile.release()` — lock leak on the no-ready-items path would go undetected if `return` were refactored outside `try`/`finally`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/cron-tick.test.mjs:75 — No test for truly empty board (`listProjectItems` returns `[]`); only tests board with non-Ready items"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:110` — Title sanitization misses Unicode bidirectional/line separator chars (U+2028, U+2029, U+200E–U+200F, etc.) that could be used for prompt obfuscation when passed to the LLM agent. Extend the regex."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:125` — Raw `err.message` posted to GitHub issue comments could leak internal paths or system details. Truncate and sanitize before posting."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/cron-tick.test.mjs:6` — **Dead code**: `existsSync` is imported but never used anywhere in the test file. Single `grep` confirms only the import line references it. This was previously flagged by the task-1 eval as \"resolved\" (removed), but that claim is false — the import is still present."
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `test/cron-tick.test.mjs:88` — Test claims \"exits 0\" but never asserts `exitCode === null`"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `test/cron-tick.test.mjs:82` — No spy on `lock.release()` — refactor could silently break lock cleanup"
+    }
+  ]
+}

@@ -594,7 +594,8 @@ export function computeRoadmapLabel(productContent, featureName) {
  * @param {function} [deps.getProjectItemStatus] - Injectable gh getProjectItemStatus (for testing)
  * @param {function} [deps.sleep] - Injectable sleep (for testing)
  */
-export async function outerLoop(args, deps) {
+export async function outerLoop(args, deps, opts = {}) {
+  const light = opts.light || args.includes("--light") || process.env.AGT_LIGHT === "1";
   const { findAgent, dispatchToAgent, runSingleFeature } = deps;
   const dogfood = args.includes("--dogfood");
 
@@ -855,6 +856,20 @@ export async function outerLoop(args, deps) {
     if (stopping) break;
 
     // ── Step 3: EXECUTE ─────────────────────────────────────────
+
+    // Guard: refuse to execute if working tree is dirty (prevents overwriting manual work)
+    if (!opts.force && !args.includes("--force")) {
+      try {
+        const gitStatus = spawnSync("git", ["status", "--porcelain"], { encoding: "utf8", cwd, timeout: 5000 });
+        const dirty = (gitStatus.stdout || "").split("\n").filter(l => l.trim() && !l.includes(".team/")).length;
+        if (dirty > 0) {
+          console.log(`  ${c.yellow}\u26a0 Working tree has ${dirty} uncommitted file(s) outside .team/. Skipping to avoid overwrites.${c.reset}`);
+          console.log(`  ${c.dim}Commit or stash changes, or use --force to override.${c.reset}`);
+          writeLoopStatus(teamDir, { phase: "paused", cycle, feature: priority.name, reason: "dirty-working-tree" });
+          break;
+        }
+      } catch {}
+    }
 
     console.log(`${c.bold}Executing...${c.reset}`);
     writeLoopStatus(teamDir, { phase: "executing", cycle, feature: priority.name });

@@ -1,31 +1,35 @@
 ## Parallel Review Findings
 
-[architect] Both Simplicity run_2 🔴 (lambda indirection) and Architect run_2 🟡 (asymmetric signature) are resolved. No 🔴 findings remain. No new issues introduced.
-[engineer] run_3 makes two targeted changes — standardising the `parseJunitXml` signature to `(stdout, stderr, exitCode)` and replacing the unnecessary lambda wrapper in `PARSERS` with a direct function reference. Both claims verified against the code. No logic change; 8/8 tests still pass. The **Simplicity run_2 🔴** and **Architect run_2 🟡** blockers are resolved.
-[product] run_3 resolved the last blocking 🔴 finding — the Simplicity run_2 flag on the unnecessary lambda wrapper at `PARSERS["junit-xml"]`. Both changes claimed in the handshake are confirmed in the code:
-[product] The stated requirement is met end-to-end: one `<failure>` element → one `findings.critical`, formatted exactly as `file:line — classname: message`. All three prior 🔴 blockers (dead try/catch, unhandled `<error>` elements, lambda indirection) are now resolved across runs 2 and 3.
-[security] **Verdict: PASS** (two carried 🟡 warnings to backlog; no 🔴 blocking findings)
-[security] Prior Simplicity run_2 🔴 (unnecessary lambda) is **resolved**.
-[simplicity veto] The run_2 Simplicity 🔴 (unnecessary lambda indirection at line 77) is **resolved**. The builder fixed it correctly — standardised `parseJunitXml` to `(stdout, stderr, exitCode)` and replaced the wrapper with a direct registry reference, matching `parseExitCode`.
-🟡 [architect] `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks the first `tests="N"` from the raw XML string; multi-`<testsuite>` aggregate reports produce a wrong `summary` count (carried from run_1/run_2, not addressed in run_3)
-🟡 [engineer] `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks the first `tests="N"` in the raw string; multi-`<testsuite>` aggregate reports produce a wrong `summary` count (carried from run_1/run_2, not in run_3 scope)
-🟡 [engineer] `bin/lib/validator-parsers.mjs:9` — `extractAttrs` silently drops single-quoted attribute values; `<failure message='broke'/>` produces `message=""` and finding `"f.java:1 — X: "` (carried from run_1/run_2)
-🟡 [product] `.team/features/external-validator-integration/tasks/task-1/handshake.json` — gate output truncated before `validator-parsers.test.mjs` results; no `artifacts/test-output.txt` saved; future reviewers cannot confirm pass count without re-running (carried from run_1, run_2)
-🟡 [product] `bin/lib/validator-parsers.mjs:1` — module has no callers in `bin/`; inert in production until integration task lands; confirm follow-up is tracked before marking feature shippable (carried from run_1, run_2)
-[product] The two carried 🟡 items (no test-output artifact, no integration callers) are **backlog**, not merge blockers — both were flagged in prior PM reviews and represent follow-on integration work outside the scope of this task.
-🟡 [tester] `test/validator-parsers.test.mjs:97` — `getParser("junit-xml")` test only asserts `typeof parser === "function"`; run_3 specifically changed the registry entry to a direct reference — add `parser(xml, "", 0)` with real XML asserting `findings.critical === 1` to lock down the interface change (elevated from 🔵 given run_3 scope; carried from run_2)
-🟡 [tester] `test/validator-parsers.test.mjs` — no test for `file`-present/`line`-absent path; branch at `validator-parsers.mjs:48` confirmed correct via direct execution (`"a.java — A: oops"`) but unlocked; add a case with `file="X.java"` and no `line` attribute (carried from run_1/run_2)
-🟡 [tester] `test/validator-parsers.test.mjs:72` — `<error>` test always provides a `message` attribute; add a case with `<error type="NPE"/>` (no message attr) to document that critical is still incremented and finding text is `"file:line — classname: "` (carried from run_2)
-🟡 [security] `bin/lib/validator-parsers.mjs:49` — `message`, `classname`, and `file` from attacker-controlled XML are concatenated into finding text without stripping control characters; a crafted `<failure message="\x1b[2J...">` injects terminal escape sequences. Strip `/[\x00-\x1f\x7f]/g` before `messages.push()`. *(Carried from run_2 — unresolved in run_3)*
-🟡 [security] `bin/lib/validator-parsers.mjs:56` — `meta` has no signal to distinguish a genuine zero-finding run from a structural parse failure; once wired into the gate, a misconfigured validator silently passes. Add `meta.parseWarning = true` when `findings.critical === 0 && stdout.length > 0 && !stdout.includes('<testcase')`. *(Carried from run_2 — unresolved in run_3)*
-🟡 [simplicity] `bin/lib/validator-parsers.mjs:23` — JSDoc says "Each `<failure>` element produces one critical finding" but the implementation also matches `<error>` (line 39); update the doc comment to name both element types
-🔵 [architect] `bin/lib/validator-parsers.mjs:76` — `PARSERS` is exported as a mutable object; a consumer can silently overwrite or delete entries; use `Object.freeze(PARSERS)` or remove the export in favour of `getParser`-only access (carried from run_2)
-🔵 [engineer] `test/validator-parsers.test.mjs:97` — `getParser("junit-xml")` test asserts only `typeof`; add a call with valid XML and assert `findings.critical === 1` to confirm the direct reference passes `stdout` correctly (carried from run_2)
-🔵 [engineer] `bin/lib/validator-parsers.mjs:29` — `stderr` and `exitCode` are declared but never read; add an inline comment explaining they are accepted for interface conformance only so future maintainers don't treat them as a latent bug
-🔵 [tester] `test/validator-parsers.test.mjs` — no test calls `parseJunitXml(xml, stderrValue, exitCodeValue)` with all 3 args; one test exercising the full 3-arg calling convention would document that `stderr` and `exitCode` are intentionally ignored
-🔵 [tester] `bin/lib/validator-parsers.mjs:11` — `extractAttrs` silently drops single-quoted attribute values (confirmed: `"c.java:3 — C: "`); add an inline comment documenting the constraint (carried from run_1/run_2)
-🔵 [security] `bin/lib/validator-parsers.mjs:11` — `extractAttrs` silently discards single-quoted XML attribute values; document as a known limitation with an inline comment so future maintainers aren't surprised.
-🔵 [simplicity] `test/validator-parsers.test.mjs:97` — `getParser("junit-xml")` only asserts `typeof`; invoke the returned parser with real XML and assert `findings.critical === 1` to verify registry wire-up end-to-end (carried from prior reviews)
+🟡 [architect] `gate.mjs:104` — Missing integration test for gate→parser→verdict pipeline. The wiring has zero test coverage, and this is where the prior critical bug lived undetected.
+🟡 [architect] `gate.mjs:209` — `isJUnitXml()` is private in gate.mjs but belongs in `parsers.mjs` for future extensibility (TAP/GHA/JSON parsers per SPEC).
+🟡 [architect] `parsers.mjs:33` — `<error>` elements silently ignored; Maven/Gradle emit these for runtime exceptions.
+🟡 [architect] `gate.mjs:116` — `taskId` path traversal (pre-existing, not introduced by this PR).
+🟡 [engineer] bin/lib/gate.mjs:104 — No integration test for the gate+parseJUnit verdict override path. The SPEC calls for `gate-validator-integration.test.mjs` but it was never created. The verdict bug (fixed in commit 00e6537) existed undetected until reviewers traced code manually. A test exercising exit=0 + JUnit `<failure>` → FAIL verdict would prevent regression.
+🟡 [engineer] bin/lib/parsers.mjs:33 — Only `<failure>` elements parsed; `<error>` elements silently ignored. Maven Surefire and Gradle emit `<error>` for runtime exceptions. Tested as by-design (test line 200), but real-world gap.
+🟡 [engineer] bin/lib/parsers.mjs:43 — CDATA sections pass through raw in failure body text. Common in Maven/Gradle JUnit output.
+🟡 [product] STATE.json:4 — Feature status is `"completed"` but 0/17 tasks completed (all blocked); misleading to downstream automation
+🟡 [product] test/parsers.test.mjs — No integration test for the gate + parseJUnit verdict override path; the spec calls for `test/gate-validator-integration.test.mjs` which was never created
+🟡 [product] Gate output inconsistency — The gate output provided as context shows `parseTap`, `parseGithubActions` tests, but the committed code only has `parseJUnit`; gate output appears from a different code state
+🟡 [product] bin/lib/parsers.mjs:33 — `<error>` elements silently ignored; Maven/Gradle emit these for runtime exceptions
+🟡 [tester] `test/parsers.test.mjs:222` — No integration test for gate→parse→verdict pipeline; SPEC AC10 requires `gate-validator-integration.test.mjs` which doesn't exist; file as backlog
+🟡 [tester] `bin/lib/parsers.mjs:33` — `<error>` elements silently ignored; Maven/Gradle runtime exceptions won't produce findings
+🟡 [tester] `bin/lib/parsers.mjs:43` — CDATA sections pass through raw in message text
+🟡 [tester] `bin/lib/gate.mjs:105` — stdout+stderr concatenation before detection increases false-positive surface
+🟡 [security] bin/lib/parsers.mjs:73 — `extractAttr` interpolates `name` into `new RegExp(...)` without escaping regex metacharacters. Safe today (hardcoded callers only), but fragile for future use. Escape or annotate `@internal`.
+🟡 [security] bin/lib/gate.mjs:116 — `taskId` from CLI args used in file paths without path traversal validation. A `taskId` of `../../etc` writes outside the task directory. Add `/^[a-zA-Z0-9_-]+$/` check.
+🟡 [security] test/parsers.test.mjs — No integration test for exit=0 + JUnit failures → FAIL verdict. This is the feature's core security property and the exact path where the prior critical bug lived undetected.
+🔵 [architect] `gate.mjs:105` — `isJUnitXml` on combined stdout+stderr may false-positive from stderr noise.
+🔵 [architect] `parsers.mjs:1` — File named `parsers.mjs` vs SPEC's `validator-parsers.mjs` (shorter name is better, but document the deviation).
+🔵 [engineer] bin/lib/parsers.mjs:73 — `extractAttr` interpolates `name` into regex without escaping metacharacters. Safe with current hardcoded strings, but fragile for future callers.
+🔵 [engineer] bin/lib/gate.mjs:105 — Concatenating stdout+stderr before JUnit detection could false-positive if stderr contains `<testsuite` text.
+🔵 [engineer] test/.test-workspace/features/backlog-gate-test/STATE.json — Non-deterministic timestamp diffs committed from test re-runs.
+🔵 [product] bin/lib/parsers.mjs:1 — File named `parsers.mjs` vs spec's `validator-parsers.mjs`; reconcile when remaining parsers are added
+🔵 [product] SPEC.md — 10-AC spec was over-scoped; 17 tasks consumed $36.41 with 0 completions; future specs should target 1-3 ACs per sprint
+🔵 [tester] `bin/lib/gate.mjs:209` — `isJUnitXml()` untested; detection gateway for entire pipeline
+🔵 [tester] `test/parsers.test.mjs:208` — No `<skipped>` element test
+🔵 [tester] `bin/lib/parsers.mjs:73` — `extractAttr` regex interpolation without metacharacter escaping
+🔵 [security] bin/lib/parsers.mjs:18 — No input size guard on `parseJUnit`. Consider a 512KB ceiling.
+🔵 [security] bin/lib/gate.mjs:105 — `stdout + stderr` concatenation for JUnit detection increases false-positive surface. Check stdout first.
 
 ## Compound Gate
 

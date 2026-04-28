@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (1 critical, 7 warning, 7 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T21:54:09.208Z",
+  "summary": "Parallel review: FAIL (1 critical, 18 warning, 16 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T12:51:01.269Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -14,8 +14,8 @@
   ],
   "findings": {
     "critical": 1,
-    "warning": 7,
-    "suggestion": 7
+    "warning": 18,
+    "suggestion": 16
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,35 +25,79 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/simplify-pass.mjs:184` — `git checkout HEAD -- .` does not remove untracked new files; if the agent creates files without committing and the gate fails, those files persist in the working tree. Mitigated by: (a) role spec instructs commit-or-nothing, (b) worktree is force-removed in `finally` at `run.mjs:1549` regardless. Risk low but semantically incomplete. Add `git clean -fd` after `git checkout HEAD -- .` to also remove untracked files."
+      "text": "🟡 bin/agt.mjs — `--no-simplify` not registered in CLI help; undiscoverable by users. SPEC explicitly requires it in `bin/agt.mjs`."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:390` — The source-assertion regex only checks for `completed > 0`, not the `blocked === 0` clause. If that half of the guard is later removed, the test still passes, silently breaking the spec requirement that the pass only runs when no tasks are blocked. Fix: extend the regex to `/completed\\s*>\\s*0\\s*&&\\s*blocked\\s*===\\s*0/`."
+      "text": "🟡 bin/lib/simplify-pass.mjs:108 — `readFileSync(rolePath)` outside try/catch; missing `roles/simplicity.md` crashes the run. All other error paths fail open. Wrap in try/catch."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1578` — `phaseOrder` hardcodes `[\"brainstorm\", \"build\", \"review\"]` at both the console breakdown (line 1578) and the progress-log summary (line 1604); `\"simplify\"` is absent from both. Simplify-pass token cost is silently excluded from per-phase reporting. File to backlog."
+      "text": "🟡 bin/lib/outer-loop.mjs — SPEC requires `--no-simplify` pass-through for multi-feature runs; not implemented."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:390` — Source assertion only checks `/completed\\s*>\\s*0/`; the spec-critical `blocked === 0` clause is not covered. Removing it from `run.mjs:1503` would leave all tests green. Extend the regex to cover the full guard. (Carried from Tester run_2.)"
+      "text": "🟡 tasks/task-1/artifacts/test-output.txt — Artifact references v1 API surface (`isCodeFile`, `getChangedFiles`, revert logic) that no longer exists. Review evals in tasks 2–4 assessed v1 code, not current v2. Re-capture artifacts."
     },
     {
       "severity": "warning",
-      "text": "🟡 test/simplify-pass.test.mjs:390 — Source assertion regex only checks `completed > 0`; removing `&& blocked === 0` from run.mjs:1503 breaks the spec without failing any test — extend regex to cover `blocked === 0`"
+      "text": "🟡 `bin/lib/simplify-pass.mjs:109` — `readFileSync(rolePath)` has no try/catch; every other I/O path in the function fails open, but this one will crash the feature run if the role file is missing. Add try/catch to match the fail-open pattern."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/simplify-pass.mjs:62` — File paths from `git diff --name-only` are embedded into the agent prompt without sanitization; Git allows filenames with newlines and control characters; strip them (`f.replace(/[\\x00-\\x1f\\x7f]/g, \"\").trim()`) before embedding. Risk is low in single-developer repos but realistic when external contributors or submodules are involved — and the agent runs with `--permission-mode bypassPermissions` so any injected instruction executes with full permissions."
+      "text": "🟡 `task-1/handshake.json:7` — Builder claims \"All 597 tests pass\" but test output shows 587 total (585 pass, 2 skip, 0 fail). Summary count is wrong; no actual failures."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/agt.mjs:89 — `--no-simplify` not registered in CLI help; add to `run` subcommand flags"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify-pass.test.mjs — No test for `--no-simplify` skip path; SPEC AC-9 requires it"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 simplify-eval.md — Stale FAIL verdict from pre-fix version; regenerate after fixes"
+    },
+    {
+      "severity": "warning",
+      "text": "All 9 acceptance criteria are now met. Three 🟡 items go to backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify-pass.test.mjs — No test for `--no-simplify` skip flag; SPEC AC-5 explicitly requires this; flag logic at `run.mjs:1507-1521` verified by source only"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/agt.mjs:89 — `--no-simplify` not listed in CLI help for `run` command; undiscoverable by users"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify-pass.test.mjs — No integration test for simplify-before-finalize ordering; SPEC Testing Strategy requires \"pass-triggers-before-finalize\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify-pass.test.mjs:118 — Warning-only path checks return values but never verifies `simplify-eval.md` was written; gap between no-findings (verified absent) and critical (verified present)"
     },
     {
       "severity": "critical",
-      "text": "🔴 `test/simplify-pass.test.mjs:138` — `let callIndex = 0;` declared but never read or used; remove it"
+      "text": "- The fix loop cited as 🔴 in the prior engineer review (task-6) **is now implemented** — added in run_2 with 3 test cases"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:386` — Test \"only runs simplify pass when completed > 0\" only asserts `completed > 0` in the guard regex; the actual guard at `run.mjs:1503` is `completed > 0 && blocked === 0` — extend or rename to document both conditions"
+      "text": "🟡 bin/lib/simplify-pass.mjs:115 — Fail-open on dispatch failure logs to console but writes no persistent record; operator cannot distinguish \"clean pass\" from \"gate bypassed\""
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify-pass.mjs:175 — Empty `catch {}` silently discards `simplify-eval.md` write errors; review findings lost with no diagnostic"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify-pass.mjs:192 — Empty `catch {}` silently discards STATE.json write errors; metrics silently absent"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/agt.mjs:102` — `--no-simplify` not in CLI help text; users can't discover it (backlog)"
     }
   ]
 }

@@ -279,7 +279,13 @@ export function findAgent() {
   return null;
 }
 
+const CAVEMAN_PREFIX = `IMPORTANT: Use caveman compressed output style. Be terse. Short variable names ok. Skip verbose explanations. Brain still big, words go small. Focus on code changes and test results only.\n\n`;
+
 export function dispatchToAgent(agent, brief, cwd, _spawnFn = spawnSync) {
+  // Apply caveman compression if AGT_CAVEMAN is set
+  if (process.env.AGT_CAVEMAN === '1') {
+    brief = CAVEMAN_PREFIX + brief;
+  }
   console.log(`  ${c.dim}Dispatching to ${agent}...${c.reset}`);
 
   try {
@@ -779,6 +785,7 @@ ${roadmapList}
 }
 
 async function _runSingleFeature(args, description, providedLabel = '', explicitSlug = '') {
+  const lightMode = args.includes('--light') || process.env.AGT_LIGHT === '1';
   // Reset token usage so each feature gets its own clean counters (prevents
   // accumulation across features in multi-feature outer-loop runs)
   resetRunUsage();
@@ -1228,7 +1235,9 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
             console.log(`  ${c.green}✓ eval.md written${c.reset}`);
 
             let findings = parseFindings(reviewResult.output);
-            const compoundGateResult = runCompoundGate(findings, cwd);
+            const compoundGateResult = lightMode 
+            ? { verdict: "PASS", layers: [] }
+            : runCompoundGate(findings, cwd);
             if (compoundGateResult.verdict === "FAIL") {
               findings = [
                 { severity: "critical", text: `🔴 compound-gate.mjs:0 — Shallow review detected: ${compoundGateResult.layers.join(", ")}` },
@@ -1306,7 +1315,9 @@ async function _runSingleFeature(args, description, providedLabel = '', explicit
           console.log(`  ${c.dim}${merged.slice(0, 1000)}${c.reset}`);
           const allText = roleFindings.map(f => f.output || "").join("\n");
           let findings = parseFindings(allText);
-          const compoundGateResult = runCompoundGate(findings, cwd);
+          const compoundGateResult = lightMode 
+            ? { verdict: "PASS", layers: [] }
+            : runCompoundGate(findings, cwd);
           // Collect synthetic finding lines so eval.md is written once — after all verdicts are assembled
           const syntheticEvalLines = [];
           if (compoundGateResult.verdict === "FAIL") {

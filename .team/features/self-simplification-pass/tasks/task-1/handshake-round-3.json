@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (4 critical, 11 warning, 8 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T22:00:00.814Z",
+  "summary": "Parallel review: FAIL (1 critical, 18 warning, 12 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T13:02:02.783Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,9 +13,9 @@
     }
   ],
   "findings": {
-    "critical": 4,
-    "warning": 11,
-    "suggestion": 8
+    "critical": 1,
+    "warning": 18,
+    "suggestion": 12
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,63 +25,79 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 test/simplify-pass.test.mjs:288 — The uncommitted-revert test captures `checkout HEAD` commands but not `git clean -fd`; removing `simplify-pass.mjs:189–193` leaves all 46 tests green — extend test to assert `clean -fd` was called"
+      "text": "🟡 test/simplify-pass.test.mjs:323 — `--no-simplify` test duplicates guard logic inline instead of testing the actual function/integration; refactor resilience is zero. Extract to a test that calls the real conditional."
     },
     {
       "severity": "warning",
-      "text": "🟡 bin/lib/run.mjs:1578 — `phaseOrder` at lines 1578 and 1604 omits `\"simplify\"` despite `setUsageContext(\"simplify\", null)` at line 1506; simplify-pass token costs silently excluded from per-phase console breakdown and progress log — add `\"simplify\"` to both arrays"
+      "text": "🟡 bin/lib/outer-loop.mjs — SPEC line 45 requires `--no-simplify` propagation to inner loop; zero matches found. Multi-feature runs cannot disable the simplification pass."
     },
     {
       "severity": "warning",
-      "text": "**Architecture assessment:** The module boundary is clean, coupling strictly one-directional, guard condition correctly implemented and regression-locked, error containment two-layered (module + integration). The two 🟡 items — `git clean -fd` not asserted in tests, and `\"simplify\"` missing from `phaseOrder` — are genuine gaps that have been carried across multiple review passes without being fixed. Both belong in the backlog. No blockers to merge."
+      "text": "🟡 bin/lib/simplify-pass.mjs:188 — `simplifyPass` in STATE.json missing SPEC-required `tokens` field. Token data exists in `state.tokenUsage` but not in `state.simplifyPass` per SPEC line 40."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify-pass.mjs:26 — `getFeatureDiff` hardcodes `\"main\"` with no `master` fallback; repos using `master` silently skip the entire pass. Lost during rewrite; add fallback."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify-pass.mjs:166 — Silent `catch { break; }` on re-verify dispatch failure has no diagnostic logging, unlike the fix dispatch failure at L149 which logs. Asymmetric error handling in the same loop."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify-pass.test.mjs:298 — \"fails open when role file is missing\" test doesn't actually exercise the error path; it tests the happy path and comments \"Since the role file exists in dev env.\""
     },
     {
       "severity": "critical",
-      "text": "🔴 `test/simplify-pass.test.mjs:156` — `let revParseCount = 0;` declared but never read or used in the `\"dispatches agent when code files are changed\"` test; the `execFn` at lines 157–163 returns hardcoded values with no reference to this variable — remove the line"
+      "text": "- **Prior 🔴 criticals (run_2): both resolved.** Phantom artifact issue no longer relevant (code rewritten, current tests pass). Fix-then-re-verify loop implemented and tested (L134-172, `MAX_FIX_ROUNDS=2`)."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:295` — `revertCmds` mock only captures `checkout HEAD` commands; `git clean -fd` (added at simplify-pass.mjs:189–193 to fix untracked-file revert) is never asserted and can be silently deleted without failing any test — extend capture to `clean -fd` and assert `revertCmds.some(c => c.includes(\"clean -fd\"))`"
-    },
-    {
-      "severity": "critical",
-      "text": "- The 🔴 is a one-line fix: delete line 156."
+      "text": "🟡 test/simplify-pass.test.mjs:323 — `--no-simplify` skip test recreates conditional logic inline rather than exercising actual production code; provides weak confidence"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/simplify-pass.test.mjs:295` — The uncommitted-revert test captures only `checkout HEAD` commands; `git clean -fd` at `simplify-pass.mjs:189` is untracked and unasserted — the fix can be silently deleted without failing any test. Extend `execFn` mock to capture `clean -fd` and add an assertion."
+      "text": "🟡 STATE.json:5 — Feature \"completed\" with 14/15 tasks blocked due to over-decomposition (15 tasks where 4-5 would suffice); wasted ~$50 in redundant review cycles"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/run.mjs:1578` — `phaseOrder` still hardcodes `[\"brainstorm\", \"build\", \"review\"]`; `\"simplify\"` absent from both line 1578 (console breakdown) and line 1604 (progress log). Simplify-pass token costs are invisible to operators. File to backlog. *(carried from multiple prior reviews)*"
+      "text": "🟡 test/simplify-pass.test.mjs:298 — \"fails open when role file is missing\" is a **false-positive test**: creates a throwing dispatch, never uses it, and asserts against a working dispatch with the role file present. The catch branch at simplify-pass.mjs:112-115 has zero test coverage. Fix: inject a mechanism to simulate missing role file."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/simplify-pass.mjs:62` — File paths from `git diff --name-only` embedded in agent prompt without sanitization. Adversarial filenames can inject instructions when agent runs with `bypassPermissions`. File to backlog. *(carried from Security reviews)*"
-    },
-    {
-      "severity": "critical",
-      "text": "All three run_3 claims confirmed. Prior 🔴 (`callIndex`) and prior 🟡 (guard regex) fully resolved."
+      "text": "🟡 test/simplify-pass.test.mjs:323 — \"--no-simplify flag\" test **re-implements the conditional from run.mjs inline** instead of testing production code. If run.mjs:1507 were refactored, this test would still pass. Fix: replace with integration test that calls production code."
     },
     {
       "severity": "warning",
-      "text": "🟡 test/simplify-pass.test.mjs:288 — \"reverts uncommitted changes\" test captures `checkout HEAD` commands but never asserts `git clean -fd` was called; deleting `simplify-pass.mjs:189–194` leaves all 46 tests green while silently re-introducing the untracked-file regression — extend `revertCmds` capture to include `clean -fd` and assert it"
+      "text": "🟡 test/simplify-pass.test.mjs — **Three untested fix-loop branches**: re-verify dispatch failure (L162-168), post-fix diff empty (L155-158), re-verify returns `ok: false` (L164). All silently break the loop but none are exercised by tests."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/simplify-pass.mjs:62` — File paths from `git diff --name-only` embedded in agent prompt without sanitization; strip control characters and newlines from each filename before embedding (e.g. `f.replace(/[\\x00-\\x1f\\x7f]/g, \"\").trim()`). Risk is amplified by `--permission-mode bypassPermissions` used at dispatch (run.mjs:290)."
+      "text": "🟡 tasks/task-1/artifacts/test-output.txt — **Stale artifact from v1** showing tests for `isCodeFile`, `getChangedFiles`, and gate-rerun logic that no longer exists. Handshake claims 601 tests; artifact shows 587 from wrong version."
     },
     {
       "severity": "warning",
-      "text": "**Prompt injection (🟡):** `buildSimplifyBrief` embeds raw file paths from `git diff --name-only` directly into the agent brief. Git does not restrict filenames — they can contain newlines, null bytes, or markdown directives. Since `dispatchToAgent` runs with `--permission-mode bypassPermissions`, injected instructions in a crafted filename execute with full filesystem access. This is low-risk for solo repos, realistic for multi-contributor projects or submodule consumers. Prior security passes independently confirmed this finding twice; it is a known backlog item."
-    },
-    {
-      "severity": "critical",
-      "text": "🔴 test/simplify-pass.test.mjs:156 — `let revParseCount = 0;` declared but never read or incremented; dead variable (copy-paste artifact from adjacent tests that do use call counters); remove it"
+      "text": "🟡 bin/lib/simplify-pass.mjs:115 — Fail-open on dispatch failure writes no persistent record; post-hoc audit can't distinguish clean pass from bypassed gate; write a \"dispatch failed\" entry to `simplify-eval.md`"
     },
     {
       "severity": "warning",
-      "text": "🟡 test/simplify-pass.test.mjs:295 — `revertCmds` only captures `checkout HEAD` commands; the `git clean -fd` step (simplify-pass.mjs:189–193) is never asserted and can be silently deleted without any test failing; extend the capture or add `assert.ok(revertCmds.some(c => c.includes(\"clean -fd\")))`"
+      "text": "🟡 bin/lib/simplify-pass.mjs:181 — Empty `catch {}` silently discards eval file write errors; log `err.message` before swallowing"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify-pass.mjs:198 — Empty `catch {}` silently discards STATE.json write errors; log `err.message` before swallowing"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/.test-workspace/features/*/STATE.json` — timestamp-only diff noise from test runs"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/simplify-pass.test.mjs:323` — `--no-simplify` test mirrors logic from `run.mjs` rather than exercising actual code"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `tasks/task-1/artifacts/test-output.txt` — stale artifact from v1 implementation"
     }
   ]
 }

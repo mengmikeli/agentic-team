@@ -1,0 +1,63 @@
+{
+  "taskId": "task-13",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 8 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T09:25:01.235Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 8,
+    "suggestion": 11
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:100 — `writeGateArtifacts()` called without try/catch in `runGateInline`. `cmdGate` (gate.mjs:286) wraps the equivalent path. Add matching error protection for parity."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:100 — `writeGateArtifacts()` called without try/catch in `runGateInline`; disk I/O failure would propagate unhandled. `cmdGate` wraps the equivalent path in a catch. Add matching error protection for parity."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `SPEC.md:26` — AC10 calls for \"integration test with a Jest JUnit reporter\" but tests use inline XML strings. Functionally equivalent but doesn't match spec letter. Backlog: add true e2e test or amend spec."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/run.mjs:100` — `writeGateArtifacts()` lacks try/catch, unlike the equivalent path in `cmdGate` (gate.mjs:286). Disk I/O failure would crash instead of degrading gracefully. Backlog: wrap in try/catch for parity."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs:282 — No test for `runGateInline` with unsafe taskId (path traversal). Only tested through `cmdGate`. Add a direct test since the return shapes differ."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs:282 — No test verifies `runGateInline` persists gate results to `STATE.json` gates array (run.mjs:114-139). Silent regression risk for dashboard visibility."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:69` — `buildConfigOverride` checks `outputFile` for `..` but not path separators. Defense relies on `path.join` behavior (safe, but fragile if ever changed to `path.resolve`). Should match `isUnsafeTaskId` rigor."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:289` — Internal error catch correctly emits `verdict: \"FAIL\"` (fail-closed). The `ok: false` distinction from normal flow is actually good design."
+    },
+    {
+      "severity": "critical",
+      "text": "| Dead code | PASS | Previous 🔴 (unused imports) resolved. No dead functions/variables/branches remain. |"
+    }
+  ]
+}

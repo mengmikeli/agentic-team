@@ -1,0 +1,71 @@
+{
+  "taskId": "task-13",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 10 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T09:38:54.189Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 10,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/validator-parsers.mjs:121 — `line.trim()` before regex match causes indented TAP subtests to match as top-level failures, producing duplicate findings in nested TAP output. Consider checking indentation level. (Carried forward — appropriate for backlog)"
+    },
+    {
+      "severity": "warning",
+      "text": "**All 4 prior actionable 🟡 findings resolved:**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/validator-parsers.mjs:121 — `line.trim()` before TAP regex means indented subtests are matched as top-level failures, producing duplicate findings in nested TAP output. Consider checking indentation depth."
+    },
+    {
+      "severity": "warning",
+      "text": "- **Error handling parity** — the prior 🟡 (missing try/catch on `writeGateArtifacts`) was fixed in task-13; all 5 previously flagged yellows are now resolved"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:26 — AC10 specifies a real Jest JUnit reporter integration test; actual tests use inline XML strings. Functionally equivalent but doesn't match spec letter. Backlog item."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:0 — No test for `buildConfigOverride` outputFile path-traversal rejection (gate.mjs:69). Security validation without regression safety net."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs:0 — No test for `runGateInline` with `validators.json` config. All config tests go through `cmdGate` subprocess — the inline gate's config path is unwired in tests."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:0 — No test for `processGateOutput` when structured output appears only in stderr. The function combines stdout+stderr (gate.mjs:86), but only stdout is exercised."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:69` — `buildConfigOverride` outputFile path-traversal validation has zero direct test coverage. Add unit tests for malicious `outputFile` values (`../../etc/passwd`, absolute paths, backslashes) to prevent regression."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:103` — `writeGateArtifacts` does not self-validate `taskId` for path traversal. Both current callers validate correctly, but a future caller that omits `isUnsafeTaskId()` would introduce path traversal via `join(baseDir, \"tasks\", taskId)`. Add an internal guard clause."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical findings. Evaluation written to `tasks/task-14/eval-simplicity.md`."
+    }
+  ]
+}

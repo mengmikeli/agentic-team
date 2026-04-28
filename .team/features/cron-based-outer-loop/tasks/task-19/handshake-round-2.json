@@ -1,0 +1,79 @@
+{
+  "taskId": "task-19",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 12 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T21:07:30.959Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 12,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:128-132` — `process.exit` monkey-patch is fragile coupling to `run.mjs` internals; consider an explicit `{ throwOnExit: true }` contract on `runSingleFeature`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:82` + `bin/lib/util.mjs:100` — Lock path `.team/.cron-lock` becomes `.team/.cron-lock.lock` due to `lockFile()` appending `.lock`; naming is confusing"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/agt.mjs:73` — Bare `catch { process.exit(1); }` discards error objects. Expected pre-flight errors are fine (already logged by tsError), but unexpected bugs produce silent exit(1). Fix: `catch (e) { console.error(e); process.exit(1); }`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `STATE.json` — Feature marked \"completed\" but only 2/13 harness tasks passed; tasks 14-19 completed the work outside the sprint flow. Cost tracking ($51.03) doesn't cover the corrective pass. Backlog: reconciliation logic for out-of-band completions."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `tasks/task-19/artifacts/test-output.txt` — Missing on disk despite being expected by the artifact contract. Backlog: ensure build nodes write test-output.txt."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/cron-tick.test.mjs` (missing) — No test for `commentIssue` throwing during failure recovery (cron.mjs:161-162); the `recovery (comment) failed` log line is the only untested error path in the recovery block"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/cron-tick.test.mjs` (missing) — No test for `setProjectItemStatus` throwing on the done transition (cron.mjs:143-144); same code pattern as in-progress throw but this specific branch unexercised"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:129-131` — `process.exit(0)` triggers failure recovery path (revert + comment), semantically wrong for clean exit; add test documenting behavior or differentiate exit codes"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:128` — `process.exit()` interception is not async-safe; board item can be stuck in \"in-progress\" for one cron interval if `runSingleFeature` spawns async work that calls `process.exit()` after restoration. Mitigated by stale-lock recovery on next tick."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/agt.mjs:73` — `catch { process.exit(1); }` silently swallows errors. Change to `catch (e) { console.error(e); process.exit(1); }` for defensive logging."
+    },
+    {
+      "severity": "critical",
+      "text": "**No critical (🔴) findings. No merge blockers.**"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/agt.mjs:248+890` — Help text duplicated in two code paths (~20 identical lines each). Pre-existing pattern; cron feature added 2 lines to both copies. Extract to a shared function to prevent drift."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:128-132` — `process.exit` monkey-patching is a global side effect. Safe due to advisory lock preventing concurrent same-process runs, but the invariant should be documented."
+    }
+  ]
+}

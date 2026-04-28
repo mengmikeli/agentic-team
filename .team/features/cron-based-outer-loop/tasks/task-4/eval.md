@@ -1,27 +1,34 @@
 ## Parallel Review Findings
 
-[simplicity veto] No 🔴 critical findings. Two 🟡 warnings for the backlog:
-🟡 [product] `.team/features/cron-based-outer-loop/tasks/*/artifacts/` — No `test-output.txt` stored in any task's artifact directory; claimed test counts (553 tests) cannot be independently verified from the artifact trail alone — store test runner output as a task artifact in future runs.
-[product] The prior 🟡 findings from earlier runs (args leakage, Unicode sanitization gap, stale-item stranding) are all confirmed closed in run_3. Eval written to `tasks/task-4/eval.md`.
-🟡 [tester] `cron.mjs:86` — `listProjectItems` called bare inside the outer `try` with no inner catch; if the GitHub API throws (network failure, auth expiry), the error propagates as an unhandled rejection with no `console.error` log — the `finally` block still releases the lock, but the failure is invisible in the cron log; add a test where `listProjectItems` throws and assert `console.error` is invoked with a useful message
-🟡 [tester] `test/cron-tick.test.mjs:399` — Stale+ready coexistence: dispatch priority not asserted; after stale recovery, item #3 (mutated to `"ready"`) appears first in `readyItems` and gets dispatched ahead of item #4 (originally `"Ready"`), but the test only asserts `runCalled === true` — a regression that changes dispatch ordering would pass silently; add an assertion on which `issueNumber` was dispatched
-[tester] - Prior 🟡 findings from runs 1–2 (commentIssue guard, Unicode sanitization, args leakage, lock-release spies, console-restore in try/finally) confirmed closed
-[tester] - No critical findings — two new 🟡 backlog items added
-[security] Two prior 🟡 security findings are **closed** in run_3:
-🟡 [simplicity] `bin/lib/cron.mjs:101` — `staleItem.status = "ready"` mutates the input array element to populate the ready pool via a filter 5 lines later; coupling is non-obvious — collect recovered items into an explicit variable and merge with `readyItems`
-🟡 [simplicity] `bin/lib/cron.mjs:20` — `readProjectNumber` duplicates `outer-loop.mjs:117` body-for-body (same regex, same try/catch, same contract); extract to shared utility to avoid split maintenance (carry-forward)
-🔵 [architect] `bin/lib/github.mjs:275` — `setProjectItemStatus` calls `readTrackingConfig()` with implicit `process.cwd()`; if cwd changes mid-run, all status transitions silently return false while pre-flight passed with an explicit path — pass tracking config as a parameter
-🔵 [architect] `bin/lib/cron.mjs:60` — pre-flight errors use `process.exit()` directly, breaking the async interface contract and requiring `process.exit` monkey-patching in every test — consider throwing instead
-🔵 [architect] `bin/lib/cron.mjs:86` — `_listProjectItems` is called without `await` with no documentation; an async fixture would silently produce a `Promise` in `items`, breaking `filter` — add a JSDoc comment on the sync requirement
-🔵 [engineer] `bin/lib/cron.mjs:86` — `_listProjectItems(projectNumber)` called without `await`; no comment/JSDoc signals the synchronous contract; an injected async stub would return a Promise and `items.filter` would throw `TypeError` (carry-forward from run_2 engineer eval)
-🔵 [engineer] `bin/lib/cron.mjs:101` — `staleItem.status = "ready"` mutates the input object in-place to include recovered items in the ready pool; works correctly but relies on an undocumented contract that `_listProjectItems` objects are mutable
-🔵 [product] `bin/lib/cron.mjs:89–103` — Stale recovered items are always retried immediately in the same tick regardless of why they were killed; no spec prohibition but may surprise operators if a feature hits resource limits repeatedly — file backlog item for optional retry-count cap.
-🔵 [tester] `test/cron-tick.test.mjs:409` — All three stale-recovery tests use `status: "In Progress"` (space format); the `s === "in-progress"` (hyphen) branch at `cron.mjs:93` has no stale-scenario test; add one fixture item with `status: "in-progress"` (hyphen)
-🔵 [tester] `cron.mjs:118` — No test for `item.title` being `null` or `undefined`; the `|| ""` guard is correct but untested
-🔵 [security] `bin/lib/cron.mjs:118` — Unicode bidirectional control characters (U+200E, U+200F, U+202A–U+202E, U+2066–U+2069) are not stripped from the issue title before LLM prompt injection; used in known prompt-obfuscation attacks — extend the regex to include `\u200e\u200f\u202a-\u202e\u2066-\u2069`
-🔵 [security] `bin/lib/cron.mjs:144` — `err.message` posted verbatim to GitHub issues may expose internal file paths in shared/public repos — consider capping to first line and 200 chars: `(err.message || String(err)).split('\n')[0].slice(0, 200)`
-🔵 [simplicity] `bin/lib/cron.mjs:42` — `args` accepted but never read; SPEC guarantees flags are not forwarded — drop the "for now" annotation or remove the parameter
-🔵 [simplicity] `test/cron-tick.test.mjs:526` — inline tracking config is identical to the `TRACKING_CONFIG` constant at line 23; use the shared constant (carry-forward from run_2)
+🟡 [architect] `bin/lib/cron.mjs:20-31` — `readProjectNumber(cwd)` is a near-identical copy of `outer-loop.mjs:118-128`. Extract to a shared module to eliminate maintenance risk from divergent copies.
+🟡 [architect] `bin/lib/cron.mjs:149` — `_commentIssue` return value unchecked in failure path. Revert returns are checked (line 141), success-path status returns are checked (lines 118, 129), but comment return is silently discarded. Add a return-value check with `tsError` warning for observability parity.
+🟡 [engineer] `test/cron-tick.test.mjs` — Title sanitization regex at `cron.mjs:111` is untested; 3 sanitization tests present in gate artifact were removed from final code. Security-relevant regression risk.
+🟡 [engineer] `test/cron-tick.test.mjs` — `commentIssue` throw path at `cron.mjs:150-152` is untested; corresponding test was removed between gate artifact and final code.
+🟡 [engineer] `bin/lib/cron.mjs:20-31` — `readProjectNumber` duplication with `outer-loop.mjs:118-128` (carry-forward).
+🟡 [product] `bin/lib/cron.mjs:148-149` — `commentIssue` return value unchecked on failure path; silent failure violates "comment is posted" spec language. Add return-value check.
+🟡 [product] `tasks/task-4/artifacts/test-output.txt` — Artifact test names (16 tests) don't match current test file (13 tests). Captured from mid-build state, not final code. Process issue — future builds should capture output after final commit.
+🟡 [tester] `tasks/task-5/artifacts/test-output.txt` — Stale artifact. Shows 16 tests (including title sanitization, stale recovery, commentIssue failure) that were **never committed** to the branch. Verified at all 12 commits via `git show`. Current code has 13 `cmdCronTick` tests with different names.
+🟡 [tester] `bin/lib/cron.mjs:111` — Title sanitization (control chars, Unicode line separators, 200-char truncation) is security-relevant but has zero test coverage. Tests existed in the uncommitted artifact but were never committed.
+🟡 [tester] `bin/lib/cron.mjs:150-151` — `catch (commentErr)` block is untested. Only the reverse direction (revert throws → comment succeeds) is tested. Add a test where `commentIssue` throws.
+🟡 [security] `test/cron-tick.test.mjs` — Title sanitization tests (control chars, Unicode separators, 200-char truncation) were removed in commit `dd38b2e`. The sanitization regex at `cron.mjs:111` is a security boundary with zero test coverage. Restore these tests.
+🟡 [security] `bin/lib/cron.mjs:148-149` — `_commentIssue` return value unchecked on failure path. Silent `false` return produces no log entry, unlike the success-path pattern for `setProjectItemStatus`.
+🟡 [security] `bin/lib/cron.mjs:94-157` — No circuit breaker for repeated failures. A consistently-failing issue creates an infinite revert→re-dispatch loop, posting a new GitHub comment each cron cycle.
+🟡 [simplicity] `bin/lib/cron.mjs:20-31` — `readProjectNumber` is a near-identical copy of `outer-loop.mjs:118-128`. Extract to shared module.
+🔵 [architect] `bin/lib/cron.mjs:119,122` — Catch block logs identical message to the `!movedToInProgress` branch. Cannot distinguish "returned false" from "threw" in cron.log. Log `statusErr.message` in the catch.
+🔵 [architect] `bin/lib/cron.mjs:148,153` — `err.message || err` should use `??` instead of `||` to handle intentionally empty error messages.
+🔵 [architect] `test/cron-tick.test.mjs` — No test for `_commentIssue` throwing in the failure path. Structurally covered by the try/catch at line 147, but not explicitly tested.
+🔵 [engineer] `bin/lib/cron.mjs:149` — `_commentIssue` return value discarded on failure path; silent failure if API returns false.
+🔵 [engineer] `bin/lib/cron.mjs:148` — `err.message || err` uses `||` instead of `??`; empty message falls through.
+🔵 [engineer] `bin/lib/cron.mjs:119,122` — Identical log messages for "returned false" and "threw exception" paths.
+🔵 [product] `test/cron-tick.test.mjs` — No test for `commentIssue` throwing on failure path. Code handles it, but coverage gap.
+🔵 [product] `test/cron-tick.test.mjs` — Title sanitization code (`cron.mjs:111`) has no test coverage in current file. Tests existed in prior build but were removed.
+🔵 [tester] `bin/lib/cron.mjs:121-123` — No test for `setProjectItemStatus` throwing during in-progress transition (only returns-false tested).
+🔵 [tester] `bin/lib/cron.mjs:122,134` — `statusErr` is caught but not logged; can't distinguish "returned false" from "threw" in cron.log.
+🔵 [security] `bin/lib/cron.mjs:153` — `tsError` log not truncated (comment body is capped at 500 chars — apply consistently).
+🔵 [security] `bin/lib/cron.mjs:145,151,153` — `err.message || err` should use `??` not `||` to handle empty error messages correctly.
+🔵 [security] `.gitignore` — `.team/cron.log` not excluded; risk of accidental commit.
+🔵 [simplicity] `bin/lib/cron.mjs:145,151,153` — `err.message || err` should be `err.message ?? String(err)` to preserve empty-string messages.
+🔵 [simplicity] `bin/lib/cron.mjs:121-122` — `statusErr` caught but never logged; can't distinguish "returned false" from "threw" in cron.log.
 
 ## Compound Gate
 

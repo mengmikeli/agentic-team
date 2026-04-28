@@ -1,0 +1,79 @@
+{
+  "taskId": "task-2",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 12 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T11:28:52.998Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 12,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/outer-loop.mjs:0 — `--no-simplify` flag not forwarded from outer loop to inner loop. SPEC:45 requires this. Backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify.mjs:30 — `getFeatureDiff` hardcodes `main` as base branch. Repos with `master` or custom default branch get graceful skip. Backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify.mjs:199 — `_dispatchFn` is assigned but never null-checked; if caller omits it and diff exists, `dispatch(agent, brief, cwd)` throws `TypeError` rather than a descriptive error. Add a guard: `if (!dispatch) throw new Error(\"_dispatchFn is required\")`."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1541 — Escalation metrics write `warning: 0` instead of actual warning count from `lastFindings`. The error object doesn't carry `err.warning`, so warning metrics are lost on escalation. Attach `warning` count to the thrown error in simplify.mjs:275-280."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify.test.mjs — Missing unit test for `--no-simplify` flag. Spec AC 9 requires \"skip-flag\" test coverage. Code works, but acceptance criterion for test coverage is unmet."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1519 — No unit test verifies `simplifyPass` field persistence to STATE.json. Spec AC 7 requires this is captured; code exists but has no coverage."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify.test.mjs:1 — No test for `--no-simplify` flag; SPEC acceptance criterion 5 is claimed tested in handshake but no test exists. Add integration test asserting skip notice in progress.md."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/simplify.test.mjs:1 — No test for `simplifyPass` STATE.json persistence; SPEC criterion 7 requires this. Add test verifying `simplifyPass: { critical, warning, rounds, tokens, durationMs }` shape in STATE.json."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/simplify.mjs:30 — `getFeatureDiff` hardcodes `main` with no `master` fallback. Repos using `master` silently skip the entire pass. Old implementation had this fallback; regression in the consolidation."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/simplify.mjs:169` — `readFileSync` in `writeEval` round 2+ has no try/catch; if file is externally deleted between rounds, unhandled exception crashes the pass instead of triggering proper escalation"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/simplify.mjs:265 — **Gold-plating:** `simplify-escalation.md` is a write-only artifact not in the spec, never consumed by any code, and triples information already in `simplify-eval.md` and `progress.md`. The established codebase pattern for escalation is `appendProgress()` to `progress.md` (see `test/iteration-escalation.test.mjs:279-297`), not a separate file. Lines 264-273 add a markdown table builder with pipe-escaping that serves zero consumers. Fix: delete lines 264-273 and the test at test/simplify.test.mjs:384-406."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1515 — Duplicated STATE.json write block for `simplifyPass` metrics in success/escalation paths. Could be a single block after the try/catch."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:1504 — Spec deviation: SPEC says \"continue to finalize (do not hard-block the feature forever)\" on escalation, but implementation blocks finalize. SPEC's own code example (lines 112-121) shows `ESCALATED` proceeding to finalize."
+    }
+  ]
+}

@@ -1,33 +1,35 @@
 ## Parallel Review Findings
 
-🟡 [architect] `bin/lib/simplify-pass.mjs:47` — `base` (merge-base SHA) interpolated into shell string without format validation; `getChangedFiles` is a public export accepting arbitrary `base` — add `/^[0-9a-f]{7,40}$/i` guard to harden the API surface
-🟡 [architect] `bin/lib/run.mjs:1578` — `phaseOrder` hardcodes `["brainstorm", "build", "review"]`, omitting `"simplify"`; `setUsageContext("simplify", null)` sets context but token costs never surface in the console breakdown or progress log — operator cost blindspot
-[architect] Both 🟡 items are carried from prior reviews — neither introduced by this task. The core architecture is sound:
-[architect] - The `git clean -fd` assertion (the prior Tester 🟡) is confirmed present at test:294–295,307 — that finding was stale
-🟡 [engineer] `bin/lib/simplify-pass.mjs:47` — `base` (merge-base output) interpolated into shell string without SHA format validation; `getChangedFiles` is a named export accepting arbitrary `base` — add `/^[0-9a-f]{7,40}$/i` guard to harden the API surface (carried)
-🟡 [engineer] `bin/lib/run.mjs:1578` — `phaseOrder` hardcodes `["brainstorm","build","review"]` and omits `"simplify"`; `setUsageContext("simplify", null)` fires at line 1506 but costs never surface in breakdown or summary output; simplify-pass dispatch cost is invisible to operators (carried)
-[engineer] Core correctness path verified end-to-end: `runSimplifyPass` computes `git merge-base HEAD main|master`, stores the resulting SHA as `base`, passes it to `getChangedFiles` which constructs `git diff --name-only ${base}..HEAD` — a full branch diff, not per-task. All builder claims verified against source. The `git clean -fd` fix (task-2's primary claim) is real and now asserted at `test:307`. No critical issues. Two carried 🟡 items for the backlog; neither was introduced by this task. Eval written to `.team/features/self-simplification-pass/tasks/task-2/eval.md`.
-🟡 [product] `bin/lib/run.mjs:1578` — `phaseOrder` missing `"simplify"` entry; simplify-pass token costs invisible in operator phase breakdown — file as backlog
-🟡 [product] `bin/lib/simplify-pass.mjs:47` — merge-base SHA interpolated directly into shell string without format validation (`/^[0-9a-f]{7,40}$/i`); `getChangedFiles` is a named export accepting caller-supplied `base` — file as backlog
-🟡 [product] `bin/lib/simplify-pass.mjs:62` — filenames from `git diff --name-only` interpolated unsanitized into agent prompt; prompt injection risk with adversarially named files — file as backlog
-[product] The three 🟡 items above are all pre-existing, carried through 4+ prior review passes, and are not regressions from this task.
-🟡 [tester] test/simplify-pass.test.mjs:462 — Guard test scans source text (200 chars before `runSimplifyPass(`), not runtime behavior; a structural refactor of `run.mjs` that preserves `completed > 0 && blocked === 0` logic but changes whitespace, formatting, or call site proximity could cause a false pass or false fail; no integration test actually exercises the guard by running with `blocked > 0`
-[tester] **Key correction from prior rounds:** The "Tester Review (final)" section already in the eval claimed `git clean -fd` was unasserted — that was stale. Task-2's handshake correctly describes the fix. The current test at line 287–308 **does** capture `clean` commands (line 294–295) and asserts them (line 307). That 🟡 is resolved.
-🟡 [security] bin/lib/simplify-pass.mjs:62 — File paths from `git diff --name-only` embedded in agent prompt without sanitization; strip control characters before embedding (e.g. `f.replace(/[\x00-\x1f\x7f]/g, "").trim()`)  — amplified by `bypassPermissions` dispatch mode (carried from prior security passes; backlog item exists)
-🟡 [security] bin/lib/simplify-pass.mjs:47 — `getChangedFiles` is an exported function accepting `base` as a caller-supplied string with no SHA format validation; add `/^[0-9a-f]{7,40}$/i` guard before shell interpolation to harden the public API surface (carried from task-2 prior reviews)
-[simplicity] Carried 🟡 (not introduced by this feature, require backlog entries):
-🟡 [simplicity] `bin/lib/simplify-pass.mjs:47` — `base` SHA interpolated into shell string without format validation; `getChangedFiles` is a public export
-🟡 [simplicity] `bin/lib/run.mjs:1578` — `phaseOrder` omits `"simplify"`; simplify-pass dispatch cost invisible in operator console output
-[simplicity] No veto-level issues in any of the four categories (dead code, premature abstraction, unnecessary indirection, gold-plating). The production module is lean at 198 lines with clean injection points. The two 🔵 suggestions are minor — a single-use private helper that could be inlined, and a duplicated expression that could be unified. Both carried 🟡 items predate this feature.
-🔵 [architect] `test/simplify-pass.test.mjs:386` — "uses merge-base SHA as diff range start" captures the first `--name-only` command via `!capturedDiffCmd` guard; silently validates the wrong command if call order changes — use a specific match instead
-🔵 [architect] `bin/lib/simplify-pass.mjs:111` — `rev-parse HEAD` failure early-return (lines 117–119) has no test coverage; those 3 lines can be silently deleted without any test failing
-🔵 [engineer] `test/simplify-pass.test.mjs:386` — "uses merge-base SHA as diff range start" captures the first `--name-only` command via `!capturedDiffCmd`; if call order changes, the wrong command is silently validated (carried)
-🔵 [engineer] `bin/lib/simplify-pass.mjs:150` — `git diff --name-only HEAD` counts only tracked file modifications; if the agent creates untracked new files without staging them, `changedCount = 0`, gate is skipped, and those files persist on disk (new finding, minor edge case)
-🔵 [tester] test/simplify-pass.test.mjs:386 — "uses merge-base SHA as diff range start" captures the first `--name-only` command via `!capturedDiffCmd`; if call order changes, the wrong command is silently validated (carried from prior reviews)
-🔵 [tester] bin/lib/simplify-pass.mjs:111 — Pre-dispatch `rev-parse HEAD` failure early-return (lines 117–119) untested; removing those 3 lines fails no test (Gap D, carried)
-🔵 [security] bin/lib/simplify-pass.mjs:47 — `execSync` with template literals used for all six git commands; prefer `execFileSync("git", [...args])` to eliminate the shell-interpolation anti-pattern even though production values are provably safe
-🔵 [simplicity] `bin/lib/simplify-pass.mjs:35` — `loadSimplifyRole` is a private single-use helper (one call site: `buildSimplifyBrief:61`); per the simplify-pass role's own criterion, inline when clearer — the try/catch makes loading behavior invisible at the call site; marginal but worth noting
-🔵 [simplicity] `bin/lib/simplify-pass.mjs:140` — `changedCount` detection duplicates `(diff || "").trim().split("\n").filter(Boolean).length` in both branches of the `committed` conditional (lines 143–148 and 151–157); only the git command string differs — extract it to a variable and collapse into a single try/catch block
+🟡 [architect] bin/lib/run.mjs:1613 — When `simplifyBlocked=true` and `blocked=0`, function returns `"done"` despite finalize being skipped. Outer loop may misinterpret the feature as complete. Return `"blocked"` or `"simplify-blocked"` instead.
+🟡 [architect] bin/lib/simplify-pass.mjs:82 — `buildFixBrief` doesn't instruct the agent to commit fixes. Changes may be lost when the worktree is removed. Add commit instruction to the fix prompt.
+🟡 [architect] bin/lib/outer-loop.mjs — `--no-simplify` flag not forwarded to inner loop invocation. Works in direct `agt run` but not continuous mode.
+🟡 [architect] test/simplify-pass.test.mjs:360 — `--no-simplify` test recreates the guard conditional inline rather than exercising actual production code.
+🟡 [engineer] `bin/lib/simplify-pass.mjs:146` — When fix loop breaks early (dispatch failure/throw), `verdictResult` retains stale findings from last successful parse. Escalation notice at line 187 won't trigger since `rounds < MAX_FIX_ROUNDS` after early break, even though criticals remain. Acceptable fail-safe but eval artifact may lack escalation warning.
+🟡 [engineer] `bin/lib/simplify-pass.mjs:192` — Silent `catch {}` on `writeFileSync(evalPath)`. If featureDir is invalid, all three output writes fail with zero trace. Inconsistent with role-file path (line 121) which logs.
+🟡 [engineer] `bin/lib/simplify-pass.mjs:211` — Same silent catch on `writeState`. Should log at warning level.
+🟡 [engineer] `test/simplify-pass.test.mjs:360` — `--no-simplify` test reimplements `run.mjs:1507` guard logic inline rather than testing actual module behavior. Won't catch regressions.
+🟡 [engineer] `test/simplify-pass.test.mjs:335` — Role-file-missing test can't exercise missing-file path (role file exists in dev env). No real coverage of `simplify-pass.mjs:118-123`.
+🟡 [product] test/simplify-pass.test.mjs:360 — `--no-simplify` test duplicates guard logic inline instead of exercising actual production code; refactor resilience is zero
+🟡 [product] bin/lib/simplify-pass.mjs:201 — `simplifyPass` STATE.json entry missing SPEC-required `tokens` field; token data lands in `state.tokenUsage` instead
+🟡 [product] bin/lib/outer-loop.mjs — SPEC line 45 requires `--no-simplify` propagation to inner loop; zero matches found in file
+🟡 [tester] test/simplify-pass.test.mjs:360 — `--no-simplify` test doesn't exercise real code; it replicates the guard conditional inline. A flag rename in run.mjs wouldn't be caught.
+🟡 [tester] test/simplify-pass.test.mjs:335 — "role file missing" test can't trigger the error path since the role file exists in dev. Tests the happy path instead.
+🟡 [security] bin/lib/simplify-pass.mjs:59-74 — Git diff content embedded verbatim in LLM prompt; strip control characters and escape backtick fences before embedding. Carried backlog item.
+🟡 [security] bin/lib/simplify-pass.mjs:82-88 — `buildFixBrief` embeds LLM-generated finding text into fix prompt without sanitization. Chained prompt injection vector. Low severity given identical agent permissions.
+🟡 [simplicity] `test/simplify-pass.test.mjs:360` — Mirror test re-implements the `--no-simplify` conditional from `run.mjs:1507` inline instead of exercising the actual code path. Backlog item.
+🔵 [architect] bin/lib/run.mjs:1504 — No `harness("notify")` for simplify events. Other phases emit notifications.
+🔵 [architect] bin/lib/simplify-pass.mjs:53 — Diff truncation at `DIFF_CAP` may cut mid-line. Truncate at last newline.
+🔵 [engineer] `bin/lib/simplify-pass.mjs:12` — `__filename` computed but never used. Minor dead code.
+🔵 [engineer] `bin/lib/simplify-pass.mjs:55` — `diff.slice(0, DIFF_CAP)` can truncate mid-line. Consider slicing at last newline before cap.
+🔵 [product] test/simplify-pass.test.mjs:335 — "fails open when role file is missing" test can't actually trigger the missing-file path in dev environment
+🔵 [tester] test/simplify-pass.test.mjs:171 — Max-rounds test never asserts `result.dispatches === 5` (only checks external counter).
+🔵 [tester] bin/lib/simplify-pass.mjs:37 — No test for `git diff` throwing after merge-base succeeds.
+🔵 [tester] bin/lib/simplify-pass.mjs:15 — DIFF_CAP boundary not tested at the exact 12000-char threshold.
+🔵 [tester] bin/lib/run.mjs:1509 — No test for "simplify" phase token usage accumulation.
+🔵 [security] bin/lib/simplify-pass.mjs:194 — Empty `catch` on eval file write; log the error before swallowing.
+🔵 [security] bin/lib/simplify-pass.mjs:212 — Empty `catch` on STATE.json write; same.
+🔵 [simplicity] `bin/lib/run.mjs:1572` — Phase array `["brainstorm", "build", "review", "simplify"]` duplicated at L1572 and L1598. Extract to constant if it grows.
+🔵 [simplicity] `bin/lib/simplify-pass.mjs:12` — `__filename` intermediate only used to derive `__dirname`. Could collapse to one line. Cosmetic.
 
 ## Compound Gate
 

@@ -1,0 +1,75 @@
+{
+  "taskId": "task-5",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 11 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T05:55:46.322Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 11,
+    "suggestion": 10
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:80 — `runGateInline` does not integrate validator parsers; this is the primary `agt run` code path, so \"exit 0 + structured failures → FAIL\" won't work via `agt run`, only via `agt-harness gate`; integrate parsers before feature completion"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:107 — Format detection logic is private to gate.mjs instead of exported as `detectAndParse` per SPEC; when `runGateInline` needs parsing, this logic will need duplication or extraction"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:1 — `.team/validators.json` config override (SPEC \"Done When\" requirement) is not implemented in either gate path"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:1` — No integration test feeds all-passing structured output through `cmdGate` and asserts `verdict: \"PASS\"` with zero findings. Parser unit tests prove each parser returns `[]`, and code traces confirm the verdict pipeline, but the full gate-level happy path has zero automated test coverage."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/gate.mjs:107` — Detection-parsing-verdict pipeline (L107-121) has no dedicated test coverage for any of the 4 parser paths. All build tasks relied on parser unit tests + code traces in eval files. This integration gap compounds with each parser addition."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 No gate integration test for all-passing JUnit XML through `cmdGate`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 No gate integration test for all-passing TAP output through `cmdGate`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 No gate integration test for all-passing GHA output through `cmdGate`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 No gate integration test for JSON `{\"errors\": []}` through `cmdGate`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `effectiveCritical` formula makes all-pass structured output indistinguishable from no-detection — no test pins this"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:125 — `taskId` used in `join(dir, \"tasks\", taskId, \"artifacts\")` without path-traversal sanitization. A builder agent could craft `--task \"../../foo\"` to write artifacts outside `tasks/`. Pre-existing (flagged in prior reviews). Fix: reject `taskId` containing `..` or `/`."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 (critical) or 🟡 (warning) findings. All four veto categories checked and passed:"
+    }
+  ]
+}

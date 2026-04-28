@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (4 critical, 8 warning, 7 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T20:18:55.226Z",
+  "summary": "Parallel review: FAIL (10 critical, 14 warning, 5 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T04:34:53.805Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,9 +13,9 @@
     }
   ],
   "findings": {
-    "critical": 4,
-    "warning": 8,
-    "suggestion": 7
+    "critical": 10,
+    "warning": 14,
+    "suggestion": 5
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,51 +25,99 @@
   "findingsList": [
     {
       "severity": "critical",
-      "text": "🔴 `bin/lib/validator-parsers.mjs:40` — `<error>` elements produce zero criticals; a testcase with only `<error type=\"NullPointerException\"/>` returns `{ critical: 0 }` and passes the gate silently. A suite of runtime-crashed tests appears clean. The body scan must also match `<error` alongside `<failure>`."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:57` — `totalMatch` searches the entire XML string; in aggregate JUnit reports (multiple `<testsuite>` elements), it picks the first `tests=\"N\"` value, making the `summary` count wrong. Findings count is unaffected."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:9` — `extractAttrs` silently drops single-quoted attribute values, producing an empty `message` in findings text (`\"f.java:1 — X: \"`). Confirmed by direct execution. Low practical risk but undocumented."
+      "text": "🔴 `package.json:8` — `test/parsers.test.mjs` is not in the `\"test\"` script; the gate never runs these tests"
     },
     {
       "severity": "critical",
-      "text": "**Scope rulings on prior 🔴 findings from other reviewers:**"
+      "text": "🔴 `tasks/task-1/artifacts/test-output.txt` — Artifact references `parseJunitXml`/`getParser` from an intermediate refactor; does not reflect committed `parseJUnit` code"
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/features/external-validator-integration/tasks/task-1/handshake.json` — No `artifacts/test-output.txt` saved; gate output is truncated before the `validator-parsers` describe blocks; save test output as a handshake artifact so future reviewers have direct evidence without re-running"
+      "text": "🟡 `bin/lib/parsers.mjs:43` — CDATA body without `message` attr leaks `<![CDATA[` into message text"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — No callers in `bin/`; parser is inert in production until an integration task lands; confirm follow-up is tracked before marking the feature shippable end-to-end"
+      "text": "🟡 `bin/lib/parsers.mjs:87` — `extractLine` falsely matches port numbers (`v2.0:8080` → line 8080)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:73` — `extractAttr` regex breaks on mixed quotes (`name=\"it's\"`)"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:33` — `<error>` elements silently ignored (JUnit uses these for unexpected exceptions)"
     },
     {
       "severity": "critical",
-      "text": "🔴 `bin/lib/validator-parsers.mjs:40` — `<error>` elements silently produce 0 criticals; a suite of runtime exceptions passes the gate undetected. Add `<error>` to the failure body scan alongside `<failure>`, and add a test."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:9` — `extractAttrs` only handles double-quoted attributes; single-quoted attrs produce empty strings and garbage finding text `\" — : \"`. Extend the regex or add a test that documents the known limitation."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `test/validator-parsers.test.mjs` — no test for `file`-present/`line`-absent path (line 49 branch); add a case where `file` is set but `line` is omitted."
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:50` — `message`, `classname`, and `file` from attacker-controlled XML are written to findings text without stripping ANSI/control characters; strip `/[\\x00-\\x1f\\x7f]/g` before pushing to `messages`"
-    },
-    {
-      "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:53` — Once the parser is wired into a live gate, crafted malformed XML silently reports 0 criticals (false pass); expose parse failures via `meta.parseError = true` so the harness can reject rather than silently pass"
+      "text": "🔴 bin/lib/parsers.mjs:1 — Module has zero callers in production code; `gate.mjs` unchanged; feature delivers no user-facing value until integration is wired; flagged in every prior review round and never addressed"
     },
     {
       "severity": "critical",
-      "text": "🔴 `bin/lib/validator-parsers.mjs:33` — Dead catch block; regex operations on strings cannot throw; remove the try/catch wrapper and leave the loop body bare"
+      "text": "🔴 tasks/task-1/eval.md:10 — Prior eval references `bin/lib/validator-parsers.mjs` which does not exist on the branch; reviews validated phantom code that was subsequently replaced by `bin/lib/parsers.mjs` with a different API"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/parsers.mjs:1 — `parseTap` and `parseGithubActions` do not exist in committed code; task-2 and task-3 acceptance criteria are completely unimplemented"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 SPEC.md:85 — Done-when item \"bin/lib/validator-parsers.mjs exists with parseJunit, parseTap, parseGhaMatcher, parseGenericJson, and detectAndParse exports\" is unmet; committed file is `parsers.mjs` with only `parseJUnit`"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 bin/lib/gate.mjs:1 — Zero changes to gate.mjs; no parser dispatch, no `--output-format` flag, no `validator-findings.json` writing; verdict pipeline ignores parsed output entirely"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:57 — Finding format `classname.testname:line — message` differs from spec AC #1 `file:line — classname: message`; re-scoping not documented"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 SPEC.md:30 — Spec says file should be `bin/lib/validator-parsers.mjs`; actual file is `bin/lib/parsers.mjs`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 STATE.json:4 — Feature status \"completed\" but all 17 tasks are blocked; reconciliation artifact misrepresents outcome"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `package.json:22` — `test/parsers.test.mjs` is not in the `npm test` script; all 16 parser tests are invisible to the quality gate. One-line fix needed."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:33` — `<error>` elements (runtime exceptions) are silently ignored; Maven/Gradle JUnit XML commonly uses these for real test failures."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/parsers.mjs:43` — CDATA sections in failure body pass through raw (verified: produces `<![CDATA[Error at File.js:10]]>` in message text instead of clean text)."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/.test-workspace/` — Two STATE.json files have non-deterministic timestamp diffs committed (noise)."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:57 — Finding text includes unsanitized `classname`/`testname`/`message` from XML; add `.replace(/[\\x00-\\x1f\\x7f]/g, '')` to strip control characters before terminal display"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:1 — Module has zero production callers (confirmed by grep); end-to-end security of parsed findings → verdict pipeline cannot be verified until gate.mjs integration lands"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `bin/lib/parsers.mjs:18` — `parseJUnit` is exported but has zero production consumers; no file in `bin/` imports this module; dead code from the production system's perspective; wire it into `gate.mjs` or defer the file until integration is ready"
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/parsers.test.mjs:1` — Test file (222 lines, 16 tests) is NOT listed in `package.json:22`'s explicit test file list; `npm test` never executes these tests; add `test/parsers.test.mjs` to the `\"test\"` script"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/.test-workspace/features/backlog-gate-test/STATE.json:13` — Timestamp-only diff from test re-runs; noise without functional change"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/.test-workspace/features/next-feature/STATE.json:9` — Same timestamp churn"
     }
   ]
 }

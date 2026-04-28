@@ -1,77 +1,126 @@
 # Feature: Self-Simplification Pass
 
 ## Goal
-Before finalizing a feature, automatically review all changed files in the feature branch for deletability, inlining, and over-engineering, and either apply fixes or block finalization until addressed — countering AI-accumulated bloat across the full changeset.
+Before finalizing a feature, run the full feature-branch diff through the simplicity reviewer and block finalization if critical findings exist — countering AI-generated bloat with zero auto-fix complexity.
 
 ## Requirements
-- After all tasks in a feature pass review (and before `finalize` runs), a dedicated simplification pass executes against the full feature-branch diff.
-- The pass dispatches a simplification agent with the full `git diff main..HEAD` output as context, not just the last task's changes.
-- The agent is prompted to find: dead code, unnecessary abstraction layers, inlinable helpers, gold-plating, and over-engineered solutions.
-- Critical findings (🔴) must be resolved before `finalize` proceeds — the pass enters a fix-then-re-verify loop (max 2 rounds).
-- Warning findings (🟡) are logged to `progress.md` and the feature's eval artifacts, but do not block finalization.
-- The pass is skippable with a `--no-simplify` flag on `agt run` / inner loop invocation.
-- Pass results are written to `.team/features/<slug>/simplify-eval.md` alongside existing `eval.md` artifacts.
-- Token usage and duration for the simplification pass are tracked in STATE.json under a `simplifyPass` key.
+- New module `bin/lib/simplify-pass.mjs` with a single export `runSimplifyPass(dispatchFn, agent, featureDir, cwd)`.
+- Called in `run.mjs` after the task loop completes, before `harness("finalize", ...)` (line ~1503).
+- Computes the cumulative feature diff: `git diff $(git merge-base HEAD main)..HEAD`.
+- If the diff is empty, skip with PASS verdict and a notice in `progress.md`.
+- Builds a prompt from `roles/simplicity.md` + the diff (truncated at 12,000 chars with notice).
+- Dispatches via the injected `dispatchFn` (same signature as existing review dispatch).
+- Parses output with existing `parseFindings()` and scores with `computeVerdict()` from `synthesize.mjs`.
+- Critical findings (🔴) → verdict FAIL → finalize is not called, function returns `"simplify-blocked"`.
+- Warning (🟡) and suggestion (🔵) findings → logged but do not block.
+- Writes findings to `<featureDir>/simplify-eval.md`.
+- Appends summary to `progress.md` via `appendProgress()`.
+- Persists `simplifyPass: { verdict, critical, warning, suggestion, durationMs }` to `STATE.json`.
+- Fail-open: if dispatch throws or returns `{ ok: false }`, verdict is PASS, error logged to `progress.md`.
+- Skippable via `--no-simplify` flag (checked as `args.includes("--no-simplify")` in `run.mjs`).
 
 ## Acceptance Criteria
-- [ ] Self-simplification pass runs automatically after all tasks pass review, before `finalize`, in the feature execution flow (`run.mjs` / `outer-loop.mjs`).
-- [ ] Pass uses full `git diff main..HEAD` (or the feature branch base), not a per-task diff.
-- [ ] Critical simplicity findings block `finalize`; the harness enters a fix loop (max 2 rounds before escalating to human).
-- [ ] Warning findings appear in `simplify-eval.md` and `progress.md` but do not block.
-- [ ] `--no-simplify` flag skips the pass and logs a skip notice to `progress.md`.
-- [ ] `simplify-eval.md` is written with the agent's structured findings (same severity format as `eval.md`).
-- [ ] Token cost and duration for the simplification pass are captured in STATE.json `simplifyPass` field.
-- [ ] Existing review flow (per-task simplicity veto) is unchanged.
-- [ ] Unit tests cover: pass-triggers-before-finalize, critical-blocks, warning-passes-through, skip-flag, max-rounds-escalation.
+- [ ] `bin/lib/simplify-pass.mjs` exists with `runSimplifyPass` export.
+- [ ] `run.mjs` calls `runSimplifyPass` between the task loop and `harness("finalize")`.
+- [ ] Pass uses `git diff $(git merge-base HEAD main)..HEAD`, not per-task diff.
+- [ ] Critical findings block finalize; `_runSingleFeature` returns `"simplify-blocked"`.
+- [ ] Warning/suggestion findings appear in `simplify-eval.md` and `progress.md` but do not block.
+- [ ] `STATE.json` gains `simplifyPass` field with `{ verdict, critical, warning, suggestion, durationMs }`.
+- [ ] Fail-open: dispatch failure or `{ ok: false }` yields PASS with error logged.
+- [ ] `--no-simplify` flag skips the pass entirely.
+- [ ] Existing per-task simplicity reviewer is unchanged.
+- [ ] `npm test` passes with no regressions.
 
 ## Technical Approach
 
-### Where to insert
-In `bin/lib/run.mjs`, after the last task transitions to `"passed"` and before the `harness("finalize", ...)` call (currently around line 1501), add a `runSelfSimplificationPass()` call.
+### New file: `bin/lib/simplify-pass.mjs`
 
-### New function: `runSelfSimplificationPass(agent, featureSlug, cwd, opts)`
-1. Get full diff: `git diff $(git merge-base HEAD main)..HEAD` executed in `cwd`.
-2. If diff is empty (no changes), skip with a log notice.
-3. Dispatch agent with `roles/simplicity.md` system prompt + diff as context. Prompt asks for structured findings in the same `🔴/🟡/🔵 [simplicity] ...` format as the existing review roles.
-4. Parse findings using existing `parseFindings()` from `bin/lib/synthesize.mjs`.
-5. Write findings to `<featureDir>/simplify-eval.md`.
-6. If any `critical` findings: enter fix loop — dispatch a fix agent (same agent, same cwd), then re-run step 3–5. Max 2 fix rounds; after round 2, write escalation notice and throw to trigger human review (same pattern as `review-escalation.mjs`).
-7. Log warning findings to `progress.md`.
-8. Append `simplifyPass: { critical, warning, rounds, tokens, durationMs }` to STATE.json via existing `writeState()`.
+Single-responsibility module. ~100 lines. No circular dependencies — receives `dispatchFn` via parameter.
 
-### Files to change
-- `bin/lib/run.mjs` — insert `runSelfSimplificationPass()` call + implement function (or extract to new `bin/lib/simplify-pass.mjs`).
-- `bin/lib/state-sync.mjs` — add `simplifyPass` field to state schema if schema is enforced.
-- `bin/lib/outer-loop.mjs` — pass `--no-simplify` flag through to inner loop invocation when user supplies it.
-- `bin/agt.mjs` (CLI entry) — add `--no-simplify` flag to `run` subcommand.
+```js
+export function runSimplifyPass(dispatchFn, agent, featureDir, cwd) → {
+  verdict: "PASS"|"FAIL", critical: number, warning: number, suggestion: number, durationMs: number
+}
+```
 
-### Reuse
-- `parseFindings()` from `synthesize.mjs` — unchanged.
-- `roles/simplicity.md` — reused as system prompt; no new role file needed.
-- `writeState()` / state atomic write — unchanged.
-- `appendProgress()` — unchanged.
+**Steps:**
+1. `execFileSync("git", ["merge-base", "HEAD", "main"])` → base. Fallback to `master`.
+2. `execFileSync("git", ["diff", `${base}..HEAD`])` → diff. Empty → early PASS.
+3. Read `roles/simplicity.md`. Build prompt: role content + diff (capped at 12k chars).
+4. `dispatchFn(agent, prompt, cwd)` → output.
+5. `parseFindings(output)` + `computeVerdict(findings)`.
+6. Write `simplify-eval.md`, append `progress.md`, update `STATE.json`.
+7. Return result.
+
+**Error path:** try/catch around steps 1–5. On any failure: log to `progress.md`, return `{ verdict: "PASS", critical: 0, ... }`.
+
+### Modified: `bin/lib/run.mjs` (~15 lines)
+
+Insert between line ~1501 (end of task loop) and line ~1505 (`harness("finalize")`):
+
+```js
+import { runSimplifyPass } from "./simplify-pass.mjs";
+
+// After task loop, before finalize:
+let simplifyBlocked = false;
+if (agent && completed > 0 && !args.includes("--no-simplify")) {
+  const sr = runSimplifyPass(dispatchToAgent, agent, featureDir, cwd);
+  if (sr.verdict === "FAIL") simplifyBlocked = true;
+}
+if (simplifyBlocked) {
+  // skip finalize, fall through to return "simplify-blocked"
+}
+```
+
+At the return block (~line 1585), add `simplifyBlocked` check before the existing blocked/done logic:
+
+```js
+if (simplifyBlocked) return "simplify-blocked";
+if (blocked > 0) return "blocked";
+return "done";
+```
+
+### What does NOT change
+- `synthesize.mjs` — `parseFindings()` / `computeVerdict()` reused as-is.
+- `roles/simplicity.md` — reused as system prompt, no modification.
+- `finalize.mjs` — unchanged; simplify pass gates before finalize is called.
+- Per-task simplicity reviewer — remains active during per-task multi-perspective review.
+- `outer-loop.mjs` — no changes (treats `"simplify-blocked"` as any non-`"done"` return).
+- `compound-gate.mjs` — not involved; this is a separate pass, not a gate layer.
 
 ## Testing Strategy
-- **Unit tests** (`test/simplify-pass.test.mjs`):
-  - Empty diff → skip, no findings written.
-  - Diff with critical findings → fix loop entered, escalation after round 2.
-  - Diff with warning-only findings → `simplify-eval.md` written, `finalize` proceeds.
-  - `--no-simplify` flag → pass skipped, skip notice in progress.
-  - `simplifyPass` key written to STATE.json with correct shape.
-- **Integration**: Existing `test/run.test.mjs` or an integration fixture verifies the pass is called in the right sequence (after last task passes, before finalize).
-- **Manual check**: Run a feature end-to-end with a deliberate over-engineered file; confirm simplify-eval.md is created and critical findings block finalize.
+
+### Unit tests: `test/simplify-pass.test.mjs`
+
+Mock `dispatchFn`, `execFileSync` (git), and filesystem writes. Seven test cases:
+
+1. **Empty diff** — git diff returns empty string. Assert: PASS, no `simplify-eval.md` written.
+2. **Clean pass** — dispatch returns no finding lines. Assert: PASS, `simplify-eval.md` written.
+3. **Warning-only** — dispatch returns 🟡 lines. Assert: PASS, warnings counted.
+4. **Critical findings** — dispatch returns 🔴 lines. Assert: FAIL, critical counted.
+5. **Dispatch failure (fail-open)** — dispatchFn throws. Assert: PASS, error in `progress.md`.
+6. **STATE.json shape** — after run, `simplifyPass` has `{ verdict, critical, warning, suggestion, durationMs }`.
+7. **`--no-simplify`** — pass is skipped entirely when flag is present.
+
+### Regression
+`npm test` must pass with zero new failures.
 
 ## Out of Scope
-- Making the simplification agent apply code edits autonomously (it only produces findings; a separate fix agent applies them via the standard build-gate path).
-- Per-task simplification (the existing per-task simplicity reviewer role already handles this).
-- Surfacing simplify-eval.md findings in the dashboard (deferred to a future dashboard update).
-- Configurable simplification rules beyond the existing `roles/simplicity.md` definition.
-- Running the pass in non-feature (ad-hoc) `agt run` invocations without a feature branch.
+- **Auto-fix loop** — The v1 attempt burned $298 in review escalation trying to auto-fix findings. Critical findings block; humans or the next sprint fix them. No fix-and-re-review cycle.
+- **Dashboard display** — `simplify-eval.md` is a file artifact. Dashboard integration deferred.
+- **Configurable rules or thresholds** — `roles/simplicity.md` is sufficient.
+- **Per-model cost tracking** — Aggregate metrics in STATE.json suffice for now.
+- **Outer-loop special handling of `"simplify-blocked"`** — Outer loop already treats non-`"done"` returns as incomplete. No special case needed.
+- **Notification on simplify-block** — Can be added trivially later.
 
 ## Done When
-- [ ] `runSelfSimplificationPass()` is implemented and wired in `run.mjs` between last-task-pass and finalize.
-- [ ] Critical findings block finalize; warning findings do not.
-- [ ] `--no-simplify` flag is accepted by `agt run` and skips the pass.
-- [ ] `simplify-eval.md` is written for every non-skipped feature run.
-- [ ] `simplifyPass` metrics are present in STATE.json after a run.
-- [ ] All new unit tests pass; existing test suite remains green.
+- [ ] `bin/lib/simplify-pass.mjs` exists with `runSimplifyPass` export (~100 lines)
+- [ ] `run.mjs` calls it between the task loop and `harness("finalize")`
+- [ ] Critical findings block finalize; warnings/suggestions do not
+- [ ] Blocked runs return `"simplify-blocked"` from `_runSingleFeature`
+- [ ] `simplify-eval.md` written for every non-empty-diff run
+- [ ] `STATE.json` contains `simplifyPass` field after a run
+- [ ] Fail-open on dispatch failure with error logged
+- [ ] `--no-simplify` flag skips the pass
+- [ ] 7 unit tests pass in `test/simplify-pass.test.mjs`
+- [ ] `npm test` passes with no regressions

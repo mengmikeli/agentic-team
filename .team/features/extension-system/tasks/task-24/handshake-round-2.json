@@ -1,0 +1,87 @@
+{
+  "taskId": "task-24",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (2 critical, 13 warning, 13 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T03:31:27.497Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 2,
+    "warning": 13,
+    "suggestion": 13
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/synthesize.mjs:148` — Double-loads extensions when called from a pipeline that already has a registry"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:212` — `runExecuteRun` duplicates timeout/circuit-breaker logic instead of reusing `callHook`"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:129` — Shallow copy doesn't protect nested objects from mutation by buggy extensions"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `examples/extensions/log-phases.mjs:22` — Shell metacharacter injection via `ctx.taskTitle` interpolated into `sh -c` command; user-authored titles with shell metacharacters would execute arbitrary commands; use array-form spawn or document the risk"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/extension-system/tasks/task-24/handshake.json:7` — Summary says \"702/702 tests passing\" implying 702 total tests; actual total is 704 (702 pass, 2 skipped). Should read \"702/704 tests passing (2 skipped, 0 failures)\""
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `bin/lib/extensions.mjs:262` — `MAX_ARTIFACT_BYTES` (10MB) truncation in `runExecuteRun` has no test coverage"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `bin/lib/extensions.mjs:322` — `MAX_ARTIFACT_BYTES` truncation in `runArtifactEmit` has no test coverage"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `bin/lib/run.mjs:551` — Extension calls in run.mjs lack try-catch wrappers; caller bugs in context construction would crash the feature run"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `examples/extensions/log-phases.mjs:22` — Shell injection risk via `ctx.taskTitle` interpolated into `sh -c` command"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `examples/extensions/log-phases.mjs:22` — Shell metacharacter injection via `${ctx.taskTitle}` interpolated into `sh -c` command; use array-form spawn or shell-escape the value"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:317` — Containment check uses `&&` where `||` is more precise; non-exploitable but logically imprecise"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/extensions.mjs:260` — `ext.name` used unsanitized in artifact path; add character whitelist"
+    },
+    {
+      "severity": "critical",
+      "text": "- The prior parallel review's two 🔴 [tester] findings are factually incorrect (misidentified 2 skipped tests as failures, and claimed a finalize test ENOENT that doesn't appear in the output) — they should not block merge"
+    },
+    {
+      "severity": "critical",
+      "text": "**All four veto categories cleared** — no 🔴 critical findings:"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:2207` — Source-assertion tests (regex on source strings) are fragile; variable renames break tests without breaking functionality"
+    }
+  ]
+}

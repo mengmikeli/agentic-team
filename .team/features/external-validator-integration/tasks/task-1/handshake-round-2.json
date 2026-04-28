@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (10 critical, 11 warning, 6 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-25T20:24:43.029Z",
+  "summary": "Parallel review: FAIL (3 critical, 17 warning, 10 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T04:47:52.274Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -13,9 +13,9 @@
     }
   ],
   "findings": {
-    "critical": 10,
-    "warning": 11,
-    "suggestion": 6
+    "critical": 3,
+    "warning": 17,
+    "suggestion": 10
   },
   "compoundGate": {
     "tripped": 0,
@@ -24,88 +24,84 @@
   },
   "findingsList": [
     {
-      "severity": "critical",
-      "text": "**Prior 🔴 blockers resolved:**"
-    },
-    {
-      "severity": "critical",
-      "text": "**Simplicity run_2 🔴 (line 77 lambda):** This is a real code-quality issue but not an architectural blocker. The root cause is that `parseJunitXml` declares `(stdout)` while the module's interface contract (line 2) and `parseExitCode` declare `(stdout, stderr, exitCode)`. Fix by standardising `parseJunitXml`'s signature to 3 args and dropping the wrapper."
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:95 — `verdict` is exit-code-only but `findings.critical` uses parsed JUnit count; inconsistency can produce invalid handshake state (PASS + critical > 0). Adjust verdict after parsing."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:29` — `parseJunitXml(stdout)` violates the module's own 3-arg interface contract (line 2); standardise the signature to `(stdout, stderr, exitCode)` and remove the adapter lambda at line 77"
+      "text": "🟡 bin/lib/gate.mjs:206 — `isJUnitXml()` detection is inlined; refactor into dispatcher when remaining parsers are added"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks first `tests=\"N\"` from the raw string; aggregate JUnit reports produce a wrong `summary` count; track for post-v1"
-    },
-    {
-      "severity": "critical",
-      "text": "**Prior 🔴 resolved:** Both blocking findings from run_1 are confirmed fixed via direct execution."
+      "text": "🟡 bin/lib/parsers.mjs:33 — `<error>` elements (JUnit runtime exceptions) silently ignored; Maven/Gradle emit these for real failures"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:53` — `totalMatch` picks the first `tests=\"N\"` anywhere in the XML string; multi-`<testsuite>` reports produce a wrong `summary` count (carried from run_1, not addressed in run_2)"
+      "text": "🟡 bin/lib/parsers.mjs:1 — File named `parsers.mjs` vs SPEC's `validator-parsers.mjs`; naming divergence"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:9` — `extractAttrs` silently drops single-quoted attribute values; `<failure message='broke'/>` produces `message=\"\"` and finding text `\"f.java:1 — X: \"` (carried from run_1, not addressed in run_2)"
-    },
-    {
-      "severity": "critical",
-      "text": "The builder also fixed `<error>` handling (`/<(?:failure|error)\\b/` at `validator-parsers.mjs:39`) and removed the dead `try/catch`. Both address prior 🔴 findings from Tester/Simplicity/Engineer. Neither is scope creep — they prevent real gate-pass failures."
+      "text": "🟡 test/.test-workspace — Non-deterministic timestamp noise committed"
     },
     {
       "severity": "warning",
-      "text": "🟡 `.team/features/external-validator-integration/tasks/task-1/handshake.json` — Gate output truncated before validator-parsers block; no `artifacts/test-output.txt` saved; future reviewers cannot confirm 8/8 pass without re-running"
+      "text": "🟡 STATE.json:4 — Feature status \"completed\" but 0/17 tasks completed; misleading"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:1` — Module has no callers in `bin/`; confirm integration follow-up is tracked before marking the feature shippable"
-    },
-    {
-      "severity": "critical",
-      "text": "The run_2 fix is correct and verified. The previously blocking 🔴 (`<error>` elements unhandled, gate silently passes runtime crashes) is resolved — `validator-parsers.mjs:39` now matches `/<(?:failure|error)\\b/` and the new test at `validator-parsers.test.mjs:72` asserts the exact expected output. All 8 tests pass."
+      "text": "🟡 SPEC.md:30 — File naming (`parsers.mjs` vs spec's `validator-parsers.mjs`) and API surface (1 export vs spec's 5) deviate from spec"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/validator-parsers.test.mjs:72` — `<error>` test always supplies a `message` attribute; add a case with `<error type=\"NPE\"/>` (no message) to document that a finding is still produced with empty message and the gate does not silently pass"
+      "text": "🟡 bin/lib/gate.mjs:95 — Verdict/findings inconsistency: exit-code-based verdict can conflict with parsed findings count"
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/validator-parsers.test.mjs` — `file`-present/`line`-absent path at `validator-parsers.mjs:48` is exercised but has no test; add a case with `file=\"X.java\"` and no `line` attribute to lock in the fallback"
+      "text": "🟡 bin/lib/gate.mjs:106 — Auto-detection hardcoded to JUnit only; no dispatcher pattern for future formats"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:11` — `extractAttrs` silently drops single-quoted XML attribute values; undocumented and untested; add an inline comment noting the constraint (carried from run_1)"
+      "text": "🟡 progress.md:81 — Outcome review claims \"no capability delivered\" — inaccurate, JUnit parsing works"
     },
     {
       "severity": "critical",
-      "text": "### Prior 🔴 findings resolved"
+      "text": "🔴 bin/lib/gate.mjs:95 — `verdict` is set from exit code only, but `findings.critical` uses parsed JUnit count; when exit=0 and JUnit XML has `<failure>` elements, the gate writes `verdict: \"PASS\"` with `findings.critical > 0`, which `validateHandshake` rejects as invalid. This is the exact scenario the feature exists to catch, and it produces an invalid handshake. Fix: add `const finalVerdict = effectiveCritical > 0 ? \"FAIL\" : verdict;` after line 109 and use it everywhere"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:49` — `message`, `classname`, and `file` from attacker-controlled XML are written to findings text without stripping ANSI/control characters; strip `/[\\x00-\\x1f\\x7f]/g` before `messages.push()`"
+      "text": "🟡 bin/lib/gate.mjs:104 — No integration test for the gate+JUnit parsing path; SPEC calls for `test/gate-validator-integration.test.mjs` but it was never created; the verdict bug above lives in this untested code path"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/validator-parsers.mjs:56` — `meta` has no signal to distinguish a genuine zero-finding run from a structural parse failure (non-XML stdout, misconfigured format); once wired into the gate a misconfigured validator silently passes; add `meta.parseWarning = true` when `findings.critical === 0 && stdout.length > 0 && !stdout.includes('<testcase')`"
+      "text": "🟡 bin/lib/parsers.mjs:33 — `<error>` elements (runtime exceptions) silently ignored; Maven Surefire/Gradle emit these for real failures"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:43 — CDATA sections pass through raw in failure body messages"
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/.test-workspace/features/backlog-gate-test/STATE.json — Non-deterministic timestamp diffs committed"
     },
     {
       "severity": "critical",
-      "text": "One 🔴 finding blocks merge:"
+      "text": "🔴 **bin/lib/gate.mjs:95** — Verdict derived solely from exit code, never overridden by parsed JUnit findings. Exit code 0 + JUnit `<failure>` elements = PASS verdict with critical findings > 0. Violates SPEC (\"FAIL verdict even when exit code is 0\") and handshake validation rules. The feature's central security property is not implemented."
     },
     {
       "severity": "critical",
-      "text": "🔴 `bin/lib/validator-parsers.mjs:77` — Unnecessary indirection: `(stdout, stderr, exitCode) => parseJunitXml(stdout)` is a wrapper that only delegates; JS ignores extra args so this is identical to a bare `parseJunitXml` reference. Replace with the direct reference to match the `\"exit-code\"` entry style."
+      "text": "🔴 **bin/lib/gate.mjs:146** — Same root cause: handshake `status` and `task.status` in STATE.json are also not overridden, so the task gets marked \"passed\"/\"completed\" despite critical findings."
     },
     {
-      "severity": "critical",
-      "text": "- **run_1 Simplicity 🔴 (dead try/catch)**: Resolved — removed in `cf56cd5`. ✓"
+      "severity": "warning",
+      "text": "🟡 **bin/lib/parsers.mjs:73** — Dynamic regex in `extractAttr` without escaping `name` parameter (currently safe with hardcoded strings, but fragile)."
     },
     {
-      "severity": "critical",
-      "text": "- **Unnecessary indirection**: The `\"junit-xml\"` registry entry wraps `parseJunitXml` in a three-arg lambda but only passes `stdout` through. In JavaScript, `parseJunitXml(stdout, stderr, exitCode)` is identical to `parseJunitXml(stdout)` — extra args are silently ignored. The wrapper is a pure delegate with no transformation. The adjacent `\"exit-code\": parseExitCode` entry demonstrates the correct style. 🔴"
+      "severity": "warning",
+      "text": "🟡 **bin/lib/gate.mjs:106** — Loose `isJUnitXml` detection can false-positive on non-XML output containing `<testsuite` literal text."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 **bin/lib/gate.mjs:113** — `taskId` used in path construction without traversal sanitization."
     }
   ]
 }

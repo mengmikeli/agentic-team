@@ -4,8 +4,8 @@
   "runId": "run_1",
   "status": "failed",
   "verdict": "FAIL",
-  "summary": "Parallel review: FAIL (2 critical, 8 warning, 7 suggestion). Compound gate: PASS",
-  "timestamp": "2026-04-26T00:34:30.217Z",
+  "summary": "Parallel review: FAIL (2 critical, 12 warning, 14 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T17:38:44.489Z",
   "artifacts": [
     {
       "type": "evaluation",
@@ -14,8 +14,8 @@
   ],
   "findings": {
     "critical": 2,
-    "warning": 8,
-    "suggestion": 7
+    "warning": 12,
+    "suggestion": 14
   },
   "compoundGate": {
     "tripped": 0,
@@ -25,43 +25,59 @@
   "findingsList": [
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/cron.mjs:89` — No \"in-progress\" stale-item recovery: if cron-tick is SIGKILL'd while `runSingleFeature` is running, the board item stays \"in-progress\" indefinitely; the lock has stale-PID recovery (`util.mjs:115`) but board state does not — add a pre-flight step that detects \"in-progress\" items with no live cron-tick lock and reverts them to \"ready\""
+      "text": "- 🟡 `bin/lib/cron.mjs:20` — `readProjectNumber` duplicated verbatim from `outer-loop.mjs:118`; extract to shared utility"
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/cron.mjs:124` — `_commentIssue` return value not checked; a failed comment (GH auth error, rate limit) is silently swallowed. Both `setProjectItemStatus` calls at lines 106–108 and 114–116 check their return and `console.warn` on false — `commentIssue` should do the same. Add: `if (!_commentIssue(issueNumber, msg)) console.warn(\"cron-tick: warning — failed to comment on issue #\" + issueNumber)`."
+      "text": "- 🟡 `bin/lib/github.mjs:266` — `setProjectItemStatus` re-reads tracking config via implicit `process.cwd()` even though `cron-tick` already validated it with an explicit path; split authority risk"
+    },
+    {
+      "severity": "warning",
+      "text": "- 🟡 `bin/lib/cron.mjs:140` — Failure-path revert doesn't check `_setProjectItemStatus` return value (success path does at lines 118, 130)"
     },
     {
       "severity": "critical",
-      "text": "No 🔴 findings."
+      "text": "🔴 tasks/task-4/handshake.json:7 — Handshake claims \"All 585 tests pass\" but artifact shows 555 tests (553 pass, 2 skip); artifact contains 4 tests not present in the current test file and log output lacking ISO timestamps that the current code produces. Re-run tests and re-capture the artifact."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/cron.mjs:124` — `_commentIssue` bare-called inside `catch(err)`; if it throws, `err` is swallowed — wrap in try-catch with console.warn fallback"
+      "text": "🟡 bin/lib/cron.mjs:139 — `_setProjectItemStatus` and `_commentIssue` share a single try block in the recovery path; if the revert throws, the issue comment is silently skipped. These are independent API endpoints (`gh issue comment` vs `gh project item-edit`). Separate into independent try/catch blocks."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/cron.mjs:100` — Title sanitization is explicitly documented as a security control (\"prevent prompt injection\") but has **zero test coverage**. Add tests for titles with `\\n`, `\\r`, control chars, and >200 char strings."
+      "text": "🟡 `bin/lib/cron.mjs:140` — Failure path doesn't check `setProjectItemStatus` return value (unlike the success path which logs a warning on `false`). If the revert API call silently fails, there's no indication. File to backlog."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/cron.mjs:120-124` — `_setProjectItemStatus` and `_commentIssue` are called bare inside `catch(err)`. If either throws, the original error is silently swallowed and the comment may be skipped. Production code in `github.mjs` returns false rather than throwing (so production is safe today), but no test covers the throwing case."
+      "text": "🟡 `bin/lib/cron.mjs:140` — `setProjectItemStatus` return value not checked on the revert path. Success path (lines 129-132) checks for `false` and logs a warning; failure revert path silently ignores `false`. Item could get stuck in \"in-progress\" permanently with no log trace."
     },
     {
       "severity": "warning",
-      "text": "🟡 `bin/lib/cron.mjs:111` — Issue title from the GitHub project board is passed verbatim (after control-char strip) to `runSingleFeature` as the LLM task prompt. Any collaborator with project board write access can craft a title to inject adversarial instructions into the autonomous agent. Add access-control guidance to docs and consider a visible boundary marker in the prompt separating the title from agent instructions."
+      "text": "🟡 `test/cron-tick.test.mjs` — No test exercises `commentIssue` throwing on the failure path. The recovery-failure test (line 298) makes `setProjectItemStatus` throw, so `commentIssue` is never reached. The path where revert succeeds but comment throws is untested."
     },
     {
       "severity": "warning",
-      "text": "The one 🟡 is a genuine agentic-specific concern: because the issue title flows directly into the LLM's task prompt, anyone who can write to the GitHub project board can influence agent behavior. For this team project the threat model is limited to trusted collaborators, making it backlog-appropriate rather than blocking."
+      "text": "🟡 `test/cron-tick.test.mjs` — Input sanitization at `cron.mjs:111` (control chars, Unicode line separators, 200-char truncation) has no test at HEAD. The gate output shows these tests passing, but they don't exist in the current test file — 4 tests were removed since the gate was captured."
     },
     {
       "severity": "warning",
-      "text": "🟡 `test/cron-tick.test.mjs` — the warning branch at `cron.mjs:122` (`!revertSet` inside the catch block) has no test coverage; the \"reverts to ready\" test at line 193 mocks `setProjectItemStatus` returning `true`, so the path where the revert itself fails is unreachable by any test — add a case where `runSingleFeature` throws AND `setProjectItemStatus` returns false"
+      "text": "| 🟡 | Title sanitization tests removed — zero regression coverage on a security boundary | `test/cron-tick.test.mjs` |"
+    },
+    {
+      "severity": "warning",
+      "text": "| 🟡 | `commentIssue` return value unchecked in failure-revert path — silent failure, missing observability | `bin/lib/cron.mjs:142` |"
+    },
+    {
+      "severity": "warning",
+      "text": "| 🟡 | `listProjectItems` exception propagates unhandled — raw stack trace in cron.log | `bin/lib/cron.mjs:96` |"
     },
     {
       "severity": "critical",
-      "text": "**No 🔴 findings. Merge is not blocked.**"
+      "text": "**No critical (🔴) findings.** The implementation correctly uses array-based `spawnSync` for all `gh` CLI calls (no shell injection), truncates error messages to 500 chars before posting to GitHub (no info leakage via stack traces), and properly isolates recovery ops with inner try/catch. All three warnings are backlog items that don't block merge."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `bin/lib/cron.mjs:20-31` — `readProjectNumber(cwd)` is a near-identical copy of `outer-loop.mjs:118-128`. Same regex, same error handling, same return type. Extract to a shared location and import in both modules."
     }
   ]
 }

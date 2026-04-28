@@ -495,3 +495,102 @@
 {"ts":"2026-04-27T00:29:34.685Z","event":"task-started","msg":"▶ Task 15/25: `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, `mergePromptAppend`, `mergeVerdictAppend`, `runExecuteRun`, `runArtifactEmit`"}
 {"ts":"2026-04-27T00:52:30.632Z","event":"task-passed","msg":"✓ Task 15/25: `bin/lib/extensions.mjs` exists with `loadExtensions`, `callHook`, `mergePromptAppend`, `mergeVerdictAppend`, `runExecuteRun`, `runArtifactEmit`"}
 {"ts":"2026-04-27T00:52:36.099Z","event":"task-started","msg":"▶ Task 16/25: `run.mjs` calls `loadExtensions()` at `_runSingleFeature` entry and threads the registry through to dispatch helpers"}
+{"ts":"2026-04-27T03:48:30.327Z","event":"task-passed","msg":"✓ Task 24/25: Existing test suite (`npm test`) still passes with no regressions"}
+{"ts":"2026-04-27T03:48:35.815Z","event":"task-started","msg":"▶ Task 25/25: A working example extension exists at `examples/extensions/log-phases.mjs` demonstrating all four hooks"}
+{"ts":"2026-04-27T04:07:01.494Z","event":"task-passed","msg":"✓ Task 25/25: A working example extension exists at `examples/extensions/log-phases.mjs` demonstrating all four hooks"}
+{"ts":"2026-04-27T04:07:06.178Z","event":"feature-complete","msg":"Feature complete: extension-system — 25/25 done, 0 blocked, 436m 14s, $958.98"}
+{"ts":"2026-04-27T04:12:15.150Z","event":"feature-started","msg":"▶ Feature: external-validator-integration (19 tasks planned)"}
+{"ts":"2026-04-27T04:17:12.909Z","event":"task-started","msg":"▶ Task 1/19: JUnit XML with `<failure>` elements produces critical findings with `classname.testname:line — message` text."}
+{"ts":"2026-04-27T04:59:44.859Z","event":"task-passed","msg":"✓ Task 1/19: JUnit XML with `<failure>` elements produces critical findings with `classname.testname:line — message` text."}
+{"ts":"2026-04-27T04:59:51.133Z","event":"task-started","msg":"▶ Task 2/19: TAP output with `not ok` lines produces critical findings."}
+{"ts":"2026-04-27T05:13:43.770Z","event":"task-passed","msg":"✓ Task 2/19: TAP output with `not ok` lines produces critical findings."}
+{"ts":"2026-04-27T05:13:49.554Z","event":"task-started","msg":"▶ Task 3/19: GHA problem matcher output (`::error file=...,line=N::msg`) produces critical findings with `file:line — msg` text."}
+{"ts":"2026-04-27T05:30:51.606Z","event":"task-passed","msg":"✓ Task 3/19: GHA problem matcher output (`::error file=...,line=N::msg`) produces critical findings with `file:line — msg` text."}
+{"ts":"2026-04-27T05:30:57.534Z","event":"task-started","msg":"▶ Task 4/19: Generic JSON `{ errors: [...] }` produces findings matching the declared severity."}
+{"ts":"2026-04-27T05:46:46.292Z","event":"task-passed","msg":"✓ Task 4/19: Generic JSON `{ errors: [...] }` produces findings matching the declared severity."}
+{"ts":"2026-04-27T05:46:51.905Z","event":"task-started","msg":"▶ Task 5/19: All-passing structured output (exit 0, no failures) produces zero parsed findings and PASS verdict."}
+{"ts":"2026-04-27T06:24:39.618Z","event":"task-started","msg":"▶ Task 6/19: Parsed findings are reflected in `handshake.findings.critical` count and written to `artifacts/validator-findings.json`."}
+{"ts":"2026-04-27T06:48:13.622Z","event":"task-passed","msg":"✓ Task 6/19: Parsed findings are reflected in `handshake.findings.critical` count and written to `artifacts/validator-findings.json`."}
+{"ts":"2026-04-27T06:48:19.202Z","event":"task-started","msg":"▶ Task 7/19: Malformed input (truncated XML, invalid JSON) does not crash — falls back to exit-code verdict with a logged warning."}
+{"ts":"2026-04-27T07:02:42.805Z","event":"task-passed","msg":"✓ Task 7/19: Malformed input (truncated XML, invalid JSON) does not crash — falls back to exit-code verdict with a logged warning."}
+{"ts":"2026-04-27T07:02:48.378Z","event":"task-started","msg":"▶ Task 8/19: `.team/validators.json` config forces a specific parser and output file, bypassing auto-detection."}
+{"ts":"2026-04-27T07:17:23.653Z","event":"task-passed","msg":"✓ Task 8/19: `.team/validators.json` config forces a specific parser and output file, bypassing auto-detection."}
+{"ts":"2026-04-27T07:17:29.327Z","event":"task-started","msg":"▶ Task 9/19: Exit code 0 + structured failures in output → FAIL verdict (not a false PASS)."}
+{"ts":"2026-04-27T07:51:11.686Z","event":"task-passed","msg":"✓ Task 9/19: Exit code 0 + structured failures in output → FAIL verdict (not a false PASS)."}
+{"ts":"2026-04-27T07:51:15.069Z","event":"progress","msg":"Progress: 8/19 done, 1 blocked."}
+{"ts":"2026-04-27T07:51:17.569Z","event":"task-started","msg":"▶ Task 10/19: Unit tests cover each parser: passing input, single failure, multiple failures, and malformed input."}
+{"ts":"2026-04-27T08:25:02.997Z","event":"task-started","msg":"▶ Task 11/19: `bin/lib/validator-parsers.mjs` exists with `parseJunit`, `parseTap`, `parseGhaMatcher`, `parseGenericJson`, and `detectAndParse` exports"}
+{"ts":"2026-04-27T09:03:54.719Z","event":"task-passed","msg":"✓ Task 11/19: `bin/lib/validator-parsers.mjs` exists with `parseJunit`, `parseTap`, `parseGhaMatcher`, `parseGenericJson`, and `detectAndParse` exports"}
+{"ts":"2026-04-27T09:04:00.743Z","event":"task-started","msg":"▶ Task 12/19: `gate.mjs:cmdGate()` calls `detectAndParse` after command execution; writes `artifacts/validator-findings.json` when findings present; merges parsed criticals into handshake findings count"}
+{"ts":"2026-04-27T09:11:57.097Z","event":"task-passed","msg":"✓ Task 12/19: `gate.mjs:cmdGate()` calls `detectAndParse` after command execution; writes `artifacts/validator-findings.json` when findings present; merges parsed criticals into handshake findings count"}
+{"ts":"2026-04-27T09:12:02.886Z","event":"task-started","msg":"▶ Task 13/19: `run.mjs:runGateInline()` calls `detectAndParse` after command execution; overrides verdict to FAIL when parsed criticals exist; writes `artifacts/validator-findings.json`"}
+{"ts":"2026-04-27T09:52:45.604Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in external-validator-integration — stopping execution"}
+{"ts":"2026-04-27T09:52:46.809Z","event":"feature-complete","msg":"Feature complete: external-validator-integration — 10/19 done, 3 blocked, 340m 32s, $760.98"}
+{"ts":"2026-04-27T09:58:35.003Z","event":"feature-started","msg":"▶ Feature: self-simplification-pass (19 tasks planned)"}
+{"ts":"2026-04-27T10:03:27.869Z","event":"task-started","msg":"▶ Task 1/19: Self-simplification pass executes after the task loop, before `harness(\"finalize\")`, in `run.mjs`."}
+{"ts":"2026-04-27T10:51:52.487Z","event":"task-started","msg":"▶ Task 2/19: Pass uses full `git diff $(git merge-base HEAD main)..HEAD`, not a per-task diff."}
+{"ts":"2026-04-27T11:28:56.988Z","event":"task-started","msg":"▶ Task 3/19: Critical findings block finalize; fix loop runs up to 2 rounds before escalating."}
+{"ts":"2026-04-27T12:09:59.661Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in self-simplification-pass — stopping execution"}
+{"ts":"2026-04-27T12:10:00.896Z","event":"feature-complete","msg":"Feature complete: self-simplification-pass — 0/19 done, 3 blocked, 131m 26s, $313.26"}
+{"ts":"2026-04-27T12:15:02.594Z","event":"feature-started","msg":"▶ Feature: self-simplification-pass (16 tasks planned)"}
+{"ts":"2026-04-27T12:20:46.193Z","event":"task-started","msg":"▶ Task 1/16: Self-simplification pass executes after the task loop, before `harness(\"finalize\")`, in `run.mjs`."}
+{"ts":"2026-04-27T13:02:06.874Z","event":"task-started","msg":"▶ Task 2/16: Pass uses full `git diff $(git merge-base HEAD main)..HEAD`, not a per-task diff."}
+{"ts":"2026-04-27T13:37:02.438Z","event":"task-passed","msg":"✓ Task 2/16: Pass uses full `git diff $(git merge-base HEAD main)..HEAD`, not a per-task diff."}
+{"ts":"2026-04-27T13:37:08.758Z","event":"task-started","msg":"▶ Task 3/16: Critical findings block finalize (feature stays as-is; finalize is not called)."}
+{"ts":"2026-04-27T14:18:07.903Z","event":"task-blocked","msg":"✗ Task 3/16: Critical findings block finalize (feature stays as-is; finalize is not called). — failed after 3 attempts"}
+{"ts":"2026-04-27T14:21:11.020Z","event":"task-started","msg":"▶ Task 4/18: Fix ENOBUFS in test infrastructure by adding maxBuffer to all child-process calls"}
+{"ts":"2026-04-27T14:54:38.740Z","event":"task-blocked","msg":"✗ Task 4/18: Fix ENOBUFS in test infrastructure by adding maxBuffer to all child-process calls — failed after 3 attempts"}
+{"ts":"2026-04-27T14:56:22.909Z","event":"task-started","msg":"▶ Task 5/20: Diagnose and fix system-level ENOBUFS by running tests in smaller batches and reducing output volume"}
+{"ts":"2026-04-27T15:31:04.073Z","event":"task-started","msg":"▶ Task 8/22: Fix ENOBUFS in test infrastructure by adding maxBuffer to all child-process calls"}
+{"ts":"2026-04-27T15:45:38.494Z","event":"task-passed","msg":"✓ Task 8/22: Fix ENOBUFS in test infrastructure by adding maxBuffer to all child-process calls"}
+{"ts":"2026-04-27T15:45:39.629Z","event":"anomaly","msg":"⚠ 3 consecutive blocks in self-simplification-pass — stopping execution"}
+{"ts":"2026-04-27T15:45:40.824Z","event":"feature-complete","msg":"Feature complete: self-simplification-pass — 2/22 done, 3 blocked, 210m 38s, $317.09"}
+{"ts":"2026-04-27T15:51:05.904Z","event":"feature-started","msg":"▶ Feature: self-simplification-pass (20 tasks planned)"}
+{"ts":"2026-04-27T15:56:17.857Z","event":"anomaly","msg":"⚠ Oscillation halt in self-simplification-pass: oscillation-halted: task 'task-1' pattern [in-progress → blocked] repeated 3×"}
+{"ts":"2026-04-27T15:56:19.142Z","event":"feature-complete","msg":"Feature complete: self-simplification-pass — 0/20 done, 0 blocked, 5m 13s, $2.37"}
+{"ts":"2026-04-27T16:01:24.771Z","event":"feature-started","msg":"▶ Feature: self-simplification-pass (20 tasks planned)"}
+{"ts":"2026-04-27T16:06:31.247Z","event":"anomaly","msg":"⚠ Oscillation halt in self-simplification-pass: oscillation-halted: task 'task-1' pattern [in-progress → blocked] repeated 3×"}
+{"ts":"2026-04-27T16:06:32.432Z","event":"feature-complete","msg":"Feature complete: self-simplification-pass — 0/20 done, 0 blocked, 5m 8s, $1.92"}
+{"ts":"2026-04-27T16:12:40.286Z","event":"feature-started","msg":"▶ Feature: cron-based-outer-loop (20 tasks planned)"}
+{"ts":"2026-04-27T16:17:53.871Z","event":"task-started","msg":"▶ Task 1/20: `agt cron-tick` with a board item in \"Ready\" transitions it to \"In Progress\", runs the feature, and transitions to \"Done\" on success"}
+{"ts":"2026-04-27T16:34:45.810Z","event":"task-passed","msg":"✓ Task 1/20: `agt cron-tick` with a board item in \"Ready\" transitions it to \"In Progress\", runs the feature, and transitions to \"Done\" on success"}
+{"ts":"2026-04-27T16:34:53.049Z","event":"task-started","msg":"▶ Task 2/20: `agt cron-tick` with no \"Ready\" items exits 0 and logs \"no ready items\""}
+{"ts":"2026-04-27T17:10:35.539Z","event":"task-passed","msg":"✓ Task 2/20: `agt cron-tick` with no \"Ready\" items exits 0 and logs \"no ready items\""}
+{"ts":"2026-04-27T17:10:50.864Z","event":"task-started","msg":"▶ Task 3/20: `agt cron-tick` invoked concurrently (lock held) — second process exits 0 without dispatching"}
+{"ts":"2026-04-27T17:24:27.267Z","event":"task-passed","msg":"✓ Task 3/20: `agt cron-tick` invoked concurrently (lock held) — second process exits 0 without dispatching"}
+{"ts":"2026-04-27T17:24:40.286Z","event":"task-started","msg":"▶ Task 4/20: `agt cron-tick` when `runSingleFeature` throws reverts the board item to \"Ready\" and comments on the GitHub issue with the error message"}
+{"ts":"2026-04-27T17:52:32.658Z","event":"task-passed","msg":"✓ Task 4/20: `agt cron-tick` when `runSingleFeature` throws reverts the board item to \"Ready\" and comments on the GitHub issue with the error message"}
+{"ts":"2026-04-27T17:52:38.810Z","event":"task-started","msg":"▶ Task 5/20: `agt cron-tick` when `runSingleFeature` calls `process.exit()` still reverts the board item (exit handler or process isolation)"}
+{"ts":"2026-04-27T18:03:31.060Z","event":"task-passed","msg":"✓ Task 5/20: `agt cron-tick` when `runSingleFeature` calls `process.exit()` still reverts the board item (exit handler or process isolation)"}
+{"ts":"2026-04-27T18:03:37.230Z","event":"task-started","msg":"▶ Task 6/20: `agt cron-tick` exits 1 with descriptive message when PROJECT.md tracking config is missing"}
+{"ts":"2026-04-27T18:40:06.331Z","event":"task-passed","msg":"✓ Task 6/20: `agt cron-tick` exits 1 with descriptive message when PROJECT.md tracking config is missing"}
+{"ts":"2026-04-27T18:40:12.992Z","event":"task-started","msg":"▶ Task 7/20: `agt cron-tick` exits 1 when project number cannot be parsed from PROJECT.md"}
+{"ts":"2026-04-27T18:50:18.156Z","event":"task-passed","msg":"✓ Task 7/20: `agt cron-tick` exits 1 when project number cannot be parsed from PROJECT.md"}
+{"ts":"2026-04-27T18:50:24.564Z","event":"task-started","msg":"▶ Task 8/20: `agt cron-tick` exits 1 when \"Ready\" option ID is not configured in tracking section"}
+{"ts":"2026-04-27T19:00:51.721Z","event":"task-passed","msg":"✓ Task 8/20: `agt cron-tick` exits 1 when \"Ready\" option ID is not configured in tracking section"}
+{"ts":"2026-04-27T19:00:58.290Z","event":"task-started","msg":"▶ Task 9/20: `agt cron-setup` prints a crontab line with `*/30 * * * *` by default"}
+{"ts":"2026-04-27T19:10:20.870Z","event":"task-passed","msg":"✓ Task 9/20: `agt cron-setup` prints a crontab line with `*/30 * * * *` by default"}
+{"ts":"2026-04-27T19:10:27.754Z","event":"task-started","msg":"▶ Task 10/20: `agt cron-setup --interval 15` prints a crontab line with `*/15 * * * *`"}
+{"ts":"2026-04-27T19:20:50.065Z","event":"task-passed","msg":"✓ Task 10/20: `agt cron-setup --interval 15` prints a crontab line with `*/15 * * * *`"}
+{"ts":"2026-04-27T19:20:54.139Z","event":"progress","msg":"Progress: 10/20 done, 0 blocked."}
+{"ts":"2026-04-27T19:20:56.833Z","event":"task-started","msg":"▶ Task 11/20: `agt cron-setup` single-quotes all paths for shell safety (handles spaces and special characters)"}
+{"ts":"2026-04-27T19:29:27.678Z","event":"task-passed","msg":"✓ Task 11/20: `agt cron-setup` single-quotes all paths for shell safety (handles spaces and special characters)"}
+{"ts":"2026-04-27T19:29:33.983Z","event":"task-started","msg":"▶ Task 12/20: Invalid `--interval` values (0, negative, non-numeric) fall back to 30"}
+{"ts":"2026-04-27T19:37:51.795Z","event":"task-passed","msg":"✓ Task 12/20: Invalid `--interval` values (0, negative, non-numeric) fall back to 30"}
+{"ts":"2026-04-27T19:37:57.876Z","event":"task-started","msg":"▶ Task 13/20: Log lines include ISO timestamp prefix: `[2026-04-26T12:00:00.000Z] cron-tick: ...`"}
+{"ts":"2026-04-27T19:45:43.479Z","event":"task-passed","msg":"✓ Task 13/20: Log lines include ISO timestamp prefix: `[2026-04-26T12:00:00.000Z] cron-tick: ...`"}
+{"ts":"2026-04-27T19:45:49.836Z","event":"task-started","msg":"▶ Task 14/20: `agt cron-tick` end-to-end: picks up a Ready board item, runs it, marks it Done"}
+{"ts":"2026-04-27T19:54:54.797Z","event":"task-passed","msg":"✓ Task 14/20: `agt cron-tick` end-to-end: picks up a Ready board item, runs it, marks it Done"}
+{"ts":"2026-04-27T19:55:00.796Z","event":"task-started","msg":"▶ Task 15/20: `agt cron-tick` failure path: reverts item to Ready with a comment on the issue"}
+{"ts":"2026-04-27T20:04:44.476Z","event":"task-passed","msg":"✓ Task 15/20: `agt cron-tick` failure path: reverts item to Ready with a comment on the issue"}
+{"ts":"2026-04-27T20:04:50.649Z","event":"task-started","msg":"▶ Task 16/20: Concurrent lock prevents double-dispatch (second process exits 0)"}
+{"ts":"2026-04-27T20:17:59.919Z","event":"task-passed","msg":"✓ Task 16/20: Concurrent lock prevents double-dispatch (second process exits 0)"}
+{"ts":"2026-04-27T20:18:06.776Z","event":"task-started","msg":"▶ Task 17/20: Pre-flight validation exits 1 with clear message for each missing config"}
+{"ts":"2026-04-27T20:32:21.840Z","event":"task-passed","msg":"✓ Task 17/20: Pre-flight validation exits 1 with clear message for each missing config"}
+{"ts":"2026-04-27T20:32:28.218Z","event":"task-started","msg":"▶ Task 18/20: `agt cron-setup` prints a valid crontab line with correct paths and configurable interval"}
+{"ts":"2026-04-27T20:41:40.977Z","event":"task-passed","msg":"✓ Task 18/20: `agt cron-setup` prints a valid crontab line with correct paths and configurable interval"}
+{"ts":"2026-04-27T20:41:47.226Z","event":"task-started","msg":"▶ Task 19/20: All unit tests pass (`npm test`) — covering happy path, failure path, lock, config validation, and setup"}
+{"ts":"2026-04-27T21:22:01.873Z","event":"task-passed","msg":"✓ Task 19/20: All unit tests pass (`npm test`) — covering happy path, failure path, lock, config validation, and setup"}
+{"ts":"2026-04-27T21:22:08.017Z","event":"task-started","msg":"▶ Task 20/20: Log lines include ISO timestamps for traceability across tick invocations"}
+{"ts":"2026-04-27T21:28:13.500Z","event":"task-passed","msg":"✓ Task 20/20: Log lines include ISO timestamps for traceability across tick invocations"}
+{"ts":"2026-04-27T21:28:32.561Z","event":"feature-complete","msg":"Feature complete: cron-based-outer-loop — 20/20 done, 0 blocked, 315m 52s, $677.26"}

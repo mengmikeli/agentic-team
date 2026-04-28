@@ -1,0 +1,43 @@
+{
+  "taskId": "task-22",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 3 warning, 7 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T02:45:06.545Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 3,
+    "suggestion": 7
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/extension-system/tasks/task-22/` — Missing handshake.json and artifacts. Commit `9311ed4` message claims \"Circuit breaker has a passing unit test\" but only contains task-21 eval files. Builder should backfill the handshake."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `.team/features/extension-system/tasks/task-21/handshake.json:7` — Handshake summary says \"Timeout enforcement\" but progress.md task 21 is \"Circuit breaker has a passing unit test.\" The handshake describes the wrong task. The actual circuit breaker was implemented in commit `d5163c3` (task-6). Traceability gap — file as process improvement."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/extension-system.test.mjs:618` — `runExecuteRun` success path (`extensions.mjs:224`) resets `consecutiveFailures` but no test covers it; only the `callHook` reset path is tested. Add a test starting at `consecutiveFailures: 2` with a successful `runExecuteRun` call."
+    },
+    {
+      "severity": "critical",
+      "text": "No 🔴 critical or 🟡 warning findings."
+    }
+  ]
+}

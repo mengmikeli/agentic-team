@@ -1,0 +1,59 @@
+{
+  "taskId": "task-10",
+  "nodeType": "review",
+  "runId": "run_1",
+  "status": "failed",
+  "verdict": "FAIL",
+  "summary": "Parallel review: FAIL (1 critical, 7 warning, 11 suggestion). Compound gate: PASS",
+  "timestamp": "2026-04-27T08:24:55.785Z",
+  "artifacts": [
+    {
+      "type": "evaluation",
+      "path": "eval.md"
+    }
+  ],
+  "findings": {
+    "critical": 1,
+    "warning": 7,
+    "suggestion": 11
+  },
+  "compoundGate": {
+    "tripped": 0,
+    "layers": [],
+    "verdict": "PASS"
+  },
+  "findingsList": [
+    {
+      "severity": "warning",
+      "text": "🟡 test/parsers.test.mjs:1028 — Two integration tests are flaky (temp directory race condition); pass in isolation but fail intermittently in full suite. Add per-test subdirectory isolation."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/parsers.mjs:1 — Module named `parsers.mjs` but SPEC says `validator-parsers.mjs`; export `parseProblemMatcher` vs SPEC's `parseGhaMatcher`. Task-11 explicitly checks for `validator-parsers.mjs` — this naming mismatch will cause that task to fail."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/run.mjs:100 — `writeGateArtifacts()` called without try/catch in `runGateInline`; `cmdGate` has error recovery for the same path. Parity gap — add to backlog."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 test/worktree.test.mjs:220 — All 8 `runGateInline` tests pass `null` for taskId, so the artifact-writing branch (run.mjs:92-112) is never exercised. Add one test with a real taskId to verify handshake.json and validator-findings.json are written to disk."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 bin/lib/gate.mjs:286 — The `internalError` catch block was added to fix the previous round's SyntaxError but has no direct test. Consider a test that mocks an internal throw to verify the `internalError` JSON output."
+    },
+    {
+      "severity": "critical",
+      "text": "🔴 `test/parsers.test.mjs:4` — `isUnsafeTaskId` and `buildConfigOverride` are imported but never called in any test case. Dead code; remove from import."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:792+1392` — `setupGateFeature` and `setupFeature` are near-identical 14-line functions. Extract a shared factory."
+    },
+    {
+      "severity": "warning",
+      "text": "🟡 `test/parsers.test.mjs:1166` — `const __dirname` duplicates module-scope `__testDirname` (line 13). Reuse `__testDirname`."
+    }
+  ]
+}
