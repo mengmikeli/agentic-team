@@ -753,7 +753,7 @@ switch (command) {
                 }
                 // Collect review rounds
                 for (let r = 1; r <= 5; r++) {
-                  const rPath = join(tasksDir, td.name, \`handshake-round-\${r}.json\`);
+                  const rPath = join(tasksDir, td.name, `handshake-round-${r}.json`);
                   if (fs.existsSync(rPath)) {
                     try { taskData.rounds.push(JSON.parse(fs.readFileSync(rPath, "utf8"))); } catch {}
                   }
