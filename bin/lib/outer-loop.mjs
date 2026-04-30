@@ -531,9 +531,9 @@ export function parseRoadmap(productContent) {
   if (!roadmapSection) return [];
 
   const items = [...roadmapSection[1].matchAll(/^\d+\.\s*\*\*(.+?)\*\*\s*[-—]\s*(.+)$/gm)];
-  return items.map(m => ({
+  return items.map((m, i) => ({
     name: m[1].trim(),
-    description: m[2].trim(),
+    index: i + 1,    description: m[2].trim(),
     done: /✅\s*Done/i.test(m[2]),
   }));
 }
