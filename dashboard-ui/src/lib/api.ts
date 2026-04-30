@@ -41,6 +41,12 @@ export const api = {
     return data || { issues: [], repoUrl: null };
   },
 
+  async getFeatureDetail(projectPath: string, featureName: string): Promise<any> {
+    const path = encodeURIComponent(projectPath);
+    const name = encodeURIComponent(featureName);
+    return apiFetch<any>(`/api/feature-detail?path=${path}&name=${name}`) || {};
+  },
+
   async getBacklog(projectPath: string): Promise<BacklogItem[]> {
     const path = encodeURIComponent(projectPath);
     const data = await apiFetch<BacklogItem[]>(`/api/backlog?path=${path}`);

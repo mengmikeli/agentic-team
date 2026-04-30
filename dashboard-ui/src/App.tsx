@@ -179,6 +179,7 @@ function App() {
                   <FeatureDetail
                     feature={features.find(f => f.name === selectedFeature) || null}
                     onClose={() => setSelectedFeature(null)}
+                    projectPath={currentProject?.rawPath}
                   />
                 ) : (
                   <TaskBoard

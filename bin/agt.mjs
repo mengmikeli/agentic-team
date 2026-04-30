@@ -722,6 +722,49 @@ switch (command) {
             } catch {}
             return jsonRes(res, { issues: [], repoUrl: null });
           }
+          if (pathname === "/api/feature-detail") {
+            const pp = expandTilde(url.searchParams.get("path") || process.cwd());
+            const name = url.searchParams.get("name");
+            if (!name) return jsonRes(res, { error: "name required" }, 400);
+            const featDir = join(pp, ".team", "features", name);
+            if (!fs.existsSync(featDir)) return jsonRes(res, { error: "not found" }, 404);
+            
+            const detail = { name, progress: null, tasks: [] };
+            
+            // Read progress.md
+            const progressPath = join(featDir, "progress.md");
+            if (fs.existsSync(progressPath)) {
+              detail.progress = fs.readFileSync(progressPath, "utf8");
+            }
+            
+            // Read task handshakes
+            const tasksDir = join(featDir, "tasks");
+            if (fs.existsSync(tasksDir)) {
+              for (const td of fs.readdirSync(tasksDir, { withFileTypes: true })) {
+                if (!td.isDirectory()) continue;
+                const taskData = { id: td.name, handshake: null, eval: null, rounds: [] };
+                const hsPath = join(tasksDir, td.name, "handshake.json");
+                if (fs.existsSync(hsPath)) {
+                  try { taskData.handshake = JSON.parse(fs.readFileSync(hsPath, "utf8")); } catch {}
+                }
+                const evalPath = join(tasksDir, td.name, "eval.md");
+                if (fs.existsSync(evalPath)) {
+                  taskData.eval = fs.readFileSync(evalPath, "utf8");
+                }
+                // Collect review rounds
+                for (let r = 1; r <= 5; r++) {
+                  const rPath = join(tasksDir, td.name, \`handshake-round-\${r}.json\`);
+                  if (fs.existsSync(rPath)) {
+                    try { taskData.rounds.push(JSON.parse(fs.readFileSync(rPath, "utf8"))); } catch {}
+                  }
+                }
+                detail.tasks.push(taskData);
+              }
+              detail.tasks.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
+            }
+            
+            return jsonRes(res, detail);
+          }
           if (pathname === "/api/backlog") {
             const pp = expandTilde(url.searchParams.get("path") || process.cwd());
             const backlog = [];

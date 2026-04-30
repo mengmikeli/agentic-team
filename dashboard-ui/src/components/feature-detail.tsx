@@ -2,10 +2,12 @@ import type { Feature } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { humanizeName } from '@/lib/utils';
 import { X } from 'lucide-react';
+import { ExecutionSteps } from './execution-steps';
 
 interface FeatureDetailProps {
   feature: Feature | null;
   onClose: () => void;
+  projectPath?: string;
 }
 
 function fmtCost(v: number) { return Number.isFinite(v) ? `$${v.toFixed(2)}` : '—'; }
@@ -23,7 +25,7 @@ function fmtK(v: number) {
   return String(v);
 }
 
-export function FeatureDetail({ feature, onClose }: FeatureDetailProps) {
+export function FeatureDetail({ feature, onClose, projectPath }: FeatureDetailProps) {
   if (!feature) {
     return (
       <Card>
@@ -57,6 +59,12 @@ export function FeatureDetail({ feature, onClose }: FeatureDetailProps) {
         ) : (
           <TokenBreakdown feature={feature} tokenUsage={tokenUsage} />
         )}
+      {/* Execution Steps */}
+      {feature && projectPath && (
+        <div className="mt-4 pt-4 border-t">
+          <ExecutionSteps featureName={feature.name} projectPath={projectPath} />
+        </div>
+      )}
       </CardContent>
     </Card>
   );
